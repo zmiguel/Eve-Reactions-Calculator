@@ -3,7 +3,7 @@ var router = express.Router();
 
 /* GET home page. */
 router.get('/', function(req, res, next) {
-  res.render('index', { title: 'EVE Reactions Calculator', root: true});
+	res.render('index', { title: 'EVE Reactions Calculator', root: true});
 });
 
 module.exports = router;

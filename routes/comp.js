@@ -6,5 +6,4 @@ router.get('/', function(req, res, next) {
 	res.render('index', { title: 'Composite Reactions', comp: true});
 });
 
-
 module.exports = router;
