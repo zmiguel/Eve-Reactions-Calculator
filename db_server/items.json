@@ -1,506 +1,509 @@
-[
- {
-   "NAME": "Tritanium",
-   "TypeID": 34
- },
- {
-   "NAME": "Pyerite",
-   "TypeID": 35
- },
- {
-   "NAME": "Mexallon",
-   "TypeID": 36
- },
- {
-   "NAME": "Isogen",
-   "TypeID": 37
- },
- {
-   "NAME": "Nocxium",
-   "TypeID": 38
- },
- {
-   "NAME": "Zydrine",
-   "TypeID": 39
- },
- {
-   "NAME": "Megacyte",
-   "TypeID": 40
- },
- {
-   "NAME": "nitrogen fuel block",
-   "TypeID": 4051
- },
- {
-   "NAME": "hydrogen fuel block",
-   "TypeID": 4246
- },
- {
-   "NAME": "helium fuel block",
-   "TypeID": 4247
- },
- {
-   "NAME": "oxygen fuel block",
-   "TypeID": 4312
- },
- {
-   "NAME": "hydrocarbons",
-   "TypeID": 16633
- },
- {
-   "NAME": "atmospheric gases",
-   "TypeID": 16634
- },
- {
-   "NAME": "evaporite deposits",
-   "TypeID": 16635
- },
- {
-   "NAME": "silicates",
-   "TypeID": 16636
- },
- {
-   "NAME": "tungsten",
-   "TypeID": 16637
- },
- {
-   "NAME": "titanium",
-   "TypeID": 16638
- },
- {
-   "NAME": "scandium",
-   "TypeID": 16639
- },
- {
-   "NAME": "cobalt",
-   "TypeID": 16640
- },
- {
-   "NAME": "chromium",
-   "TypeID": 16641
- },
- {
-   "NAME": "vanadium",
-   "TypeID": 16642
- },
- {
-   "NAME": "cadmium",
-   "TypeID": 16643
- },
- {
-   "NAME": "platinum",
-   "TypeID": 16644
- },
- {
-   "NAME": "mercury",
-   "TypeID": 16646
- },
- {
-   "NAME": "caesium",
-   "TypeID": 16647
- },
- {
-   "NAME": "hafnium",
-   "TypeID": 16648
- },
- {
-   "NAME": "technetium",
-   "TypeID": 16649
- },
- {
-   "NAME": "dysprosium",
-   "TypeID": 16650
- },
- {
-   "NAME": "neodymium",
-   "TypeID": 16651
- },
- {
-   "NAME": "promethium",
-   "TypeID": 16652
- },
- {
-   "NAME": "thulium",
-   "TypeID": 16653
- },
- {
-   "NAME": "Titanium Chromide",
-   "TypeID": 16654
- },
- {
-   "NAME": "Crystallite Alloy",
-   "TypeID": 16655
- },
- {
-   "NAME": "Fernite Alloy",
-   "TypeID": 16656
- },
- {
-   "NAME": "Rolled Tungsten Alloy",
-   "TypeID": 16657
- },
- {
-   "NAME": "Silicon Diborite",
-   "TypeID": 16658
- },
- {
-   "NAME": "Carbon Polymers",
-   "TypeID": 16659
- },
- {
-   "NAME": "Ceramic Powder",
-   "TypeID": 16660
- },
- {
-   "NAME": "Sulfuric Acid",
-   "TypeID": 16661
- },
- {
-   "NAME": "Platinum Technite",
-   "TypeID": 16662
- },
- {
-   "NAME": "Caesarium Cadmide",
-   "TypeID": 16663
- },
- {
-   "NAME": "Solerium",
-   "TypeID": 16664
- },
- {
-   "NAME": "Hexite",
-   "TypeID": 16665
- },
- {
-   "NAME": "Hyperflurite",
-   "TypeID": 16666
- },
- {
-   "NAME": "Neo Mercurite",
-   "TypeID": 16667
- },
- {
-   "NAME": "Dysporite",
-   "TypeID": 16668
- },
- {
-   "NAME": "Ferrofluid",
-   "TypeID": 16669
- },
- {
-   "NAME": "Terahertz Metamaterials",
-   "TypeID": 16671
- },
- {
-   "NAME": "Titanium Carbide",
-   "TypeID": 16672
- },
- {
-   "NAME": "Fermionic Condensates",
-   "TypeID": 16673
- },
- {
-   "NAME": "Plasmonic Metamaterials",
-   "TypeID": 16678
- },
- {
-   "NAME": "Ferrogel",
-   "TypeID": 16679
- },
- {
-   "NAME": "Nonlinear Metamaterials",
-   "TypeID": 16680
- },
- {
-   "NAME": "Hypersynaptic Fibers",
-   "TypeID": 16681
- },
- {
-   "NAME": "Fullerides",
-   "TypeID": 16682
- },
- {
-   "NAME": "Fernite Carbide",
-   "TypeID": 16683
- },
- {
-   "NAME": "Crystalline Carbonide",
-   "TypeID": 17317
- },
- {
-   "NAME": "Fluxed Condensates",
-   "TypeID": 17769
- },
- {
-   "NAME": "Vanadium Hafnite",
-   "TypeID": 17959
- },
- {
-   "NAME": "Prometium",
-   "TypeID": 17960
- },
- {
-   "NAME": "Thulium Hafnite",
-   "TypeID": 33336
- },
- {
-   "NAME": "Promethium Mercurite",
-   "TypeID": 33337
- },
- {
-   "NAME": "Phenolic Composites",
-   "TypeID": 33359
- },
- {
-   "NAME": "Sylramic Fibers",
-   "TypeID": 33360
- },
- {
-   "NAME": "Photonic Metamaterials",
-   "TypeID": 33361
- },
- {
-   "NAME": "Nanotransistors",
-   "TypeID": 33362
- },
- {
-   "NAME": "zeolites",
-   "TypeID": 45490
- },
- {
-   "NAME": "sylvite",
-   "TypeID": 45491
- },
- {
-   "NAME": "bitumens",
-   "TypeID": 45492
- },
- {
-   "NAME": "coesite",
-   "TypeID": 45493
- },
- {
-   "NAME": "cobaltite",
-   "TypeID": 45494
- },
- {
-   "NAME": "euxenite",
-   "TypeID": 45495
- },
- {
-   "NAME": "titanite",
-   "TypeID": 45496
- },
- {
-   "NAME": "scheelite",
-   "TypeID": 45497
- },
- {
-   "NAME": "otavite",
-   "TypeID": 45498
- },
- {
-   "NAME": "sperrylite",
-   "TypeID": 45499
- },
- {
-   "NAME": "vanadinite",
-   "TypeID": 45500
- },
- {
-   "NAME": "chromite",
-   "TypeID": 45501
- },
- {
-   "NAME": "carnotite",
-   "TypeID": 45502
- },
- {
-   "NAME": "zircon",
-   "TypeID": 45503
- },
- {
-   "NAME": "pollucite",
-   "TypeID": 45504
- },
- {
-   "NAME": "cinnabar",
-   "TypeID": 45506
- },
- {
-   "NAME": "xenotime",
-   "TypeID": 45510
- },
- {
-   "NAME": "monazite",
-   "TypeID": 45511
- },
- {
-   "NAME": "loparite",
-   "TypeID": 45512
- },
- {
-   "NAME": "ytterbite",
-   "TypeID": 45513
- },
- {
-   "NAME": "brimful zeolites",
-   "TypeID": 46280
- },
- {
-   "NAME": "glistening zeolites",
-   "TypeID": 46281
- },
- {
-   "NAME": "brimful sylvite",
-   "TypeID": 46282
- },
- {
-   "NAME": "glistening sylvite",
-   "TypeID": 46283
- },
- {
-   "NAME": "brimful bitumens",
-   "TypeID": 46284
- },
- {
-   "NAME": "glistening bitumens",
-   "TypeID": 46285
- },
- {
-   "NAME": "brimful coesite",
-   "TypeID": 46286
- },
- {
-   "NAME": "glistening coesite",
-   "TypeID": 46287
- },
- {
-   "NAME": "copious cobaltite",
-   "TypeID": 46288
- },
- {
-   "NAME": "twinkling cobaltite",
-   "TypeID": 46289
- },
- {
-   "NAME": "copious euxenite",
-   "TypeID": 46290
- },
- {
-   "NAME": "twinkling euxenite",
-   "TypeID": 46291
- },
- {
-   "NAME": "copious titanite",
-   "TypeID": 46292
- },
- {
-   "NAME": "twinkling titanite",
-   "TypeID": 46293
- },
- {
-   "NAME": "copious scheelite",
-   "TypeID": 46294
- },
- {
-   "NAME": "twinkling scheelite",
-   "TypeID": 46295
- },
- {
-   "NAME": "lavish otavite",
-   "TypeID": 46296
- },
- {
-   "NAME": "shimmering otavite",
-   "TypeID": 46297
- },
- {
-   "NAME": "lavish sperrylite",
-   "TypeID": 46298
- },
- {
-   "NAME": "shimmering sperrylite",
-   "TypeID": 46299
- },
- {
-   "NAME": "lavish vanadinite",
-   "TypeID": 46300
- },
- {
-   "NAME": "shimmering vanadinite",
-   "TypeID": 46301
- },
- {
-   "NAME": "lavish chromite",
-   "TypeID": 46302
- },
- {
-   "NAME": "shimmering chromite",
-   "TypeID": 46303
- },
- {
-   "NAME": "replete carnotite",
-   "TypeID": 46304
- },
- {
-   "NAME": "glowing carnotite",
-   "TypeID": 46305
- },
- {
-   "NAME": "replete zircon",
-   "TypeID": 46306
- },
- {
-   "NAME": "glowing zircon",
-   "TypeID": 46307
- },
- {
-   "NAME": "replete pollucite",
-   "TypeID": 46308
- },
- {
-   "NAME": "glowing pollucite",
-   "TypeID": 46309
- },
- {
-   "NAME": "replete cinnabar",
-   "TypeID": 46310
- },
- {
-   "NAME": "glowing cinnabar",
-   "TypeID": 46311
- },
- {
-   "NAME": "bountiful xenotime",
-   "TypeID": 46312
- },
- {
-   "NAME": "shining xenotime",
-   "TypeID": 46313
- },
- {
-   "NAME": "bountiful monazite",
-   "TypeID": 46314
- },
- {
-   "NAME": "shining monazite",
-   "TypeID": 46315
- },
- {
-   "NAME": "bountiful loparite",
-   "TypeID": 46316
- },
- {
-   "NAME": "shining loparite",
-   "TypeID": 46317
- },
- {
-   "NAME": "bountiful ytterbite",
-   "TypeID": 46318
- },
- {
-   "NAME": "shining ytterbite",
-   "TypeID": 46319
- }
+[{
+        "TypeID": 34,
+        "NAME": "Tritanium"
+    },
+    {
+        "TypeID": 35,
+        "NAME": "Pyerite"
+    },
+    {
+        "TypeID": 36,
+        "NAME": "Mexallon"
+    },
+    {
+        "TypeID": 37,
+        "NAME": "Isogen"
+    },
+    {
+        "TypeID": 38,
+        "NAME": "Nocxium"
+    },
+    {
+        "TypeID": 39,
+        "NAME": "Zydrine"
+    },
+    {
+        "TypeID": 40,
+        "NAME": "Megacyte"
+    },
+    {
+        "TypeID": 4051,
+        "NAME": "nitrogen fuel block"
+    },
+    {
+        "TypeID": 4246,
+        "NAME": "hydrogen fuel block"
+    },
+    {
+        "TypeID": 4247,
+        "NAME": "helium fuel block"
+    },
+    {
+        "TypeID": 4312,
+        "NAME": "oxygen fuel block"
+    },
+    {
+        "TypeID": 16633,
+        "NAME": "hydrocarbons"
+    },
+    {
+        "TypeID": 16634,
+        "NAME": "atmospheric gases"
+    },
+    {
+        "TypeID": 16635,
+        "NAME": "evaporite deposits"
+    },
+    {
+        "TypeID": 16636,
+        "NAME": "silicates"
+    },
+    {
+        "TypeID": 16637,
+        "NAME": "tungsten"
+    },
+    {
+        "TypeID": 16638,
+        "NAME": "titanium"
+    },
+    {
+        "TypeID": 16639,
+        "NAME": "scandium"
+    },
+    {
+        "TypeID": 16640,
+        "NAME": "cobalt"
+    },
+    {
+        "TypeID": 16641,
+        "NAME": "chromium"
+    },
+    {
+        "TypeID": 16642,
+        "NAME": "vanadium"
+    },
+    {
+        "TypeID": 16643,
+        "NAME": "cadmium"
+    },
+    {
+        "TypeID": 16644,
+        "NAME": "platinum"
+    },
+    {
+        "TypeID": 16646,
+        "NAME": "mercury"
+    },
+    {
+        "TypeID": 16647,
+        "NAME": "caesium"
+    },
+    {
+        "TypeID": 16648,
+        "NAME": "hafnium"
+    },
+    {
+        "TypeID": 16649,
+        "NAME": "technetium"
+    },
+    {
+        "TypeID": 16650,
+        "NAME": "dysprosium"
+    },
+    {
+        "TypeID": 16651,
+        "NAME": "neodymium"
+    },
+    {
+        "TypeID": 16652,
+        "NAME": "promethium"
+    },
+    {
+        "TypeID": 16653,
+        "NAME": "thulium"
+    },
+    {
+        "TypeID": 16654,
+        "NAME": "Titanium Chromide"
+    },
+    {
+        "TypeID": 16655,
+        "NAME": "Crystallite Alloy"
+    },
+    {
+        "TypeID": 16656,
+        "NAME": "Fernite Alloy"
+    },
+    {
+        "TypeID": 16657,
+        "NAME": "Rolled Tungsten Alloy"
+    },
+    {
+        "TypeID": 16658,
+        "NAME": "Silicon Diborite"
+    },
+    {
+        "TypeID": 16659,
+        "NAME": "Carbon Polymers"
+    },
+    {
+        "TypeID": 16660,
+        "NAME": "Ceramic Powder"
+    },
+    {
+        "TypeID": 16661,
+        "NAME": "Sulfuric Acid"
+    },
+    {
+        "TypeID": 16662,
+        "NAME": "Platinum Technite"
+    },
+    {
+        "TypeID": 16663,
+        "NAME": "Caesarium Cadmide"
+    },
+    {
+        "TypeID": 16664,
+        "NAME": "Solerium"
+    },
+    {
+        "TypeID": 16665,
+        "NAME": "Hexite"
+    },
+    {
+        "TypeID": 16666,
+        "NAME": "Hyperflurite"
+    },
+    {
+        "TypeID": 16667,
+        "NAME": "Neo Mercurite"
+    },
+    {
+        "TypeID": 16668,
+        "NAME": "Dysporite"
+    },
+    {
+        "TypeID": 16669,
+        "NAME": "Ferrofluid"
+    },
+    {
+        "TypeID": 16670,
+        "NAME": "Crystalline Carbonide"
+    },
+    {
+        "TypeID": 16671,
+        "NAME": "Titanium Carbide"
+    },
+    {
+        "TypeID": 16672,
+        "NAME": "Tungsten Carbide"
+    },
+    {
+        "TypeID": 16673,
+        "NAME": "Fernite Carbide"
+    },
+    {
+        "TypeID": 16678,
+        "NAME": "Sylramic Fibers"
+    },
+    {
+        "TypeID": 16679,
+        "NAME": "Fullerides"
+    },
+    {
+        "TypeID": 16680,
+        "NAME": "Phenolic Composites"
+    },
+    {
+        "TypeID": 16681,
+        "NAME": "Nanotransistors"
+    },
+    {
+        "TypeID": 16682,
+        "NAME": "Hypersynaptic Fibers"
+    },
+    {
+        "TypeID": 16683,
+        "NAME": "Ferrogel"
+    },
+    {
+        "TypeID": 17317,
+        "NAME": "Fermionic Condensates"
+    },
+    {
+        "TypeID": 17769,
+        "NAME": "Fluxed Condensates"
+    },
+    {
+        "TypeID": 17959,
+        "NAME": "Vanadium Hafnite"
+    },
+    {
+        "TypeID": 17960,
+        "NAME": "Prometium"
+    },
+    {
+        "TypeID": 33336,
+        "NAME": "Thulium Hafnite"
+    },
+    {
+        "TypeID": 33337,
+        "NAME": "Promethium Mercurite"
+    },
+    {
+        "TypeID": 33359,
+        "NAME": "Photonic Metamaterials"
+    },
+    {
+        "TypeID": 33360,
+        "NAME": "Terahertz Metamaterials"
+    },
+    {
+        "TypeID": 33361,
+        "NAME": "Plasmonic Metamaterials"
+    },
+    {
+        "TypeID": 33362,
+        "NAME": "Nonlinear Metamaterials"
+    },
+    {
+        "TypeID": 45490,
+        "NAME": "zeolites"
+    },
+    {
+        "TypeID": 45491,
+        "NAME": "sylvite"
+    },
+    {
+        "TypeID": 45492,
+        "NAME": "bitumens"
+    },
+    {
+        "TypeID": 45493,
+        "NAME": "coesite"
+    },
+    {
+        "TypeID": 45494,
+        "NAME": "cobaltite"
+    },
+    {
+        "TypeID": 45495,
+        "NAME": "euxenite"
+    },
+    {
+        "TypeID": 45496,
+        "NAME": "titanite"
+    },
+    {
+        "TypeID": 45497,
+        "NAME": "scheelite"
+    },
+    {
+        "TypeID": 45498,
+        "NAME": "otavite"
+    },
+    {
+        "TypeID": 45499,
+        "NAME": "sperrylite"
+    },
+    {
+        "TypeID": 45500,
+        "NAME": "vanadinite"
+    },
+    {
+        "TypeID": 45501,
+        "NAME": "chromite"
+    },
+    {
+        "TypeID": 45502,
+        "NAME": "carnotite"
+    },
+    {
+        "TypeID": 45503,
+        "NAME": "zircon"
+    },
+    {
+        "TypeID": 45504,
+        "NAME": "pollucite"
+    },
+    {
+        "TypeID": 45506,
+        "NAME": "cinnabar"
+    },
+    {
+        "TypeID": 45510,
+        "NAME": "xenotime"
+    },
+    {
+        "TypeID": 45511,
+        "NAME": "monazite"
+    },
+    {
+        "TypeID": 45512,
+        "NAME": "loparite"
+    },
+    {
+        "TypeID": 45513,
+        "NAME": "ytterbite"
+    },
+    {
+        "TypeID": 46280,
+        "NAME": "brimful zeolites"
+    },
+    {
+        "TypeID": 46281,
+        "NAME": "glistening zeolites"
+    },
+    {
+        "TypeID": 46282,
+        "NAME": "brimful sylvite"
+    },
+    {
+        "TypeID": 46283,
+        "NAME": "glistening sylvite"
+    },
+    {
+        "TypeID": 46284,
+        "NAME": "brimful bitumens"
+    },
+    {
+        "TypeID": 46285,
+        "NAME": "glistening bitumens"
+    },
+    {
+        "TypeID": 46286,
+        "NAME": "brimful coesite"
+    },
+    {
+        "TypeID": 46287,
+        "NAME": "glistening coesite"
+    },
+    {
+        "TypeID": 46288,
+        "NAME": "copious cobaltite"
+    },
+    {
+        "TypeID": 46289,
+        "NAME": "twinkling cobaltite"
+    },
+    {
+        "TypeID": 46290,
+        "NAME": "copious euxenite"
+    },
+    {
+        "TypeID": 46291,
+        "NAME": "twinkling euxenite"
+    },
+    {
+        "TypeID": 46292,
+        "NAME": "copious titanite"
+    },
+    {
+        "TypeID": 46293,
+        "NAME": "twinkling titanite"
+    },
+    {
+        "TypeID": 46294,
+        "NAME": "copious scheelite"
+    },
+    {
+        "TypeID": 46295,
+        "NAME": "twinkling scheelite"
+    },
+    {
+        "TypeID": 46296,
+        "NAME": "lavish otavite"
+    },
+    {
+        "TypeID": 46297,
+        "NAME": "shimmering otavite"
+    },
+    {
+        "TypeID": 46298,
+        "NAME": "lavish sperrylite"
+    },
+    {
+        "TypeID": 46299,
+        "NAME": "shimmering sperrylite"
+    },
+    {
+        "TypeID": 46300,
+        "NAME": "lavish vanadinite"
+    },
+    {
+        "TypeID": 46301,
+        "NAME": "shimmering vanadinite"
+    },
+    {
+        "TypeID": 46302,
+        "NAME": "lavish chromite"
+    },
+    {
+        "TypeID": 46303,
+        "NAME": "shimmering chromite"
+    },
+    {
+        "TypeID": 46304,
+        "NAME": "replete carnotite"
+    },
+    {
+        "TypeID": 46305,
+        "NAME": "glowing carnotite"
+    },
+    {
+        "TypeID": 46306,
+        "NAME": "replete zircon"
+    },
+    {
+        "TypeID": 46307,
+        "NAME": "glowing zircon"
+    },
+    {
+        "TypeID": 46308,
+        "NAME": "replete pollucite"
+    },
+    {
+        "TypeID": 46309,
+        "NAME": "glowing pollucite"
+    },
+    {
+        "TypeID": 46310,
+        "NAME": "replete cinnabar"
+    },
+    {
+        "TypeID": 46311,
+        "NAME": "glowing cinnabar"
+    },
+    {
+        "TypeID": 46312,
+        "NAME": "bountiful xenotime"
+    },
+    {
+        "TypeID": 46313,
+        "NAME": "shining xenotime"
+    },
+    {
+        "TypeID": 46314,
+        "NAME": "bountiful monazite"
+    },
+    {
+        "TypeID": 46315,
+        "NAME": "shining monazite"
+    },
+    {
+        "TypeID": 46316,
+        "NAME": "bountiful loparite"
+    },
+    {
+        "TypeID": 46317,
+        "NAME": "shining loparite"
+    },
+    {
+        "TypeID": 46318,
+        "NAME": "bountiful ytterbite"
+    },
+    {
+        "TypeID": 46319,
+        "NAME": "shining ytterbite"
+    }
 ]

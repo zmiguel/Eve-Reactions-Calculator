@@ -1,0 +1,96 @@
+{
+    "_id": "composite",
+    "reaction": [{
+            "name": "Sulfuric Acid",
+            "id": 16661,
+            "type": "simple",
+            "inputs": [{
+                    "id": 16634,
+                    "qt": 100
+                },
+                {
+                    "id": 16635,
+                    "qt": 100
+                },
+                {
+                    "id": 4051,
+                    "qt": 5
+                }
+            ],
+            "output": {
+                "id": 16661,
+                "qt": 200
+            }
+        },
+        {
+            "name": "Platinum Technite",
+            "id": 16662,
+            "type": "simple",
+            "inputs": [{
+                    "id": 16644,
+                    "qt": 100
+                },
+                {
+                    "id": 16649,
+                    "qt": 100
+                },
+                {
+                    "id": 4051,
+                    "qt": 5
+                }
+            ],
+            "output": {
+                "id": 16662,
+                "qt": 200
+            }
+        },
+        {
+            "name": "Neo Mercurite",
+            "id": 16667,
+            "type": "simple",
+            "inputs": [{
+                    "id": 16646,
+                    "qt": 100
+                },
+                {
+                    "id": 16651,
+                    "qt": 100
+                },
+                {
+                    "id": 4247,
+                    "qt": 5
+                }
+            ],
+            "output": {
+                "id": 16667,
+                "qt": 200
+            }
+        },
+        {
+            "name": "Nanotransistors",
+            "id": 16681,
+            "type": "complex",
+            "inputs": [{
+                    "id": 16661,
+                    "qt": 100
+                },
+                {
+                    "id": 16662,
+                    "qt": 100
+                },
+                {
+                    "id": 16667,
+                    "qt": 100
+                },
+                {
+                    "id": 4051,
+                    "qt": 5
+                }
+            ],
+            "output": {
+                "id": 16681,
+                "qt": 1500
+            }
+        }
+    ]
+}

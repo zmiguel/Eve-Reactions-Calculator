@@ -6,14 +6,17 @@
     "start": "node ./bin/www"
   },
   "dependencies": {
+    "async": "^2.6.0",
     "body-parser": "~1.17.1",
     "cluster": "^0.7.7",
     "cookie-parser": "~1.4.3",
     "debug": "~2.6.3",
     "express": "~4.15.2",
     "hbs": "~4.0.1",
+    "mongodb": "^2.2.33",
     "mongoose": "^4.13.0",
     "morgan": "~1.8.1",
+    "request": "^2.83.0",
     "serve-favicon": "~2.4.2"
   }
 }
