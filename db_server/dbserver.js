@@ -4,11 +4,13 @@ var async = require('async');
 var fs = require('fs');
 var svurl = "mongodb://localhost:27017/eve-reactor";
 var items = require('./items.json');
+var systems = require('./systems.json');
 var marketUrl = "https://market.fuzzwork.co.uk/aggregates/?region=60003760&types=";
 var testMarketUrl = "https://market.fuzzwork.co.uk/aggregates/?region=60003760&types=34,35,36";
 
 //addDaily();
 newUpdateItems();
+updateCostIndex();
 
 function getItemID(name) {
     for (let i = 0; i < items.length; i++) {
@@ -34,6 +36,48 @@ function getDate() {
     return today;
 }
 
+function getSystem(arr, id) {
+    for (let i = 0; i < arr.length; i++) {
+        if (arr[i].solar_system_id === id) {
+            return arr[i];
+        }
+    }
+}
+
+function updateCostIndex() {
+    let esiurl = "https://esi.tech.ccp.is/latest/industry/systems/?datasource=tranquility";
+    request(esiurl, function(err, res, body) {
+        let esi = JSON.parse(body);
+        let sys = [];
+        for (let i = 0; i < systems.length; i++) {
+            let temp = {
+                "updateOne": {
+                    "filter": {
+                        "_id": parseInt(systems[i].solarSystemID)
+                    },
+                    "update": {
+                        "_id": systems[i].solarSystemID,
+                        "name": systems[i].solarSystemName,
+                        "index": getSystem(esi, systems[i].solarSystemID).cost_indices[5].cost_index
+                    }
+                }
+            }
+            sys.push(temp);
+        }
+        mongo.connect(svurl, function(err, db) {
+            if (err) {
+                console.log(err);
+            } else {
+                db.collection('systems').bulkWrite(sys, { "ordered": true, "w": 1 }, function(err, result) {
+                    if (err) throw err;
+                    console.log(result.modifiedCount);
+                    console.log("success!!");
+                    db.close();
+                });
+            }
+        });
+    });
+}
 
 function split50() {
     let arr = [];
@@ -99,8 +143,8 @@ function updateDB(itms) {
                 if (err) throw err;
                 console.log(result.modifiedCount);
                 console.log("success!!");
+                db.close();
             });
-            db.close();
         }
     });
 }
@@ -140,8 +184,8 @@ function addDaily() { //need to re-write this
             } else {
                 db.collection('history').insert(insert, function(err, result) {
                     console.log("success!!");
+                    db.close();
                 });
-                db.close();
             }
         });
     });
