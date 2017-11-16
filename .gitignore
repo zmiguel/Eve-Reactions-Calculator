@@ -32,3 +32,6 @@ npm-debug.log
 # VSCode
 .vscode
 *.vscode
+
+logs
+logs

@@ -121,7 +121,6 @@ router.get('/', function(req, res, next) {
     if (ck.system) {
         var syst = ck.system;
     }
-    console.log("in:", imeth, "out:", ometh, "skill:", skill, "faci:", facility, "rig:", rig, "space:", space, "tax:", indyTax, "system:", syst);
 
     //calc bonus with opts
     var matb = 1;
@@ -258,7 +257,6 @@ router.get('/', function(req, res, next) {
                             "sell": getItem(itemData, reac[i].inputs[inp].id).sell * reac[i].inputs[inp].qt * cycles
                         }
                     } else { //look for input from other reactions
-                        console.log(reac[i].inputs[inp].id, reac[i].name);
                         tmpPrc = {
                             "id": reac[i].inputs[inp].id,
                             "buy": getSimplePrice(calc, reac[i].inputs[inp].id).buy / 2,
