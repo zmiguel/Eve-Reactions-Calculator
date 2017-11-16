@@ -7,11 +7,13 @@ var bodyParser = require('body-parser');
 var async = require('async');
 var mongo = require('mongodb');
 var request = require('request');
+var hbs = require('hbs');
 
 var index = require('./routes/index');
 var comp = require('./routes/comp');
 var bio = require('./routes/bio');
 var hyb = require('./routes/hyb');
+var set = require('./routes/set');
 
 var app = express();
 
@@ -27,10 +29,18 @@ app.use(bodyParser.urlencoded({ extended: false }));
 app.use(cookieParser());
 app.use(express.static(path.join(__dirname, 'public')));
 
+hbs.registerHelper('ifCond', function(v1, v2, options) {
+    if (v1 === v2) {
+        return options.fn(this);
+    }
+    return options.inverse(this);
+});
+
 app.use('/', index);
 app.use('/biochemical', bio);
 app.use('/composite', comp);
 app.use('/hybrid', hyb);
+app.use('/settings', set);
 
 // catch 404 and forward to error handler
 app.use(function(req, res, next) {

@@ -8,7 +8,9 @@ var systems = require('./systems.json');
 var marketUrl = "https://market.fuzzwork.co.uk/aggregates/?region=60003760&types=";
 var testMarketUrl = "https://market.fuzzwork.co.uk/aggregates/?region=60003760&types=34,35,36";
 
-//addDaily();
+//genItems(); //generate base item collection
+
+addDaily();
 newUpdateItems();
 updateCostIndex();
 
@@ -53,7 +55,7 @@ function updateCostIndex() {
             let temp = {
                 "updateOne": {
                     "filter": {
-                        "_id": parseInt(systems[i].solarSystemID)
+                        "_id": systems[i].solarSystemID
                     },
                     "update": {
                         "_id": systems[i].solarSystemID,
@@ -98,6 +100,44 @@ function split50() {
     return arr
 }
 
+function genItems() {
+    idarr = split50();
+    let itms = [];
+    async.map(idarr, function(ids, callback) {
+        request(marketUrl + ids, function(err, res, body) {
+            callback(null, JSON.parse(body));
+        });
+    }, function(err, results) {
+        let arr = [];
+        for (let i = 0; i < results.length; i++) {
+            for (var prop in results[i]) {
+                arr.push(results[i][prop]);
+            }
+        }
+        for (let ii = 0; ii < arr.length; ii++) {
+            let temp = {
+                "_id": items[ii].TypeID,
+                "name": items[ii].NAME,
+                "sell": parseFloat(arr[ii].sell.min),
+                "buy": parseFloat(arr[ii].buy.max),
+                "med": ((parseFloat(arr[ii].sell.min) + parseFloat(arr[ii].buy.max)) / 2)
+            }
+            itms.push(temp);
+        }
+        mongo.connect(svurl, function(err, db) {
+            if (err) {
+                console.log(err);
+            } else {
+                db.collection('items').insertMany(itms, function(err, result) {
+                    if (err) throw err;
+                    console.log("success!!");
+                    db.close();
+                });
+            }
+        });
+    });
+}
+
 function newUpdateItems() {
     idarr = split50();
     let itms = [];
@@ -116,9 +156,10 @@ function newUpdateItems() {
             let temp = {
                 "updateOne": {
                     "filter": {
-                        _id: parseInt(items[ii].TypeID)
+                        "_id": items[ii].TypeID
                     },
                     "update": {
+                        "_id": items[ii].TypeID,
                         "name": items[ii].NAME,
                         "sell": parseFloat(arr[ii].sell.min),
                         "buy": parseFloat(arr[ii].buy.max),
@@ -138,7 +179,6 @@ function updateDB(itms) {
         if (err) {
             console.log(err);
         } else {
-            let querry = {};
             db.collection('items').bulkWrite(itms, { "ordered": true, "w": 1 }, function(err, result) {
                 if (err) throw err;
                 console.log(result.modifiedCount);

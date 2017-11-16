@@ -1,27 +1,104 @@
 <div class="container">
-	<div class="row mt-5">
-		<table class="table">
+	<div class="row mt-4">
+		<table class="table table-sm table-bordered text-center">
         <thead>
-            <th scope="col">Reaction</th>
-            <th scope="col">Chain ?</th>
-            <th scope="col">Inputs</th>
-            <th scope="col">Tax</th>
-            <th scope="col">Output</th>
-            <th scope="col">Profit</th>
-            <th scope="col">% prof</th>
+            <th>In Method</th>
+            <th>Out Method</th>
+            <th>Reactions</th>
+            <th>Facility</th>
+            <th>Rig</th>
+            <th>Space</th>
+            <th>System</th>
+            <th>IndyTax</th>
+            <th>Build Time</th>
         </thead>
         <tbody>
-            {{#table}}
+			<tr class="">
+				<td>{{sett.input}}</td>
+				<td>{{sett.output}}</td>
+				<td>Level {{sett.skill}}</td>
+				<td>{{sett.facility}} Refinery</td>
+				<td>T{{sett.rig}} Rig</td>
+				<td>{{sett.space}}sec</td>
+				<td>{{sett.system}}</td>
+				<td>{{sett.indyTax}}</td>
+				<td>{{sett.duration}} Minutes</td>
+			</tr>
+        </tbody>
+    </table>
+	</div>
+	<div class="row mt-3">
+		<table class="table table-bordered text-center">
+        <tbody>
+			<tr>
+				<td class="bg-info text-white text-center" id="simple" colspan="7">Simple Reactions</td>
+			</tr>
+			<tr>
+				<th scope="col">Reaction</th>
+				<th scope="col">Inputs</th>
+				<th scope="col">Tax</th>
+				<th scope="col">Output</th>
+				<th scope="col">Profit</th>
+				<th scope="col">% prof</th>
+			</tr>
+            {{#stable}}
                 <tr class="text-white {{#if pos}}bg-success{{/if}}{{#if neg}}bg-danger{{/if}}">
                     <td>{{name}}</td>
-                    <td>{{chain}}</td>
-                    <td>{{i}}</td>
-                    <td>{{tax}}</td>
-                    <td>{{o}}</td>
-                    <td>{{prof}}</td>
+                    <td>{{i}} ISK</td>
+                    <td>{{tax}} ISK</td>
+                    <td>{{o}} ISK</td>
+                    <td>{{prof}} ISK</td>
                     <td>{{per}}</td>
                 </tr>
-            {{/table}}
+            {{/stable}}
+			<tr>
+				<td class="" colspan="7"></td>
+			</tr>
+			<tr>
+				<td class="bg-info text-white text-center" id="complex" colspan="7">Complex Reactions</td>
+			</tr>
+			<tr>
+				<th scope="col">Reaction</th>
+				<th scope="col">Inputs</th>
+				<th scope="col">Tax</th>
+				<th scope="col">Output</th>
+				<th scope="col">Profit</th>
+				<th scope="col">% prof</th>
+			</tr>
+			{{#ctable}}
+                <tr class="text-white {{#if pos}}bg-success{{/if}}{{#if neg}}bg-danger{{/if}}">
+                    <td>{{name}}</td>
+                    <td>{{i}} ISK</td>
+                    <td>{{tax}} ISK</td>
+                    <td>{{o}} ISK</td>
+                    <td>{{prof}} ISK</td>
+                    <td>{{per}}</td>
+                </tr>
+            {{/ctable}}
+			<tr>
+				<td class="" colspan="7"></td>
+			</tr>
+			<tr>
+				<td class="bg-info text-white text-center" id="chain" colspan="7">Complex Chain Reactions</td>
+			</tr>
+			<tr>
+				<th scope="col">Reaction</th>
+				<th scope="col">Inputs</th>
+				<th scope="col">Tax</th>
+				<th scope="col">Output</th>
+				<th scope="col">Profit</th>
+				<th scope="col">% prof</th>
+			</tr>
+			{{#chtable}}
+                <tr class="text-white {{#if pos}}bg-success{{/if}}{{#if neg}}bg-danger{{/if}}">
+                    <td>{{name}}</td>
+                    <td>{{i}} ISK</td>
+                    <td>{{tax}} ISK</td>
+                    <td>{{o}} ISK</td>
+                    <td>{{prof}} ISK</td>
+                    <td>{{per}}</td>
+                </tr>
+            {{/chtable}}
         </tbody>
     </table>
 	</div>

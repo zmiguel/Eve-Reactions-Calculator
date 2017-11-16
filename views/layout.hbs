@@ -1,6 +1,15 @@
 <!doctype html>
 <html lang="en">
 <head>
+	<!-- Global site tag (gtag.js) - Google Analytics -->
+	<script async src="https://www.googletagmanager.com/gtag/js?id=UA-109766629-1"></script>
+	<script>
+		window.dataLayer = window.dataLayer || [];
+		function gtag(){dataLayer.push(arguments);}
+		gtag('js', new Date());
+
+		gtag('config', 'UA-109766629-1');
+	</script>
 	<meta charset="UTF-8">
 	<meta name="description" content="EVE Online Reactions profit calculator for the POST-Lifeblood era">
 	<meta name="keywords" content="eve,reactions,lifeblood,profit,money,isk">
@@ -12,6 +21,7 @@
 	<script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0-beta.2/js/bootstrap.min.js" integrity="sha384-alpBpkh1PFOepccYVYDB4do5UnbKysX5WZXm3XxPqe5iKTfUKjNkCk9SaVuEZflJ" crossorigin="anonymous"></script>
 	<link rel="stylesheet" href="/stylesheets/style.css">
 	<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0-beta.2/css/bootstrap.min.css" integrity="sha384-PsH8R72JQ3SOdhVi3uxftmaW6Vc51MKb0q5P2rRUpPvrszuE4W1povHYgTpBfshb" crossorigin="anonymous">
+	<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css">
 </head>
 <body>
 	<nav class="navbar navbar-expand-lg navbar-dark bg-dark fixed-top">
@@ -35,6 +45,9 @@
 				</li>
 				<li class="nav-item {{#if hyb}}active{{/if}}">
 					<a class="nav-link" href="/hybrid">Hybrid</a>
+				</li>
+				<li class="nav-item {{#if set}}active{{/if}}">
+					<a class="nav-link" href="/settings">Settings</a>
 				</li>
 			</ul>
 		</div>
