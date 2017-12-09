@@ -18,3 +18,11 @@ a {
     /* Vertically center the text there */
     background-color: #f5f5f5;
 }
+
+.isk::after{
+	content: " ISK";
+}
+
+.col-sm-12{
+	padding: 0 !important;
+}

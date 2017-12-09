@@ -11,7 +11,7 @@ var svurl = "mongodb://localhost:27017/eve-reactor";
 
 function getCostIndex(sys, name) {
     for (let i = 0; i < sys.length; i++) {
-        if (sys[i].name.toUpperCase() === name.toUpperCase()) {
+        if (sys[i].name.toLowerCase() === name.toLowerCase()) {
             return sys[i].index;
         }
     }
@@ -65,15 +65,15 @@ router.get('/', function(req, res, next) {
     //set cookies if not found
     var ck = req.cookies;
     //console.log(ck);
-    if (!ck.input) { res.cookie('input', 'buy'); var imeth = "buy"; }
-    if (!ck.output) { res.cookie('output', 'sell'); var ometh = "sell"; }
-    if (!ck.skill) { res.cookie('skill', 5); var skill = 5; }
-    if (!ck.facility) { res.cookie('facility', 'large'); var facility = "large"; }
-    if (!ck.rig) { res.cookie('rig', 1); var rig = 1; var rige = true; }
-    if (!ck.space) { res.cookie('space', 'null'); var space = "null"; }
-    if (!ck.indyTax) { res.cookie('indyTax', 0); var indyTax = 0; }
-    if (!ck.duration) { res.cookie('duration', 10080); var duration = 10080; }
-    if (!ck.system) { res.cookie('system', 'Basgerin'); var syst = "Basgerin" }
+    if (!ck.input) { res.cookie('input', 'buy', { maxAge: 31556952000,  }); var imeth = "buy"; }
+    if (!ck.output) { res.cookie('output', 'sell', { maxAge: 31556952000,  }); var ometh = "sell"; }
+    if (!ck.skill) { res.cookie('skill', 5, { maxAge: 31556952000,  }); var skill = 5; }
+    if (!ck.facility) { res.cookie('facility', 'large', { maxAge: 31556952000,  }); var facility = "large"; }
+    if (!ck.rig) { res.cookie('rig', 1, { maxAge: 31556952000,  }); var rig = 1; var rige = true; }
+    if (!ck.space) { res.cookie('space', 'null', { maxAge: 31556952000,  }); var space = "null"; }
+    if (!ck.indyTax) { res.cookie('indyTax', 0, { maxAge: 31556952000,  }); var indyTax = 0; }
+    if (!ck.duration) { res.cookie('duration', 10080, { maxAge: 31556952000,  }); var duration = 10080; }
+    if (!ck.system) { res.cookie('system', 'Basgerin', { maxAge: 31556952000,  }); var syst = "Basgerin" }
 
     //set internal vars to use cookie values
     if (ck.input.toLowerCase() === "buy" || ck.input.toLowerCase() === "sell") {
@@ -119,7 +119,12 @@ router.get('/', function(req, res, next) {
         var duration = 10080;
     }
     if (ck.system) {
-        var syst = ck.system;
+		var re = /^[a-zA-Z0-9-]+$/;
+        if (re.test(ck.system)) {
+            var syst = ck.system;
+        } else {
+            var syst = 'Basgerin';
+        }
     }
 
     //calc bonus with opts
@@ -325,9 +330,9 @@ router.get('/', function(req, res, next) {
                     "prof": numeral(rout.sell - (tibuy + ttax)).format('0,0.00'),
                     "per": numeral(((rout.sell - (tibuy + ttax)) / rout.sell)).format('0.00%')
                 }
-                if (((rout.sell - tibuy) / rout.sell) > 0) {
+                if (((rout.sell - (tibuy + ttax)) / rout.sell) > 0) {
                     temp.pos = true;
-                } else if (((rout.sell - tibuy) / rout.sell) < 0) {
+                } else if (((rout.sell - (tibuy + ttax)) / rout.sell) < 0) {
                     temp.neg = true;
                 }
             } else if (imeth === "buy" && ometh === "buy") {
@@ -346,9 +351,9 @@ router.get('/', function(req, res, next) {
                     "prof": numeral(rout.buy - (tibuy + ttax)).format('0,0.00'),
                     "per": numeral(((rout.buy - (tibuy + ttax)) / rout.buy)).format('0.00%')
                 }
-                if (((rout.buy - tibuy) / rout.buy) > 0) {
+                if (((rout.buy - (tibuy + ttax)) / rout.buy) > 0) {
                     temp.pos = true;
-                } else if (((rout.buy - tibuy) / rout.buy) < 0) {
+                } else if (((rout.buy - (tibuy + ttax)) / rout.buy) < 0) {
                     temp.neg = true;
                 }
             } else if (imeth === "sell" && ometh === "sell") {
@@ -367,9 +372,9 @@ router.get('/', function(req, res, next) {
                     "prof": numeral(rout.sell - (tisell + ttax)).format('0,0.00'),
                     "per": numeral(((rout.sell - (tisell + ttax)) / rout.sell)).format('0.00%')
                 }
-                if (((rout.sell - tisell) / rout.sell) > 0) {
+                if (((rout.sell - (tisell + ttax)) / rout.sell) > 0) {
                     temp.pos = true;
-                } else if (((rout.sell - tisell) / rout.sell) < 0) {
+                } else if (((rout.sell - (tisell + ttax)) / rout.sell) < 0) {
                     temp.neg = true;
                 }
             } else if (imeth === "sell" && ometh === "buy") {
@@ -388,9 +393,9 @@ router.get('/', function(req, res, next) {
                     "prof": numeral(rout.buy - (tisell + ttax)).format('0,0.00'),
                     "per": numeral(((rout.buy - (tisell + ttax)) / rout.buy)).format('0.00%')
                 }
-                if (((rout.buy - tisell) / rout.buy) > 0) {
+                if (((rout.buy - (tisell + ttax)) / rout.buy) > 0) {
                     temp.pos = true;
-                } else if (((rout.buy - tisell) / rout.buy) < 0) {
+                } else if (((rout.buy - (tisell + ttax)) / rout.buy) < 0) {
                     temp.neg = true;
                 }
             } else if (ometh === "buy") {
@@ -409,9 +414,9 @@ router.get('/', function(req, res, next) {
                     "prof": numeral(rout.buy - (tibuy + ttax)).format('0,0.00'),
                     "per": numeral(((rout.buy - (tibuy + ttax)) / rout.buy)).format('0.00%')
                 }
-                if (((rout.buy - tibuy) / rout.buy) > 0) {
+                if (((rout.buy - (tibuy + ttax)) / rout.buy) > 0) {
                     temp.pos = true;
-                } else if (((rout.buy - tibuy) / rout.buy) < 0) {
+                } else if (((rout.buy - (tibuy + ttax)) / rout.buy) < 0) {
                     temp.neg = true;
                 }
             } else if (imeth === "sell") {
@@ -430,9 +435,9 @@ router.get('/', function(req, res, next) {
                     "prof": numeral(rout.sell - (tisell + ttax)).format('0,0.00'),
                     "per": numeral(((rout.sell - (tisell + ttax)) / rout.sell)).format('0.00%')
                 }
-                if (((rout.sell - tisell) / rout.sell) > 0) {
+                if (((rout.sell - (tisell + ttax)) / rout.sell) > 0) {
                     temp.pos = true;
-                } else if (((rout.sell - tisell) / rout.sell) < 0) {
+                } else if (((rout.sell - (tisell + ttax)) / rout.sell) < 0) {
                     temp.neg = true;
                 }
             } else { //default I BUY / S SELL
@@ -451,9 +456,9 @@ router.get('/', function(req, res, next) {
                     "prof": numeral(rout.sell - (tibuy + ttax)).format('0,0.00'),
                     "per": numeral(((rout.sell - (tibuy + ttax)) / rout.sell)).format('0.00%')
                 }
-                if (((rout.sell - tibuy) / rout.sell) > 0) {
+                if (((rout.sell - (tibuy + ttax)) / rout.sell) > 0) {
                     temp.pos = true;
-                } else if (((rout.sell - tibuy) / rout.sell) < 0) {
+                } else if (((rout.sell - (tibuy + ttax)) / rout.sell) < 0) {
                     temp.neg = true;
                 }
             }

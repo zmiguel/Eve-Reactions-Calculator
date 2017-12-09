@@ -12,6 +12,7 @@
     "async": "^2.6.0",
     "fs": "0.0.1-security",
     "mongodb": "^2.2.33",
+    "node-cron": "^1.2.1",
     "request": "^2.83.0"
   }
 }

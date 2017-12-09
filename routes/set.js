@@ -13,47 +13,52 @@ router.get('/set', function(req, res, next) {
     let ck = req.query;
 
     if (ck.input.toLowerCase() === "buy" || ck.input.toLowerCase() === "sell") {
-        res.cookie('input', ck.input.toLowerCase());
+        res.cookie('input', ck.input.toLowerCase(), { maxAge: 31556952000});
     } else {
-        res.cookie('input', 'buy');
+        res.cookie('input', 'buy', { maxAge: 31556952000,   });
     }
     if (ck.output.toLowerCase() === "buy" || ck.output.toLowerCase() === "sell") {
-        res.cookie('output', ck.output.toLowerCase());
+        res.cookie('output', ck.output.toLowerCase(), { maxAge: 31556952000});
     } else {
-        res.cookie('output', 'sell');
+        res.cookie('output', 'sell', { maxAge: 31556952000 });
     }
     if (parseInt(ck.skill) >= 0 && parseInt(ck.skill) <= 5) {
-        res.cookie('skill', parseInt(ck.skill));
+        res.cookie('skill', parseInt(ck.skill), { maxAge: 31556952000, });
     } else {
-        res.cookie('skill', 5);
+        res.cookie('skill', 5, { maxAge: 31556952000,   });
     }
     if (ck.facility.toLowerCase() === "med" || ck.facility.toLowerCase() === "large") {
-        res.cookie('facility', ck.facility.toLowerCase());
+        res.cookie('facility', ck.facility.toLowerCase(), { maxAge: 31556952000,   });
     } else {
-        res.cookie('facility', 'large');
+        res.cookie('facility', 'large', { maxAge: 31556952000,   });
     }
-    if (parseInt(ck.rig) >= 0 && parseInt(ck.rig) <= 2) {
-        res.cookie('rig', parseInt(ck.rig));
+    if (parseInt(ck.rigs) >= 0 && parseInt(ck.rigs) <= 2) {
+        res.cookie('rig', parseInt(ck.rigs), { maxAge: 31556952000,   });
     } else {
-        res.cookie('rig', 1);
+        res.cookie('rig', 1, { maxAge: 31556952000,   });
     }
     if (ck.space.toLowerCase() === "low" || ck.space.toLowerCase() === "null") {
-        res.cookie('space', ck.space.toLowerCase());
+        res.cookie('space', ck.space.toLowerCase(), { maxAge: 31556952000,   });
     } else {
-        res.cookie('space', 'null');
+        res.cookie('space', 'null', { maxAge: 31556952000,   });
     }
     if (parseFloat(ck.indyTax) >= 0 && parseFloat(ck.indyTax) <= 50) {
-        res.cookie('indyTax', parseFloat(ck.indyTax));
+        res.cookie('indyTax', parseFloat(ck.indyTax), { maxAge: 31556952000,   });
     } else {
-        res.cookie('indyTax', 0);
+        res.cookie('indyTax', 0, { maxAge: 31556952000,   });
     }
     if (parseInt(ck.duration) >= 1 && parseInt(ck.duration) <= 43200) {
-        res.cookie('duration', parseInt(ck.duration));
+        res.cookie('duration', parseInt(ck.duration), { maxAge: 31556952000,   });
     } else {
-        res.cookie('duration', 10080);
+        res.cookie('duration', 10080, { maxAge: 31556952000,   });
     }
     if (ck.system) {
-        res.cookie('system', ck.system);
+        var re = /^[a-zA-Z0-9-]+$/;
+        if (re.test(ck.system)) {
+            res.cookie('system', ck.system, { maxAge: 31556952000,   });
+        } else {
+            res.cookie('system', 'Basgerin', { maxAge: 31556952000,   });
+        }
     }
 
     //reply

@@ -7,12 +7,21 @@ var items = require('./items.json');
 var systems = require('./systems.json');
 var marketUrl = "https://market.fuzzwork.co.uk/aggregates/?region=60003760&types=";
 var testMarketUrl = "https://market.fuzzwork.co.uk/aggregates/?region=60003760&types=34,35,36";
+var cron = require('node-cron');
 
 //genItems(); //generate base item collection
 
-addDaily();
-newUpdateItems();
-updateCostIndex();
+cron.schedule('*/30 * * * *', function() {
+    console.log("Updating Items!");
+    newUpdateItems();
+    console.log("Updating Cost Index!");
+    updateCostIndex();
+});
+
+cron.schedule('10 12 * * *', function() {
+    console.log("Adding daily price!");
+    addDaily();
+});
 
 function getItemID(name) {
     for (let i = 0; i < items.length; i++) {
@@ -73,7 +82,7 @@ function updateCostIndex() {
                 db.collection('systems').bulkWrite(sys, { "ordered": true, "w": 1 }, function(err, result) {
                     if (err) throw err;
                     console.log(result.modifiedCount);
-                    console.log("success!!");
+                    console.log("Cost Index UPDATED!");
                     db.close();
                 });
             }
@@ -130,7 +139,7 @@ function genItems() {
             } else {
                 db.collection('items').insertMany(itms, function(err, result) {
                     if (err) throw err;
-                    console.log("success!!");
+                    console.log("Iems Generated!!");
                     db.close();
                 });
             }
@@ -174,7 +183,6 @@ function newUpdateItems() {
 }
 
 function updateDB(itms) {
-    console.log("UPDATING DB");
     mongo.connect(svurl, function(err, db) {
         if (err) {
             console.log(err);
@@ -182,7 +190,7 @@ function updateDB(itms) {
             db.collection('items').bulkWrite(itms, { "ordered": true, "w": 1 }, function(err, result) {
                 if (err) throw err;
                 console.log(result.modifiedCount);
-                console.log("success!!");
+                console.log("Items Updated!!");
                 db.close();
             });
         }
@@ -223,7 +231,7 @@ function addDaily() { //need to re-write this
                 console.log(err);
             } else {
                 db.collection('history').insert(insert, function(err, result) {
-                    console.log("success!!");
+                    console.log("Daily Added!!");
                     db.close();
                 });
             }
