@@ -6,8 +6,10 @@ var svurl = "mongodb://localhost:27017/eve-reactor";
 var items = require('./items.json');
 var systems = require('./systems.json');
 var marketUrl = "https://market.fuzzwork.co.uk/aggregates/?region=60003760&types=";
-var testMarketUrl = "https://market.fuzzwork.co.uk/aggregates/?region=60003760&types=34,35,36";
 var cron = require('node-cron');
+
+const mats = require('./mats.json');
+const outs = require('./outs.json');
 
 //genItems(); //generate base item collection
 
@@ -22,6 +24,7 @@ cron.schedule('10 12 * * *', function() {
     console.log("Adding daily price!");
     addDaily();
 });
+
 
 function getItemID(name) {
     for (let i = 0; i < items.length; i++) {

@@ -1,0 +1,1897 @@
+[{
+        "typeID": 45732,
+        "activityID": 11,
+        "materialTypeID": 16657,
+        "quantity": 100
+    },
+    {
+        "typeID": 45732,
+        "activityID": 11,
+        "materialTypeID": 16661,
+        "quantity": 100
+    },
+    {
+        "typeID": 46157,
+        "activityID": 11,
+        "materialTypeID": 4246,
+        "quantity": 5
+    },
+    {
+        "typeID": 46157,
+        "activityID": 11,
+        "materialTypeID": 30372,
+        "quantity": 100
+    },
+    {
+        "typeID": 46157,
+        "activityID": 11,
+        "materialTypeID": 30373,
+        "quantity": 100
+    },
+    {
+        "typeID": 46157,
+        "activityID": 11,
+        "materialTypeID": 37,
+        "quantity": 300
+    },
+    {
+        "typeID": 46158,
+        "activityID": 11,
+        "materialTypeID": 4312,
+        "quantity": 5
+    },
+    {
+        "typeID": 46158,
+        "activityID": 11,
+        "materialTypeID": 30371,
+        "quantity": 100
+    },
+    {
+        "typeID": 46158,
+        "activityID": 11,
+        "materialTypeID": 30370,
+        "quantity": 200
+    },
+    {
+        "typeID": 46158,
+        "activityID": 11,
+        "materialTypeID": 34,
+        "quantity": 1000
+    },
+    {
+        "typeID": 46159,
+        "activityID": 11,
+        "materialTypeID": 4246,
+        "quantity": 5
+    },
+    {
+        "typeID": 46159,
+        "activityID": 11,
+        "materialTypeID": 30371,
+        "quantity": 100
+    },
+    {
+        "typeID": 46159,
+        "activityID": 11,
+        "materialTypeID": 30370,
+        "quantity": 300
+    },
+    {
+        "typeID": 46159,
+        "activityID": 11,
+        "materialTypeID": 35,
+        "quantity": 800
+    },
+    {
+        "typeID": 46160,
+        "activityID": 11,
+        "materialTypeID": 4246,
+        "quantity": 5
+    },
+    {
+        "typeID": 46160,
+        "activityID": 11,
+        "materialTypeID": 30371,
+        "quantity": 100
+    },
+    {
+        "typeID": 46160,
+        "activityID": 11,
+        "materialTypeID": 30372,
+        "quantity": 100
+    },
+    {
+        "typeID": 46160,
+        "activityID": 11,
+        "materialTypeID": 36,
+        "quantity": 600
+    },
+    {
+        "typeID": 46161,
+        "activityID": 11,
+        "materialTypeID": 4312,
+        "quantity": 5
+    },
+    {
+        "typeID": 46161,
+        "activityID": 11,
+        "materialTypeID": 30372,
+        "quantity": 100
+    },
+    {
+        "typeID": 46161,
+        "activityID": 11,
+        "materialTypeID": 30374,
+        "quantity": 100
+    },
+    {
+        "typeID": 46161,
+        "activityID": 11,
+        "materialTypeID": 38,
+        "quantity": 200
+    },
+    {
+        "typeID": 46162,
+        "activityID": 11,
+        "materialTypeID": 4247,
+        "quantity": 5
+    },
+    {
+        "typeID": 46162,
+        "activityID": 11,
+        "materialTypeID": 39,
+        "quantity": 25
+    },
+    {
+        "typeID": 46162,
+        "activityID": 11,
+        "materialTypeID": 30373,
+        "quantity": 100
+    },
+    {
+        "typeID": 46162,
+        "activityID": 11,
+        "materialTypeID": 30375,
+        "quantity": 100
+    },
+    {
+        "typeID": 46163,
+        "activityID": 11,
+        "materialTypeID": 4051,
+        "quantity": 5
+    },
+    {
+        "typeID": 46163,
+        "activityID": 11,
+        "materialTypeID": 30375,
+        "quantity": 100
+    },
+    {
+        "typeID": 46163,
+        "activityID": 11,
+        "materialTypeID": 30376,
+        "quantity": 100
+    },
+    {
+        "typeID": 46163,
+        "activityID": 11,
+        "materialTypeID": 38,
+        "quantity": 400
+    },
+    {
+        "typeID": 46164,
+        "activityID": 11,
+        "materialTypeID": 4051,
+        "quantity": 5
+    },
+    {
+        "typeID": 46164,
+        "activityID": 11,
+        "materialTypeID": 39,
+        "quantity": 30
+    },
+    {
+        "typeID": 46164,
+        "activityID": 11,
+        "materialTypeID": 30376,
+        "quantity": 100
+    },
+    {
+        "typeID": 46164,
+        "activityID": 11,
+        "materialTypeID": 30377,
+        "quantity": 100
+    },
+    {
+        "typeID": 46165,
+        "activityID": 11,
+        "materialTypeID": 4247,
+        "quantity": 5
+    },
+    {
+        "typeID": 46165,
+        "activityID": 11,
+        "materialTypeID": 40,
+        "quantity": 80
+    },
+    {
+        "typeID": 46165,
+        "activityID": 11,
+        "materialTypeID": 30374,
+        "quantity": 100
+    },
+    {
+        "typeID": 46165,
+        "activityID": 11,
+        "materialTypeID": 30378,
+        "quantity": 100
+    },
+    {
+        "typeID": 46166,
+        "activityID": 11,
+        "materialTypeID": 4312,
+        "quantity": 5
+    },
+    {
+        "typeID": 46166,
+        "activityID": 11,
+        "materialTypeID": 16643,
+        "quantity": 100
+    },
+    {
+        "typeID": 46166,
+        "activityID": 11,
+        "materialTypeID": 16647,
+        "quantity": 100
+    },
+    {
+        "typeID": 46167,
+        "activityID": 11,
+        "materialTypeID": 4247,
+        "quantity": 5
+    },
+    {
+        "typeID": 46167,
+        "activityID": 11,
+        "materialTypeID": 16633,
+        "quantity": 100
+    },
+    {
+        "typeID": 46167,
+        "activityID": 11,
+        "materialTypeID": 16636,
+        "quantity": 100
+    },
+    {
+        "typeID": 46168,
+        "activityID": 11,
+        "materialTypeID": 4246,
+        "quantity": 5
+    },
+    {
+        "typeID": 46168,
+        "activityID": 11,
+        "materialTypeID": 16635,
+        "quantity": 100
+    },
+    {
+        "typeID": 46168,
+        "activityID": 11,
+        "materialTypeID": 16636,
+        "quantity": 100
+    },
+    {
+        "typeID": 46169,
+        "activityID": 11,
+        "materialTypeID": 4247,
+        "quantity": 5
+    },
+    {
+        "typeID": 46169,
+        "activityID": 11,
+        "materialTypeID": 16640,
+        "quantity": 100
+    },
+    {
+        "typeID": 46169,
+        "activityID": 11,
+        "materialTypeID": 16643,
+        "quantity": 100
+    },
+    {
+        "typeID": 46170,
+        "activityID": 11,
+        "materialTypeID": 4247,
+        "quantity": 5
+    },
+    {
+        "typeID": 46170,
+        "activityID": 11,
+        "materialTypeID": 16646,
+        "quantity": 100
+    },
+    {
+        "typeID": 46170,
+        "activityID": 11,
+        "materialTypeID": 16650,
+        "quantity": 100
+    },
+    {
+        "typeID": 46171,
+        "activityID": 11,
+        "materialTypeID": 4246,
+        "quantity": 5
+    },
+    {
+        "typeID": 46171,
+        "activityID": 11,
+        "materialTypeID": 16639,
+        "quantity": 100
+    },
+    {
+        "typeID": 46171,
+        "activityID": 11,
+        "materialTypeID": 16642,
+        "quantity": 100
+    },
+    {
+        "typeID": 46172,
+        "activityID": 11,
+        "materialTypeID": 4246,
+        "quantity": 5
+    },
+    {
+        "typeID": 46172,
+        "activityID": 11,
+        "materialTypeID": 16648,
+        "quantity": 100
+    },
+    {
+        "typeID": 46172,
+        "activityID": 11,
+        "materialTypeID": 16650,
+        "quantity": 100
+    },
+    {
+        "typeID": 46173,
+        "activityID": 11,
+        "materialTypeID": 4312,
+        "quantity": 5
+    },
+    {
+        "typeID": 46173,
+        "activityID": 11,
+        "materialTypeID": 16651,
+        "quantity": 100
+    },
+    {
+        "typeID": 46173,
+        "activityID": 11,
+        "materialTypeID": 16653,
+        "quantity": 100
+    },
+    {
+        "typeID": 46174,
+        "activityID": 11,
+        "materialTypeID": 4051,
+        "quantity": 5
+    },
+    {
+        "typeID": 46174,
+        "activityID": 11,
+        "materialTypeID": 16641,
+        "quantity": 100
+    },
+    {
+        "typeID": 46174,
+        "activityID": 11,
+        "materialTypeID": 16644,
+        "quantity": 100
+    },
+    {
+        "typeID": 46175,
+        "activityID": 11,
+        "materialTypeID": 4051,
+        "quantity": 5
+    },
+    {
+        "typeID": 46175,
+        "activityID": 11,
+        "materialTypeID": 16642,
+        "quantity": 100
+    },
+    {
+        "typeID": 46175,
+        "activityID": 11,
+        "materialTypeID": 16652,
+        "quantity": 100
+    },
+    {
+        "typeID": 46176,
+        "activityID": 11,
+        "materialTypeID": 4247,
+        "quantity": 5
+    },
+    {
+        "typeID": 46176,
+        "activityID": 11,
+        "materialTypeID": 16646,
+        "quantity": 100
+    },
+    {
+        "typeID": 46176,
+        "activityID": 11,
+        "materialTypeID": 16651,
+        "quantity": 100
+    },
+    {
+        "typeID": 46177,
+        "activityID": 11,
+        "materialTypeID": 4051,
+        "quantity": 5
+    },
+    {
+        "typeID": 46177,
+        "activityID": 11,
+        "materialTypeID": 16644,
+        "quantity": 100
+    },
+    {
+        "typeID": 46177,
+        "activityID": 11,
+        "materialTypeID": 16649,
+        "quantity": 100
+    },
+    {
+        "typeID": 46178,
+        "activityID": 11,
+        "materialTypeID": 4051,
+        "quantity": 5
+    },
+    {
+        "typeID": 46178,
+        "activityID": 11,
+        "materialTypeID": 16637,
+        "quantity": 100
+    },
+    {
+        "typeID": 46178,
+        "activityID": 11,
+        "materialTypeID": 16644,
+        "quantity": 100
+    },
+    {
+        "typeID": 46179,
+        "activityID": 11,
+        "materialTypeID": 4312,
+        "quantity": 5
+    },
+    {
+        "typeID": 46179,
+        "activityID": 11,
+        "materialTypeID": 16635,
+        "quantity": 100
+    },
+    {
+        "typeID": 46179,
+        "activityID": 11,
+        "materialTypeID": 16636,
+        "quantity": 100
+    },
+    {
+        "typeID": 46180,
+        "activityID": 11,
+        "materialTypeID": 4312,
+        "quantity": 5
+    },
+    {
+        "typeID": 46180,
+        "activityID": 11,
+        "materialTypeID": 16641,
+        "quantity": 100
+    },
+    {
+        "typeID": 46180,
+        "activityID": 11,
+        "materialTypeID": 16647,
+        "quantity": 100
+    },
+    {
+        "typeID": 46181,
+        "activityID": 11,
+        "materialTypeID": 4051,
+        "quantity": 5
+    },
+    {
+        "typeID": 46181,
+        "activityID": 11,
+        "materialTypeID": 16634,
+        "quantity": 100
+    },
+    {
+        "typeID": 46181,
+        "activityID": 11,
+        "materialTypeID": 16635,
+        "quantity": 100
+    },
+    {
+        "typeID": 46182,
+        "activityID": 11,
+        "materialTypeID": 4312,
+        "quantity": 5
+    },
+    {
+        "typeID": 46182,
+        "activityID": 11,
+        "materialTypeID": 16638,
+        "quantity": 100
+    },
+    {
+        "typeID": 46182,
+        "activityID": 11,
+        "materialTypeID": 16641,
+        "quantity": 100
+    },
+    {
+        "typeID": 46183,
+        "activityID": 11,
+        "materialTypeID": 4246,
+        "quantity": 5
+    },
+    {
+        "typeID": 46183,
+        "activityID": 11,
+        "materialTypeID": 16642,
+        "quantity": 100
+    },
+    {
+        "typeID": 46183,
+        "activityID": 11,
+        "materialTypeID": 16648,
+        "quantity": 100
+    },
+    {
+        "typeID": 46184,
+        "activityID": 11,
+        "materialTypeID": 4312,
+        "quantity": 5
+    },
+    {
+        "typeID": 46184,
+        "activityID": 11,
+        "materialTypeID": 16643,
+        "quantity": 100
+    },
+    {
+        "typeID": 46184,
+        "activityID": 11,
+        "materialTypeID": 16652,
+        "quantity": 100
+    },
+    {
+        "typeID": 46185,
+        "activityID": 11,
+        "materialTypeID": 4246,
+        "quantity": 5
+    },
+    {
+        "typeID": 46185,
+        "activityID": 11,
+        "materialTypeID": 16648,
+        "quantity": 100
+    },
+    {
+        "typeID": 46185,
+        "activityID": 11,
+        "materialTypeID": 16653,
+        "quantity": 100
+    },
+    {
+        "typeID": 46186,
+        "activityID": 11,
+        "materialTypeID": 4247,
+        "quantity": 5
+    },
+    {
+        "typeID": 46186,
+        "activityID": 11,
+        "materialTypeID": 16646,
+        "quantity": 100
+    },
+    {
+        "typeID": 46186,
+        "activityID": 11,
+        "materialTypeID": 16652,
+        "quantity": 100
+    },
+    {
+        "typeID": 46187,
+        "activityID": 11,
+        "materialTypeID": 4312,
+        "quantity": 5
+    },
+    {
+        "typeID": 46187,
+        "activityID": 11,
+        "materialTypeID": 16638,
+        "quantity": 100
+    },
+    {
+        "typeID": 46187,
+        "activityID": 11,
+        "materialTypeID": 16642,
+        "quantity": 100
+    },
+    {
+        "typeID": 46188,
+        "activityID": 11,
+        "materialTypeID": 4247,
+        "quantity": 5
+    },
+    {
+        "typeID": 46188,
+        "activityID": 11,
+        "materialTypeID": 16640,
+        "quantity": 100
+    },
+    {
+        "typeID": 46188,
+        "activityID": 11,
+        "materialTypeID": 16644,
+        "quantity": 100
+    },
+    {
+        "typeID": 46189,
+        "activityID": 11,
+        "materialTypeID": 4246,
+        "quantity": 5
+    },
+    {
+        "typeID": 46189,
+        "activityID": 11,
+        "materialTypeID": 16639,
+        "quantity": 100
+    },
+    {
+        "typeID": 46189,
+        "activityID": 11,
+        "materialTypeID": 16641,
+        "quantity": 100
+    },
+    {
+        "typeID": 46190,
+        "activityID": 11,
+        "materialTypeID": 4246,
+        "quantity": 5
+    },
+    {
+        "typeID": 46190,
+        "activityID": 11,
+        "materialTypeID": 16639,
+        "quantity": 100
+    },
+    {
+        "typeID": 46190,
+        "activityID": 11,
+        "materialTypeID": 16643,
+        "quantity": 100
+    },
+    {
+        "typeID": 46191,
+        "activityID": 11,
+        "materialTypeID": 4051,
+        "quantity": 5
+    },
+    {
+        "typeID": 46191,
+        "activityID": 11,
+        "materialTypeID": 16634,
+        "quantity": 100
+    },
+    {
+        "typeID": 46191,
+        "activityID": 11,
+        "materialTypeID": 16635,
+        "quantity": 100
+    },
+    {
+        "typeID": 46192,
+        "activityID": 11,
+        "materialTypeID": 4051,
+        "quantity": 5
+    },
+    {
+        "typeID": 46192,
+        "activityID": 11,
+        "materialTypeID": 16634,
+        "quantity": 100
+    },
+    {
+        "typeID": 46192,
+        "activityID": 11,
+        "materialTypeID": 16637,
+        "quantity": 100
+    },
+    {
+        "typeID": 46193,
+        "activityID": 11,
+        "materialTypeID": 4051,
+        "quantity": 5
+    },
+    {
+        "typeID": 46193,
+        "activityID": 11,
+        "materialTypeID": 16635,
+        "quantity": 100
+    },
+    {
+        "typeID": 46193,
+        "activityID": 11,
+        "materialTypeID": 16638,
+        "quantity": 100
+    },
+    {
+        "typeID": 46194,
+        "activityID": 11,
+        "materialTypeID": 4246,
+        "quantity": 5
+    },
+    {
+        "typeID": 46194,
+        "activityID": 11,
+        "materialTypeID": 16633,
+        "quantity": 100
+    },
+    {
+        "typeID": 46194,
+        "activityID": 11,
+        "materialTypeID": 16639,
+        "quantity": 100
+    },
+    {
+        "typeID": 46195,
+        "activityID": 11,
+        "materialTypeID": 4247,
+        "quantity": 5
+    },
+    {
+        "typeID": 46195,
+        "activityID": 11,
+        "materialTypeID": 16636,
+        "quantity": 100
+    },
+    {
+        "typeID": 46195,
+        "activityID": 11,
+        "materialTypeID": 16640,
+        "quantity": 100
+    },
+    {
+        "typeID": 46196,
+        "activityID": 11,
+        "materialTypeID": 4051,
+        "quantity": 5
+    },
+    {
+        "typeID": 46196,
+        "activityID": 11,
+        "materialTypeID": 16641,
+        "quantity": 100
+    },
+    {
+        "typeID": 46196,
+        "activityID": 11,
+        "materialTypeID": 16642,
+        "quantity": 100
+    },
+    {
+        "typeID": 46197,
+        "activityID": 11,
+        "materialTypeID": 4246,
+        "quantity": 5
+    },
+    {
+        "typeID": 46197,
+        "activityID": 11,
+        "materialTypeID": 16643,
+        "quantity": 100
+    },
+    {
+        "typeID": 46197,
+        "activityID": 11,
+        "materialTypeID": 16648,
+        "quantity": 100
+    },
+    {
+        "typeID": 46198,
+        "activityID": 11,
+        "materialTypeID": 4312,
+        "quantity": 5
+    },
+    {
+        "typeID": 46198,
+        "activityID": 11,
+        "materialTypeID": 16641,
+        "quantity": 100
+    },
+    {
+        "typeID": 46198,
+        "activityID": 11,
+        "materialTypeID": 16643,
+        "quantity": 100
+    },
+    {
+        "typeID": 46199,
+        "activityID": 11,
+        "materialTypeID": 4247,
+        "quantity": 5
+    },
+    {
+        "typeID": 46199,
+        "activityID": 11,
+        "materialTypeID": 16644,
+        "quantity": 100
+    },
+    {
+        "typeID": 46199,
+        "activityID": 11,
+        "materialTypeID": 16646,
+        "quantity": 100
+    },
+    {
+        "typeID": 46200,
+        "activityID": 11,
+        "materialTypeID": 4247,
+        "quantity": 5
+    },
+    {
+        "typeID": 46200,
+        "activityID": 11,
+        "materialTypeID": 16643,
+        "quantity": 100
+    },
+    {
+        "typeID": 46200,
+        "activityID": 11,
+        "materialTypeID": 16646,
+        "quantity": 100
+    },
+    {
+        "typeID": 46201,
+        "activityID": 11,
+        "materialTypeID": 4312,
+        "quantity": 5
+    },
+    {
+        "typeID": 46201,
+        "activityID": 11,
+        "materialTypeID": 16642,
+        "quantity": 100
+    },
+    {
+        "typeID": 46201,
+        "activityID": 11,
+        "materialTypeID": 16644,
+        "quantity": 100
+    },
+    {
+        "typeID": 46202,
+        "activityID": 11,
+        "materialTypeID": 4246,
+        "quantity": 5
+    },
+    {
+        "typeID": 46202,
+        "activityID": 11,
+        "materialTypeID": 16642,
+        "quantity": 100
+    },
+    {
+        "typeID": 46202,
+        "activityID": 11,
+        "materialTypeID": 16648,
+        "quantity": 100
+    },
+    {
+        "typeID": 46203,
+        "activityID": 11,
+        "materialTypeID": 4247,
+        "quantity": 5
+    },
+    {
+        "typeID": 46203,
+        "activityID": 11,
+        "materialTypeID": 16641,
+        "quantity": 100
+    },
+    {
+        "typeID": 46203,
+        "activityID": 11,
+        "materialTypeID": 16646,
+        "quantity": 100
+    },
+    {
+        "typeID": 46204,
+        "activityID": 11,
+        "materialTypeID": 4312,
+        "quantity": 5
+    },
+    {
+        "typeID": 46204,
+        "activityID": 11,
+        "materialTypeID": 16654,
+        "quantity": 100
+    },
+    {
+        "typeID": 46204,
+        "activityID": 11,
+        "materialTypeID": 16658,
+        "quantity": 100
+    },
+    {
+        "typeID": 46205,
+        "activityID": 11,
+        "materialTypeID": 4247,
+        "quantity": 5
+    },
+    {
+        "typeID": 46205,
+        "activityID": 11,
+        "materialTypeID": 16655,
+        "quantity": 100
+    },
+    {
+        "typeID": 46205,
+        "activityID": 11,
+        "materialTypeID": 16659,
+        "quantity": 100
+    },
+    {
+        "typeID": 46206,
+        "activityID": 11,
+        "materialTypeID": 4246,
+        "quantity": 5
+    },
+    {
+        "typeID": 46206,
+        "activityID": 11,
+        "materialTypeID": 16656,
+        "quantity": 100
+    },
+    {
+        "typeID": 46206,
+        "activityID": 11,
+        "materialTypeID": 16660,
+        "quantity": 100
+    },
+    {
+        "typeID": 46207,
+        "activityID": 11,
+        "materialTypeID": 4051,
+        "quantity": 5
+    },
+    {
+        "typeID": 46207,
+        "activityID": 11,
+        "materialTypeID": 16657,
+        "quantity": 100
+    },
+    {
+        "typeID": 46207,
+        "activityID": 11,
+        "materialTypeID": 16661,
+        "quantity": 100
+    },
+    {
+        "typeID": 46208,
+        "activityID": 11,
+        "materialTypeID": 4247,
+        "quantity": 5
+    },
+    {
+        "typeID": 46208,
+        "activityID": 11,
+        "materialTypeID": 16660,
+        "quantity": 100
+    },
+    {
+        "typeID": 46208,
+        "activityID": 11,
+        "materialTypeID": 16665,
+        "quantity": 100
+    },
+    {
+        "typeID": 46209,
+        "activityID": 11,
+        "materialTypeID": 4051,
+        "quantity": 5
+    },
+    {
+        "typeID": 46209,
+        "activityID": 11,
+        "materialTypeID": 16659,
+        "quantity": 100
+    },
+    {
+        "typeID": 46209,
+        "activityID": 11,
+        "materialTypeID": 16662,
+        "quantity": 100
+    },
+    {
+        "typeID": 46210,
+        "activityID": 11,
+        "materialTypeID": 4312,
+        "quantity": 5
+    },
+    {
+        "typeID": 46210,
+        "activityID": 11,
+        "materialTypeID": 16658,
+        "quantity": 100
+    },
+    {
+        "typeID": 46210,
+        "activityID": 11,
+        "materialTypeID": 16663,
+        "quantity": 100
+    },
+    {
+        "typeID": 46210,
+        "activityID": 11,
+        "materialTypeID": 17959,
+        "quantity": 100
+    },
+    {
+        "typeID": 46211,
+        "activityID": 11,
+        "materialTypeID": 4051,
+        "quantity": 5
+    },
+    {
+        "typeID": 46211,
+        "activityID": 11,
+        "materialTypeID": 16661,
+        "quantity": 100
+    },
+    {
+        "typeID": 46211,
+        "activityID": 11,
+        "materialTypeID": 16662,
+        "quantity": 100
+    },
+    {
+        "typeID": 46211,
+        "activityID": 11,
+        "materialTypeID": 16667,
+        "quantity": 100
+    },
+    {
+        "typeID": 46212,
+        "activityID": 11,
+        "materialTypeID": 4312,
+        "quantity": 5
+    },
+    {
+        "typeID": 46212,
+        "activityID": 11,
+        "materialTypeID": 16664,
+        "quantity": 100
+    },
+    {
+        "typeID": 46212,
+        "activityID": 11,
+        "materialTypeID": 16668,
+        "quantity": 100
+    },
+    {
+        "typeID": 46212,
+        "activityID": 11,
+        "materialTypeID": 17959,
+        "quantity": 100
+    },
+    {
+        "typeID": 46213,
+        "activityID": 11,
+        "materialTypeID": 4246,
+        "quantity": 5
+    },
+    {
+        "typeID": 46213,
+        "activityID": 11,
+        "materialTypeID": 16665,
+        "quantity": 100
+    },
+    {
+        "typeID": 46213,
+        "activityID": 11,
+        "materialTypeID": 16666,
+        "quantity": 100
+    },
+    {
+        "typeID": 46213,
+        "activityID": 11,
+        "materialTypeID": 16669,
+        "quantity": 100
+    },
+    {
+        "typeID": 46213,
+        "activityID": 11,
+        "materialTypeID": 17960,
+        "quantity": 100
+    },
+    {
+        "typeID": 46214,
+        "activityID": 11,
+        "materialTypeID": 4247,
+        "quantity": 5
+    },
+    {
+        "typeID": 46214,
+        "activityID": 11,
+        "materialTypeID": 16663,
+        "quantity": 100
+    },
+    {
+        "typeID": 46214,
+        "activityID": 11,
+        "materialTypeID": 16668,
+        "quantity": 100
+    },
+    {
+        "typeID": 46214,
+        "activityID": 11,
+        "materialTypeID": 17769,
+        "quantity": 100
+    },
+    {
+        "typeID": 46214,
+        "activityID": 11,
+        "materialTypeID": 17960,
+        "quantity": 100
+    },
+    {
+        "typeID": 46215,
+        "activityID": 11,
+        "materialTypeID": 4246,
+        "quantity": 5
+    },
+    {
+        "typeID": 46215,
+        "activityID": 11,
+        "materialTypeID": 16656,
+        "quantity": 100
+    },
+    {
+        "typeID": 46215,
+        "activityID": 11,
+        "materialTypeID": 16667,
+        "quantity": 100
+    },
+    {
+        "typeID": 46216,
+        "activityID": 11,
+        "materialTypeID": 4247,
+        "quantity": 5
+    },
+    {
+        "typeID": 46216,
+        "activityID": 11,
+        "materialTypeID": 16657,
+        "quantity": 100
+    },
+    {
+        "typeID": 46216,
+        "activityID": 11,
+        "materialTypeID": 33337,
+        "quantity": 100
+    },
+    {
+        "typeID": 46217,
+        "activityID": 11,
+        "materialTypeID": 4312,
+        "quantity": 5
+    },
+    {
+        "typeID": 46217,
+        "activityID": 11,
+        "materialTypeID": 16655,
+        "quantity": 100
+    },
+    {
+        "typeID": 46217,
+        "activityID": 11,
+        "materialTypeID": 33336,
+        "quantity": 100
+    },
+    {
+        "typeID": 46218,
+        "activityID": 11,
+        "materialTypeID": 4051,
+        "quantity": 5
+    },
+    {
+        "typeID": 46218,
+        "activityID": 11,
+        "materialTypeID": 16654,
+        "quantity": 100
+    },
+    {
+        "typeID": 46218,
+        "activityID": 11,
+        "materialTypeID": 16669,
+        "quantity": 100
+    },
+    {
+        "typeID": 46219,
+        "activityID": 11,
+        "materialTypeID": 4312,
+        "quantity": 5
+    },
+    {
+        "typeID": 46219,
+        "activityID": 11,
+        "materialTypeID": 41,
+        "quantity": 20
+    },
+    {
+        "typeID": 46219,
+        "activityID": 11,
+        "materialTypeID": 28701,
+        "quantity": 40
+    },
+    {
+        "typeID": 46220,
+        "activityID": 11,
+        "materialTypeID": 4312,
+        "quantity": 5
+    },
+    {
+        "typeID": 46220,
+        "activityID": 11,
+        "materialTypeID": 41,
+        "quantity": 20
+    },
+    {
+        "typeID": 46220,
+        "activityID": 11,
+        "materialTypeID": 28696,
+        "quantity": 40
+    },
+    {
+        "typeID": 46221,
+        "activityID": 11,
+        "materialTypeID": 4247,
+        "quantity": 5
+    },
+    {
+        "typeID": 46221,
+        "activityID": 11,
+        "materialTypeID": 41,
+        "quantity": 20
+    },
+    {
+        "typeID": 46221,
+        "activityID": 11,
+        "materialTypeID": 28698,
+        "quantity": 40
+    },
+    {
+        "typeID": 46222,
+        "activityID": 11,
+        "materialTypeID": 4247,
+        "quantity": 5
+    },
+    {
+        "typeID": 46222,
+        "activityID": 11,
+        "materialTypeID": 3645,
+        "quantity": 20
+    },
+    {
+        "typeID": 46222,
+        "activityID": 11,
+        "materialTypeID": 25277,
+        "quantity": 20
+    },
+    {
+        "typeID": 46223,
+        "activityID": 11,
+        "materialTypeID": 4312,
+        "quantity": 5
+    },
+    {
+        "typeID": 46223,
+        "activityID": 11,
+        "materialTypeID": 3645,
+        "quantity": 20
+    },
+    {
+        "typeID": 46223,
+        "activityID": 11,
+        "materialTypeID": 25274,
+        "quantity": 20
+    },
+    {
+        "typeID": 46224,
+        "activityID": 11,
+        "materialTypeID": 4312,
+        "quantity": 5
+    },
+    {
+        "typeID": 46224,
+        "activityID": 11,
+        "materialTypeID": 3645,
+        "quantity": 20
+    },
+    {
+        "typeID": 46224,
+        "activityID": 11,
+        "materialTypeID": 25275,
+        "quantity": 20
+    },
+    {
+        "typeID": 46225,
+        "activityID": 11,
+        "materialTypeID": 4247,
+        "quantity": 5
+    },
+    {
+        "typeID": 46225,
+        "activityID": 11,
+        "materialTypeID": 3645,
+        "quantity": 20
+    },
+    {
+        "typeID": 46225,
+        "activityID": 11,
+        "materialTypeID": 25276,
+        "quantity": 20
+    },
+    {
+        "typeID": 46226,
+        "activityID": 11,
+        "materialTypeID": 4246,
+        "quantity": 5
+    },
+    {
+        "typeID": 46226,
+        "activityID": 11,
+        "materialTypeID": 3645,
+        "quantity": 20
+    },
+    {
+        "typeID": 46226,
+        "activityID": 11,
+        "materialTypeID": 25278,
+        "quantity": 20
+    },
+    {
+        "typeID": 46227,
+        "activityID": 11,
+        "materialTypeID": 4246,
+        "quantity": 5
+    },
+    {
+        "typeID": 46227,
+        "activityID": 11,
+        "materialTypeID": 3645,
+        "quantity": 20
+    },
+    {
+        "typeID": 46227,
+        "activityID": 11,
+        "materialTypeID": 25279,
+        "quantity": 20
+    },
+    {
+        "typeID": 46228,
+        "activityID": 11,
+        "materialTypeID": 4247,
+        "quantity": 5
+    },
+    {
+        "typeID": 46228,
+        "activityID": 11,
+        "materialTypeID": 41,
+        "quantity": 20
+    },
+    {
+        "typeID": 46228,
+        "activityID": 11,
+        "materialTypeID": 28699,
+        "quantity": 40
+    },
+    {
+        "typeID": 46229,
+        "activityID": 11,
+        "materialTypeID": 4246,
+        "quantity": 5
+    },
+    {
+        "typeID": 46229,
+        "activityID": 11,
+        "materialTypeID": 41,
+        "quantity": 20
+    },
+    {
+        "typeID": 46229,
+        "activityID": 11,
+        "materialTypeID": 28695,
+        "quantity": 40
+    },
+    {
+        "typeID": 46230,
+        "activityID": 11,
+        "materialTypeID": 4051,
+        "quantity": 5
+    },
+    {
+        "typeID": 46230,
+        "activityID": 11,
+        "materialTypeID": 3645,
+        "quantity": 20
+    },
+    {
+        "typeID": 46230,
+        "activityID": 11,
+        "materialTypeID": 25268,
+        "quantity": 20
+    },
+    {
+        "typeID": 46231,
+        "activityID": 11,
+        "materialTypeID": 4051,
+        "quantity": 5
+    },
+    {
+        "typeID": 46231,
+        "activityID": 11,
+        "materialTypeID": 3645,
+        "quantity": 20
+    },
+    {
+        "typeID": 46231,
+        "activityID": 11,
+        "materialTypeID": 25273,
+        "quantity": 20
+    },
+    {
+        "typeID": 46232,
+        "activityID": 11,
+        "materialTypeID": 4246,
+        "quantity": 5
+    },
+    {
+        "typeID": 46232,
+        "activityID": 11,
+        "materialTypeID": 41,
+        "quantity": 20
+    },
+    {
+        "typeID": 46232,
+        "activityID": 11,
+        "materialTypeID": 28700,
+        "quantity": 40
+    },
+    {
+        "typeID": 46233,
+        "activityID": 11,
+        "materialTypeID": 4051,
+        "quantity": 5
+    },
+    {
+        "typeID": 46233,
+        "activityID": 11,
+        "materialTypeID": 41,
+        "quantity": 20
+    },
+    {
+        "typeID": 46233,
+        "activityID": 11,
+        "materialTypeID": 28694,
+        "quantity": 40
+    },
+    {
+        "typeID": 46234,
+        "activityID": 11,
+        "materialTypeID": 4051,
+        "quantity": 5
+    },
+    {
+        "typeID": 46234,
+        "activityID": 11,
+        "materialTypeID": 41,
+        "quantity": 20
+    },
+    {
+        "typeID": 46234,
+        "activityID": 11,
+        "materialTypeID": 28697,
+        "quantity": 40
+    },
+    {
+        "typeID": 46235,
+        "activityID": 11,
+        "materialTypeID": 4051,
+        "quantity": 5
+    },
+    {
+        "typeID": 46235,
+        "activityID": 11,
+        "materialTypeID": 25241,
+        "quantity": 12
+    },
+    {
+        "typeID": 46235,
+        "activityID": 11,
+        "materialTypeID": 25332,
+        "quantity": 15
+    },
+    {
+        "typeID": 46235,
+        "activityID": 11,
+        "materialTypeID": 3773,
+        "quantity": 20
+    },
+    {
+        "typeID": 46236,
+        "activityID": 11,
+        "materialTypeID": 4051,
+        "quantity": 5
+    },
+    {
+        "typeID": 46236,
+        "activityID": 11,
+        "materialTypeID": 25237,
+        "quantity": 15
+    },
+    {
+        "typeID": 46236,
+        "activityID": 11,
+        "materialTypeID": 25242,
+        "quantity": 15
+    },
+    {
+        "typeID": 46236,
+        "activityID": 11,
+        "materialTypeID": 9850,
+        "quantity": 20
+    },
+    {
+        "typeID": 46237,
+        "activityID": 11,
+        "materialTypeID": 4312,
+        "quantity": 5
+    },
+    {
+        "typeID": 46237,
+        "activityID": 11,
+        "materialTypeID": 25330,
+        "quantity": 15
+    },
+    {
+        "typeID": 46237,
+        "activityID": 11,
+        "materialTypeID": 25331,
+        "quantity": 15
+    },
+    {
+        "typeID": 46237,
+        "activityID": 11,
+        "materialTypeID": 3683,
+        "quantity": 20
+    },
+    {
+        "typeID": 46238,
+        "activityID": 11,
+        "materialTypeID": 4312,
+        "quantity": 5
+    },
+    {
+        "typeID": 46238,
+        "activityID": 11,
+        "materialTypeID": 25330,
+        "quantity": 15
+    },
+    {
+        "typeID": 46238,
+        "activityID": 11,
+        "materialTypeID": 25331,
+        "quantity": 15
+    },
+    {
+        "typeID": 46238,
+        "activityID": 11,
+        "materialTypeID": 9850,
+        "quantity": 20
+    },
+    {
+        "typeID": 46240,
+        "activityID": 11,
+        "materialTypeID": 4247,
+        "quantity": 5
+    },
+    {
+        "typeID": 46240,
+        "activityID": 11,
+        "materialTypeID": 25252,
+        "quantity": 15
+    },
+    {
+        "typeID": 46240,
+        "activityID": 11,
+        "materialTypeID": 25332,
+        "quantity": 15
+    },
+    {
+        "typeID": 46240,
+        "activityID": 11,
+        "materialTypeID": 3683,
+        "quantity": 20
+    },
+    {
+        "typeID": 46241,
+        "activityID": 11,
+        "materialTypeID": 4247,
+        "quantity": 5
+    },
+    {
+        "typeID": 46241,
+        "activityID": 11,
+        "materialTypeID": 25252,
+        "quantity": 15
+    },
+    {
+        "typeID": 46241,
+        "activityID": 11,
+        "materialTypeID": 25332,
+        "quantity": 15
+    },
+    {
+        "typeID": 46241,
+        "activityID": 11,
+        "materialTypeID": 9850,
+        "quantity": 20
+    },
+    {
+        "typeID": 46242,
+        "activityID": 11,
+        "materialTypeID": 4246,
+        "quantity": 5
+    },
+    {
+        "typeID": 46242,
+        "activityID": 11,
+        "materialTypeID": 25333,
+        "quantity": 15
+    },
+    {
+        "typeID": 46242,
+        "activityID": 11,
+        "materialTypeID": 25334,
+        "quantity": 15
+    },
+    {
+        "typeID": 46242,
+        "activityID": 11,
+        "materialTypeID": 3683,
+        "quantity": 20
+    },
+    {
+        "typeID": 46243,
+        "activityID": 11,
+        "materialTypeID": 4246,
+        "quantity": 5
+    },
+    {
+        "typeID": 46243,
+        "activityID": 11,
+        "materialTypeID": 25333,
+        "quantity": 15
+    },
+    {
+        "typeID": 46243,
+        "activityID": 11,
+        "materialTypeID": 25334,
+        "quantity": 15
+    },
+    {
+        "typeID": 46243,
+        "activityID": 11,
+        "materialTypeID": 9850,
+        "quantity": 20
+    },
+    {
+        "typeID": 46244,
+        "activityID": 11,
+        "materialTypeID": 4051,
+        "quantity": 5
+    },
+    {
+        "typeID": 46244,
+        "activityID": 11,
+        "materialTypeID": 25335,
+        "quantity": 12
+    },
+    {
+        "typeID": 46244,
+        "activityID": 11,
+        "materialTypeID": 25252,
+        "quantity": 15
+    },
+    {
+        "typeID": 46244,
+        "activityID": 11,
+        "materialTypeID": 3773,
+        "quantity": 20
+    },
+    {
+        "typeID": 46245,
+        "activityID": 11,
+        "materialTypeID": 4312,
+        "quantity": 5
+    },
+    {
+        "typeID": 46245,
+        "activityID": 11,
+        "materialTypeID": 25336,
+        "quantity": 12
+    },
+    {
+        "typeID": 46245,
+        "activityID": 11,
+        "materialTypeID": 25333,
+        "quantity": 15
+    },
+    {
+        "typeID": 46245,
+        "activityID": 11,
+        "materialTypeID": 3773,
+        "quantity": 20
+    },
+    {
+        "typeID": 46246,
+        "activityID": 11,
+        "materialTypeID": 4312,
+        "quantity": 5
+    },
+    {
+        "typeID": 46246,
+        "activityID": 11,
+        "materialTypeID": 25337,
+        "quantity": 12
+    },
+    {
+        "typeID": 46246,
+        "activityID": 11,
+        "materialTypeID": 25334,
+        "quantity": 15
+    },
+    {
+        "typeID": 46246,
+        "activityID": 11,
+        "materialTypeID": 3773,
+        "quantity": 20
+    },
+    {
+        "typeID": 46247,
+        "activityID": 11,
+        "materialTypeID": 4247,
+        "quantity": 5
+    },
+    {
+        "typeID": 46247,
+        "activityID": 11,
+        "materialTypeID": 25338,
+        "quantity": 12
+    },
+    {
+        "typeID": 46247,
+        "activityID": 11,
+        "materialTypeID": 25242,
+        "quantity": 15
+    },
+    {
+        "typeID": 46247,
+        "activityID": 11,
+        "materialTypeID": 3773,
+        "quantity": 20
+    },
+    {
+        "typeID": 46248,
+        "activityID": 11,
+        "materialTypeID": 4247,
+        "quantity": 5
+    },
+    {
+        "typeID": 46248,
+        "activityID": 11,
+        "materialTypeID": 25339,
+        "quantity": 12
+    },
+    {
+        "typeID": 46248,
+        "activityID": 11,
+        "materialTypeID": 25237,
+        "quantity": 15
+    },
+    {
+        "typeID": 46248,
+        "activityID": 11,
+        "materialTypeID": 3773,
+        "quantity": 100
+    },
+    {
+        "typeID": 46249,
+        "activityID": 11,
+        "materialTypeID": 4246,
+        "quantity": 5
+    },
+    {
+        "typeID": 46249,
+        "activityID": 11,
+        "materialTypeID": 25340,
+        "quantity": 12
+    },
+    {
+        "typeID": 46249,
+        "activityID": 11,
+        "materialTypeID": 25331,
+        "quantity": 15
+    },
+    {
+        "typeID": 46249,
+        "activityID": 11,
+        "materialTypeID": 3773,
+        "quantity": 20
+    },
+    {
+        "typeID": 46250,
+        "activityID": 11,
+        "materialTypeID": 4246,
+        "quantity": 5
+    },
+    {
+        "typeID": 46250,
+        "activityID": 11,
+        "materialTypeID": 25341,
+        "quantity": 12
+    },
+    {
+        "typeID": 46250,
+        "activityID": 11,
+        "materialTypeID": 25330,
+        "quantity": 15
+    },
+    {
+        "typeID": 46250,
+        "activityID": 11,
+        "materialTypeID": 3773,
+        "quantity": 20
+    },
+    {
+        "typeID": 46251,
+        "activityID": 11,
+        "materialTypeID": 4051,
+        "quantity": 5
+    },
+    {
+        "typeID": 46251,
+        "activityID": 11,
+        "materialTypeID": 25237,
+        "quantity": 15
+    },
+    {
+        "typeID": 46251,
+        "activityID": 11,
+        "materialTypeID": 25242,
+        "quantity": 15
+    },
+    {
+        "typeID": 46251,
+        "activityID": 11,
+        "materialTypeID": 3683,
+        "quantity": 20
+    }
+]

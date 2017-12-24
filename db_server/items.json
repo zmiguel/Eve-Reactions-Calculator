@@ -27,100 +27,120 @@
         "NAME": "Megacyte"
     },
     {
+        "TypeID": 41,
+        "NAME": "Garbage"
+    },
+    {
+        "TypeID": 3645,
+        "NAME": "Water"
+    },
+    {
+        "TypeID": 3683,
+        "NAME": "Oxygen"
+    },
+    {
+        "TypeID": 3773,
+        "NAME": "Hydrochloric Acid"
+    },
+    {
         "TypeID": 4051,
-        "NAME": "nitrogen fuel block"
+        "NAME": "Nitrogen Fuel Block"
     },
     {
         "TypeID": 4246,
-        "NAME": "hydrogen fuel block"
+        "NAME": "Hydrogen Fuel Block"
     },
     {
         "TypeID": 4247,
-        "NAME": "helium fuel block"
+        "NAME": "Helium Fuel Block"
     },
     {
         "TypeID": 4312,
-        "NAME": "oxygen fuel block"
+        "NAME": "Oxygen Fuel Block"
+    },
+    {
+        "TypeID": 9850,
+        "NAME": "Spirits"
     },
     {
         "TypeID": 16633,
-        "NAME": "hydrocarbons"
+        "NAME": "Hydrocarbons"
     },
     {
         "TypeID": 16634,
-        "NAME": "atmospheric gases"
+        "NAME": "Atmospheric Gases"
     },
     {
         "TypeID": 16635,
-        "NAME": "evaporite deposits"
+        "NAME": "Evaporite Deposits"
     },
     {
         "TypeID": 16636,
-        "NAME": "silicates"
+        "NAME": "Silicates"
     },
     {
         "TypeID": 16637,
-        "NAME": "tungsten"
+        "NAME": "Tungsten"
     },
     {
         "TypeID": 16638,
-        "NAME": "titanium"
+        "NAME": "Titanium"
     },
     {
         "TypeID": 16639,
-        "NAME": "scandium"
+        "NAME": "Scandium"
     },
     {
         "TypeID": 16640,
-        "NAME": "cobalt"
+        "NAME": "Cobalt"
     },
     {
         "TypeID": 16641,
-        "NAME": "chromium"
+        "NAME": "Chromium"
     },
     {
         "TypeID": 16642,
-        "NAME": "vanadium"
+        "NAME": "Vanadium"
     },
     {
         "TypeID": 16643,
-        "NAME": "cadmium"
+        "NAME": "Cadmium"
     },
     {
         "TypeID": 16644,
-        "NAME": "platinum"
+        "NAME": "Platinum"
     },
     {
         "TypeID": 16646,
-        "NAME": "mercury"
+        "NAME": "Mercury"
     },
     {
         "TypeID": 16647,
-        "NAME": "caesium"
+        "NAME": "Caesium"
     },
     {
         "TypeID": 16648,
-        "NAME": "hafnium"
+        "NAME": "Hafnium"
     },
     {
         "TypeID": 16649,
-        "NAME": "technetium"
+        "NAME": "Technetium"
     },
     {
         "TypeID": 16650,
-        "NAME": "dysprosium"
+        "NAME": "Dysprosium"
     },
     {
         "TypeID": 16651,
-        "NAME": "neodymium"
+        "NAME": "Neodymium"
     },
     {
         "TypeID": 16652,
-        "NAME": "promethium"
+        "NAME": "Promethium"
     },
     {
         "TypeID": 16653,
-        "NAME": "thulium"
+        "NAME": "Thulium"
     },
     {
         "TypeID": 16654,
@@ -243,12 +263,344 @@
         "NAME": "Prometium"
     },
     {
+        "TypeID": 25237,
+        "NAME": "Pure Standard Blue Pill Booster"
+    },
+    {
+        "TypeID": 25241,
+        "NAME": "Pure Improved Blue Pill Booster"
+    },
+    {
+        "TypeID": 25242,
+        "NAME": "Pure Standard Crash Booster"
+    },
+    {
+        "TypeID": 25252,
+        "NAME": "Pure Standard Frentix Booster"
+    },
+    {
+        "TypeID": 25268,
+        "NAME": "Amber Cytoserocin"
+    },
+    {
+        "TypeID": 25273,
+        "NAME": "Golden Cytoserocin"
+    },
+    {
+        "TypeID": 25274,
+        "NAME": "Viridian Cytoserocin"
+    },
+    {
+        "TypeID": 25275,
+        "NAME": "Celadon Cytoserocin"
+    },
+    {
+        "TypeID": 25276,
+        "NAME": "Malachite Cytoserocin"
+    },
+    {
+        "TypeID": 25277,
+        "NAME": "Lime Cytoserocin"
+    },
+    {
+        "TypeID": 25278,
+        "NAME": "Vermillion Cytoserocin"
+    },
+    {
+        "TypeID": 25279,
+        "NAME": "Azure Cytoserocin"
+    },
+    {
+        "TypeID": 25283,
+        "NAME": "Pure Strong Blue Pill Booster"
+    },
+    {
+        "TypeID": 25330,
+        "NAME": "Pure Standard Drop Booster"
+    },
+    {
+        "TypeID": 25331,
+        "NAME": "Pure Standard Exile Booster"
+    },
+    {
+        "TypeID": 25332,
+        "NAME": "Pure Standard Mindflood Booster"
+    },
+    {
+        "TypeID": 25333,
+        "NAME": "Pure Standard X-Instinct Booster"
+    },
+    {
+        "TypeID": 25334,
+        "NAME": "Pure Standard Sooth Sayer Booster"
+    },
+    {
+        "TypeID": 25335,
+        "NAME": "Pure Improved Crash Booster"
+    },
+    {
+        "TypeID": 25336,
+        "NAME": "Pure Improved Drop Booster"
+    },
+    {
+        "TypeID": 25337,
+        "NAME": "Pure Improved Exile Booster"
+    },
+    {
+        "TypeID": 25338,
+        "NAME": "Pure Improved Mindflood Booster"
+    },
+    {
+        "TypeID": 25339,
+        "NAME": "Pure Improved Frentix Booster"
+    },
+    {
+        "TypeID": 25340,
+        "NAME": "Pure Improved X-Instinct Booster"
+    },
+    {
+        "TypeID": 25341,
+        "NAME": "Pure Improved Sooth Sayer Booster"
+    },
+    {
+        "TypeID": 25342,
+        "NAME": "Pure Strong Crash Booster"
+    },
+    {
+        "TypeID": 25343,
+        "NAME": "Pure Strong Drop Booster"
+    },
+    {
+        "TypeID": 25344,
+        "NAME": "Pure Strong Exile Booster"
+    },
+    {
+        "TypeID": 25345,
+        "NAME": "Pure Strong Mindflood Booster"
+    },
+    {
+        "TypeID": 25346,
+        "NAME": "Pure Strong Frentix Booster"
+    },
+    {
+        "TypeID": 25347,
+        "NAME": "Pure Strong X-Instinct Booster"
+    },
+    {
+        "TypeID": 25348,
+        "NAME": "Pure Strong Sooth Sayer Booster"
+    },
+    {
+        "TypeID": 28686,
+        "NAME": "Pure Synth Blue Pill Booster"
+    },
+    {
+        "TypeID": 28687,
+        "NAME": "Pure Synth Crash Booster"
+    },
+    {
+        "TypeID": 28688,
+        "NAME": "Pure Synth Drop Booster"
+    },
+    {
+        "TypeID": 28689,
+        "NAME": "Pure Synth Exile Booster"
+    },
+    {
+        "TypeID": 28690,
+        "NAME": "Pure Synth Frentix Booster"
+    },
+    {
+        "TypeID": 28691,
+        "NAME": "Pure Synth Mindflood Booster"
+    },
+    {
+        "TypeID": 28692,
+        "NAME": "Pure Synth Sooth Sayer Booster"
+    },
+    {
+        "TypeID": 28693,
+        "NAME": "Pure Synth X-Instinct Booster"
+    },
+    {
+        "TypeID": 28694,
+        "NAME": "Amber Mykoserocin"
+    },
+    {
+        "TypeID": 28695,
+        "NAME": "Azure Mykoserocin"
+    },
+    {
+        "TypeID": 28696,
+        "NAME": "Celadon Mykoserocin"
+    },
+    {
+        "TypeID": 28697,
+        "NAME": "Golden Mykoserocin"
+    },
+    {
+        "TypeID": 28698,
+        "NAME": "Lime Mykoserocin"
+    },
+    {
+        "TypeID": 28699,
+        "NAME": "Malachite Mykoserocin"
+    },
+    {
+        "TypeID": 28700,
+        "NAME": "Vermillion Mykoserocin"
+    },
+    {
+        "TypeID": 28701,
+        "NAME": "Viridian Mykoserocin"
+    },
+    {
+        "TypeID": 29659,
+        "NAME": "Unrefined Fluxed Condensates"
+    },
+    {
+        "TypeID": 29660,
+        "NAME": "Unrefined Dysporite"
+    },
+    {
+        "TypeID": 29661,
+        "NAME": "Unrefined Neo Mercurite"
+    },
+    {
+        "TypeID": 29662,
+        "NAME": "Unrefined Prometium"
+    },
+    {
+        "TypeID": 29663,
+        "NAME": "Unrefined Ferrofluid"
+    },
+    {
+        "TypeID": 29664,
+        "NAME": "Unrefined Hyperflurite"
+    },
+    {
+        "TypeID": 30303,
+        "NAME": "Fulleroferrocene"
+    },
+    {
+        "TypeID": 30304,
+        "NAME": "PPD Fullerene Fibers"
+    },
+    {
+        "TypeID": 30305,
+        "NAME": "Fullerene Intercalated Graphite"
+    },
+    {
+        "TypeID": 30306,
+        "NAME": "Methanofullerene"
+    },
+    {
+        "TypeID": 30307,
+        "NAME": "Lanthanum Metallofullerene"
+    },
+    {
+        "TypeID": 30308,
+        "NAME": "Scandium Metallofullerene"
+    },
+    {
+        "TypeID": 30309,
+        "NAME": "Graphene Nanoribbons"
+    },
+    {
+        "TypeID": 30310,
+        "NAME": "Carbon-86 Epoxy Resin"
+    },
+    {
+        "TypeID": 30311,
+        "NAME": "C3-FTM Acid"
+    },
+    {
+        "TypeID": 30370,
+        "NAME": "Fullerite-C50"
+    },
+    {
+        "TypeID": 30371,
+        "NAME": "Fullerite-C60"
+    },
+    {
+        "TypeID": 30372,
+        "NAME": "Fullerite-C70"
+    },
+    {
+        "TypeID": 30373,
+        "NAME": "Fullerite-C72"
+    },
+    {
+        "TypeID": 30374,
+        "NAME": "Fullerite-C84"
+    },
+    {
+        "TypeID": 30375,
+        "NAME": "Fullerite-C28"
+    },
+    {
+        "TypeID": 30376,
+        "NAME": "Fullerite-C32"
+    },
+    {
+        "TypeID": 30377,
+        "NAME": "Fullerite-C320"
+    },
+    {
+        "TypeID": 30378,
+        "NAME": "Fullerite-C540"
+    },
+    {
+        "TypeID": 32821,
+        "NAME": "Unrefined Vanadium Hafnite"
+    },
+    {
+        "TypeID": 32822,
+        "NAME": "Unrefined Platinum Technite"
+    },
+    {
+        "TypeID": 32823,
+        "NAME": "Unrefined Solerium"
+    },
+    {
+        "TypeID": 32824,
+        "NAME": "Unrefined Caesarium Cadmide"
+    },
+    {
+        "TypeID": 32825,
+        "NAME": "Unrefined Hexite"
+    },
+    {
+        "TypeID": 32826,
+        "NAME": "Unrefined Rolled Tungsten Alloy"
+    },
+    {
+        "TypeID": 32827,
+        "NAME": "Unrefined Titanium Chromide"
+    },
+    {
+        "TypeID": 32828,
+        "NAME": "Unrefined Fernite Alloy"
+    },
+    {
+        "TypeID": 32829,
+        "NAME": "Unrefined Crystallite Alloy"
+    },
+    {
         "TypeID": 33336,
         "NAME": "Thulium Hafnite"
     },
     {
         "TypeID": 33337,
         "NAME": "Promethium Mercurite"
+    },
+    {
+        "TypeID": 33338,
+        "NAME": "Unrefined Promethium Mercurite"
+    },
+    {
+        "TypeID": 33339,
+        "NAME": "Unrefined Thulium Hafnite"
     },
     {
         "TypeID": 33359,
@@ -265,245 +617,5 @@
     {
         "TypeID": 33362,
         "NAME": "Nonlinear Metamaterials"
-    },
-    {
-        "TypeID": 45490,
-        "NAME": "zeolites"
-    },
-    {
-        "TypeID": 45491,
-        "NAME": "sylvite"
-    },
-    {
-        "TypeID": 45492,
-        "NAME": "bitumens"
-    },
-    {
-        "TypeID": 45493,
-        "NAME": "coesite"
-    },
-    {
-        "TypeID": 45494,
-        "NAME": "cobaltite"
-    },
-    {
-        "TypeID": 45495,
-        "NAME": "euxenite"
-    },
-    {
-        "TypeID": 45496,
-        "NAME": "titanite"
-    },
-    {
-        "TypeID": 45497,
-        "NAME": "scheelite"
-    },
-    {
-        "TypeID": 45498,
-        "NAME": "otavite"
-    },
-    {
-        "TypeID": 45499,
-        "NAME": "sperrylite"
-    },
-    {
-        "TypeID": 45500,
-        "NAME": "vanadinite"
-    },
-    {
-        "TypeID": 45501,
-        "NAME": "chromite"
-    },
-    {
-        "TypeID": 45502,
-        "NAME": "carnotite"
-    },
-    {
-        "TypeID": 45503,
-        "NAME": "zircon"
-    },
-    {
-        "TypeID": 45504,
-        "NAME": "pollucite"
-    },
-    {
-        "TypeID": 45506,
-        "NAME": "cinnabar"
-    },
-    {
-        "TypeID": 45510,
-        "NAME": "xenotime"
-    },
-    {
-        "TypeID": 45511,
-        "NAME": "monazite"
-    },
-    {
-        "TypeID": 45512,
-        "NAME": "loparite"
-    },
-    {
-        "TypeID": 45513,
-        "NAME": "ytterbite"
-    },
-    {
-        "TypeID": 46280,
-        "NAME": "brimful zeolites"
-    },
-    {
-        "TypeID": 46281,
-        "NAME": "glistening zeolites"
-    },
-    {
-        "TypeID": 46282,
-        "NAME": "brimful sylvite"
-    },
-    {
-        "TypeID": 46283,
-        "NAME": "glistening sylvite"
-    },
-    {
-        "TypeID": 46284,
-        "NAME": "brimful bitumens"
-    },
-    {
-        "TypeID": 46285,
-        "NAME": "glistening bitumens"
-    },
-    {
-        "TypeID": 46286,
-        "NAME": "brimful coesite"
-    },
-    {
-        "TypeID": 46287,
-        "NAME": "glistening coesite"
-    },
-    {
-        "TypeID": 46288,
-        "NAME": "copious cobaltite"
-    },
-    {
-        "TypeID": 46289,
-        "NAME": "twinkling cobaltite"
-    },
-    {
-        "TypeID": 46290,
-        "NAME": "copious euxenite"
-    },
-    {
-        "TypeID": 46291,
-        "NAME": "twinkling euxenite"
-    },
-    {
-        "TypeID": 46292,
-        "NAME": "copious titanite"
-    },
-    {
-        "TypeID": 46293,
-        "NAME": "twinkling titanite"
-    },
-    {
-        "TypeID": 46294,
-        "NAME": "copious scheelite"
-    },
-    {
-        "TypeID": 46295,
-        "NAME": "twinkling scheelite"
-    },
-    {
-        "TypeID": 46296,
-        "NAME": "lavish otavite"
-    },
-    {
-        "TypeID": 46297,
-        "NAME": "shimmering otavite"
-    },
-    {
-        "TypeID": 46298,
-        "NAME": "lavish sperrylite"
-    },
-    {
-        "TypeID": 46299,
-        "NAME": "shimmering sperrylite"
-    },
-    {
-        "TypeID": 46300,
-        "NAME": "lavish vanadinite"
-    },
-    {
-        "TypeID": 46301,
-        "NAME": "shimmering vanadinite"
-    },
-    {
-        "TypeID": 46302,
-        "NAME": "lavish chromite"
-    },
-    {
-        "TypeID": 46303,
-        "NAME": "shimmering chromite"
-    },
-    {
-        "TypeID": 46304,
-        "NAME": "replete carnotite"
-    },
-    {
-        "TypeID": 46305,
-        "NAME": "glowing carnotite"
-    },
-    {
-        "TypeID": 46306,
-        "NAME": "replete zircon"
-    },
-    {
-        "TypeID": 46307,
-        "NAME": "glowing zircon"
-    },
-    {
-        "TypeID": 46308,
-        "NAME": "replete pollucite"
-    },
-    {
-        "TypeID": 46309,
-        "NAME": "glowing pollucite"
-    },
-    {
-        "TypeID": 46310,
-        "NAME": "replete cinnabar"
-    },
-    {
-        "TypeID": 46311,
-        "NAME": "glowing cinnabar"
-    },
-    {
-        "TypeID": 46312,
-        "NAME": "bountiful xenotime"
-    },
-    {
-        "TypeID": 46313,
-        "NAME": "shining xenotime"
-    },
-    {
-        "TypeID": 46314,
-        "NAME": "bountiful monazite"
-    },
-    {
-        "TypeID": 46315,
-        "NAME": "shining monazite"
-    },
-    {
-        "TypeID": 46316,
-        "NAME": "bountiful loparite"
-    },
-    {
-        "TypeID": 46317,
-        "NAME": "shining loparite"
-    },
-    {
-        "TypeID": 46318,
-        "NAME": "bountiful ytterbite"
-    },
-    {
-        "TypeID": 46319,
-        "NAME": "shining ytterbite"
     }
 ]
