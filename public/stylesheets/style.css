@@ -26,3 +26,9 @@ a {
 .col-sm-12{
 	padding: 0 !important;
 }
+
+tr.link-row { cursor: pointer; }
+
+.table{
+    margin-bottom: 0 !important;
+}

@@ -26,6 +26,48 @@ cron.schedule('10 12 * * *', function() {
 });
 
 
+function bpBuilder(){
+    var bparr = [];
+    for(let i = 0;i<outs.length;i++){
+        var bp = {};
+        bp._id = outs[i].productTypeID;
+        bp.bpid = outs[i].typeID;
+        bp.name = getItemName(outs[i].productTypeID);
+        bp.type = "-";
+        bp.inputs = [];
+        bp.output = {
+            "id" : outs[i].productTypeID,
+            "qt" : outs[i].quantity
+        }
+        mats.forEach(function(elem){
+            if(elem.typeID === outs[i].typeID){
+                var inItem = {
+                    "id" : elem.materialTypeID,
+                    "qt" : elem.quantity
+                }
+                bp.inputs.push(inItem);
+            }
+        });
+        bparr.push(bp);
+        console.log(i);
+    }
+    console.log("Array criado!");
+    writeToFile(bparr);
+}
+
+function writeToFile(arr){
+    console.log("A escrever ficheiro...");
+    fs.writeFile("./new_bps.json",JSON.stringify(arr));
+}
+
+function getItemName(id) {
+    for (let i = 0; i < items.length; i++) {
+        if (items[i].TypeID === id) {
+            return items[i].NAME;
+        }
+    }
+}
+
 function getItemID(name) {
     for (let i = 0; i < items.length; i++) {
         if (items[i].NAME === name) {

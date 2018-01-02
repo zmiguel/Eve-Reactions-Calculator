@@ -1,0 +1,97 @@
+<script>
+	$(document).ready(function() {
+		$('#stab').DataTable( {
+			searching: false,
+			info: false,
+			paging: false,
+			columnsDefs: [
+				null,
+				{ "sType": "numeric" },
+				{ "sType": "numeric" },
+				{ "sType": "numeric" },
+				{ "sType": "numeric" },
+				{ "sType": "numeric" },
+				null
+			]
+		} );
+	});
+</script>
+<div class="container">
+    <div class="row mt-4">
+        <h1 class="text-center w-100">{{data.name}} Reaction</h1>
+    </div>
+	<div class="row mt-4">
+		<table class="table table-sm table-bordered text-center">
+			<thead>
+				<th>In Method</th>
+				<th>Out Method</th>
+				<th>Reactions</th>
+				<th>Facility</th>
+				<th>Rig</th>
+				<th>Space</th>
+				<th>System</th>
+				<th>IndyTax</th>
+				<th>Build Time</th>
+			</thead>
+			<tbody>
+				<tr class="">
+					<td>{{sett.input}}</td>
+					<td>{{sett.output}}</td>
+					<td>Level {{sett.skill}}</td>
+					<td>{{sett.facility}} Refinery</td>
+					<td>T{{sett.rig}} Rig</td>
+					<td>{{sett.space}}sec</td>
+					<td>{{sett.system}}</td>
+					<td>{{sett.indyTax}}</td>
+					<td>{{sett.duration}} Minutes</td>
+				</tr>
+			</tbody>
+    	</table>
+	</div>
+	<div class="row mt-5">
+        <div class="col-6">
+            <div class="card w-100">
+                <div class="card-header bg-danger text-white text-center w-100">
+                    INPUTS
+                </div>
+                <table width="100%" class="table table-sm table-bordered text-center">
+                    <thead>
+                        <th>Name</th>
+                        <th>Quantity</th>
+                        <th>Price</th>
+                    </thead>
+                    <tbody>
+                        {{#intable}}
+                            <tr class="">
+                                <td>{{name}}</td>
+                                <td>{{qt}}</td>
+                                <td class="isk">{{pricestr}}</td>
+                            </tr>
+                        {{/intable}}
+                    </tbody>
+                    <tfoot>
+                        <tr>
+                            <th>{{intt.name}}</td>
+                            <th>{{intt.qt}}</td>
+                            <th class="isk">{{intt.price}}</td>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+            <div class="card w-100 mt-4">
+                <div class="card-header bg-danger text-white text-center w-100">
+                    TAXES
+                </div>
+            </div>
+        </div>
+        <div class="col-6"> 
+            <div class="card w-100">
+                <div class="card-header bg-success text-white text-center w-100">
+                    OUTPUTS
+                </div>
+            </div>
+        </div>
+
+			
+	</div>
+</div>
