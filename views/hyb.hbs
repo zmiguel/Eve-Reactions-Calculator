@@ -14,6 +14,9 @@
 				null
 			]
 		} );
+		$(".link-row").click(function() {
+       		window.location = $(this).data("href");
+    	});
 	});
 </script>
 <div class="container">
@@ -61,7 +64,7 @@
 				</thead>
 				<tbody>
 					{{#htab}}
-						<tr class="text-white {{#if pos}}bg-success{{/if}}{{#if neg}}bg-danger{{/if}}">
+						<tr class="text-white {{#if pos}}bg-success{{/if}}{{#if neg}}bg-danger{{/if}} link-row" data-href='/hybrid/{{id}}'>
 							<td>{{name}}</td>
 							<td class="isk">{{i}}</td>
 							<td class="isk">{{tax}}</td>

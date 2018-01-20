@@ -541,7 +541,7 @@ router.get('/:id',function(req, res, next){
     if (!ck.space) { res.cookie('space', 'null', { maxAge: 31556952000,  }); var space = "null"; }
     if (!ck.indyTax) { res.cookie('indyTax', 0, { maxAge: 31556952000,  }); var indyTax = 0; }
     if (!ck.duration) { res.cookie('duration', 10080, { maxAge: 31556952000,  }); var duration = 10080; }
-    if (!ck.adv-cycles) { res.cookie('adv-cycles', 50, { maxAge: 31556952000,  }); var cycles = 50; }
+    if (!ck.cycles) { res.cookie('cycles', 50, { maxAge: 31556952000,  }); var cycles = 50; }
     if (!ck.system) { res.cookie('system', 'Basgerin', { maxAge: 31556952000,  }); var syst = "Basgerin" }
 
     //set internal vars to use cookie values
@@ -587,8 +587,8 @@ router.get('/:id',function(req, res, next){
     } else {
         var duration = 10080;
     }
-    if (ck.adv-cycles >= 1 && ck.adv-cycles <= 300) {
-        var cycles = ck.adv-cycles
+    if (ck.cycles >= 1 && ck.cycles <= 300) {
+        var cycles = ck.cycles
     } else {
         var cycles = 50;
     }
@@ -669,6 +669,8 @@ router.get('/:id',function(req, res, next){
         let taxtotal = {};
         var outArr = [];
         let outtotal = {};
+        var repArr = [];
+        let reptotal = {};
 
         //START build new BP array with prices
         var itembp = {};        
@@ -687,6 +689,14 @@ router.get('/:id',function(req, res, next){
             res.status(404);
             res.render('error');
         }else{
+            var advsettings = {};
+            advsettings.cycles = Math.round(cycles);
+            advsettings.ctime = Math.round(cycles * bonus.time);
+            advsettings.tcycles = Math.floor(ck.duration / advsettings.ctime);
+
+            let prodData = {};
+            prodData.name = getItemName(itemData,itembp._id);
+            prodData.url = req.url;
             
             if(itembp.type === "simple"){ 
                 //build input array
@@ -710,21 +720,286 @@ router.get('/:id',function(req, res, next){
                     inptotal.qt += elem.qt;
                     inptotal.price += elem.price;
                 });
-                inptotal.price = numeral(inptotal.price).format('0,0.00');
+                inptotal.pricestr = numeral(inptotal.price).format('0,0.00');
+
+                //build output array
+                
+                let elem = itembp.output;
+                let outrow = {};
+                outrow.id = elem.id;
+                outrow.name = getItemName(itemData,elem.id);
+                outrow.qt = Math.ceil(elem.qt * cycles);
+                outrow.price = outrow.qt * getItem(itemData,elem.id).sell;
+                outrow.pricestr = numeral(outrow.qt * getItem(itemData,elem.id).sell).format('0,0.00');
+                outArr.push(outrow);
+
+                outtotal = {
+                    "name": "TOTAL",
+                    "qt": 0,
+                    "price": 0
+                }
+                outArr.forEach(function(elem){
+                    outtotal.qt += elem.qt;
+                    outtotal.price += elem.price;
+                });
+                outtotal.pricestr = numeral(outtotal.price).format('0,0.00');
 
                 //build tax array
 
-                //build output array
+                let taxrow = {};
+                taxrow.name = "Cost Index";
+                taxrow.perc = costIndex;
+                taxrow.price = outtotal.price * costIndex;
+                taxrow.pricestr = numeral(outtotal.price * costIndex).format('0,0.00');
+                taxArr.push(taxrow);
+                let taxrow2 = {};
+                taxrow2.name = "Industrial Tax";
+                taxrow2.perc = indyTax;
+                taxrow2.price = taxrow.price * (indyTax/100);
+                taxrow2.pricestr = numeral(taxrow.price * (indyTax/100)).format('0,0.00');
+                taxArr.push(taxrow2);
+
+                taxtotal = {
+                    "name": "TOTAL",
+                    "price": 0
+                }
+
+                taxArr.forEach(function(elem){
+                    taxtotal.price += elem.price;
+                });
+                taxtotal.pricestr = numeral(taxtotal.price).format('0,0.00');
+
+                //build report array
+
+                let reprow = {};
+                reprow.type = "Input Materials"
+                reprow.price = -inptotal.price * advsettings.tcycles;
+                reprow.pricestr = numeral(-inptotal.price * advsettings.tcycles).format('0,0.00');
+                repArr.push(reprow);
+
+                reprow = {};
+                reprow.type = "Taxes"
+                reprow.price = -taxtotal.price * advsettings.tcycles;
+                reprow.pricestr = numeral(-taxtotal.price * advsettings.tcycles).format('0,0.00');
+                repArr.push(reprow);
+
+                reprow = {};
+                reprow.type = "Output Materials"
+                reprow.price = outtotal.price * advsettings.tcycles;
+                reprow.pricestr = numeral(outtotal.price * advsettings.tcycles).format('0,0.00');
+                repArr.push(reprow);
+
+                reptotal = {
+                    "type": "TOTAL",
+                    "price": outtotal.price * advsettings.tcycles - inptotal.price * advsettings.tcycles - taxtotal.price * advsettings.tcycles
+                }
+                reptotal.pricestr = numeral(reptotal.price).format('0,0.00');
+
             }else if(itembp.type === "complex"){
+
+                if(req.query.chain){
+                    prodData.name = "Still working on the chain version of these, sorry :(";
+                }else{
+                    //build input array
+
+                    itembp.inputs.forEach(function(elem){
+                        let inrow = {};
+                        inrow.id = elem.id;
+                        inrow.name = getItemName(itemData,elem.id);
+                        inrow.qt = Math.ceil(elem.qt * cycles * bonus.mat);
+                        inrow.price = inrow.qt * getItem(itemData,elem.id).buy;
+                        inrow.pricestr = numeral(inrow.qt * getItem(itemData,elem.id).buy).format('0,0.00');
+
+                        inpArr.push(inrow);
+                    });
+                    inptotal = {
+                        "name": "TOTAL",
+                        "qt": 0,
+                        "price": 0
+                    };
+                    inpArr.forEach(function(elem){
+                        inptotal.qt += elem.qt;
+                        inptotal.price += elem.price;
+                    });
+                    inptotal.pricestr = numeral(inptotal.price).format('0,0.00');
+
+                    //build output array
+                    
+                    let elem = itembp.output;
+                    let outrow = {};
+                    outrow.id = elem.id;
+                    outrow.name = getItemName(itemData,elem.id);
+                    outrow.qt = Math.ceil(elem.qt * cycles);
+                    outrow.price = outrow.qt * getItem(itemData,elem.id).sell;
+                    outrow.pricestr = numeral(outrow.qt * getItem(itemData,elem.id).sell).format('0,0.00');
+                    outArr.push(outrow);
+
+                    outtotal = {
+                        "name": "TOTAL",
+                        "qt": 0,
+                        "price": 0
+                    }
+                    outArr.forEach(function(elem){
+                        outtotal.qt += elem.qt;
+                        outtotal.price += elem.price;
+                    });
+                    outtotal.pricestr = numeral(outtotal.price).format('0,0.00');
+
+                    //build tax array
+
+                    let taxrow = {};
+                    taxrow.name = "Cost Index";
+                    taxrow.perc = costIndex;
+                    taxrow.price = outtotal.price * costIndex;
+                    taxrow.pricestr = numeral(outtotal.price * costIndex).format('0,0.00');
+                    taxArr.push(taxrow);
+                    let taxrow2 = {};
+                    taxrow2.name = "Industrial Tax";
+                    taxrow2.perc = indyTax;
+                    taxrow2.price = taxrow.price * (indyTax/100);
+                    taxrow2.pricestr = numeral(taxrow.price * (indyTax/100)).format('0,0.00');
+                    taxArr.push(taxrow2);
+
+                    taxtotal = {
+                        "name": "TOTAL",
+                        "price": 0
+                    }
+
+                    taxArr.forEach(function(elem){
+                        taxtotal.price += elem.price;
+                    });
+                    taxtotal.pricestr = numeral(taxtotal.price).format('0,0.00');
+
+                    //build report array
+
+                    let reprow = {};
+                    reprow.type = "Input Materials"
+                    reprow.price = -inptotal.price * advsettings.tcycles;
+                    reprow.pricestr = numeral(-inptotal.price * advsettings.tcycles).format('0,0.00');
+                    repArr.push(reprow);
+
+                    reprow = {};
+                    reprow.type = "Taxes"
+                    reprow.price = -taxtotal.price * advsettings.tcycles;
+                    reprow.pricestr = numeral(-taxtotal.price * advsettings.tcycles).format('0,0.00');
+                    repArr.push(reprow);
+
+                    reprow = {};
+                    reprow.type = "Output Materials"
+                    reprow.price = outtotal.price * advsettings.tcycles;
+                    reprow.pricestr = numeral(outtotal.price * advsettings.tcycles).format('0,0.00');
+                    repArr.push(reprow);
+
+                    reptotal = {
+                        "type": "TOTAL",
+                        "price": outtotal.price * advsettings.tcycles - inptotal.price * advsettings.tcycles - taxtotal.price * advsettings.tcycles
+                    }
+                    reptotal.pricestr = numeral(reptotal.price).format('0,0.00');
+
+                }
+                
 
             }else if(itembp.type === "unrefined"){
 
+                //build input array
+
+                itembp.inputs.forEach(function(elem){
+                    let inrow = {};
+                    inrow.id = elem.id;
+                    inrow.name = getItemName(itemData,elem.id);
+                    inrow.qt = Math.ceil(elem.qt * cycles * bonus.mat);
+                    inrow.price = inrow.qt * getItem(itemData,elem.id).buy;
+                    inrow.pricestr = numeral(inrow.qt * getItem(itemData,elem.id).buy).format('0,0.00');
+
+                    inpArr.push(inrow);
+                });
+                inptotal = {
+                    "name": "TOTAL",
+                    "qt": 0,
+                    "price": 0
+                };
+                inpArr.forEach(function(elem){
+                    inptotal.qt += elem.qt;
+                    inptotal.price += elem.price;
+                });
+                inptotal.pricestr = numeral(inptotal.price).format('0,0.00');
+
+                //build output array
+                
+                let elem = itembp.output;
+                let outrow = {};
+                outrow.id = elem.id;
+                outrow.name = getItemName(itemData,elem.id);
+                outrow.qt = Math.ceil(elem.qt * cycles);
+                outrow.price = outrow.qt * getItem(itemData,elem.id).sell;
+                outrow.pricestr = numeral(outrow.qt * getItem(itemData,elem.id).sell).format('0,0.00');
+                outArr.push(outrow);
+
+                outtotal = {
+                    "name": "TOTAL",
+                    "qt": 0,
+                    "price": 0
+                }
+                outArr.forEach(function(elem){
+                    outtotal.qt += elem.qt;
+                    outtotal.price += elem.price;
+                });
+                outtotal.pricestr = numeral(outtotal.price).format('0,0.00');
+
+                //build tax array
+
+                let taxrow = {};
+                taxrow.name = "Cost Index";
+                taxrow.perc = costIndex;
+                taxrow.price = outtotal.price * costIndex;
+                taxrow.pricestr = numeral(outtotal.price * costIndex).format('0,0.00');
+                taxArr.push(taxrow);
+                let taxrow2 = {};
+                taxrow2.name = "Industrial Tax";
+                taxrow2.perc = indyTax;
+                taxrow2.price = taxrow.price * (indyTax/100);
+                taxrow2.pricestr = numeral(taxrow.price * (indyTax/100)).format('0,0.00');
+                taxArr.push(taxrow2);
+
+                taxtotal = {
+                    "name": "TOTAL",
+                    "price": 0
+                }
+
+                taxArr.forEach(function(elem){
+                    taxtotal.price += elem.price;
+                });
+                taxtotal.pricestr = numeral(taxtotal.price).format('0,0.00');
+
+                //build report array
+
+                let reprow = {};
+                reprow.type = "Input Materials"
+                reprow.price = -inptotal.price * advsettings.tcycles;
+                reprow.pricestr = numeral(-inptotal.price * advsettings.tcycles).format('0,0.00');
+                repArr.push(reprow);
+
+                reprow = {};
+                reprow.type = "Taxes"
+                reprow.price = -taxtotal.price * advsettings.tcycles;
+                reprow.pricestr = numeral(-taxtotal.price * advsettings.tcycles).format('0,0.00');
+                repArr.push(reprow);
+
+                reprow = {};
+                reprow.type = "Output Materials"
+                reprow.price = outtotal.price * advsettings.tcycles;
+                reprow.pricestr = numeral(outtotal.price * advsettings.tcycles).format('0,0.00');
+                repArr.push(reprow);
+
+                reptotal = {
+                    "type": "TOTAL",
+                    "price": outtotal.price * advsettings.tcycles - inptotal.price * advsettings.tcycles - taxtotal.price * advsettings.tcycles
+                }
+                reptotal.pricestr = numeral(reptotal.price).format('0,0.00');
+
             }
 
-
-            let prodData = {};
-            prodData.name = getItemName(itemData,itembp._id);
-            res.render('comp-adv', { title: prodData.name + ' Reaction', comp: true, data: prodData, intable: inpArr, intt: inptotal, sett: ck }); 
+            res.render('comp-adv', { title: prodData.name + ' Reaction', comp: true, data: prodData, intable: inpArr, intt: inptotal, outtable: outArr, outtt: outtotal, taxtable: taxArr, taxtt: taxtotal, reptable: repArr, reptt: reptotal, sett: ck, advsett: advsettings }); 
         }
     });   
 });

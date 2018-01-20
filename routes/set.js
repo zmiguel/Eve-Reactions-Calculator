@@ -66,4 +66,38 @@ router.get('/set', function(req, res, next) {
     res.end();
 });
 
+router.get('/comp-adv/set', function(req, res, next) {
+
+    let ck = req.query;
+
+    if (parseInt(ck.cycles) >= 1 && parseInt(ck.cycles) <= 300) {
+        res.cookie('cycles', parseInt(ck.cycles), { maxAge: 31556952000,   });
+    } else {
+        res.cookie('cyckes', 50, { maxAge: 31556952000,   });
+    }
+
+    let url = "/composite/" + ck.url.substr(1);
+
+    //reply
+    res.redirect(302, url);
+    res.end();
+});
+
+router.get('/hyb-adv/set', function(req, res, next) {
+
+    let ck = req.query;
+
+    if (parseInt(ck.cycles) >= 1 && parseInt(ck.cycles) <= 300) {
+        res.cookie('cycles', parseInt(ck.cycles), { maxAge: 31556952000,   });
+    } else {
+        res.cookie('cyckes', 50, { maxAge: 31556952000,   });
+    }
+
+    let url = "/hybrid/" + ck.url.substr(1);
+
+    //reply
+    res.redirect(302, url);
+    res.end();
+});
+
 module.exports = router;
