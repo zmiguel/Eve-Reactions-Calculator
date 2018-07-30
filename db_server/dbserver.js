@@ -13,6 +13,11 @@ const outs = require('./outs.json');
 
 //genItems(); //generate base item collection
 
+console.log("Updating Items!");
+newUpdateItems();
+console.log("Updating Cost Index!");
+updateCostIndex();
+
 cron.schedule('*/30 * * * *', function() {
     console.log("Updating Items!");
     newUpdateItems();
