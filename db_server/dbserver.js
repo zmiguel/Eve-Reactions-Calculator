@@ -12,6 +12,7 @@ const mats = require('./mats.json');
 const outs = require('./outs.json');
 
 //genItems(); //generate base item collection
+//genSystems(); //generate systems
 
 console.log("Updating Items!");
 newUpdateItems();
@@ -60,6 +61,36 @@ function bpBuilder(){
     writeToFile(bparr);
 }
 
+function genSystems(){
+    let esiurl = "https://esi.evetech.net/latest/industry/systems/?datasource=tranquility";
+    request(esiurl, function(err, res, body) {
+        let esi = JSON.parse(body);
+        let sys = [];
+        for (let i = 0; i < systems.length; i++) {
+            let temp = {
+                "insertOne": {
+                    "_id": systems[i].solarSystemID,
+                    "name": systems[i].solarSystemName,
+                    "index": getSystem(esi, systems[i].solarSystemID).cost_indices[5].cost_index
+                }
+            }
+            sys.push(temp);
+        }
+        mongo.connect(svurl, function(err, db) {
+            if (err) {
+                console.log(err);
+            } else {
+                db.collection('systems').bulkWrite(sys, { "ordered": true, "w": 1 }, function(err, result) {
+                    if (err) throw err;
+                    console.log(result.modifiedCount);
+                    console.log("Cost Index UPDATED!");
+                    db.close();
+                });
+            }
+        });
+    });
+}
+
 function writeToFile(arr){
     console.log("A escrever ficheiro...");
     fs.writeFile("./new_bps.json",JSON.stringify(arr));
@@ -106,7 +137,7 @@ function getSystem(arr, id) {
 }
 
 function updateCostIndex() {
-    let esiurl = "https://esi.tech.ccp.is/latest/industry/systems/?datasource=tranquility";
+    let esiurl = "https://esi.evetech.net/latest/industry/systems/?datasource=tranquility";
     request(esiurl, function(err, res, body) {
         let esi = JSON.parse(body);
         let sys = [];

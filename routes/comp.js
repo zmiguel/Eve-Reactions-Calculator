@@ -38,6 +38,7 @@ function getSimplePrice(data, id) {
                 "sell": tempsell,
                 "buy": tempbuy
             }
+            console.log(exp);
             return exp;
         }
     }
