@@ -7,7 +7,7 @@ var cookieParser = require('cookie-parser');
 var xmljs = require('xml-js');
 var router = express.Router();
 
-var svurl = "mongodb://localhost:27017/eve-reactor";
+var svurl = "mongodb://localhost:27017";
 
 function getCostIndex(sys, name) {
     for (let i = 0; i < sys.length; i++) {
@@ -166,13 +166,14 @@ router.get('/', function(req, res, next) {
     let querry = ['items', 'bp-hybrid', 'systems'];
 
     async.map(querry, function(coll, callback) {
-        mongo.connect(svurl, function(err, db) {
+        mongo.connect(svurl, function(err, client) {
+            var db = client.db('eve-reactor');
             if (err) {
                 console.log(err);
             } else {
                 db.collection(coll).find().toArray(function(err, res) {
                     callback(null, res);
-                    db.close();
+                    client.close();
                 });
             }
         });

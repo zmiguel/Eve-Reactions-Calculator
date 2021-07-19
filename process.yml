@@ -1,0 +1,11 @@
+apps:
+  - script : 'mongod'
+    args   : '--bind_ip 127.0.0.1 --dbpath /var/lib/mongodb'
+    cwd    : '/'
+    name   : 'mongo'
+  - script : './bin/www'
+    cwd    : '/opt/reactions'
+    name   : 'eve-reactor'
+  - script : 'dbserver.js'
+    cwd    : '/opt/reactions/db_server'
+    name   : 'eve-reactor-updater'

@@ -2,17 +2,39 @@ var mongo = require('mongodb');
 var request = require('request');
 var async = require('async');
 var fs = require('fs');
-var svurl = "mongodb://localhost:27017/eve-reactor";
+var svurl = "mongodb://localhost:27017";
 var items = require('./items.json');
 var systems = require('./systems.json');
 var marketUrl = "https://market.fuzzwork.co.uk/aggregates/?region=60003760&types=";
 var cron = require('node-cron');
+var firstRun = require('./first.json');
 
 const mats = require('./mats.json');
 const outs = require('./outs.json');
 
-//genItems(); //generate base item collection
-//genSystems(); //generate systems
+sleep(5000);
+
+if (firstRun.run === true){
+    console.log("FIRST RUN DOING THINGS!!!!");
+
+    genItems(); //generate base item collection
+    genSystems(); //generate systems
+
+    firstRun.run = false;
+    fs.writeFile('./first.json', JSON.stringify(firstRun), (err) => {
+        if (err)
+            console.log(err);
+    });
+}
+
+
+function sleep(milliseconds) {
+    const date = Date.now();
+    let currentDate = null;
+    do {
+        currentDate = Date.now();
+    } while (currentDate - date < milliseconds);
+}
 
 console.log("Updating Items!");
 newUpdateItems();
@@ -62,6 +84,7 @@ function bpBuilder(){
 }
 
 function genSystems(){
+    console.log("GEN SYSTEMS")
     let esiurl = "https://esi.evetech.net/latest/industry/systems/?datasource=tranquility";
     request(esiurl, function(err, res, body) {
         let esi = JSON.parse(body);
@@ -76,15 +99,16 @@ function genSystems(){
             }
             sys.push(temp);
         }
-        mongo.connect(svurl, function(err, db) {
+        mongo.connect(svurl, function(err, client) {
             if (err) {
-                console.log(err);
+                console.log("gen system" + err);
             } else {
-                db.collection('systems').bulkWrite(sys, { "ordered": true, "w": 1 }, function(err, result) {
-                    if (err) throw err;
+                var db = client.db('eve-reactor');
+                db.collection('systems').bulkWrite(sys, { "ordered": true, writeConcern: {"w": 1} }, function(err, result) {
+                    if (err) console.log("gen systems " + err);
                     console.log(result.modifiedCount);
                     console.log("Cost Index UPDATED!");
-                    db.close();
+                    client.close();
                 });
             }
         });
@@ -148,23 +172,26 @@ function updateCostIndex() {
                         "_id": systems[i].solarSystemID
                     },
                     "update": {
-                        "_id": systems[i].solarSystemID,
-                        "name": systems[i].solarSystemName,
-                        "index": getSystem(esi, systems[i].solarSystemID).cost_indices[5].cost_index
+                        '$set': {
+                            "_id": systems[i].solarSystemID,
+                            "name": systems[i].solarSystemName,
+                            "index": getSystem(esi, systems[i].solarSystemID).cost_indices[5].cost_index
+                        }
                     }
                 }
             }
             sys.push(temp);
         }
-        mongo.connect(svurl, function(err, db) {
+        mongo.connect(svurl, function(err, client) {
             if (err) {
-                console.log(err);
+                console.log("update cost index " + err);
             } else {
-                db.collection('systems').bulkWrite(sys, { "ordered": true, "w": 1 }, function(err, result) {
-                    if (err) throw err;
+                var db = client.db('eve-reactor');
+                db.collection('systems').bulkWrite(sys, { "ordered": true, writeConcern: {"w": 1} }, function(err, result) {
+                    if (err) console.log("update cost index " + err);
                     console.log(result.modifiedCount);
                     console.log("Cost Index UPDATED!");
-                    db.close();
+                    client.close();
                 });
             }
         });
@@ -191,6 +218,7 @@ function split50() {
 }
 
 function genItems() {
+    console.log("GEN ITEMS")
     idarr = split50();
     let itms = [];
     async.map(idarr, function(ids, callback) {
@@ -214,14 +242,15 @@ function genItems() {
             }
             itms.push(temp);
         }
-        mongo.connect(svurl, function(err, db) {
+        mongo.connect(svurl, function(err, client) {
             if (err) {
                 console.log(err);
             } else {
+                var db = client.db('eve-reactor');
                 db.collection('items').insertMany(itms, function(err, result) {
                     if (err) throw err;
                     console.log("Iems Generated!!");
-                    db.close();
+                    client.close();
                 });
             }
         });
@@ -249,11 +278,13 @@ function newUpdateItems() {
                         "_id": items[ii].TypeID
                     },
                     "update": {
-                        "_id": items[ii].TypeID,
-                        "name": items[ii].NAME,
-                        "sell": parseFloat(arr[ii].sell.min),
-                        "buy": parseFloat(arr[ii].buy.max),
-                        "med": ((parseFloat(arr[ii].sell.min) + parseFloat(arr[ii].buy.max)) / 2)
+                        '$set': {
+                            "_id": items[ii].TypeID,
+                            "name": items[ii].NAME,
+                            "sell": parseFloat(arr[ii].sell.min),
+                            "buy": parseFloat(arr[ii].buy.max),
+                            "med": ((parseFloat(arr[ii].sell.min) + parseFloat(arr[ii].buy.max)) / 2)
+                        }
                     }
                 }
             }
@@ -264,15 +295,16 @@ function newUpdateItems() {
 }
 
 function updateDB(itms) {
-    mongo.connect(svurl, function(err, db) {
+    mongo.connect(svurl, function(err, client) {
         if (err) {
             console.log(err);
         } else {
-            db.collection('items').bulkWrite(itms, { "ordered": true, "w": 1 }, function(err, result) {
-                if (err) throw err;
+            var db = client.db('eve-reactor');
+            db.collection('items').bulkWrite(itms, { "ordered": true, writeConcern: {"w": 1} }, function(err, result) {
+                if (err) console.log("update db " + err);
                 console.log(result.modifiedCount);
                 console.log("Items Updated!!");
-                db.close();
+                client.close();
             });
         }
     });
@@ -307,13 +339,14 @@ function addDaily() { //need to re-write this
             "timestamp": getDate(),
             itms
         }
-        mongo.connect(svurl, function(err, db) {
+        mongo.connect(svurl, function(err, client) {
             if (err) {
                 console.log(err);
             } else {
+                var db = client.db('eve-reactor');
                 db.collection('history').insert(insert, function(err, result) {
                     console.log("Daily Added!!");
-                    db.close();
+                    client.close();
                 });
             }
         });
