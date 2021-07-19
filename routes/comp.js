@@ -202,10 +202,10 @@ router.get('/', function(req, res, next) {
 
     async.map(querry, function(coll, callback) {
         mongo.connect(svurl, function(err, client) {
-            var db = client.db('eve-reactor');
             if (err) {
                 console.log(err);
             } else {
+                var db = client.db('eve-reactor');
                 db.collection(coll).find().toArray(function(err, res) {
                     callback(null, res);
                     client.close();
@@ -649,10 +649,10 @@ router.get('/:id',function(req, res, next){
     let querry = ['items', 'bp-comp', 'systems'];
     async.map(querry, function(coll, callback) {
         mongo.connect(svurl, function(err, client) {
-            var db = client.db('eve-reactor');
             if (err) {
                 console.log(err);
             } else {
+                var db = client.db('eve-reactor');
                 db.collection(coll).find().toArray(function(err, res) {
                     callback(null, res);
                     client.close();
