@@ -42,6 +42,11 @@ function getSimplePrice(data, id) {
             return exp;
         }
     }
+    let exp = {
+        "sell": 0,
+        "buy": 0
+    }
+    return exp;
 }
 
 function getChainTax(prof, reac, id) {
