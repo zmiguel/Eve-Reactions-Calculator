@@ -621,7 +621,7 @@ router.get('/:id',function(req, res, next){
             taxrow2.name = "Industrial Tax";
             taxrow2.perc = indyTax;
             taxrow2.price = taxrow.price * (indyTax/100);
-            taxrow2.pricestr = numeral(taxrow.adjusted_price * (indyTax/100)).format('0,0.00');
+            taxrow2.pricestr = numeral(taxrow.price * (indyTax/100)).format('0,0.00');
             taxArr.push(taxrow2);
 
             taxtotal = {

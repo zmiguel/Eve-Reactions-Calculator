@@ -738,16 +738,19 @@ router.get('/:id',function(req, res, next){
                 outrow.qt = Math.ceil(elem.qt * cycles);
                 outrow.price = outrow.qt * getItem(itemData,elem.id).sell;
                 outrow.pricestr = numeral(outrow.qt * getItem(itemData,elem.id).sell).format('0,0.00');
+                outrow.adjusted_price = getItem(itemData,elem.id).adjusted_price;
                 outArr.push(outrow);
 
                 outtotal = {
                     "name": "TOTAL",
                     "qt": 0,
-                    "price": 0
+                    "price": 0,
+                    "adjusted_price": 0
                 }
                 outArr.forEach(function(elem){
                     outtotal.qt += elem.qt;
                     outtotal.price += elem.price;
+                    outtotal.adjusted_price += elem.adjusted_price;
                 });
                 outtotal.pricestr = numeral(outtotal.price).format('0,0.00');
 
@@ -756,7 +759,7 @@ router.get('/:id',function(req, res, next){
                 let taxrow = {};
                 taxrow.name = "Cost Index";
                 taxrow.perc = costIndex * 100;
-                taxrow.price = outtotal.price * costIndex;
+                taxrow.price = outtotal.adjusted_price * costIndex;
                 taxrow.pricestr = numeral(outtotal.price * costIndex).format('0,0.00');
                 taxArr.push(taxrow);
                 let taxrow2 = {};
@@ -839,16 +842,19 @@ router.get('/:id',function(req, res, next){
                     outrow.qt = Math.ceil(elem.qt * cycles);
                     outrow.price = outrow.qt * getItem(itemData,elem.id).sell;
                     outrow.pricestr = numeral(outrow.qt * getItem(itemData,elem.id).sell).format('0,0.00');
+                    outrow.adjusted_price = getItem(itemData,elem.id).adjusted_price;
                     outArr.push(outrow);
 
                     outtotal = {
                         "name": "TOTAL",
                         "qt": 0,
-                        "price": 0
+                        "price": 0,
+                        "adjusted_price": 0
                     }
                     outArr.forEach(function(elem){
                         outtotal.qt += elem.qt;
                         outtotal.price += elem.price;
+                        outtotal.adjusted_price += elem.adjusted_price;
                     });
                     outtotal.pricestr = numeral(outtotal.price).format('0,0.00');
 
@@ -857,8 +863,8 @@ router.get('/:id',function(req, res, next){
                     let taxrow = {};
                     taxrow.name = "Cost Index";
                     taxrow.perc = costIndex * 100;
-                    taxrow.price = outtotal.price * costIndex;
-                    taxrow.pricestr = numeral(outtotal.price * costIndex).format('0,0.00');
+                    taxrow.price = outtotal.adjusted_price * costIndex;
+                    taxrow.pricestr = numeral(outtotal.adjusted_price * costIndex).format('0,0.00');
                     taxArr.push(taxrow);
                     let taxrow2 = {};
                     taxrow2.name = "Industrial Tax";
