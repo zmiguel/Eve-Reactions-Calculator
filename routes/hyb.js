@@ -512,6 +512,7 @@ router.get('/:id',function(req, res, next){
             if (err) {
                 console.log(err);
             } else {
+                var db = client.db('eve-reactor');
                 db.collection(coll).find().toArray(function(err, res) {
                     callback(null, res);
                     db.close();
