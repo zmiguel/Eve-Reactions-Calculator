@@ -613,7 +613,7 @@ router.get('/:id',function(req, res, next){
 
             let taxrow = {};
             taxrow.name = "Cost Index";
-            taxrow.perc = costIndex;
+            taxrow.perc = costIndex * 100;
             taxrow.price = outtotal.adjusted_price * costIndex;
             taxrow.pricestr = numeral(outtotal.adjusted_price * costIndex).format('0,0.00');
             taxArr.push(taxrow);
