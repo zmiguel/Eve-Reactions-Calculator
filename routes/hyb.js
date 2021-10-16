@@ -202,7 +202,7 @@ router.get('/', function(req, res, next) {
                 "id": reac[i].output.id,
                 "sell": getItem(itemData, reac[i].output.id).sell * reac[i].output.qt * cycles,
                 "buy": getItem(itemData, reac[i].output.id).buy * reac[i].output.qt * cycles,
-                "adjusted_price": getItem(itemData, reac[i].output.id).adjusted_price
+                "adjusted_price": getItem(itemData, reac[i].output.id).adjusted_price * reac[i].output.qt * cycles
             }
             ttmp = {
                 "id": reac[i]._id,
@@ -593,7 +593,7 @@ router.get('/:id',function(req, res, next){
             outrow.qt = Math.ceil(elem.qt * cycles);
             outrow.price = outrow.qt * getItem(itemData,elem.id).sell;
             outrow.pricestr = numeral(outrow.qt * getItem(itemData,elem.id).sell).format('0,0.00');
-            outrow.adjusted_price = getItem(itemData,elem.id).adjusted_price;
+            outrow.adjusted_price = outrow.qt * getItem(itemData,elem.id).adjusted_price;
             outArr.push(outrow);
 
             outtotal = {
