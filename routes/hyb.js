@@ -620,7 +620,7 @@ router.get('/:id',function(req, res, next){
             let taxrow2 = {};
             taxrow2.name = "Industrial Tax";
             taxrow2.perc = indyTax;
-            taxrow2.price = taxrow.adjusted_price * (indyTax/100);
+            taxrow2.price = taxrow.price * (indyTax/100);
             taxrow2.pricestr = numeral(taxrow.adjusted_price * (indyTax/100)).format('0,0.00');
             taxArr.push(taxrow2);
 
@@ -656,7 +656,7 @@ router.get('/:id',function(req, res, next){
 
             reptotal = {
                 "type": "TOTAL",
-                "price": outtotal.price * advsettings.tcycles - inptotal.price * advsettings.tcycles - taxtotal.price * advsettings.tcycles
+                "price": (outtotal.price * advsettings.tcycles) - (inptotal.price * advsettings.tcycles) - (taxtotal.price * advsettings.tcycles)
             }
             reptotal.pricestr = numeral(reptotal.price).format('0,0.00');
 
