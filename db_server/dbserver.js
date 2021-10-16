@@ -6,6 +6,7 @@ var svurl = "mongodb://localhost:27017";
 var items = require('./items.json');
 var systems = require('./systems.json');
 var marketUrl = "https://market.fuzzwork.co.uk/aggregates/?region=60003760&types=";
+var esi_market = "https://esi.evetech.net/latest/markets/prices/?datasource=tranquility";
 var cron = require('node-cron');
 var firstRun = require('./first.json');
 
@@ -38,12 +39,14 @@ function sleep(milliseconds) {
 
 console.log("Updating Items!");
 newUpdateItems();
+updateCostIndexPrice();
 console.log("Updating Cost Index!");
 updateCostIndex();
 
 cron.schedule('*/30 * * * *', function() {
     console.log("Updating Items!");
     newUpdateItems();
+    updateCostIndexPrice();
     console.log("Updating Cost Index!");
     updateCostIndex();
 });
@@ -238,7 +241,8 @@ function genItems() {
                 "name": items[ii].NAME,
                 "sell": parseFloat(arr[ii].sell.min),
                 "buy": parseFloat(arr[ii].buy.max),
-                "med": ((parseFloat(arr[ii].sell.min) + parseFloat(arr[ii].buy.max)) / 2)
+                "med": ((parseFloat(arr[ii].sell.min) + parseFloat(arr[ii].buy.max)) / 2),
+                "adjusted_price": 0
             }
             itms.push(temp);
         }
@@ -284,6 +288,50 @@ function newUpdateItems() {
                             "sell": parseFloat(arr[ii].sell.min),
                             "buy": parseFloat(arr[ii].buy.max),
                             "med": ((parseFloat(arr[ii].sell.min) + parseFloat(arr[ii].buy.max)) / 2)
+                        }
+                    }
+                }
+            }
+            itms.push(temp);
+        }
+        updateDB(itms);
+    });
+}
+
+function updateCostIndexPrice() {
+    let ids = "";
+    for (let i = 0; i < items.length; i++) {
+        ids += items[i].TypeID;
+        ids += ",";
+    }
+    ids = ids.slice(0, -1);
+
+    request(esi_market, function(err, res, body) {
+        // get list with all data
+        let data = JSON.parse(body);
+        // grab data for items we want
+        let arr = [];
+        // for each item in our item list
+        for (let i = 0; i < items.length; i++) {
+            // look for the item in CCPs list
+            for (let ii = 0; ii < data.length; ii++){
+                if (items[i].TypeID === data[ii].type_id){
+                    // we found it!
+                    arr.push(data[ii]);
+                }
+            }
+        }
+        // arr now is an array of the items we want with the adjusted price!
+        let itms = [];
+        for (let ii = 0; ii < arr.length; ii++) {
+            let temp = {
+                "updateOne": {
+                    "filter": {
+                        "_id": items[ii].TypeID
+                    },
+                    "update": {
+                        '$set': {
+                            "adjusted_price": arr[ii].adjusted_price
                         }
                     }
                 }
