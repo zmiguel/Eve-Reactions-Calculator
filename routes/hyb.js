@@ -201,7 +201,8 @@ router.get('/', function(req, res, next) {
             tempout = {
                 "id": reac[i].output.id,
                 "sell": getItem(itemData, reac[i].output.id).sell * reac[i].output.qt * cycles,
-                "buy": getItem(itemData, reac[i].output.id).buy * reac[i].output.qt * cycles
+                "buy": getItem(itemData, reac[i].output.id).buy * reac[i].output.qt * cycles,
+                "adjusted_price": getItem(itemData, reac[i].output.id).adjusted_price
             }
             ttmp = {
                 "id": reac[i]._id,
@@ -224,7 +225,7 @@ router.get('/', function(req, res, next) {
             let tisell = 0;
             let tibuy = 0;
             var indexTax = 0;
-            indexTax += rout.buy * costIndex;
+            indexTax += rout.adjusted_price * costIndex;
             //calc build tax based on cost index
             var buildTax = indexTax * (indyTax / 100);
             //total tax
@@ -591,16 +592,19 @@ router.get('/:id',function(req, res, next){
             outrow.qt = Math.ceil(elem.qt * cycles);
             outrow.price = outrow.qt * getItem(itemData,elem.id).sell;
             outrow.pricestr = numeral(outrow.qt * getItem(itemData,elem.id).sell).format('0,0.00');
+            outrow.adjusted_price = getItem(itemData,elem.id).adjusted_price;
             outArr.push(outrow);
 
             outtotal = {
                 "name": "TOTAL",
                 "qt": 0,
-                "price": 0
+                "price": 0,
+                "adjusted_price": 0
             }
             outArr.forEach(function(elem){
                 outtotal.qt += elem.qt;
                 outtotal.price += elem.price;
+                outtotal.adjusted_price += elem.adjusted_price;
             });
             outtotal.pricestr = numeral(outtotal.price).format('0,0.00');
 
@@ -609,14 +613,14 @@ router.get('/:id',function(req, res, next){
             let taxrow = {};
             taxrow.name = "Cost Index";
             taxrow.perc = costIndex;
-            taxrow.price = outtotal.price * costIndex;
-            taxrow.pricestr = numeral(outtotal.price * costIndex).format('0,0.00');
+            taxrow.price = outtotal.adjusted_price * costIndex;
+            taxrow.pricestr = numeral(outtotal.adjusted_price * costIndex).format('0,0.00');
             taxArr.push(taxrow);
             let taxrow2 = {};
             taxrow2.name = "Industrial Tax";
             taxrow2.perc = indyTax;
-            taxrow2.price = taxrow.price * (indyTax/100);
-            taxrow2.pricestr = numeral(taxrow.price * (indyTax/100)).format('0,0.00');
+            taxrow2.price = taxrow.adjusted_price * (indyTax/100);
+            taxrow2.pricestr = numeral(taxrow.adjusted_price * (indyTax/100)).format('0,0.00');
             taxArr.push(taxrow2);
 
             taxtotal = {

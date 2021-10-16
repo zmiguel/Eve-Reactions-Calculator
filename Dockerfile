@@ -7,7 +7,7 @@ COPY / .
 RUN apt update
 RUN npm install -g pm2
 RUN npm install
-RUN npm audit fix --force
+#RUN npm audit fix --force
 RUN cd db_server/ && npm i && cd ..
 
 RUN apt install gnupg

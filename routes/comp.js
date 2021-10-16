@@ -237,7 +237,8 @@ router.get('/', function(req, res, next) {
                 tempout = {
                     "id": reac[i].output.id,
                     "sell": getItem(itemData, reac[i].output.id).sell * reac[i].output.qt * cycles,
-                    "buy": getItem(itemData, reac[i].output.id).buy * reac[i].output.qt * cycles
+                    "buy": getItem(itemData, reac[i].output.id).buy * reac[i].output.qt * cycles,
+                    "adjusted_price": getItem(itemData, reac[i].output.id).adjusted_price
                 }
                 ttmp = {
                     "id": reac[i]._id,
@@ -264,7 +265,8 @@ router.get('/', function(req, res, next) {
                 tempout = {
                     "id": reac[i].output.id,
                     "sell": getItem(itemData, reac[i].output.id).sell * reac[i].output.qt * cycles,
-                    "buy": getItem(itemData, reac[i].output.id).buy * reac[i].output.qt * cycles
+                    "buy": getItem(itemData, reac[i].output.id).buy * reac[i].output.qt * cycles,
+                    "adjusted_price": getItem(itemData, reac[i].output.id).adjusted_price
                 }
                 ttmp = {
                     "id": reac[i]._id,
@@ -298,7 +300,8 @@ router.get('/', function(req, res, next) {
                 tempout = {
                     "id": reac[i].output.id,
                     "sell": getItem(itemData, reac[i].output.id).sell * reac[i].output.qt * cycles,
-                    "buy": getItem(itemData, reac[i].output.id).buy * reac[i].output.qt * cycles
+                    "buy": getItem(itemData, reac[i].output.id).buy * reac[i].output.qt * cycles,
+                    "adjusted_price": getItem(itemData, reac[i].output.id).adjusted_price
                 }
                 ttmp = {
                     "id": reac[i]._id,
@@ -324,7 +327,8 @@ router.get('/', function(req, res, next) {
                 tempout = {
                     "id": reac[i].output.id,
                     "sell": getItem(itemData, reac[i].output.id).sell * reac[i].output.qt * cycles,
-                    "buy": getItem(itemData, reac[i].output.id).buy * reac[i].output.qt * cycles
+                    "buy": getItem(itemData, reac[i].output.id).buy * reac[i].output.qt * cycles,
+                    "adjusted_price": getItem(itemData, reac[i].output.id).adjusted_price
                 }
                 ttmp = {
                     "id": reac[i]._id,
@@ -355,7 +359,7 @@ router.get('/', function(req, res, next) {
             if (calc[i].chain === "yes") {
                 indexTax += getChainTax(sprof, reac, calc[i].id);
             }
-            indexTax += rout.buy * costIndex;
+            indexTax += rout.adjusted_price * costIndex;
             //calc build tax based on cost index
             var buildTax = indexTax * (indyTax / 100);
             //total tax
