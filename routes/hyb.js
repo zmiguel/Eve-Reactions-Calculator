@@ -508,14 +508,14 @@ router.get('/:id',function(req, res, next){
 
     let querry = ['items', 'bp-hybrid', 'systems'];
     async.map(querry, function(coll, callback) {
-        mongo.connect(svurl, function(err, db) {
+        mongo.connect(svurl, function(err, client) {
             if (err) {
                 console.log(err);
             } else {
                 var db = client.db('eve-reactor');
                 db.collection(coll).find().toArray(function(err, res) {
                     callback(null, res);
-                    db.close();
+                    client.close();
                 });
             }
         });
