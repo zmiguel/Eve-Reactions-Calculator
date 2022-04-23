@@ -9,7 +9,7 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "async": "^2.6.0",
+    "async": "^2.6.4",
     "fs": "0.0.1-security",
     "mongodb": "^3.1.13",
     "node-cron": "^1.2.1",
