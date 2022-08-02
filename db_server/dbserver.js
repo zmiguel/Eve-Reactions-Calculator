@@ -16,7 +16,7 @@ const outs = require('./outs.json');
 sleep(5000);
 
 if (firstRun.run === true){
-    console.log("FIRST RUN DOING THINGS!!!!");
+    console.log("FIRST RUN DOING THINGS!!!");
 
     genItems(); //generate base item collection
     genSystems(); //generate systems
