@@ -178,7 +178,7 @@ function updateCostIndex() {
                         '$set': {
                             "_id": systems[i].solarSystemID,
                             "name": systems[i].solarSystemName,
-                            "index": getSystem(esi, systems[i].solarSystemID).cost_indices[5].cost_index
+                            "index": getSystem(esi, systems[i].solarSystemID).cost_indices[5].cost_index ?? 0
                         }
                     }
                 }
