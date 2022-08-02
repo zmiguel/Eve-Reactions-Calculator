@@ -11,8 +11,8 @@ RUN npm install
 RUN cd db_server/ && npm i && cd ..
 
 RUN apt install gnupg
-RUN wget -qO - https://www.mongodb.org/static/pgp/server-5.0.asc | apt-key add -
-RUN echo "deb http://repo.mongodb.org/apt/debian buster/mongodb-org/5.0 main" | tee /etc/apt/sources.list.d/mongodb-org-5.0.list
+RUN wget -qO - https://www.mongodb.org/static/pgp/server-4.4.asc | sudo apt-key add -
+RUN echo "deb http://repo.mongodb.org/apt/debian buster/mongodb-org/4.4 main" | sudo tee /etc/apt/sources.list.d/mongodb-org-4.4.list
 RUN apt update
 RUN apt install -y apt-utils mongodb-org screen
 RUN screen -dm mongod --bind_ip 127.0.0.1 --dbpath /var/lib/mongodb && \
