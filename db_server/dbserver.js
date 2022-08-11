@@ -165,40 +165,48 @@ function getSystem(arr, id) {
 
 function updateCostIndex() {
     let esiurl = "https://esi.evetech.net/latest/industry/systems/?datasource=tranquility";
-    request(esiurl, function(err, res, body) {
-        let esi = JSON.parse(body);
-        let sys = [];
-        for (let i = 0; i < systems.length; i++) {
-            let temp = {
-                "updateOne": {
-                    "filter": {
-                        "_id": systems[i].solarSystemID
-                    },
-                    "update": {
-                        '$set': {
-                            "_id": systems[i].solarSystemID,
-                            "name": systems[i].solarSystemName,
-                            "index": getSystem(esi, systems[i].solarSystemID).cost_indices[5].cost_index ?? 0
+    let done = false;
+    try {
+        request(esiurl, function(err, res, body) {
+            let esi = JSON.parse(body);
+            let sys = [];
+            for (let i = 0; i < systems.length; i++) {
+                let temp = {
+                    "updateOne": {
+                        "filter": {
+                            "_id": systems[i].solarSystemID
+                        },
+                        "update": {
+                            '$set': {
+                                "_id": systems[i].solarSystemID,
+                                "name": systems[i].solarSystemName,
+                                "index": getSystem(esi, systems[i].solarSystemID).cost_indices[5].cost_index ?? 0
+                            }
                         }
                     }
                 }
+                sys.push(temp);
             }
-            sys.push(temp);
-        }
-        mongo.connect(svurl, function(err, client) {
-            if (err) {
-                console.log("update cost index " + err);
-            } else {
-                var db = client.db('eve-reactor');
-                db.collection('systems').bulkWrite(sys, { "ordered": true, writeConcern: {"w": 1} }, function(err, result) {
-                    if (err) console.log("update cost index " + err);
-                    console.log(result.modifiedCount);
-                    console.log("Cost Index UPDATED!");
-                    client.close();
-                });
-            }
+            mongo.connect(svurl, function(err, client) {
+                if (err) {
+                    console.log("update cost index " + err);
+                } else {
+                    var db = client.db('eve-reactor');
+                    db.collection('systems').bulkWrite(sys, { "ordered": true, writeConcern: {"w": 1} }, function(err, result) {
+                        if (err) console.log("update cost index " + err);
+                        console.log(result.modifiedCount);
+                        console.log("Cost Index UPDATED!");
+                        client.close();
+                    });
+                }
+            });
         });
-    });
+        done = true;
+    } catch (error) {
+        console.log(error);
+        console.log("Error updating cost index! Retrying in 5 seconds...");
+        await new Promise(resolve => setTimeout(resolve, 5000));
+    }
 }
 
 function split50() {
@@ -306,40 +314,51 @@ function updateCostIndexPrice() {
     }
     ids = ids.slice(0, -1);
 
-    request(esi_market, function(err, res, body) {
-        // get list with all data
-        let data = JSON.parse(body);
-        // grab data for items we want
-        let arr = [];
-        // for each item in our item list
-        for (let i = 0; i < items.length; i++) {
-            // look for the item in CCPs list
-            for (let ii = 0; ii < data.length; ii++){
-                if (items[i].TypeID === data[ii].type_id){
-                    // we found it!
-                    arr.push(data[ii]);
-                }
-            }
-        }
-        // arr now is an array of the items we want with the adjusted price!
-        let itms = [];
-        for (let ii = 0; ii < arr.length; ii++) {
-            let temp = {
-                "updateOne": {
-                    "filter": {
-                        "_id": items[ii].TypeID
-                    },
-                    "update": {
-                        '$set': {
-                            "adjusted_price": arr[ii].adjusted_price
+    let done = false;
+
+    while(!done) {
+        try {
+            request(esi_market, function(err, res, body) {
+                // get list with all data
+                let data = JSON.parse(body);
+                // grab data for items we want
+                let arr = [];
+                // for each item in our item list
+                for (let i = 0; i < items.length; i++) {
+                    // look for the item in CCPs list
+                    for (let ii = 0; ii < data.length; ii++){
+                        if (items[i].TypeID === data[ii].type_id){
+                            // we found it!
+                            arr.push(data[ii]);
                         }
                     }
                 }
-            }
-            itms.push(temp);
+                // arr now is an array of the items we want with the adjusted price!
+                let itms = [];
+                for (let ii = 0; ii < arr.length; ii++) {
+                    let temp = {
+                        "updateOne": {
+                            "filter": {
+                                "_id": items[ii].TypeID
+                            },
+                            "update": {
+                                '$set': {
+                                    "adjusted_price": arr[ii].adjusted_price
+                                }
+                            }
+                        }
+                    }
+                    itms.push(temp);
+                }
+                updateDB(itms);
+            });
+            done = true;
+        } catch (error) {
+            console.log(error);
+            console.log("Error updating cost index price! Retrying in 5 seconds...");
+            await new Promise(resolve => setTimeout(resolve, 5000));
         }
-        updateDB(itms);
-    });
+    }
 }
 
 function updateDB(itms) {
