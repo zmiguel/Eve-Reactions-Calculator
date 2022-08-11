@@ -205,7 +205,9 @@ function updateCostIndex() {
     } catch (error) {
         console.log(error);
         console.log("Error updating cost index! Retrying in 5 seconds...");
-        await new Promise(resolve => setTimeout(resolve, 5000));
+        setTimeout(function() {
+            updateCostIndex();
+        }, 5000);
     }
 }
 
@@ -356,7 +358,9 @@ function updateCostIndexPrice() {
         } catch (error) {
             console.log(error);
             console.log("Error updating cost index price! Retrying in 5 seconds...");
-            await new Promise(resolve => setTimeout(resolve, 5000));
+            setTimeout(function() {
+                updateCostIndexPrice();
+            }, 5000);
         }
     }
 }
