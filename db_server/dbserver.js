@@ -87,35 +87,46 @@ function bpBuilder(){
 }
 
 function genSystems(){
+    let done = false;
     console.log("GEN SYSTEMS")
     let esiurl = "https://esi.evetech.net/latest/industry/systems/?datasource=tranquility";
-    request(esiurl, function(err, res, body) {
-        let esi = JSON.parse(body);
-        let sys = [];
-        for (let i = 0; i < systems.length; i++) {
-            let temp = {
-                "insertOne": {
-                    "_id": systems[i].solarSystemID,
-                    "name": systems[i].solarSystemName,
-                    "index": getSystem(esi, systems[i].solarSystemID).cost_indices[5].cost_index
+    try {
+        request(esiurl, function(err, res, body) {
+            let esi = JSON.parse(body);
+            let sys = [];
+            for (let i = 0; i < systems.length; i++) {
+                let temp = {
+                    "insertOne": {
+                        "_id": systems[i].solarSystemID,
+                        "name": systems[i].solarSystemName,
+                        "index": getSystem(esi, systems[i].solarSystemID).cost_indices[5].cost_index
+                    }
                 }
+                sys.push(temp);
             }
-            sys.push(temp);
-        }
-        mongo.connect(svurl, function(err, client) {
-            if (err) {
-                console.log("gen system" + err);
-            } else {
-                var db = client.db('eve-reactor');
-                db.collection('systems').bulkWrite(sys, { "ordered": true, writeConcern: {"w": 1} }, function(err, result) {
-                    if (err) console.log("gen systems " + err);
-                    console.log(result.modifiedCount);
-                    console.log("Cost Index UPDATED!");
-                    client.close();
-                });
-            }
+            mongo.connect(svurl, function(err, client) {
+                if (err) {
+                    console.log("gen system" + err);
+                } else {
+                    var db = client.db('eve-reactor');
+                    db.collection('systems').bulkWrite(sys, { "ordered": true, writeConcern: {"w": 1} }, function(err, result) {
+                        if (err) console.log("gen systems " + err);
+                        console.log(result.modifiedCount);
+                        console.log("Cost Index UPDATED!");
+                        client.close();
+                    });
+                }
+            });
         });
-    });
+        done = true;
+    } catch (error) {
+        console.error(error);
+        console.log("gen systems error, trying again in 5 seconds");
+        setTimeout(function() {
+            genSystems();
+        }, 5000);
+    }
+
 }
 
 function writeToFile(arr){
@@ -203,7 +214,7 @@ function updateCostIndex() {
         });
         done = true;
     } catch (error) {
-        console.log(error);
+        console.error(error);
         console.log("Error updating cost index! Retrying in 5 seconds...");
         setTimeout(function() {
             updateCostIndex();
@@ -356,7 +367,7 @@ function updateCostIndexPrice() {
             });
             done = true;
         } catch (error) {
-            console.log(error);
+            console.error(error);
             console.log("Error updating cost index price! Retrying in 5 seconds...");
             setTimeout(function() {
                 updateCostIndexPrice();
