@@ -1,6 +1,6 @@
 apps:
   - script : 'mongod'
-    args   : '--bind_ip 127.0.0.1 --dbpath /var/lib/mongodb'
+    args   : '--bind_ip 0.0.0.0 --dbpath /var/lib/mongodb'
     cwd    : '/'
     name   : 'mongo'
   - script : './bin/www'
