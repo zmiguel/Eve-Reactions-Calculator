@@ -10,11 +10,13 @@ RUN npm install
 #RUN npm audit fix --force
 RUN cd db_server/ && npm i && cd ..
 
-RUN apt install gnupg
-RUN wget -qO - https://www.mongodb.org/static/pgp/server-5.0.asc | apt-key add -
-RUN echo "deb http://repo.mongodb.org/apt/debian buster/mongodb-org/5.0 main" | tee /etc/apt/sources.list.d/mongodb-org-5.0.list
 RUN apt update
-RUN apt install -y apt-utils mongodb-org screen
+RUN apt install -y apt-utils screen
+RUN wget -O /tmp/mongo-server.deb https://repo.mongodb.org/apt/ubuntu/dists/jammy/mongodb-org/6.0/multiverse/binary-arm64/mongodb-org-server_6.0.8_arm64.deb
+RUN chmod +x /tmp/mongo-server.deb
+RUN wget -O /tmp/mongo-tools.deb https://fastdl.mongodb.org/tools/db/mongodb-database-tools-ubuntu2204-arm64-100.7.4.deb
+RUN chmod +x /tmp/mongo-tools.deb
+RUN apt install /tmp/mongo-server.deb /tmp/mongo-tools.deb
 RUN screen -dm mongod --bind_ip 127.0.0.1 --dbpath /var/lib/mongodb && \
     cd db_server/ && \
     sleep 10 && \
