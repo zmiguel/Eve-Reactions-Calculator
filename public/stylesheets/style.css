@@ -38,6 +38,10 @@ tr.link-row { cursor: pointer; }
     color:red !important;
 }
 
+.demo {
+    color: #11ff55;
+}
+
 .tooltip-inner {
 	max-width: 585px !important;
 	text-align: justify !important;
