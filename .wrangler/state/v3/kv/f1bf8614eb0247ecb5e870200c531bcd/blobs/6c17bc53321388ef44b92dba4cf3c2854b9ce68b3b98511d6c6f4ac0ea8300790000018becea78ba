@@ -1,0 +1,1 @@
+SELECT cost_index FROM systems WHERE name= ?1

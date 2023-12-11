@@ -1,0 +1,1953 @@
+id,parent_id,name,description,icon_id,hasTypes
+2,None,Blueprints & Reactions,"Blueprints are data items used in industry for manufacturing, research and invention jobs",2703,0
+4,None,Ships,"Capsuleer spaceships of all sizes and roles, including advanced and faction variants of many hull types",1443,0
+5,1361,Standard Frigates,"Small, fast vessels suited to a variety of purposes.",1443,0
+6,1367,Standard Cruisers,"The middle children of the starship industry, but not to be underestimated.",1443,0
+7,1376,Standard Battleships,The foundations of any respectable fighting force.,1443,0
+8,1382,Standard Haulers,Built for the transportation of vast amounts of cargo.,1443,0
+9,None,Ship Equipment,"Equipment modules for spaceships, including many types of weapon, electronic, engineering, armor, shield and propulsion systems",1432,0
+10,9,Turrets & Launchers,Weapon systems to inflict damage on enemy targets,365,0
+11,None,Ammunition & Charges,"Ammunition for turret, missile and bomb systems can be found in this category, together with cap booster charges, mining crystals, probes, nanite repair paste and module scripts",1299,0
+14,9,Hull & Armor,Modules that strengthen the physical frame of a spaceship against external dangers,68,0
+19,None,Trade Goods,"Many unusual goods are traded by capsuleers, including various tags, chips, tokens, charters and tools that are used in special activities or have exchange value with non-capsuleers",2340,0
+20,19,Industrial Goods,Various products used in a variety of industries,1192,1
+22,19,Radioactive Goods,"Chemicals and waste, pulsing with radiation. Can be bought and sold for profit",29,1
+23,19,Passengers,Ferrying passengers can give a nice profit,2543,1
+24,None,Implants & Boosters,"Capsuleers have several options for modifying their personal capabilities, including cybernetic implants and biochemical boosters",2563,0
+27,24,Implants,Implants improve a pilot's performance in various areas. They cannot be removed once inserted,2062,0
+52,9,Propulsion,Modules that affect the navigational properties of a spaceship,72,0
+54,1031,Standard Ores,Chunks of raw material harvested from asteroids.,1277,0
+61,5,Caldari,Caldari frigate designs.,20966,1
+64,5,Minmatar,Minmatar frigate designs.,20968,1
+65,1035,Advanced Components,Components used in the manufacture of Tech II vessels and equipment.,2199,0
+72,5,Amarr,Amarr frigate designs.,20959,1
+73,6,Minmatar,Minmatar cruiser designs.,20968,1
+74,6,Amarr,Amarr cruiser designs.,20959,1
+75,6,Caldari,Caldari cruiser designs.,20966,1
+76,6,Gallente,Gallente cruiser designs.,20967,1
+77,5,Gallente,Gallente frigate designs.,20967,1
+78,7,Minmatar,Minmatar battleship designs.,20968,1
+79,7,Amarr,Amarr battleship designs.,20959,1
+80,7,Caldari,Caldari battleship designs.,20966,1
+81,7,Gallente,Gallente battleship designs.,20967,1
+82,8,Minmatar,Minmatar industrial designs.,20968,1
+83,8,Gallente,Gallente industrial designs.,20967,1
+84,8,Caldari,Caldari industrial designs.,20966,1
+85,8,Amarr,Amarr industrial designs.,20959,1
+86,10,Hybrid Turrets,Hybrid turrets are specifically designed to house railguns and blasters.,376,0
+87,10,Projectile Turrets,Built to house cannons capable of firing superheated gunshells.,387,0
+88,10,Energy Turrets,Laser turrets are built to house beam and pulse lasers.,352,0
+99,11,Projectile Ammo,"Metal-cased shells, fired by artillery guns and autocannons",1004,0
+100,11,Hybrid Charges,Charges with a plasma core designed for railguns and blasters,1047,0
+101,11,Frequency Crystals,Modulate energy into several different frequencies for beam lasers and pulse lasers,1131,0
+102,851,Small,"Small frequency crystals, for use with frigate-sized lasers.",1142,1
+103,851,Medium,"Medium frequency crystals, for use with cruiser-sized lasers.",1142,1
+105,851,Large,"Large frequency crystals, for use with battleship-sized lasers.",1142,1
+106,848,Large,"Large hybrid shells, fired by battleship-sized guns.",1047,1
+107,848,Small,"Small hybrid shells, fired by frigate-sized guns.",1047,1
+108,848,Medium,"Medium hybrid shells, fired by cruiser-sized guns.",1047,1
+109,845,Large,"Large projectile shells, fired by battleship-sized guns.",1004,1
+112,845,Medium,"Medium projectile shells, fired by cruiser-sized guns.",1004,1
+113,845,Small,"Small projectile shells, fired by frigate-sized guns.",1004,1
+114,11,Missiles,Self-propelled projectiles with various payloads,1334,0
+115,114,Auto-Targeting,For when targeting systems fail.,1335,0
+116,114,Defender,The anti-missile missile.,192,1
+117,114,Light Missiles,Jet-propelled projectiles for standard-sized launchers.,192,0
+118,114,Rockets,Hundreds of tiny bites will wear away even the toughest opponent.,1352,0
+120,11,Probes,Deployed into space for scanning or disruption purposes,1723,0
+126,554,Shield Rechargers,Provide an increase to the shield's recharge rate.,83,1
+128,554,Remote Shield Boosters,Transfer shields to another ship.,86,0
+131,52,Microwarpdrives,Ultra-advanced propulsion subsystems giving a massive speed boost.,10149,1
+132,52,Propulsion Upgrades,Hull modifications designed to increase a ship's speed.,97,0
+133,14,Armor Plates,Reinforced armor plates for additional protection.,79,0
+134,14,Armor Repairers,Nano-assembler technology at its best. Repair armor on the fly.,80,0
+135,14,Hull Upgrades,Hull modifications with various applications.,92,0
+139,11,Cap Booster Charges,Give an instant boost to a spaceship's capacitor,1033,1
+140,10,Missile Launchers,For the launching of jet-propelled guided missiles.,168,0
+141,9,Smartbombs,Omnidirectional energy blasts that damage everything in a radius. Good against drones,112,0
+143,10,Weapon Upgrades,Subsystems designed to improve weapon efficiency.,21440,0
+150,None,Skills,"Skills are learned by capsuleer pilots using special data chips known as skillbooks, and these are available for almost any imaginable activity that can be carried out in space",33,0
+157,None,Drones,Drones are semi-autonomous robotic devices used for military and industrial purposes throughout space,1084,0
+158,157,Mining Drones,Drones capable of mining asteroids for raw materials,1084,1
+159,157,Combat Drones,Drones with combat capabilities,1084,0
+204,2,Ships,Blueprints of capsuleer spaceships,2703,0
+205,204,Frigates,Blueprints of frigate-class vessels.,2703,0
+206,204,Cruisers,Blueprints of cruiser-class vessels.,2703,0
+207,204,Battleships,Blueprints of battleship-class vessels.,2703,0
+208,204,Haulers,Blueprints of haulers,2703,0
+209,2,Ship Equipment,Blueprints of modules and equipment for capsuleer spaceships,2703,0
+210,209,Turrets & Bays,Blueprints of weapons systems for capsule-fitted vessels.,2703,0
+211,2,Ammunition & Charges,Blueprints of ammunition and charges,2703,0
+214,209,Hull & Armor,Blueprints of hull and armor systems.,2703,0
+252,209,Propulsion,Blueprints of propulsion systems.,2703,0
+261,205,Caldari,Blueprints of Caldari frigate designs.,2703,1
+264,205,Minmatar,Blueprints of Minmatar frigate designs.,2703,1
+272,205,Amarr,Blueprints of Amarr frigate designs.,2703,1
+273,206,Minmatar,Blueprints of Minmatar cruiser designs.,2703,1
+274,206,Amarr,Blueprints of Amarr cruiser designs.,2703,1
+275,206,Caldari,Blueprints of Caldari cruiser designs.,2703,1
+276,206,Gallente,Blueprints of Gallente cruiser designs.,2703,1
+277,205,Gallente,Blueprints of Gallente frigate designs.,2703,1
+278,207,Minmatar,Blueprints of Minmatar battleship designs.,2703,1
+279,207,Amarr,Blueprints of Amarr battleship designs.,2703,1
+280,207,Caldari,Blueprints of Caldari battleship designs.,2703,1
+281,207,Gallente,Blueprints of Gallente battleship designs.,2703,1
+282,208,Minmatar,Blueprints of Minmatar industrial designs.,2703,1
+283,208,Gallente,Blueprints of Gallente industrial designs.,2703,1
+284,208,Caldari,Blueprints of Caldari industrial designs.,2703,1
+285,208,Amarr,Blueprints of Amarr industrial designs.,2703,1
+286,210,Hybrid Turrets,Blueprints of hybrid turrets for capsule-fitted vessels.,2703,0
+287,210,Projectile Turrets,Blueprints of projectile turrets for capsule-fitted vessels.,2703,0
+288,210,Energy Turrets,Blueprints of energy turrets for capsule-fitted ships.,2703,0
+289,286,Large,Blueprints of large hybrid turrets.,2703,1
+290,286,Medium,Blueprints of medium hybrid turrets.,2703,1
+291,286,Small,Blueprints of small hybrid turrets.,2703,1
+292,288,Small,Blueprints of small laser turrets.,2703,1
+293,288,Medium,Blueprints of medium laser turrets.,2703,1
+295,288,Large,Blueprints of large laser turrets.,2703,1
+296,287,Small,Blueprints of small projectile turrets.,2703,1
+297,287,Medium,Blueprints of medium projectile turrets.,2703,1
+298,287,Large,Blueprints of large projectile turrets.,2703,1
+299,211,Projectile Ammo,Projectile ammo blueprints.,2703,0
+300,211,Hybrid Charges,Hybrid charge blueprints.,2703,0
+301,211,Frequency Crystals,Frequency crystal blueprints.,2703,0
+302,301,Small,Blueprints of small frequency crystals.,2703,1
+303,301,Medium,Blueprints of medium frequency crystals.,2703,1
+305,301,Large,Blueprints of large frequency crystals.,2703,1
+306,300,Large,Blueprints of large hybrid ammunition.,2703,1
+307,300,Small,Blueprints of small hybrid ammunition.,2703,1
+308,300,Medium,Blueprints of medium hybrid ammunition.,2703,1
+309,299,Large,Blueprints of large projectile ammunition.,2703,1
+312,299,Medium,Blueprints of medium projectile ammunition.,2703,1
+313,299,Small,Blueprints of small projectile ammunition.,2703,1
+314,211,Missiles,Missile blueprints.,2703,0
+315,314,Auto-Targeting,Blueprints of friend-or-foe missiles.,2703,1
+316,314,Defender,Blueprints of defender missiles.,2703,1
+318,314,Rockets,Blueprints of rockets.,2703,1
+320,1520,Scan Probes,Blueprints of scan probes.,2703,1
+325,1710,Scanners,Blueprints of scanners.,2703,1
+331,252,Microwarpdrives,Blueprints of microwarpdrives.,2703,1
+332,252,Propulsion Upgrades,Blueprints of propulsion upgrades.,2703,1
+335,214,Hull Upgrades,Blueprints of hull upgrades.,2703,1
+338,1711,Mining Lasers,Blueprints of mining lasers.,2703,1
+339,211,Cap Booster Charges,Blueprints of cap booster charges.,2703,1
+340,210,Missile Launchers,Blueprints of missile launchers.,2703,1
+341,209,Smartbombs,Blueprints of smartbombs.,2703,1
+343,210,Weapon Upgrades,Blueprints of weapon upgrades.,2703,1
+357,2,Drones,Blueprints of drone designs,2703,0
+358,357,Mining Drones,Blueprints of mining drone designs.,2703,1
+359,1530,Heavy Attack Drones,Blueprints of heavy attack drone designs.,2703,1
+364,150,Gunnery,Skills pertaining to the efficient use of turret-based weapon systems,33,1
+365,150,Corporation Management,Skills pertaining to management of large social groups,33,1
+366,150,Drones,Skills pertaining to the efficient operation of drones,33,1
+367,150,Electronic Systems,Skills pertaining to management of a spaceship's electronic systems,33,1
+368,150,Engineering,Skills pertaining to management of a spaceship's hardware,33,1
+369,150,Production,Skills pertaining to the efficient use of manufacturing facilities and industrial devices,33,1
+370,150,Fleet Support,Skills pertaining to the operation of Command Burst modules,33,1
+372,150,Rigging,Skills pertaining to the fine tuning of a spaceship's installed systems,33,1
+373,150,Missiles,Skills pertaining to the efficient use of self-propelled warheads,33,1
+374,150,Navigation,Skills pertaining to navigating your spaceship as quickly and efficiently as possible,33,1
+375,150,Science,Skills pertaining to various fields of scientific knowledge,33,1
+376,150,Social,Skills pertaining to efficient navigation through the social landscape,33,1
+377,150,Spaceship Command,Skills required for commanding all shapes and sizes of spaceships,33,1
+378,150,Trade,Skills pertaining to managing commercial activities,33,1
+379,404,Cargo Containers,For deep-space storage of valuable materials.,16,0
+380,141,Micro,"The smallest smartbombs available, for when powergrid and CPU are scarce.",112,1
+381,141,Large,Battleship-sized smartbombs.,112,1
+382,141,Small,Frigate-sized smartbombs.,112,1
+383,141,Medium,Cruiser-sized smartbombs.,112,1
+387,114,Torpedoes,Devastating jet-propelled projectiles carrying huge payloads.,1349,0
+390,314,Torpedoes,Blueprints of torpedoes.,2703,1
+391,4,Shuttles,Fast and cheap vessels for easy transport,1443,0
+393,391,Amarr,Amarr shuttle designs.,20959,1
+394,391,Minmatar,Minmatar shuttle designs.,20968,1
+395,391,Gallente,Gallente shuttle designs.,20967,1
+396,391,Caldari,Caldari shuttle designs.,20966,1
+399,1364,Interceptors,"Lightning-fast, highly maneuverable frigates.",1443,0
+400,399,Amarr,Amarr interceptor designs.,20959,1
+401,399,Caldari,Caldari interceptor designs.,20966,1
+402,399,Gallente,Gallente interceptor designs.,20967,1
+403,399,Minmatar,Minmatar interceptor designs.,20968,1
+404,477,Deployable Structures,Various structures that can be deployed on behalf of an individual or group of capsuleers,16,0
+405,404,Warp Disruption Fields,Trap a fly in your web.,16,1
+406,1338,Deployable Structures,Blueprints of deployable structures.,2703,0
+407,406,Warp Disruption Fields,Blueprints of Warp disruption fields.,2703,1
+408,204,Interceptors,Blueprints of interceptor-class vessels.,2703,0
+410,408,Amarr,Blueprints of Amarr interceptor designs.,2703,1
+411,408,Caldari,Blueprints of Caldari interceptor designs.,2703,1
+412,408,Gallente,Blueprints of Gallente interceptor designs.,2703,1
+413,408,Minmatar,Blueprints of Minmatar interceptor designs.,2703,1
+414,204,Shuttles,Blueprints of shuttle-class vessels.,2703,0
+415,414,Amarr,Blueprints of Amarr shuttle designs.,2703,1
+416,414,Caldari,Blueprints of Caldari shuttle designs.,2703,1
+417,414,Gallente,Blueprints of Gallente shuttle designs.,2703,1
+418,414,Minmatar,Blueprints of Minmatar shuttle designs.,2703,1
+419,204,Covert Ops,Blueprints of covert ops-class vessels.,2703,0
+420,1364,Covert Ops,Frigates designed for clandestine operations.,1443,0
+421,420,Amarr,Amarr covert ops designs.,20959,1
+422,420,Caldari,Caldari covert ops designs.,20966,1
+423,420,Gallente,Gallente covert ops designs.,20967,1
+424,420,Minmatar,Minmatar covert ops designs.,20968,1
+425,419,Amarr,Blueprints of Amarr covert ops designs.,2703,1
+427,419,Caldari,Blueprints of Caldari covert ops designs.,2703,1
+428,419,Gallente,Blueprints of Gallente covert ops designs.,2703,1
+429,419,Minmatar,Blueprints of Minmatar covert ops designs.,2703,1
+430,1578,Cloaking Devices,Blueprints of cloaking devices.,2703,1
+432,1364,Assault Frigates,Sturdy and powerful frigates built for all-out combat.,1443,0
+433,432,Amarr,Amarr assault frigate designs.,20959,1
+434,432,Caldari,Caldari assault frigate designs.,20966,1
+435,432,Gallente,Gallente assault frigate designs.,20967,1
+436,432,Minmatar,Minmatar assault frigate designs.,20968,1
+437,1368,Logistics,"Support ships, engineered for field assistance in large engagements.",1443,0
+438,437,Amarr,Amarr logistics vessel designs.,20959,1
+439,437,Caldari,Caldari logistics vessel designs.,20966,1
+440,437,Gallente,Gallente logistics vessel designs.,20967,1
+441,437,Minmatar,Minmatar logistics vessel designs.,20968,1
+442,204,Logistics,Blueprints of Logistics-class vessels.,2703,0
+443,442,Amarr,Blueprints of Amarr logistics designs.,2703,1
+444,442,Caldari,Blueprints of Caldari logistics designs.,2703,1
+445,442,Gallente,Blueprints of Gallente logistics designs.,2703,1
+446,442,Minmatar,Blueprints of Minmatar logistics designs.,2703,1
+448,1368,Heavy Assault Cruisers,Sturdy and powerful cruisers built for all-out combat.,1443,0
+449,448,Amarr,Amarr heavy assault cruiser designs.,20959,1
+450,448,Caldari,Caldari heavy assault cruiser designs.,20966,1
+451,448,Gallente,Gallente heavy assault cruiser designs.,20967,1
+452,448,Minmatar,Minmatar heavy assault cruiser designs.,20968,1
+453,204,Heavy Assault Cruisers,Blueprints of heavy assault-class vessels.,2703,0
+454,453,Amarr,Blueprints of Amarr heavy assault cruiser designs.,2703,1
+455,453,Caldari,Blueprints of Caldari heavy assault cruiser designs.,2703,1
+456,453,Gallente,Blueprints of Gallente heavy assault cruiser designs.,2703,1
+457,453,Minmatar,Blueprints of Minmatar heavy assault cruiser designs.,2703,1
+458,204,Assault Frigates,Blueprints of assault-class vessels.,2703,0
+459,458,Amarr,Blueprints of Amarr assault frigate designs.,2703,1
+461,458,Caldari,Blueprints of Caldari assault frigate designs.,2703,1
+462,458,Gallente,Blueprints of Gallente assault frigate designs.,2703,1
+463,458,Minmatar,Blueprints of Minmatar assault frigate designs.,2703,1
+464,1372,Standard Destroyers,Anti-frigate gunboats.  The middle ground between a frigate and a cruiser.,1443,0
+465,464,Amarr,Amarr destroyer designs.,20959,1
+466,464,Caldari,Caldari destroyer designs.,20966,1
+467,464,Gallente,Gallente destroyer designs.,20967,1
+468,464,Minmatar,Minmatar destroyer designs.,20968,1
+469,1374,Standard Battlecruisers,A class of powerful combat vessels midway between cruisers and battleships.,1443,0
+470,469,Amarr,Amarr battlecruiser designs.,20959,1
+471,469,Caldari,Caldari battlecruiser designs.,20966,1
+472,469,Gallente,Gallente battlecruiser designs.,20967,1
+473,469,Minmatar,Minmatar battlecruiser designs.,20968,1
+475,None,Manufacture & Research,"The perpetual engine of space industry is driven by vast quantities of materials, components and research equipment that are constantly being traded on the capsuleer market",1436,0
+477,None,Structures,"Capsuleers have many options when they decide to set up a home in space, from personal deployables to capsuleer-controlled outpost stations",2222,0
+478,1285,Control Towers,The starbase's backbone.,2222,1
+479,480,Missile Batteries,Stationary missile batteries for starbase defense.,2222,1
+480,1285,Weapon Batteries,Stationary weapon batteries for starbase defense.,2222,0
+481,480,Electronic Warfare Batteries,Batteries providing electronic countermeasures for starbase defense.,2222,1
+482,1285,Reprocessing Arrays,Anchorable reprocessing structures.,2222,1
+483,1285,Silos,"For storing or providing resources, or regulating material flow in industrial processes.",2222,1
+484,1285,Ship Maintenance Arrays,Mobile hangar and fitting structures.,2222,1
+485,1285,Shield Hardening Arrays,Anchorable structures for the boosting of a control tower's shield resistances.,2222,1
+488,1285,Moon Harvesting Arrays,Deployable arrays designed to gather minerals from moons.,2222,1
+490,1285,Reactors,Deployable structures where chemical processes take place.,2222,1
+491,19,Narcotics,"Illegal substances that alter brain chemistry, for good or ill. Transport with caution",1194,1
+492,19,Consumer Products,Products in high demand with the materialistic public. Can be bought and sold for profit,1182,1
+494,1384,Mining Barges,"Lumbering, voracious hulks, expressly created for ore accumulation.",1443,1
+496,204,Mining Barges,Blueprints of mining barge-class vessels.,2703,0
+497,496,ORE,Blueprints of ORE mining barge designs.,2703,1
+499,1034,Advanced Moon Materials,Materials used for Tech II vessel and equipment production.,2679,1
+500,1034,Processed Moon Materials,Compounds used in complex reactions.,2664,1
+501,1034,Raw Moon Materials,Pure elements and other raw materials from nature.,2668,1
+502,845,Extra Large,Fired by dreadnaught-sized guns and stationary defense systems.,1004,1
+503,851,Extra Large,For use with dreadnought-sized lasers and stationary defense systems.,1142,1
+504,848,Extra Large,Fired by dreadnought-sized guns and stationary defense systems.,1047,1
+505,114,XL Torpedoes,The most powerful missiles to be found anywhere.,1346,0
+506,1285,Corporate Hangar Array,Communal hangar structures with divisional compartments.,2222,1
+512,54,Arkonor,Sub-types of arkonor ore.,1277,1
+514,54,Bistot,Sub-types of bistot ore.,1273,1
+515,54,Pyroxeres,Sub-types of Pyroxeres ore.,231,1
+516,54,Plagioclase,Sub-types of plagioclase ore.,230,1
+517,54,Spodumain,Sub-types of spodumain ore.,1274,1
+518,54,Veldspar,Sub-types of veldspar ore.,232,1
+519,54,Scordite,Sub-types of scordite ore.,1356,1
+521,54,Crokite,Sub-types of crokite ore.,1272,1
+522,54,Dark Ochre,Sub-types of dark ochre ore.,1275,1
+523,54,Kernite,Sub-types of kernite ore.,1270,1
+525,54,Gneiss,Sub-types of gneiss ore.,1377,1
+526,54,Omber,Sub-types of omber ore.,1271,1
+527,54,Hedbergite,Sub-types of hedbergite ore.,1269,1
+528,54,Hemorphite,Sub-types of hemorphite ore.,1282,1
+529,54,Jaspet,Sub-types of jaspet ore.,1279,1
+530,54,Mercoxit,"An extremely rare and valuable ore, yielding a unique mineral.",2102,1
+531,27,Skill Hardwiring,Implants designed to increase a pilot's aptitude in a specialized area.,2224,0
+532,27,Attribute Enhancers,Implants designed to augment specific aspects of the pilot's mental make-up.,2062,0
+533,475,Materials,Various materials used in manufacturing,1201,0
+535,14,Armor Hardeners,Electronically enhanced armor plating augmentation.,1030,0
+537,14,Remote Armor Repairers,Patch up your comrades at a distance.,80,0
+538,14,Hull Repairers,For on-the-fly structural restoration.,80,0
+540,14,Armor Resistance Coatings,Armor Resistance Coatings,1030,0
+541,14,Energized Armor Resistance Membranes,Energized Armor Resistance Membranes,2066,0
+542,52,Afterburners,Provide additional thrust to the ship's engines.,96,1
+550,554,Shield Resistance Amplifiers,Strengthen various aspects of the shields' subatomic containment fields.,20939,0
+551,554,Shield Extenders,Boost the maximum strength of the ship's shield system.,1044,0
+552,554,Shield Boosters,Convert energy from the ship's core into additional shield power.,84,0
+553,554,Shield Hardeners,Computerized systems designed to give a temporary increase in shield resistance.,81,0
+554,9,Shield,Modules that strengthen the energy barrier surrounding spaceships against external dangers,69,0
+555,86,Railguns,Railguns use magnetic rails to fire solid chunks of matter at hypersonic speed.,366,0
+556,86,Blasters,Blasters fire magnetically contained balls of subatomic particles.,365,0
+557,88,Beam Lasers,"Beam lasers fire a concentrated, persistent stream of energy at their target.",361,0
+558,88,Pulse Lasers,Pulse lasers emit an oscillating energy beam at their target.,360,0
+559,87,Autocannons,Autocannons are effective at close ranges and possess great tracking ability.,381,0
+560,87,Artillery Cannons,"Slow-firing long-range cannons, able to deal crippling blows with great economy.",381,0
+561,556,Small,"Fast-tracking, low-damage blasters, for use on frigates.",376,1
+562,556,Medium,"Medium-sized blasters, for use on cruisers.",371,1
+563,556,Large,"Slow-tracking, high-damage blasters, for use on battleships.",365,1
+564,555,Small,"Fast-tracking, low-damage railguns, for use on frigates.",349,1
+565,555,Medium,"Medium-sized railguns, for use on cruisers.",370,1
+566,555,Large,"Slow-tracking, high-damage railguns, for use on battleships.",366,1
+567,557,Small,"Small beam lasers, suitable for frigate use.",352,1
+568,557,Medium,"Medium beam lasers, suitable for cruiser use.",355,1
+569,557,Large,"Large beam lasers, suitable for battleship use.",361,1
+570,558,Small,"Small pulse lasers, suitable for frigate use.",350,1
+572,558,Medium,"Medium pulse lasers, suitable for cruiser use.",356,1
+573,558,Large,"Large pulse lasers, suitable for battleship use.",360,1
+574,559,Small,"Frigate-sized autocannons, effective at very close ranges.",387,1
+575,559,Medium,Cruiser-sized weapons. Deliver a rapid-fire barrage of shells at close ranges.,386,1
+576,559,Large,"Battleship-sized autocannons. Deal massive damage, up close and personal.",381,1
+577,560,Small,"Small artillery cannons, suitable for frigate use.",389,1
+578,560,Medium,"Medium artillery cannons, suitable for cruiser use.",384,1
+579,560,Large,"Large artillery cannons, suitable for battleship use.",379,1
+580,114,Cruise Missiles,"Lifting-wing, jet-propelled guided missiles with heavy payloads.",184,0
+581,114,Heavy Missiles,Jet-propelled projectiles for heavy launchers.,186,0
+582,204,Destroyers,Blueprints of destroyer-class vessels.,2703,0
+583,582,Amarr,Blueprints of Amarr destroyer designs.,2703,1
+584,582,Caldari,Blueprints of Caldari destroyer designs.,2703,1
+585,582,Gallente,Blueprints of Gallente destroyer designs.,2703,1
+586,582,Minmatar,Blueprints of Minmatar destroyer designs.,2703,1
+588,204,Battlecruisers,Blueprints of battlecruiser-class vessels.,2703,0
+589,588,Amarr,Blueprints of Amarr battlecruiser designs.,2703,1
+590,588,Caldari,Blueprints of Caldari battlecruiser designs.,2703,1
+591,588,Gallente,Blueprints of Gallente battlecruiser designs.,2703,1
+592,588,Minmatar,Blueprints of Minmatar battlecruiser designs.,2703,1
+593,11,Mining Crystals,Frequency crystals custom-cut for different ore types,24968,0
+594,480,Projectile Batteries,Projectile turret batteries.,2222,1
+595,480,Hybrid Batteries,Hybrid turret batteries.,2222,1
+596,480,Laser Batteries,Laser turret batteries.,2222,1
+597,299,Extra Large,Blueprints of capital-sized projectile ammunition.,2703,1
+598,300,Extra Large,Blueprints of capital-sized hybrid ammunition.,2703,1
+599,301,Extra Large,Blueprints of capital-sized frequency crystals.,2703,1
+600,128,Capital,Capital ship-sized shield transport units.,86,1
+601,128,Large,Battleship-sized shield transport units.,86,1
+602,128,Medium,Cruiser-sized shield transport units.,86,1
+603,128,Small,Frigate-sized shield transport units.,86,1
+604,128,Micro,"The smallest of the shield transporters, for when CPU and powergrid are scarce.",86,1
+605,551,Small,Frigate-class shield extension systems.,1044,1
+606,551,Medium,Cruiser-class shield extension systems.,1044,1
+608,551,Large,Battleship-class shield extension systems.,1044,1
+609,552,Small,Frigate-class shield boosters.,84,1
+610,552,Medium,Cruiser-class shield boosters.,84,1
+611,552,Large,Battleship-class shield boosters.,84,1
+612,552,Extra Large,Supercharged shield boosting units for advanced battleship pilots.,84,1
+613,552,Boost Amplifiers,Focus and amplify the efficiency of shield boosting modules.,84,1
+614,19,Criminal Evidence,Proof positive of a bounty hunter's job well done,2302,0
+615,14,Damage Controls,Containment field emitters and redundancy systems for prevention of critical system damage.,77,1
+616,19,Insignias,"DNA-imprinted personal insignias, used by empire navies. Transport with caution",2552,0
+617,314,XL Torpedoes,Blueprints of XL torpedoes.,2703,1
+618,532,Implant Slot 01,Implants intended for Subcervical Processing Slot 1.,2062,1
+619,532,Implant Slot 02,Implants intended for Subcervical Processing Slot 2.,2062,1
+620,532,Implant Slot 03,Implants intended for Subcervical Processing Slot 3.,2062,1
+621,532,Implant Slot 04,Implants intended for Subcervical Processing Slot 4.,2062,1
+622,532,Implant Slot 05,Implants intended for Subcervical Processing Slot 5.,2062,1
+629,1385,Transport Ships,Advanced technologies for the transportation of valuable materials.,1443,0
+630,629,Amarr,Amarr transport ship designs.,20959,1
+631,629,Caldari,Caldari transport ship designs.,20966,1
+632,629,Gallente,Gallente transport ship designs.,20967,1
+633,629,Minmatar,Minmatar transport ship designs.,20968,1
+634,204,Transport Ships,Blueprints of transport-class vessels.,2703,0
+635,634,Amarr,Blueprints of Amarr transport designs.,2703,1
+636,634,Caldari,Blueprints of Caldari transport designs.,2703,1
+637,634,Gallente,Blueprints of Gallente transport designs.,2703,1
+638,634,Minmatar,Blueprints of Minmatar transport designs.,2703,1
+639,140,Rocket Launchers,For the launching of swift-moving rocket projectiles.,1345,1
+640,140,Light Missile Launchers,For the launching of light missiles.,168,1
+641,140,Rapid Light Missile Launchers,"Fast-launching, cruiser-sized standard missile bays.",1345,1
+642,140,Heavy Launchers,For the launching of heavy missiles.,169,1
+643,140,Cruise Launchers,For the launching of cruise missiles.  Can also fit torpedoes.,2530,1
+644,140,Torpedo Launchers,For the launching of torpedoes and cruise missiles.,170,1
+645,143,Ballistic Control Systems,Systems designed to improve missile launcher efficiency.,21440,1
+646,143,Gyrostabilizers,Systems designed to improve projectile weapon efficiency.,1046,1
+647,143,Heat Sinks,Systems designed to improve laser weapon efficiency.,1046,1
+648,143,Magnetic Field Stabilizers,Systems designed to improve hybrid weapon efficiency.,1046,1
+655,9,Engineering Equipment,Modules that affect a spaceship's capacitor and modify fitting capabilities,70,0
+656,9,Electronics and Sensor Upgrades,Modules that strengthen the sensory capabilities of a spaceship,104,0
+657,9,Electronic Warfare,Modules that can disrupt capabilities of enemy targets and defend against same,111,0
+658,655,Power Diagnostic Systems,Monitor and optimize the power grid and capacitor systems.,70,1
+659,655,Reactor Control Units,Run power core optimization subroutines for maximum efficiency.,70,1
+660,655,Auxiliary Power Controls,Supplementary systems providing a flat boost to powercore energy.,2105,1
+661,655,Energy Neutralizers,Neutralize a portion of the target ship's capacitor energy.,1283,0
+662,655,Energy Nosferatu,Steal a portion of the target ship's capacitor energy.,1029,0
+663,655,Remote Capacitor Transmitters,Systems allowing transfer of capacitor energy to another ship.,1035,0
+664,655,Capacitor Batteries,Allow the capacitor to store more energy.,89,0
+665,655,Capacitor Rechargers,Provide a boost to the capacitor's recharge rate.,90,1
+666,655,Capacitor Flux Coils,Increase capacitor recharge rate while lowering maximum capacitor capacity.,90,1
+667,655,Capacitor Power Relays,Increase capacitor recharge rate at the expense of shield boosting capability.,90,1
+668,655,Capacitor Boosters,Provide quick injections of power into the capacitor.,1031,0
+669,656,Signal Amplifiers,Augment a ship's targeting range and target acquisition time.,104,1
+670,656,Automated Targeting Systems,For automated targeting of hostiles.,104,1
+671,656,Sensor Boosters,Provide a boost to a ship's targeting range and target acquisition time.,74,1
+672,656,Passive Targeting Systems,Allow for surreptitious targeting of hostiles.,104,1
+673,656,Remote Sensor Boosters,Augment target ship's targeting range and target acquisition time.,74,1
+675,656,Cloaking Devices,Use advanced spatial distortion technology to render ships invisible.,2106,1
+676,656,CPU Upgrades,Provide an increase in the ship's CPU output.,1405,1
+677,657,Electronic Counter Measures,Designed to disrupt and lock down enemy ships' sensor arrays.,109,0
+678,657,ECM Bursts,Targeting jammers emitting multi-frequency disruptive signals.,109,1
+679,657,Remote Sensor Dampeners,Decrease the targeting speed and range of target ship.,105,1
+680,657,Weapon Disruptors,Weapon Disruptors,1639,1
+681,657,Sensor Backup Arrays,Beef up your sensor strength to resist target jamming.,104,0
+683,657,Stasis Webifiers,"Slow them down, then smack them down.",1284,1
+685,657,ECCM,Auxiliary systems giving a boost to sensor strength for a short time.,104,0
+686,657,Projected ECCM,Boost a target ship's sensor strength for a short time.,110,1
+687,554,Shield Flux Coils,Increase shield recharge rate while lowering maximum shield capacity.,83,1
+688,554,Shield Power Relays,"Divert power from ship's core to shields, increasing shield recharge rate.",83,1
+689,661,Small,Frigate-sized energy destabilizers.,1283,1
+690,661,Medium,Cruiser-sized energy destabilizers.,1283,1
+691,661,Heavy,Battleship-sized energy destabilizers.,1283,1
+692,662,Small,Frigate-sized energy vampires.,1029,1
+693,662,Medium,Cruiser-sized energy vampires.,1029,1
+694,662,Heavy,Battleship-sized energy vampires.,1029,1
+695,663,Small,Frigate-sized energy transfer arrays.,1035,1
+696,663,Medium,Cruiser-sized energy transfer arrays.,1035,1
+697,663,Large,Battleship-sized energy transfer arrays.,1035,1
+698,668,Micro,"Small capacitor boosters, for when powergrid and CPU are scarce.",1031,1
+699,668,Small,Frigate-sized capacitor boosters.,1031,1
+700,668,Medium,Cruiser-sized capacitor boosters.,1031,1
+701,668,Heavy,Battleship-sized capacitor boosters.,1031,1
+702,664,Micro,Give a small increase in capacitor energy.,89,1
+703,664,Small,Frigate-sized capacitor batteries.,89,1
+704,664,Medium,Cruiser-sized capacitor batteries.,89,1
+705,664,Large,Battleship-sized capacitor batteries.,89,1
+706,143,Tracking Computers,Computerized systems designed to improve turret tracking.,3346,1
+707,143,Tracking Enhancers,Hardwired systems designed to improve turret tracking.,1640,1
+708,143,Remote Tracking Computers,Designed to give a boost to another ship's tracking speed.,3346,1
+711,1708,Cargo Scanners,For remote scanning of a target ship's cargo hold.,106,1
+712,1708,Scan Probe Launchers,Launcher bays designed to fire scan probes for stellar triangulation.,2677,1
+713,1708,Ship Scanners,Provide tactical analysis of a target ship's capabilities.,107,1
+714,1708,Survey Scanners,For analysis of the composition of asteroids and other celestial objects.,2732,1
+715,677,Magnetometric Jammers,Targeting jammers specialized for use against magnetometric sensors.,3227,1
+716,677,Ladar Jammers,Targeting jammers specialized for use against Ladar sensors.,3228,1
+717,677,Gravimetric Jammers,Targeting jammers specialized for use against gravimetric sensors.,3226,1
+718,677,Radar Jammers,Targeting jammers specialized for use against radar sensors.,3229,1
+719,677,Multi Spectrum Jammers,Targeting jammers that induce multispectral sensor disruption.,109,1
+720,681,Gravimetric Backup Arrays,Reduces the sensors' vulnerability to gravimetric jamming.,104,1
+721,681,Ladar Backup Arrays,Reduces the sensors' vulnerability to Ladar jamming.,104,1
+722,681,Radar Backup Arrays,Reduces the sensors' vulnerability to Radar jamming.,104,1
+723,681,Magnetometric Backup Arrays,Reduces the sensors' vulnerability to magnetometric jamming.,104,1
+724,681,Multi-Frequency Backup Arrays,Reduces the sensors' vulnerability to multiple forms of jamming.,104,1
+725,685,Gravimetric Sensors,Boost a ship's gravimetric sensor strength for a short duration.,104,1
+726,685,Ladar Sensors,Boost a ship's Ladar sensor strength for a short duration.,104,1
+727,685,Magnetometric Sensors,Boost a ship's magnetometric sensor strength for a short duration.,104,1
+728,685,Multi-Spectrum Sensors,Boost a ship's sensors across the spectrum for a short duration.,104,1
+729,685,Radar Sensors,Boost a ship's radar sensor strength for a short duration.,104,1
+730,616,Amarr Navy,Officially sanctioned Imperial Navy insignias.,2552,1
+731,616,Ammatar Navy,Officially sanctioned Ammatar Navy insignias.,2552,1
+732,616,Caldari Navy,Officially sanctioned Caldari Navy insignias.,2552,1
+733,616,CONCORD,Officially sanctioned CONCORD insignias.,2552,1
+734,616,Gallente Navy,Officially sanctioned Gallente Navy insignias.,2552,1
+735,616,Khanid Navy,Officially sanctioned Khanid Navy insignias.,2552,1
+736,616,Minmatar Fleet,Officially sanctioned Minmatar Fleet insignias.,2552,1
+737,616,Individuals,Individual identification tags.,2552,1
+738,19,Nexus Chips,Stores artificial intelligence systems. Used when acquiring special ships from Loyalty Point stores,2038,1
+739,19,Criminal Dog Tags,Criminal organizations' identification tags. Can be traded to the empires,2325,0
+740,739,Angels,Angel Cartel identification tags.,2312,1
+741,739,Blood Raiders,Blood Raider identification tags.,2317,1
+742,739,Dark Blood,Dark Blood identification tags.,2317,1
+743,739,Domination,Angel Dominations identification tags.,2312,1
+744,739,Dread Guristas,Dread Guristas identification tags.,2327,1
+745,739,Guristas,Guristas identification tags.,2327,1
+746,739,Sansha,Sansha's Nation identification tags.,2332,1
+747,739,Serpentis,Serpentis identification tags.,2322,1
+748,739,Shadow Serpentis,Shadow Serpentis identification tags.,2322,1
+749,739,True Sansha,True Sansha identification tags.,2332,1
+750,739,Commanders,The identification tags of CONCORD's most wanted.,2319,1
+751,614,Overseer's Personal Effects,Proof that there's one less evil bastard in the world.,2039,1
+752,614,Criminal DNA Patterns,Physical proof of a dastardly villain's demise.,2302,1
+753,211,Mining Crystals,Blueprints of mining crystals.,2703,0
+754,19,Political Paraphernalia,Political propaganda and those that engage in it,1204,1
+757,657,Target Painters,"Project an electronic signal towards a target, increasing its signature radius.",2983,1
+761,1381,Dreadnoughts,Capital ships created for extended sieges of stationary installations.,1443,0
+762,761,Amarr,Amarr dreadnought designs.,20959,1
+763,761,Caldari,Caldari dreadnought designs.,20966,1
+764,761,Gallente,Gallente dreadnought designs.,20967,1
+765,761,Minmatar,Minmatar dreadnought designs.,20968,1
+766,1381,Freighters,"Capital ships, able to transport a world and a half and then some.",1443,0
+767,766,Amarr,Amarr freighter designs.,20959,1
+768,766,Caldari,Caldari freighter designs.,20966,1
+769,766,Gallente,Gallente freighter designs.,20967,1
+770,766,Minmatar,Minmatar freighter designs.,20968,1
+771,556,Extra Large,"Capital ship blasters, for use on dreadnoughts and titans.",2836,1
+772,555,Extra Large,"Capital ship railguns, for use on dreadnoughts and titans.",2840,1
+773,557,Extra Large,"Capital ship beam lasers, for use on dreadnoughts and titans.",2837,1
+774,558,Extra Large,"Capital ship pulse lasers, for use on dreadnoughts and titans.",2841,1
+775,560,Extra Large,"Capital ship artillery cannons, for use on dreadnoughts and titans.",2842,1
+776,559,Extra Large,"Capital ship autocannons, for use on dreadnoughts and titans.",2838,1
+777,140,XL Launchers,For the launching of XL torpedoes.  Can only be fitted on dreadnoughts and titans.,3955,1
+778,552,Capital,Shield boosters for capital ships,84,1
+779,9,Fleet Assistance Modules,Modules used to assist fleet members,20969,0
+781,1035,Standard Capital Ship Components,Modular components used in the manufacture of capital ships.,2863,1
+782,204,Dreadnoughts,Blueprints of dreadnought-class vessels.,2703,0
+783,782,Amarr,Blueprints of Amarr dreadnought designs.,2703,1
+784,782,Caldari,Blueprints of Caldari dreadnought designs.,2703,1
+785,782,Gallente,Blueprints of Gallente dreadnought designs.,2703,1
+786,782,Minmatar,Blueprints of Minmatar dreadnought designs.,2703,1
+787,204,Freighters,Blueprints of freighter-class vessels.,2703,0
+788,787,Amarr,Blueprints of Amarr freighter designs.,2703,1
+789,787,Caldari,Blueprints of Caldari freighter designs.,2703,1
+790,787,Gallente,Blueprints of Gallente freighter designs.,2703,1
+791,787,Minmatar,Blueprints of Minmatar freighter designs.,2703,1
+792,286,Extra Large,Blueprints of capital-sized hybrid turrets.,2703,1
+793,287,Extra Large,Blueprints of capital-sized projectile turrets.,2703,1
+794,288,Extra Large,Blueprints of capital-sized laser turrets.,2703,1
+796,800,Standard Capital Ship Components,Blueprints of Capital Ship Components.,2703,1
+798,800,Outpost Components,Blueprints of Outpost Construction Platforms.,2703,0
+799,209,Fleet Assistance Modules,Blueprints of Fleet Assistance Modules.,2703,1
+800,1041,Components,Blueprints for intermediary items used in the production of more advanced items.,2703,0
+801,143,Siege Modules,Modules designed to augment and enhance a capital ship's siege warfare abilities.,2851,1
+802,65,Amarr,,20959,1
+803,65,Caldari,,20966,1
+812,1381,Titans,"Fathers of the fleet, the biggest of the big.",1443,0
+813,812,Amarr,Amarr titan designs.,20959,1
+814,812,Caldari,Caldari titan designs.,20966,1
+815,812,Gallente,Gallente titan designs.,20967,1
+816,812,Minmatar,Minmatar titan designs.,20968,1
+817,1381,Carriers,"Capital warships, able to transport and deploy hordes of smaller vessels into the field.",1443,0
+818,817,Amarr,Amarr carrier designs.,20959,1
+819,817,Caldari,Caldari carrier designs.,20966,1
+820,817,Gallente,Gallente carrier designs.,20967,1
+821,817,Minmatar,Minmatar carrier designs.,20968,1
+822,1375,Command Ships,"Battlecruiser-class vessels, designed to aid their allies on the battlefield.",1443,0
+823,1373,Interdictors,Destroyer-class vessels designed to pull other starships out of warp.,1443,0
+824,1368,Recon Ships,Cruisers specialized in reconnaissance operations and electronic warfare.,1443,0
+825,822,Amarr,Amarr command ship designs.,20959,1
+826,823,Amarr,Amarr interdictor designs.,20959,1
+827,824,Amarr,Amarr recon ship designs.,20959,1
+828,822,Caldari,Caldari command ship designs.,20966,1
+829,823,Caldari,Caldari interdictor designs.,20966,1
+830,824,Caldari,Caldari recon ship designs.,20966,1
+831,822,Gallente,Gallente command ship designs.,20967,1
+832,823,Gallente,Gallente interdictor designs.,20967,1
+833,824,Gallente,Gallente recon ship designs.,20967,1
+834,822,Minmatar,Minmatar command ship designs.,20968,1
+835,823,Minmatar,Minmatar interdictor designs.,20968,1
+836,824,Minmatar,Minmatar recon ship designs.,20968,1
+837,159,Light Scout Drones,Light Scout Drones,1084,1
+838,159,Medium Scout Drones,Medium Scout Drones,1084,1
+839,159,Heavy Attack Drones,Heavy Attack Drones,1084,1
+840,2410,Light Fighters,"Single-pilot combat vessels, deployable from Carriers and Supercarriers.",1084,1
+841,157,Electronic Warfare Drones,Drones that affect the tracking and sensor capabilities of ships,1084,1
+842,157,Logistic Drones,Drones that provide support to friendly ships,1084,1
+843,157,Combat Utility Drones,Drones that interfere with the performance of enemy ships,1084,1
+845,99,Standard Ammo,Standard projectile rounds.,1004,0
+846,99,Advanced Artillery Ammo,Ultra-heavy shells incorporating cutting-edge technology.,1287,0
+847,99,Advanced Autocannon Ammo,Sophisticated autocannon munitions incorporating cutting-edge technology.,1291,0
+848,100,Standard Charges,Standard hybrid slugs.,1047,0
+849,100,Advanced Blaster Charges,Technologically advanced blaster ammunition.,1310,0
+850,100,Advanced Railgun Charges,Technologically advanced railgun ammunition.,1311,0
+851,101,Standard Crystals,The standard in energy beam frequenzy modulation.,1142,0
+852,101,Advanced Beam Laser Crystals,Technologically advanced beam laser crystals.,1145,0
+853,101,Advanced Pulse Laser Crystals,Technologically advanced pulse laser crystals.,1140,0
+854,846,Large,"Large ADAR ammunition, fired by battleship-sized guns.",1287,1
+855,846,Medium,"Medium ADAR ammunition, fired by cruiser-sized guns.",1287,1
+856,846,Small,"Small ADAR ammunition, fired by frigate-sized guns.",1287,1
+857,847,Large,"Large ADAC ammunition, fired by battleship-sized guns.",1291,1
+858,847,Medium,"Medium ADAC ammunition, fired by cruiser-sized guns.",1291,1
+859,847,Small,"Small ADAC ammunition, fired by frigate-sized guns.",1291,1
+860,849,Large,"Large advanced hybrid shells, fired by battleship-sized guns.",1310,1
+861,849,Medium,"Medium advanced hybrid shells, fired by cruiser-sized guns.",1310,1
+862,849,Small,"Small advanced hybrid shells, fired by frigate-sized guns.",1310,1
+863,850,Large,"Large advanced railgun ammunition, fired by battleship-sized guns.",1311,1
+864,850,Medium,"Medium advanced railgun ammunition, fired by cruiser-sized guns.",1311,1
+865,850,Small,"Small advanced railgun ammunition, fired by frigate-sized guns.",1311,1
+866,852,Large,"Large advanced beam laser crystals, for use with battleship-sized lasers.",1145,1
+867,852,Medium,"Medium advanced beam laser crystals, for use with cruiser-sized lasers.",1145,1
+868,852,Small,"Small advanced beam laser crystals, for use with frigate-sized lasers.",1145,1
+869,853,Large,"Large advanced pulse laser crystals, for use with battleship-sized lasers.",1140,1
+870,853,Medium,"Medium advanced pulse laser crystals, for use with cruiser-sized lasers.",1140,1
+871,853,Small,"Small advanced pulse laser crystals, for use with frigate-sized lasers.",1140,1
+872,656,Tractor Beams,Tractor Beams,2986,1
+874,1384,Exhumers,Elite Mining Barges,1443,1
+878,204,Titans,Blueprints of titan-class vessels.,2703,0
+879,204,Carriers,Blueprints of carrier- and mothership-class vessels.,2703,0
+880,204,Interdictors,Blueprints of interdictor-class vessels.,2703,0
+881,204,Command Ships,Blueprints of command ship-class vessels.,2703,0
+882,204,Recon Ships,Blueprints of recon ship-class designs.,2703,0
+883,204,Exhumers,Blueprints of Exhumers.,2703,0
+884,878,Amarr,Blueprints of Amarr titan designs.,2703,1
+885,878,Caldari,Blueprints of Caldari titan designs.,2703,1
+886,878,Gallente,Blueprints of Gallente titan designs.,2703,1
+887,878,Minmatar,Blueprints of Minmatar titan designs.,2703,1
+888,879,Amarr,Blueprints of Amarr carrier and mothership designs.,2703,1
+889,879,Caldari,Blueprints of Caldari carrier and mothership designs.,2703,1
+890,879,Gallente,Blueprints of Gallente carrier and mothership designs.,2703,1
+891,879,Minmatar,Blueprints of Minmatar carrier and mothership designs.,2703,1
+892,880,Amarr,Blueprints of Amarr interdictor designs.,2703,1
+893,880,Caldari,Blueprints of Caldari interdictor designs.,2703,1
+894,880,Gallente,Blueprints of Gallente interdictor designs.,2703,1
+895,880,Minmatar,Blueprints of Minmatar interdictor designs.,2703,1
+896,881,Amarr,Blueprints of Amarr command ship designs.,2703,1
+897,881,Caldari,Blueprints of Caldari command ship designs.,2703,1
+898,881,Gallente,Blueprints of Gallente command ship designs.,2703,1
+899,881,Minmatar,Blueprints of Minmatar command ship designs.,2703,1
+900,882,Amarr,Blueprints of Amarr recon ship designs.,2703,1
+901,882,Caldari,Blueprints of Caldari recon ship designs.,2703,1
+902,882,Gallente,Blueprints of Gallente recon ship designs.,2703,1
+903,882,Minmatar,Blueprints of Minmatar recon ship designs.,2703,1
+904,883,ORE,Blueprints of ORE exhumer designs.,2703,1
+905,1578,Tractor Beams,Blueprints of tractor beams.,2703,1
+910,663,Capital,Capital ship-sized energy transfer arrays.,1035,1
+911,159,Sentry Drones,Deployable watchdogs.,1084,1
+912,10,Superweapons,The titan's fist.,2934,0
+913,210,Superweapons,Doomsday Device and other Superweapon blueprints,2703,1
+914,115,Standard Auto-Targeting,Standard Auto-Targeting,1335,1
+917,117,Advanced High Precision Light Missiles,Advanced High Precision Light Missiles,192,1
+918,580,Advanced High Precision Cruise Missiles,Advanced High Precision Cruise Missiles,184,1
+919,581,Advanced High Precision Heavy Missiles,Advanced High Precision Heavy Missiles,186,1
+920,117,Standard Light Missiles,Standard Light Missiles,192,1
+921,580,Standard Cruise Missiles,Standard Cruise Missiles,184,1
+922,118,Standard Rockets,Standard Rockets,1352,1
+923,387,Standard Torpedoes,Standard Torpedoes,1349,1
+924,581,Standard Heavy Missiles,Standard Heavy Missiles,186,1
+925,580,Advanced High Damage Cruise Missiles,Advanced High Damage Cruise Missiles,184,1
+926,581,Advanced High Damage Heavy Missiles,Advanced High Damage Heavy Missiles,186,1
+927,117,Advanced High Damage Light Missiles,Advanced High Damage Light Missiles,192,1
+928,118,Advanced Long Range Rockets,Advanced Long Range Rockets,1352,1
+929,387,Advanced Long Range Torpedoes,Advanced Long Range Torpedoes,1349,1
+930,118,Advanced Anti-Ship Rockets,Advanced Anti-Ship Rockets,1352,1
+931,387,Advanced Anti-Ship Torpedoes,Advanced Anti-Ship Torpedoes,1349,1
+932,1285,Assembly Arrays,Structures which house manufacturing facilities.,2222,1
+933,1285,Laboratory,Structures with research facilities.,2222,1
+935,1713,Mining Upgrades,Subsystems designed to improve mining laser efficiency.,1046,1
+937,1711,Mining Upgrades,Blueprints of mining upgrades.,2703,1
+938,9,Drone Upgrades,Modules that increase drone efficiency,2989,1
+939,209,Drone Upgrades,Blueprints of drone upgrades.,2703,1
+940,19,Starbase Charters,The required licenses to operate starbases within the borders of the empires,1192,1
+943,2,Ship Modifications,Blueprints of rigs used to modify ship performance,2703,0
+944,943,Armor Rigs,Permanent modification of a ship's armor facilities.,2703,0
+945,943,Astronautic Rigs,Permanent modification of a ship's astronautic facilities.,2703,0
+946,943,Drone Rigs,Permanent modification of a ship's drone facilities.,2703,0
+948,943,Electronics Superiority Rigs,Permanent modification of a ship's electronics superiority facilities.,2703,0
+949,943,Engineering Rigs,Permanent modification of a ship's energy grid facilities.,2703,0
+950,943,Energy Weapon Rigs,Permanent modification of a ship's energy weapon facilities.,2703,0
+951,943,Hybrid Weapon Rigs,Permanent modification of a ship's hybrid weapon facilities.,2703,0
+952,943,Missile Launcher Rigs,Permanent modification of a ship's missile launcher facilities.,2703,0
+953,943,Projectile Weapon Rigs,Permanent modification of a ship's projectile weapon facilities.,2703,0
+954,943,Shield Rigs,Permanent modification of a ship's shield facilities.,2703,0
+955,None,Ship and Module Modifications,"Rigs and subsystems that alter a starship's attributes in such a way as to make it more effective in its chosen role
+
+Mutaplasmids that permanently alter a module's attributes",2887,0
+956,1111,Armor Rigs,Permanent modification of a ship's armor facilities.,3194,0
+957,1111,Astronautic Rigs,Permanent modification of a ship's astronautic facilities.,3196,0
+958,1111,Drone Rigs,Permanent modification of a ship's drone facilities.,3200,0
+960,1111,Electronics Superiority Rigs,Permanent modification of a ship's electronics superiority facilities.,3198,0
+961,1111,Engineering Rigs,Permanent modification of a ship's energy grid facilities.,3195,0
+962,1111,Energy Weapon Rigs,Permanent modification of a ship's energy weapon facilities.,3203,0
+963,1111,Hybrid Weapon Rigs,Permanent modification of a ship's hybrid weapon facilities.,3202,0
+964,1111,Missile Launcher Rigs,Permanent modification of a ship's missile launcher facilities.,3197,0
+965,1111,Shield Rigs,Permanent modification of a ship's shield facilities.,3193,0
+967,677,Signal Distortion Amplifier,Ship systems that amplify the distortion signal generated by electronic counter measure systems.,1046,1
+968,114,Heavy Assault Missiles,Jet-propelled projectiles for heavy assault launchers.,186,0
+971,968,Standard Heavy Assault Missiles,Standard heavy assault missiles.,186,1
+972,968,Advanced Long Range Heavy Assault Missiles,Advanced long range heavy assault missiles.,186,1
+973,968,Advanced Anti-Ship Heavy Assault Missile,Advanced anti-ship heavy assault missiles.,186,1
+974,140,Heavy Assault Launchers,For the launching of assault missiles.,3241,1
+975,314,Heavy Assault Missiles,Blueprints of heavy assault missiles.,2703,1
+977,24,Booster,"Illegal substances that give temporary effects, but with adverse side-effects as well",3211,0
+979,1111,Projectile Weapon Rigs,Permanent modification of a ship's projectile weapon facilities.,3201,0
+983,1032,Booster Gas Clouds,Voluminous clouds of various gases that can be found in space.,3220,1
+986,99,Faction Ammo,Enhanced ammunition designed and manufactured by the factions of New Eden,1288,0
+987,986,Large,"Large faction ammunition, fired by battleship-sized guns.",1288,1
+988,986,Medium,"Medium faction ammunition, fired by cruiser-sized guns",1288,1
+989,986,Small,"Small faction ammunition, fired by frigate-sized guns",1288,1
+990,100,Faction Charges,Enhanced ammunition designed and manufactured by the factions of New Eden,1313,0
+991,990,Large,"Large faction issue hybrid shells, fired by battleship-sized guns.",1313,1
+992,990,Medium,"Medium faction issue hybrid shells, fired by cruiser-sized guns.",1313,1
+993,990,Small,"Small faction issue hybrid shells, fired by frigate-sized guns.",1313,1
+994,101,Faction Crystals,Enhanced frequenzy crystals designed and manufactured by the factions of New Eden,1141,0
+995,994,Large,"Large faction issue frequenzy crystals, for use with battleship-size lasers.",1141,1
+996,994,Medium,"Medium faction issue frequenzy crystals, for use with cruiser-size lasers.",1141,1
+997,994,Small,"Small faction issue frequenzy crystals, for use with frigate-size lasers.",1141,1
+998,117,Faction Light Missiles,Faction issue light missiles.,192,1
+999,118,Faction Rockets,Faction issue rockets.,1352,1
+1000,387,Faction Torpedoes,Faction issue torpedoes.,1349,1
+1001,580,Faction Cruise Missiles,Faction issue cruise missiles.,184,1
+1002,581,Faction Heavy Missiles,Faction issue heavy missiles.,186,1
+1003,968,Faction Heavy Assault Missiles,Faction issue heavy assault missiles.,186,1
+1004,990,Extra Large,Fired by dreadnaught-sized guns and stationary defense systems.,1313,1
+1006,986,Extra Large,Fired by dreadnaught-sized guns and stationary defense systems.,1288,1
+1007,994,Extra Large,Faction issue frequenzy crystals for use with dreadnought-sized lasers and stationary defense systems.,1141,1
+1008,406,Cargo Containers,Blueprints of Cargo Containers.,2703,1
+1009,480,Energy Neutralization Batteries,A starbase array designed to neutralize the capacitor of hostile ships in the area.,2222,1
+1010,1285,System Scanning Array,A system-wide intelligence gathering array.,2222,1
+1011,1285,Jump Bridge,"A bridge of light, spanning the cold and empty void between the stars.",2222,1
+1012,1285,Cynosural System Jammer,The lock and key to a system's highway of cynosural passage.,2222,1
+1013,1285,Cynosural Generator Array,"A lighthouse in the sea of nothing, casting its cynosural light out to far-off ships.",2222,1
+1014,10,Bomb Launchers,"Large launchers, designed for stealth bombers for bomb deployment.",2677,1
+1015,11,Bombs,"Large, area of effect weapons, used by stealth bombers",3281,1
+1016,211,Bombs,Blueprints of bombs.,2703,1
+1018,14,Remote Hull Repairers,"Repair the hulls of your allies at range, always handy after those close call situations.",80,0
+1019,210,Bomb Launchers,Blueprints of bomb launchers.,2703,1
+1021,1035,Outpost Components,"Components to those glorious centers of community, outposts.",3303,0
+1022,1021,Improvement Platforms,,3303,0
+1027,1021,Outpost Upgrade Platforms,"Upgrade platforms for outposts, intended as a base for further improvements.",3303,1
+1028,2237,Light Fighters,Blueprints of light fighter designs.,2703,1
+1029,357,Electronic Warfare Drones,Blueprints of electronic warfare drone designs.,2703,1
+1030,357,Logistic Drones,Blueprints of logistics drone designs.,2703,1
+1031,533,Raw Materials,The building blocks of New Eden.,1277,0
+1032,533,Gas Clouds Materials,"Voluminous clouds of various gases, found in space, that can be extracted and used in the manufacturing of biochemical boosters.",3219,0
+1033,533,Ice Products,Ice isotopes harvested from ice asteroids.,2697,1
+1034,533,Reaction Materials,The various types of raw materials harvested from the moons of New Eden.,2567,0
+1035,475,Components,Components are manufactured items used in various industry activities,1436,0
+1037,1713,Gas Cloud Scoops,Gas cloud scoops designs.,3074,1
+1038,1713,Ice Harvesters,Ice harvester designs.,2526,1
+1039,1713,Mining Lasers,Mining laser designs.,1061,1
+1040,1713,Strip Miners,Strip miner designs.,2527,1
+1041,2,Manufacture & Research,Blueprints of items used for manufacturing and research processes,2703,0
+1045,204,Capital Industrial Ships,Blueprints of Capital Industrial Ships.,2703,0
+1046,1045,ORE,Blueprints of ORE Capital Industrial Ship designs.,2703,1
+1047,1381,Capital Industrial Ships,Capital ships designed to be the industrial backbone of any fleet.,1443,0
+1048,1047,ORE,ORE capital industrial ship designs.,1443,1
+1049,134,Small,"Armor repair designs, intended for frigate-class vessels.",80,1
+1050,134,Medium,"Armor repair designs, intended for cruiser-class vessels.",80,1
+1051,134,Large,"Armor repair designs, intended for battleship-class vessels.",80,1
+1052,134,Capital,"Armor repair designs, intended for capital-class vessels.",80,1
+1053,538,Small,"Hull repair system designs, intended for frigate-class vessels.",80,1
+1054,538,Medium,"Hull repair system designs, intended for cruiser-class vessels.",80,1
+1055,538,Large,"Hull repair system designs, intended for battleship-class vessels.",80,1
+1056,537,Capital,"Remote armor repair system designs, intended for capital-class vessels.",80,1
+1057,537,Large,"Remote armor repair system designs, intended for battleship-class vessels.",80,1
+1058,537,Medium,"Remote armor repair system designs, intended for cruiser-class vessels.",80,1
+1059,537,Small,"Remote armor repair system designs, intended for frigate-class vessels.",80,1
+1060,1018,Small,"Remote hull repair system designs, intended for use on frigate-class vessels.",80,1
+1061,1018,Medium,"Remote hull repair system designs, intended for use on cruiser-class vessels.",80,1
+1062,1018,Large,"Remote hull repair system designs, intended for use on battleship-class vessels.",80,1
+1063,1018,Capital,"Remote hull repair system designs, intended for use on capital-class vessels.",80,1
+1065,1364,Electronic Attack Frigates,Frigates specialized in electronic warfare.,1443,0
+1066,1065,Amarr,Amarr electronic attack frigate designs.,20959,1
+1067,1065,Caldari,Caldari electronic attack frigate designs.,20966,1
+1068,1065,Gallente,Gallente electronic attack frigate designs.,20967,1
+1069,1065,Minmatar,Minmatar electronic attack frigate designs.,20968,1
+1070,1368,Heavy Interdiction Cruisers,"Cruiser-class vessels, designed to pull other vessels out of warp.",1443,0
+1071,1070,Amarr,Amarr heavy interdiction cruiser designs.,20959,1
+1072,1070,Caldari,Caldari heavy interdiction cruiser designs.,20966,1
+1073,1070,Gallente,Gallente heavy interdiction cruiser designs.,20967,1
+1074,1070,Minmatar,Minmatar heavy interdiction cruiser designs.,20968,1
+1075,1377,Black Ops,"Battleship-Class vessels, designed to operate behind enemy lines.",1443,0
+1076,1075,Amarr,Amarr black ops designs.,20959,1
+1077,1075,Caldari,Caldari black ops designs.,20966,1
+1078,1075,Gallente,Gallente black ops designs.,20967,1
+1079,1075,Minmatar,Minmatar black ops designs.,20968,1
+1080,1377,Marauders,"Battleship-Class vessels, intended for prolonged frontline deployment.",1443,0
+1081,1080,Amarr,Amarr marauder designs.,20959,1
+1082,1080,Caldari,Caldari marauder designs,20966,1
+1083,1080,Gallente,Gallente marauder designs.,20967,1
+1084,1080,Minmatar,Minmatar marauder designs.,20968,1
+1085,657,Warp Disruption Field Generators,"A ship system that generates a local warp disruption field, preventing warp travel.",111,1
+1086,132,Inertial Stabilizers,Ship systems that stabilize the ship and allow for more graceful maneuvers.,1041,1
+1087,132,Overdrives,Ship systems that add more raw power to the ship's engines.,98,1
+1088,132,Warp Core Stabilizers,"Ship systems that help to keep the warp drive operational, despite interference.",97,1
+1089,1381,Jump Freighters,"Capital cargo ships with jump drive capabilities, bringing trade and commerce to distant stars.",1443,0
+1090,1089,Amarr,Amarr jump freighter designs.,20959,1
+1091,1089,Caldari,Caldari jump freighter designs.,20966,1
+1092,1089,Gallente,Gallente jump freighter designs.,20967,1
+1093,1089,Minmatar,Minmatar jump freighter designs.,20968,1
+1094,11,Scripts,Scripts that allow for tuning the effects of certain modules,3345,1
+1097,800,Advanced Capital Ship Components,Blueprints of Advanced Capital Ship Components.,2703,0
+1103,11,Nanite Repair Paste,"A nanite packed-fluid, used for emergency repairs of ship modules",3302,1
+1105,211,Scripts,Blueprints of scripts.,2703,1
+1109,19,Sleeper Components,"Mysterious pieces of technology of Sleeper origin, coveted by some empire corporations",3755,1
+1110,150,Scanning,Skills pertaining to signature recognition and identification procedures,33,1
+1111,955,Rigs,Rigs modify the performance of ships in which they're installed. Destroyed if removed from a ship,3203,0
+1112,955,Subsystems,Components used to piece together advanced modular spaceships,3641,0
+1122,1610,Amarr Core Subsystems,Amarr core subsystems.,3636,1
+1123,1625,Caldari Core Subsystems,Caldari core subsystems.,3636,1
+1124,1627,Gallente Core Subsystems,Gallente core subsystems.,3636,1
+1125,1626,Minmatar Core Subsystems,Minmatar core subsystems.,3636,1
+1126,1610,Amarr Defensive Subsystems,Amarr defensive subsystems.,3631,1
+1127,1625,Caldari Defensive Subsystems,Caldari defensive subsystems.,3631,1
+1128,1626,Minmatar Defensive Subsystems,Minmatar defensive subsystems.,3631,1
+1129,1627,Gallente Defensive Subsystems,Gallente defensive subsystems.,3631,1
+1130,1610,Amarr Offensive Subsystems,Amarr offensive subsystems.,3641,1
+1131,1625,Caldari Offensive Subsystems,Caldari offensive subsystems.,3641,1
+1132,1627,Gallente Offensive Subsystems,Gallente offensive subsystems.,3641,1
+1133,1626,Minmatar Offensive Subsystems,Minmatar offensive subsystems.,3641,1
+1134,1610,Amarr Propulsion Subsystems,Amarr propulsion subsystems.,3646,1
+1135,1625,Caldari Propulsion Subsystems,Caldari propulsion subsystems.,3646,1
+1136,1627,Gallente Propulsion Subsystems,Gallente propulsion subsystems.,3646,1
+1137,1626,Minmatar Propulsion Subsystems,Minmatar propulsion subsystems.,3646,1
+1138,1368,Strategic Cruisers,Highly advanced cruisers that use modular components to achieve maximum versatility.,1443,0
+1139,1138,Amarr,Amarr strategic cruiser designs.,20959,1
+1140,1138,Caldari,Caldari strategic cruiser designs.,20966,1
+1141,1138,Gallente,Gallente strategic cruiser designs.,20967,1
+1142,1138,Minmatar,Minmatar strategic cruiser designs.,20968,1
+1147,1035,Subsystem Components,The building blocks of advanced subsystems.,3721,1
+1191,800,Subsystem Components,Blueprints of Subsystem Components.,2703,1
+1192,115,Faction Auto-Targeting,Faction auto-targeting designs.,1335,1
+1193,505,Standard XL Torpedoes,Standard XL torpedo designs.,1346,1
+1194,505,Faction XL Torpedoes,Faction XL torpedo designs.,1346,1
+1195,135,Reinforced Bulkheads,Struts and braces that help improve a starship's structural integrity.,76,1
+1196,135,Nanofiber Internal Structures,Lightweight materials that provide a boost in speed by weakening a starship's internal structure.,1042,1
+1197,135,Expanded Cargoholds,"The extra bulk this expansion adds to a starship reduces its speed, but gives it more room to store cargo.",92,1
+1198,1710,Scan Probe Launchers,Blueprints of Scan Probe Launchers.,2703,1
+1199,120,Scan Probes,Scan probe designs.,1722,1
+1200,120,Survey Probes,Survey probe designs.,2663,1
+1201,120,Interdiction Probes,Interdiction probe designs.,1721,1
+1202,944,Large Armor Rigs,Blueprints of Large Armor Rigs.,2703,1
+1203,944,Small Armor Rigs,Blueprints of Small Armor Rigs.,2703,1
+1204,944,Medium Armor Rigs,Blueprints of Medium Armor Rigs.,2703,1
+1206,956,Small Armor Rigs,Modifications that affect a small starship's armor.,3194,1
+1207,956,Medium Armor Rigs,Modifications that affect a medium starship's armor.,3194,1
+1208,956,Large Armor Rigs,Modifications that affect a large starship's armor.,3194,1
+1210,957,Small Astronautic Rigs,Modifications that affect a small starship's astronautics.,3196,1
+1211,957,Medium Astronautic Rigs,Modifications that affect a medium starship's astronautics.,3196,1
+1212,957,Large Astronautic Rigs,Modifications that affect a large starship's astronautics.,3196,1
+1213,958,Small Drone Rigs,Modifications that affect a small starship's drones.,3200,1
+1214,958,Medium Drone Rigs,Modifications that affect a medium starship's drones.,3200,1
+1215,958,Large Drone Rigs,Modifications that affect a large starship's drones.,3200,1
+1219,960,Small Electronics Superiority Rigs,Modifications that affect a small starship's electronic warfare capabilities.,3198,1
+1220,960,Medium Electronics Superiority Rigs,Modifications that affect a medium starship's electronic warfare capabilities.,3198,1
+1221,960,Large Electronics Superiority Rigs,Modifications that affect a large starship's electronic warfare capabilities.,3198,1
+1222,961,Small Engineering Rigs,Modifications that affect a small starship's energy grid.,3195,1
+1223,961,Medium Engineering Rigs,Modifications that affect a medium starship's energy grid.,3195,1
+1224,961,Large Engineering Rigs,Modifications that affect a large starship's energy grid.,3195,1
+1225,962,Small Energy Weapon Rigs,Modifications that affect a small starship's energy weapons.,3203,1
+1226,962,Medium Energy Weapon Rigs,Modifications that affect a medium starship's energy weapons.,3203,1
+1227,962,Large Energy Weapon Rigs,Modifications that affect a large starship's energy weapons.,3203,1
+1228,963,Small Hybrid Weapon Rigs,Modifications that affect a small starship's hybrid weapons.,3202,1
+1229,963,Medium Hybrid Weapon Rigs,Modifications that affect a medium starship's hybrid weapons.,3202,1
+1230,963,Large Hybrid Weapon Rigs,Modifications that affect a large starship's hybrid weapons.,3202,1
+1231,964,Small Missile Launcher Rigs,Modifications that affect a small starship's missile launchers.,3197,1
+1232,964,Medium Missile Launcher Rigs,Modifications that affect a medium starship's missile launchers.,3197,1
+1233,964,Large Missile Launcher Rigs,Modifications that affect a large starship's missile launchers.,3197,1
+1234,965,Small Shield Rigs,Modifications that affect a small starship's shields.,3193,1
+1235,965,Medium Shield Rigs,Modifications that affect a medium starship's shields.,3193,1
+1236,965,Large Shield Rigs,Modifications that affect a large starship's shields.,3193,1
+1237,979,Small Projectile Weapon Rigs,Modifications that affect a small starship's projectile weapons.,3201,1
+1238,979,Medium Projectile Weapon Rigs,Modifications that affect a medium starship's projectile weapons.,3201,1
+1239,979,Large Projectile Weapon Rigs,Modifications that affect a large starship's projectile weapons.,3201,1
+1240,945,Small Astronautic Rigs,Blueprints of Small Astronautic Rigs.,2703,1
+1241,945,Medium Astronautic Rigs,Blueprints of Medium Astronautic Rigs.,2703,1
+1242,945,Large Astronautic Rigs,Blueprints of Large Astronautic Rigs.,2703,1
+1243,946,Small Drone Rigs,Blueprints of Small Drone Rigs.,2703,1
+1244,946,Medium Drone Rigs,Blueprints of Medium Drone Rigs.,2703,1
+1245,946,Large Drone Rigs,Blueprints of Large Drone Rigs.,2703,1
+1249,948,Small Electronics Superiority Rigs,Blueprints of Small Electronics Superiority Rigs.,2703,1
+1250,948,Medium Electronics Superiority Rigs,Blueprints of Medium Electronics Superiority Rigs.,2703,1
+1251,948,Large Electronics Superiority Rigs,Blueprints of Large Electronics Superiority Rigs.,2703,1
+1252,949,Small Engineering Rigs,Blueprints of Small Energy Grid Rigs.,2703,1
+1253,949,Medium Engineering Rigs,Blueprints of Medium Energy Grid Rigs.,2703,1
+1254,949,Large Engineering Rigs,Blueprints of Large Energy Grid Rigs.,2703,1
+1255,950,Small Energy Weapon Rigs,Blueprints of Small Energy Weapon Rigs.,2703,1
+1256,950,Medium Energy Weapon Rigs,Blueprints of Medium Energy Weapon Rigs.,2703,1
+1257,950,Large Energy Weapon Rigs,Blueprints of Large Energy Weapon Rigs.,2703,1
+1258,951,Small Hybrid Weapon Rigs,Blueprints of Small Hybrid Weapon Rigs.,2703,1
+1259,951,Medium Hybrid Weapon Rigs,Blueprints of Medium Hybrid Weapon Rigs.,2703,1
+1260,951,Large Hybrid Weapon Rigs,Blueprints of Large Hybrid Weapon Rigs.,2703,1
+1261,952,Small Missile Launcher Rigs,Blueprints of Small Missile Launcher Rigs.,2703,1
+1262,952,Medium Missile Launcher Rigs,Blueprints of Medium Missile Launcher Rigs.,2703,1
+1263,952,Large Missile Launcher Rigs,Blueprints of Large Missile Launcher Rigs.,2703,1
+1264,953,Small Projectile Weapon Rigs,Blueprints of Small Projectile Weapon Rigs.,2703,1
+1265,953,Medium Projectile Weapon Rigs,Blueprints of Medium Projectile Weapon Rigs.,2703,1
+1266,953,Large Projectile Weapon Rigs,Blueprints of Large Projectile Weapon Rigs.,2703,1
+1267,954,Small Shield Rigs,Blueprints of Small Shield Rigs.,2703,1
+1268,954,Medium Shield Rigs,Blueprints of Medium Shield Rigs.,2703,1
+1269,954,Large Shield Rigs,Blueprints of Large Shield Rigs.,2703,1
+1272,477,Sovereignty Structures,Structures pertaining to the control and exploitation of solar systems,3952,0
+1273,1272,Territorial Claim Units,Starbase units for claiming territory.,3952,1
+1274,1272,Sovereignty Blockade Units,Starbase units for blockading sovereignty.,3952,1
+1275,1272,Infrastructure Hubs,Starbase units for building infrastructure.,3952,1
+1276,1272,Infrastructure Upgrades,Upgrades which are installed into the Infrastructure Hub.,3947,0
+1282,1276,Strategic Upgrades,Strategic upgrades to sovereignty structures.,3946,1
+1283,1276,Industrial Upgrades,Industrial upgrades to sovereignty structures.,3948,1
+1284,1276,Military Upgrades,Military upgrades to sovereignty structures.,3947,1
+1285,477,Starbase Structures,Structures used in constructing capsuleer-run starbases,2222,0
+1286,314,XL Cruise Missiles,Blueprints of XL Cruise Missiles.,2703,1
+1287,1316,Standard XL Cruise Missiles,Standard XL cruise missile designs.,183,1
+1310,2410,Heavy Fighters,"Piloted combat vessels, deployable from Carriers and Supercarriers.",1084,1
+1313,2237,Heavy Fighters,Blueprints of heavy fighter designs.,2703,1
+1316,114,XL Cruise Missiles,XL cruise missile designs.,183,0
+1317,1316,Faction XL Cruise Missiles,Faction XL cruise missile designs.,183,1
+1320,None,Planetary Infrastructure,Capsuleers can exploit the planetary resources of New Eden by establishing command centers on the ground and orbital infrastructure in space,2881,0
+1322,1320,Command Centers,A Command Center is required to extract resources from a planet,2875,1
+1323,150,Resource Processing,Skills pertaining to efficiently extracting raw materials and refining them,33,1
+1332,533,Planetary Materials,Materials sourced from planets,10073,0
+1333,1332,Raw Planetary Materials,The first tier of planetary materials.,10012,1
+1334,1332,Processed Planetary Materials,The second tier of planetary materials.,10023,1
+1335,1332,Refined Planetary Materials,The third tier of planetary materials.,1362,1
+1336,1332,Specialized Planetary Materials,The fourth tier of planetary materials.,10040,1
+1337,1332,Advanced Planetary Materials,The firth and final tier of planetary materials.,10074,1
+1338,2,Structures,Blueprints of structures in space,2703,0
+1339,1841,Control Towers,Blueprints of Control Towers.,2703,1
+1340,1841,Assembly Arrays,Blueprints of Assembly Arrays.,2703,1
+1341,1841,Corporate Hangar Arrays,Blueprints of Corporate Hangar Arrays.,2703,1
+1342,1841,Cynosural Generator Arrays,Blueprints of Cynosural Generator Arrays.,2703,1
+1343,1841,Cynosural System Jammers,Blueprints of Cynosural System Jammers.,2703,1
+1344,1534,Electronic Warfare Batteries,Blueprints of Electronic Warfare Batteries.,2703,1
+1345,1534,Energy Neutralization Batteries,Blueprints of Energy Neutralization Batteries.,2703,1
+1346,1841,Jump Bridge,Blueprints of Jump Bridge.,2703,1
+1347,1534,Hybrid Batteries,Blueprints of Hybrid Batteries.,2703,1
+1348,1534,Laser Batteries,Blueprints of Laser Batteries.,2703,1
+1349,1534,Missile Batteries,Blueprints of Missile Batteries.,2703,1
+1350,1534,Projectile Batteries,Blueprints of Projectile Batteries.,2703,1
+1351,1841,Reactors,Blueprints of Reactors.,2703,1
+1352,1841,Moon Harvesting Arrays,Blueprints of Moon Harvesting Arrays.,2703,1
+1353,1841,Reprocessing Arrays,Blueprints of Reprocessing Arrays.,2703,1
+1354,1841,Shield Hardening Arrays,Blueprints of Shield Hardening Arrays.,2703,1
+1355,1841,Silos,Blueprints of Silos.,2703,1
+1356,2015,Sovereignty Structures,Blueprints of Sovereignty Structures.,2703,1
+1358,211,Nanite Repair Paste,Blueprints of Nanite Repair Paste.,2703,1
+1359,1841,Laboratories,Blueprints of Laboratories.,2703,1
+1361,4,Frigates,Small spaceships that excel in any role involving speed and agility,1443,0
+1362,1361,Faction Frigates,Frigates designed by specific factions.,1443,0
+1364,1361,Advanced Frigates,Frigate variants intended for specialized purposes.,1443,0
+1365,1362,Pirate Faction,Non-Empire faction frigate designs.,1443,1
+1366,1362,Navy Faction,Navy faction frigate designs.,1443,1
+1367,4,Cruisers,Medium-sized spaceships intended for a variety of roles,1443,0
+1368,1367,Advanced Cruisers,Cruiser variants intended for specialized purposes.,1443,0
+1369,1367,Faction Cruisers,Cruisers designed by specific factions.,1443,0
+1370,1369,Navy Faction,Navy faction cruiser designs.,1443,1
+1371,1369,Pirate Faction,Pirate faction cruiser designs.,1443,1
+1372,4,Destroyers,Heavily armed spaceships that sacrifice durability for extra firepower,1443,0
+1373,1372,Advanced Destroyers,These destroyers have additional attributes to help them specialize in specific roles.,1443,0
+1374,4,Battlecruisers,Medium-sized spaceships that are more powerful than normal cruisers,1443,0
+1375,1374,Advanced Battlecruisers,Advanced battlecruisers make use of advanced technology for maximum effectiveness in a certain role.,1443,0
+1376,4,Battleships,Large-sized spaceships with enough offensive and defensive capabilities to tackle all but the biggest problems,1443,0
+1377,1376,Advanced Battleships,"By focusing the design down to a single purpose, these battleships excel at their designated tasks like no other starship can.",1443,0
+1378,1376,Faction Battleships,Battleships designed by specific factions.,1443,0
+1379,1378,Navy Faction,Navy faction battleship designs.,1443,1
+1380,1378,Pirate Faction,Pirate faction battleship designs.,1443,1
+1381,4,Capital Ships,Huge spaceships capable of dominating battlefields or industry sectors,1443,0
+1382,4,Haulers and Industrial Ships,Haulers and industrial ships that form the backbone of the economy,1443,0
+1384,4,Mining Barges,Ships specially designed to harvest resources in space,1443,0
+1385,1382,Advanced Haulers,Advanced haulers are modified for specific purposes.,1443,0
+1389,208,ORE,Blueprints of ORE industrial designs.,2703,1
+1390,8,ORE,ORE industrial designs.,1443,1
+1392,817,Faction Carrier,Faction carrier designs.,1443,1
+1396,None,Apparel,Capsuleers can choose from a variety of exclusive clothing and accessories,10256,0
+1397,1396,Men's Clothing,Clothing for a masculine physique,10829,0
+1398,1397,Tops,Clothing worn on the torso.,10785,1
+1399,1397,Outerwear,Clothing worn on the outside of other clothing.,10236,1
+1400,1397,Footwear,"Garments worn on the feet, for fashion, protection against the environment, and adornment.",10254,1
+1401,1397,Bottoms,Any of various garments worn below the waist.,10756,1
+1402,1396,Women's Clothing,Clothing for a feminine physique,10830,0
+1403,1402,Bottoms,Any of various garments worn below the waist.,10570,1
+1404,1402,Footwear,"Garments worn on the feet, for fashion, protection against the environment, and adornment.",10624,1
+1405,1402,Outerwear,Clothing worn on the outside of other clothing.,10234,1
+1406,1402,Tops,Clothing worn on the torso.,10684,1
+1407,1396,Accessories,Apparel items that supplement an outfit by adding style and class,10828,0
+1408,1407,Eyewear,Eyewear is almost exclusively used for vanity purposes given advances in modern cyberware that renders externally mounted hardware obsolete.,10224,1
+1410,1320,Orbital Infrastructure,Gives capsuleers stronger control over a planet's resources,2875,1
+1416,535,Reactive Armor Hardeners,Armor Hardeners that shift resistance based on damaged received.,10933,1
+1426,657,Signature Suppressor,Reduces the ships signature.,10932,1
+1427,19,Aurum Tokens,An Aurum Token is a physical chit that can be redeemed for a predefined amount of AUR currency,10831,1
+1469,531,Armor Implants,Armor Implants,2224,0
+1470,531,Electronic Systems Implants,Electronic Systems Implants,2224,0
+1471,531,Engineering Implants,Engineering Implants,2224,0
+1472,531,Faction Omega Implants,Faction Omega Implants,2224,0
+1473,531,Gunnery Implants,Gunnery Implants,2224,0
+1474,531,Industry Implants,Industry Implants,2224,0
+1475,531,Fleet Support Implants,Fleet Support Implants,2224,0
+1476,531,Missile Implants,Missile Implants,2224,0
+1477,531,Navigation Implants,Navigation Implants,2224,0
+1478,531,Science Implants,Science Implants,2224,0
+1479,531,Shield Implants,Shield Implants,2224,0
+1480,1479,Implant Slot 06,Implant Slot 06,2224,1
+1481,1479,Implant Slot 07,Implant Slot 07,2224,1
+1482,1479,Implant Slot 08,Implant Slot 08,2224,1
+1483,1479,Implant Slot 09,Implant Slot 09,2224,1
+1484,1478,Implant Slot 06,Implant Slot 06,2224,1
+1485,1478,Implant Slot 07,Implant Slot 07,2224,1
+1486,1478,Implant Slot 08,Implant Slot 08,2224,1
+1489,1477,Implant Slot 06,Implant Slot 06,2224,1
+1490,1477,Implant Slot 07,Implant Slot 07,2224,1
+1491,1477,Implant Slot 08,Implant Slot 08,2224,1
+1492,1477,Implant Slot 09,Implant Slot 09,2224,1
+1493,1476,Implant Slot 06,Implant Slot 06,2224,1
+1494,1476,Implant Slot 07,Implant Slot 07,2224,1
+1495,1476,Implant Slot 08,Implant Slot 08,2224,1
+1496,1476,Implant Slot 09,Implant Slot 09,2224,1
+1497,1476,Implant Slot 10,Implant Slot 10,2224,1
+1498,1473,Implant Slot 06,Implant Slot 06,2224,1
+1499,1473,Implant Slot 07,Implant Slot 07,2224,1
+1500,1473,Implant Slot 08,Implant Slot 08,2224,1
+1501,1473,Implant Slot 09,Implant Slot 09,2224,1
+1502,1473,Implant Slot 10,Implant Slot 10,2224,1
+1504,1474,Implant Slot 08,Implant Slot 08,2224,1
+1505,1475,Implant Slot 10,Implant Slot 10,2224,1
+1506,1472,Implant Slot 06,Implant Slot 06,2224,1
+1507,1471,Implant Slot 06,Implant Slot 06,2224,1
+1508,1471,Implant Slot 07,Implant Slot 07,2224,1
+1509,1471,Implant Slot 08,Implant Slot 08,2224,1
+1512,1470,Implant Slot 08,Implant Slot 08,2224,1
+1513,1470,Implant Slot 09,Implant Slot 09,2224,1
+1514,1469,Implant Slot 06,Implant Slot 06,2224,1
+1515,1469,Implant Slot 07,Implant Slot 07,2224,1
+1516,1469,Implant Slot 08,Implant Slot 08,2224,1
+1517,1469,Implant Slot 09,Implant Slot 09,2224,1
+1518,1469,Implant Slot 10,Implant Slot 10,2224,1
+1520,211,Probes,Probes,2703,0
+1521,1520,Survey Probes,Survey Probes,2703,1
+1522,1041,Materials,Materials,2703,0
+1525,252,Afterburners,Blueprints of afterburners.,2703,1
+1526,314,Cruise Missiles,Cruise Missiles,2703,1
+1527,314,Heavy Missiles,Heavy Missiles,2703,1
+1528,314,Light Missiles,,2703,1
+1529,1520,Interdiction Probes,Interdiction Probes,2703,1
+1530,357,Combat Drones,Combat Drones,2703,0
+1531,1530,Light Scout Drones,Blueprints of light scout drone designs.,2703,1
+1532,1530,Medium Scout Drones,Blueprints of medium scout drone designs.,2703,1
+1533,1530,Sentry Drones,Blueprints of sentry drone designs.,2703,1
+1534,1841,Weapon Batteries,Weapon Batteries,2703,0
+1535,1841,Ship Maintenance Arrays,Ship Maintenance Arrays,2703,1
+1536,214,Armor Repairers,Blueprints for Armor Repairers,2703,1
+1537,214,Hull Repairers,Blueprints for Hull Repairers,2703,1
+1538,214,Remote Hull Repairers,Blueprints for Remote Hull Repairers,2703,1
+1539,214,Remote Armor Repairers,Blueprints for Remote Armor Repairers,2703,1
+1540,214,Armor Hardeners,Blueprints for Armor Hardeners,2703,1
+1541,214,Armor Plates,Blueprints for Armor Plates,2703,1
+1542,214,Damage Controls,Blueprints for Damage Controls,2703,1
+1543,214,Energized Armor Membranes,Blueprints for Energized Armor Membranes,2703,1
+1544,214,Armor Coatings,Blueprints for Armor Coatings,2703,1
+1545,209,Shield,Shield,2703,0
+1546,209,Engineering Equipment,Engineering Equipment,2703,0
+1547,1545,Shield Flux Coils,Shield Flux Coils,2703,1
+1548,1545,Shield Hardeners,Shield Hardeners,2703,1
+1549,1545,Shield Extenders,Shield Extenders,2703,1
+1550,1545,Shield Power Relays,Shield Power Relays,2703,1
+1551,1545,Shield Rechargers,Shield Rechargers,2703,1
+1552,1545,Shield Boosters,Shield Boosters,2703,1
+1553,1545,Remote Shield Boosters,Remote Shield Boosters,2703,1
+1554,1545,Shield Resistance Amplifiers,Shield Resistance Amplifiers,2703,1
+1555,1546,Capacitor Rechargers,Capacitor Rechargers,2703,1
+1556,1546,Capacitor Flux Coils,Capacitor Flux Coils,2703,1
+1557,1546,Capacitor Power Relays,Capacitor Power Relays,2703,1
+1558,1546,Capacitor Batteries,Capacitor Batteries,2703,1
+1559,1546,Auxiliary Power Controls,Auxiliary Power Controls,2703,1
+1560,1546,Power Diagnostic Systems,Power Diagnostic Systems,2703,1
+1561,1546,Reactor Control Units,Reactor Control Units,2703,1
+1562,1546,Remote Capacitor Transmitters,Remote Capacitor Transmitters,2703,1
+1563,1546,Capacitor Boosters,Capacitor Boosters,2703,1
+1564,1546,Energy Nosferatu,Energy Nosferatu,2703,1
+1565,1546,Energy Neutralizers,Energy Neutralizers,2703,1
+1566,209,Electronic Warfare,Electronic Warfare,2703,0
+1567,1566,Electronic Counter Measures,Electronic Counter Measures,2703,1
+1568,1566,ECM Burst,ECM Burst,2703,1
+1570,1566,Stasis Webifiers,Stasis Webifiers,2703,1
+1571,1566,Target Painters,Target Painters,2703,1
+1572,1566,Warp Disruption Field Generators,Warp Disruption Field Generators,2703,1
+1574,1566,Weapon Disruptors,Weapon Disruptors,2703,1
+1575,1566,ECCM,ECCM,2703,1
+1576,1566,Remote Sensor Dampeners,Remote Sensor Dampeners,2703,1
+1577,1566,Projected ECCM,Projected ECCM,2703,1
+1578,209,Electronics and Sensor Upgrades,Electronics and Sensor Upgrades,2703,0
+1579,1578,Automated Targeting Systems,Automated Targeting Systems,2703,1
+1580,1578,Remote Sensor Boosters,Remote Sensor Boosters,2703,1
+1581,1578,Sensor Boosters,Sensor Boosters,2703,1
+1582,1578,Passive Targeting Systems,Passive Targeting Systems,2703,1
+1583,1566,Sensor Backup Arrays,Sensor Backup Arrays,2703,1
+1584,1578,CPU Upgrades,CPU Upgrades,2703,1
+1585,1578,Signal Amplifiers,Signal Amplifiers,2703,1
+1586,357,Combat Utility Drones,Combat Utility Drones,2703,1
+1587,1097,Amarr,Amarr,2703,1
+1588,1097,Caldari,Caldari,2703,1
+1589,1097,Gallente,Gallente,2703,1
+1590,1097,Minmatar,Minmatar,2703,1
+1591,800,Advanced Components,Advanced Components,2703,0
+1592,1591,Amarr,Amarr,2703,1
+1593,1591,Caldari,Caldari,2703,1
+1594,1591,Gallente,Gallente,2703,1
+1595,1591,Minmatar,Minmatar,2703,1
+1598,99,Orbital Strike,,10942,1
+1599,101,Orbital Strike,,10940,1
+1600,100,Orbital Strike,,10941,1
+1601,300,Orbital Strike,,2703,1
+1602,301,Orbital Strike,,2703,1
+1603,299,Orbital Strike,,2703,1
+1610,1112,Amarr Subsystems,Amarr Subsystems,20959,0
+1612,4,Special Edition Ships,Rare and visually distinct ships of interest to collectors,1443,0
+1614,1612,Special Edition Industrial Ships,Industrial ships which have been offered to capsuleers on occasion for limited periods.,1443,1
+1616,5,ORE,ORE frigate designs.,1443,1
+1617,205,ORE,Blueprints of ORE frigate designs.,2703,1
+1618,1612,Special Edition Shuttles,Shuttles which have been offered to capsuleers on occasion for limited periods.,1443,1
+1619,1612,Special Edition Frigates,Frigates which have been offered to capsuleers on occasion for limited periods.,1443,1
+1620,1612,Special Edition Battleships,Battleships which have been offered to capsuleers on occasion for limited periods.,1443,1
+1621,1612,Special Edition Heavy Assault Cruisers,Heavy Assault Cruisers which have been offered to capsuleers on occasion for limited periods.,1443,1
+1623,1612,Special Edition Assault Frigates,Assault Frigates which have been offered to capsuleers on occasion for limited periods.,1443,1
+1624,1612,Special Edition Logistics,Logistics Ships which have been offered to capsuleers on occasion for limited periods.,1443,1
+1625,1112,Caldari Subsystems,Caldari Subsystems,20966,0
+1626,1112,Minmatar Subsystems,Minmatar Subsystems,20968,0
+1627,1112,Gallente Subsystems,Gallente Subsystems,20967,0
+1631,391,Faction Shuttles,Faction Shuttles,1443,1
+1633,779,Command Bursts,Command Bursts,20970,1
+1639,779,Command Processors,Command Processors,1444,1
+1640,779,Jump Portal Generators,Jump Portal Generators,2985,1
+1641,779,Cynosural Field Generators,Cynosural Field Generators,1444,1
+1642,779,Clone Vat Bays,Clone Vat Bays,34,1
+1643,357,Salvage Drones,Blueprints of salvage drone designs.,2703,1
+1646,157,Salvage Drones,Drones capable of salvaging wrecks for valuables,1084,1
+1650,52,Micro Jump Drives,Advanced propulsion technology that allows for a jump over a very short distance.,20971,1
+1651,379,Secure Containers,Secure Containers,16,1
+1652,379,Audit Log Containers,Audit Log Containers,16,1
+1653,379,Freight Containers,Freight Containers,16,1
+1657,379,Standard Containers,Standard Containers,16,1
+1658,379,Station Containers,Station Containers,16,1
+1659,None,Special Edition Assets,"Special Edition Assets are typically limited run items associated with past events in New Eden, such as the Alliance Tournament",None,0
+1660,1659,Special Edition Tournament Cards,Special Edition Tournament Cards,21065,0
+1661,1659,Special Edition Commodities,Special Edition Commodities,2231,1
+1662,1659,Special Edition Apparel,Special Edition Apparel,20977,1
+1663,1659,Special Edition Festival Assets,Special Edition Festival Assets,20973,1
+1664,1659,Special Edition Blueprints,Special Edition Blueprints,2703,1
+1665,540,Thermal Coatings,Thermal Coatings,1394,1
+1666,540,Kinetic Coatings,Kinetic Coatings,1393,1
+1667,540,Explosive Coatings,Explosive Coatings,1395,1
+1668,540,EM Coatings,EM Coatings,1396,1
+1669,14,Layered Armor Coatings,Layered Armor Coatings,1030,1
+1670,540,Multispectrum Coatings,Multispectrum Coatings,1030,1
+1672,133,100mm Armor Plate,100mm Armor Plate,79,1
+1673,133,200mm Armor Plate,200mm Armor Plate,79,1
+1674,133,400mm Armor Plate,400mm Armor Plate,79,1
+1675,133,800mm Armor Plate,800mm Armor Plate,79,1
+1676,133,1600mm Armor Plate,1600mm Armor Plate,79,1
+1678,535,Thermal Armor Hardeners,Thermal Armor Hardeners,1394,1
+1679,535,Kinetic Armor Hardeners,,1393,1
+1680,535,Explosive Armor Hardeners,Explosive Armor Hardeners,1395,1
+1681,535,EM Armor Hardeners,EM Armor Hardeners,1396,1
+1682,541,Explosive Energized Membranes,Explosive Energized Membranes,1395,1
+1683,541,Thermal Energized Membranes,Thermal Energized Membranes,1394,1
+1684,541,EM Energized Membranes,EM Energized Membranes,1396,1
+1685,541,Kinetic Energized Membranes,Kinetic Energized Membranes,1393,1
+1686,541,Multispectrum Energized Membranes,Multispectrum Energized Membranes,2066,1
+1687,14,Layered Energized Armor Membranes,Layered Energized Armor Membranes,2066,1
+1688,550,Thermal Shield Amplifiers,Thermal Shield Amplifiers,1394,1
+1689,550,Kinetic Shield Amplifiers,Kinetic Shield Amplifiers,1393,1
+1690,550,Explosive Shield Amplifiers,Explosive Shield Amplifiers,1395,1
+1691,550,EM Shield Amplifiers,EM Shield Amplifiers,1396,1
+1692,553,Thermal Shield Hardeners,Thermal Shield Hardeners,1394,1
+1693,553,Kinetic Shield Hardeners,Kinetic Shield Hardeners,1393,1
+1694,553,Explosive Shield Hardeners,Explosive Shield Hardeners,1395,1
+1695,553,EM Shield Hardeners,EM Shield Hardeners,1396,1
+1696,553,Multispectrum Shield Hardeners,Multispectrum Shield Hardeners,81,1
+1697,252,Micro Jump Drives,Blueprints of Micro Jump Drives.,2703,1
+1698,1612,Special Edition Battlecruisers,Battlecruisers which have been offered to capsuleers on occasion for limited periods.,1443,1
+1699,1612,Special Edition Cruisers,Cruisers which have been offered to capsuleers on occasion for limited periods.,1443,1
+1700,19,Security Tags,"These tags can be turned in, in low-security space, for a boost to security rating",2040,1
+1701,1841,Personal Hangar Arrays,Blueprints of Personal Hangar Arrays.,2703,1
+1702,1285,Personal Hangar Arrays,"A large hangar structure, for easy storage of materials and modules.",2222,1
+1703,1374,Faction Battlecruisers,Battlecruisers designed by specific factions.,1443,0
+1704,1703,Navy Faction,Navy faction battlecruiser designs.,1443,1
+1707,1710,Scanning Upgrades,Blueprints of scanning upgrade modules,2703,1
+1708,9,Scanning Equipment,Modules that give or improve scanning capabilities of spaceships,107,0
+1709,1708,Scanning Upgrades,Modules that modify scanning,21025,1
+1710,209,Scanning Equipment,Scanning equipment,2703,0
+1711,209,Harvest Equipment,Harvesting equipment,2703,0
+1712,1711,Salvagers,Blueprints of salvager modules.,2703,1
+1713,9,Harvest Equipment,Modules that give or improve harvesting capabilities of spaceships,1061,0
+1715,1713,Salvagers,,3240,1
+1716,1710,Survey Probe Launchers,Blueprints for building probes for surveying moons.,2703,1
+1717,1708,Survey Probe Launchers,Probes for surveying moons.,2677,1
+1718,1708,Analyzers,Modules that analyze old or recent computer systems in exploration sites.,2856,1
+1719,944,Capital Armor Rigs,Blueprints of Capital Armor Rigs.,2703,1
+1720,945,Capital Astronautic Rigs,Blueprints of Capital Astronautic Rigs.,2703,1
+1721,946,Capital Drone Rigs,Blueprints of Capital Drone Rigs.,2703,1
+1723,948,Capital Electronics Superiority Rigs,Blueprints of Capital Electronics Superiority Rigs.,2703,1
+1724,949,Capital Engineering Rigs,Blueprints of Capital Energy Grid Rigs.,2703,1
+1725,950,Capital Energy Weapon Rigs,Blueprints of Capital Energy Weapon Rigs.,2703,1
+1726,951,Capital Hybrid Weapon Rigs,Blueprints of Capital Hybrid Weapon Rigs.,2703,1
+1727,952,Capital Missile Launcher Rigs,Blueprints of Capital Missile Launcher Rigs.,2703,1
+1728,953,Capital Projectile Weapon Rigs,Blueprints of Capital Projectile Weapon Rigs.,2703,1
+1729,954,Capital Shield Rigs,Blueprints of Capital Shield Rigs.,2703,1
+1730,956,Capital Armor Rigs,Modifications that affect a capital starship's armor.,3194,1
+1731,979,Capital Projectile Weapon Rigs,Modifications that affect a capital starship's projectile weapons.,3201,1
+1732,965,Capital Shield Rigs,Modifications that affect a capital starship's shields.,3193,1
+1733,964,Capital Missile Launcher Rigs,Modifications that affect a capital starship's missile launchers.,3197,1
+1734,963,Capital Hybrid Weapon Rigs,Modifications that affect a capital starship's hybrid weapons.,3202,1
+1735,962,Capital Energy Weapon Rigs,Modifications that affect a capital starship's energy weapons.,3203,1
+1736,961,Capital Engineering Rigs,Modifications that affect a capital starship's energy grid.,3195,1
+1737,960,Capital Electronics Superiority Rigs,Modifications that affect a capital starship's electronic warfare capabilities.,3198,1
+1739,958,Capital Drone Rigs,Modifications that affect a capital starship's drones.,3200,1
+1740,957,Capital Astronautic Rigs,Modifications that affect a capital starship's astronautics.,3196,1
+1745,150,Armor,Skills pertaining to efficiently protecting the structural integrity of spaceships,33,1
+1746,150,Neural Enhancement,"Skills pertaining to managing boosters, implants and clone operations",33,1
+1747,150,Shields,Skills pertaining to management of a spaceship's energy barriers,33,1
+1748,150,Targeting,Skills pertaining to management of a spaceship's sensor and tracking systems,33,1
+1761,531,Targeting Implants,Targeting Implants,2224,0
+1762,531,Resource Processing Implants,Resource Processing Implants,2224,0
+1763,531,Scanning Implants,Scanning Implants,2224,0
+1764,531,Neural Enhancement Implants,Biology Implants,2224,0
+1765,1761,Implant Slot 07,Implant Slot 07,2224,1
+1766,1761,Implant Slot 08,Implant Slot 08,2224,1
+1767,1762,Implant Slot 10,Implant Slot 10,2224,1
+1768,1762,Implant Slot 08,Implant Slot 08,2224,1
+1769,1762,Implant Slot 07,Implant Slot 07,2224,1
+1770,1763,Implant Slot 06,Implant Slot 06,2224,1
+1771,1763,Implant Slot 07,Implant Slot 07,2224,1
+1772,1763,Implant Slot 08,Implant Slot 08,2224,1
+1773,1763,Implant Slot 09,Implant Slot 09,2224,1
+1774,1763,Implant Slot 10,Implant Slot 10,2224,1
+1775,1764,Implant Slot 08,Implant Slot 08,2224,1
+1776,1764,Implant Slot 09,Implant Slot 09,2224,1
+1777,1764,Implant Slot 10,Implant Slot 10,2224,1
+1779,1111,Resource Processing Rigs,Permanent modification of a ship's resource processing facilities.,21057,0
+1780,1111,Scanning Rigs,Permanent modification of a ship's scanning facilities.,21058,0
+1781,1111,Targeting Rigs,Permanent modification of a ship's targeting facilities.,21059,0
+1782,1779,Small Resource Processing Rigs,Modifications that affect a small starship's resource processing.,21057,1
+1783,1779,Medium Resource Processing Rigs,Modifications that affect a medium starship's resource processing.,21057,1
+1784,1779,Large Resource Processing Rigs,Modifications that affect a large starship's resource processing.,21057,1
+1785,1779,Capital Resource Processing Rigs,Modifications that affect a capital starship's resource processing.,21057,1
+1786,1780,Small Scanning Rigs,Modifications that affect a small starship's scanning.,21058,1
+1787,1780,Medium Scanning Rigs,Modifications that affect a medium starship's scanning.,21058,1
+1788,1780,Large Scanning Rigs,Modifications that affect a large starship's scanning.,21058,1
+1789,1780,Capital Scanning Rigs,Modifications that affect a capital starship's scanning.,21058,1
+1790,1781,Small Targeting Rigs,Modifications that affect a small starship's targeting.,21059,1
+1791,1781,Medium Targeting Rigs,Modifications that affect a medium starship's targeting.,21059,1
+1792,1781,Large Targeting Rigs,Modifications that affect a large starship's targeting.,21059,1
+1793,1781,Capital Targeting Rigs,Modifications that affect a capital starship's targeting.,21059,1
+1794,943,Resource Processing Rigs,Permanent modification of a ship's resource processing.,2703,0
+1795,943,Scanning Rigs,Permanent modification of a ship's scanning facilities.,2703,0
+1796,943,Targeting Rigs,Permanent modification of a ship's targeting facilities.,2703,0
+1797,1794,Capital Resource Processing Rigs,Blueprints of Capital Resource Processing Rigs.,2703,1
+1798,1794,Large Resource Processing Rigs,Blueprints of Large Resource Processing Rigs.,2703,1
+1799,1794,Medium Resource Processing Rigs,Blueprints of Medium Resource Processing Rigs.,2703,1
+1800,1794,Small Resource Processing Rigs,Blueprints of Small Resource Processing Rigs.,2703,1
+1801,1795,Small Scanning Rigs,Blueprints of Small Scanning Rigs.,2703,1
+1802,1795,Medium Scanning Rigs,Blueprints of Medium Scanning Rigs.,2703,1
+1803,1795,Large Scanning Rigs,Blueprints of Large Scanning Rigs.,2703,1
+1804,1795,Capital Scanning Rigs,Blueprints of Capital Scanning Rigs.,2703,1
+1805,1796,Small Targeting Rigs,Blueprints of Small Targeting Rigs.,2703,1
+1806,1796,Medium Targeting Rigs,Blueprints of Medium Targeting Rigs.,2703,1
+1807,1796,Large Targeting Rigs,Blueprints of Large Targeting Rigs.,2703,1
+1808,1796,Capital Targeting Rigs,Blueprints of Capital Targeting Rigs.,2703,1
+1809,1710,Analyzers,Blueprints of analyzers.,2703,1
+1810,1660,Alliance Tournament Cards,Alliance Tournament Cards,21065,0
+1811,1660,New Eden Open Cards,New Eden Open Cards,20974,0
+1812,1810,Alliance Tournament All Star Teams,Alliance Tournament All Star Teams,21065,1
+1813,1811,NEO YC 114 Team Cards,NEO YC 114 Team Cards,20974,1
+1814,1659,Special Edition Implants,Special Edition Implants,21047,1
+1815,4,Corvettes,Small entry-level and expendable ships,1443,0
+1816,1815,Amarr,Amarr rookie ship designs.,20959,1
+1817,1815,Caldari,Caldari rookie ship designs.,20966,1
+1818,1815,Gallente,Gallente rookie ship designs.,20967,1
+1819,1815,Minmatar,Minmatar rookie ship designs.,20968,1
+1822,1407,Tattoos,Tattoos for characters,21048,1
+1823,150,Planet Management,Skills required for the control and remote operation of planetary colonies,33,1
+1824,150,Subsystems,Skills pertaining to the use and control of ship subsystems,33,1
+1827,140,Rapid Heavy Missile Launchers,,21074,1
+1828,406,Mobile Depots,Blueprints for Mobile Depots,2703,1
+1829,406,Mobile Cynosural Inhibitors,Blueprints for Mobile Cynosural Inhibitors,2703,1
+1830,406,Mobile Tractor Units,Blueprints of Mobile Tractor Units,2703,1
+1831,404,Mobile Depots,,16,1
+1832,404,Mobile Cynosural Inhibitors,,16,1
+1833,404,Mobile Tractor Units,,16,1
+1834,406,Mobile Siphon Units,Blueprints of Mobile Siphon Units.,2703,1
+1835,404,Mobile Siphon Units,Steals resources from Player Owned Structures.,16,1
+1836,1407,Augmentations,a market group for various prosthetics,21078,1
+1837,1612,Special Edition Recon Ships,,1443,1
+1838,1612,Special Edition Covert Ops,,1443,1
+1840,19,Covert Research Tools,These covert operation items are in demand by various factions,2039,1
+1841,1338,Starbase Structures,Blueprints of deployable structures.,2703,0
+1842,406,Mobile Micro Jump Units,,2703,1
+1843,406,Mobile Scan Inhibitors,,2703,1
+1844,404,Mobile Micro Jump Units,,16,1
+1845,404,Mobile Scan Inhibitors,,16,1
+1846,19,Bounty Encrypted Bonds,"These tags can be turned in, at empire navy stations, in return for ISK",24565,1
+1847,404,Encounter Surveillance Systems,Deployables that monitor bounty payout activity in the system,16,1
+1849,2,Reaction Formulas,"Chemical reactions used in Refineries to create many useful materials, as well as various booster drugs",21783,0
+1850,1849,Simple Reactions,Chemical processes through which raw materials are made into compounds,2665,1
+1851,1849,Complex Reactions,Chemical processes through which compounds are combined into complex materials,2665,1
+1852,1849,Simple Biochemical Reactions,Biochemical processes through which raw materials are made into compounds,2665,1
+1853,1849,Complex Biochemical Reactions,Biochemical processes through which compounds are combined into complex materials,2665,1
+1854,1849,Polymer Reactions,Chemical processes through which raw materials are made into hybrid polymers,2665,1
+1855,1031,Ice Ores,Materials gathered from ice asteroids.,2554,1
+1856,1031,Alloys & Compounds,Various compounds composed of asteroid ores.,2215,1
+1857,533,Minerals,Minerals harvested from refined asteroid ore.,404,1
+1858,1034,Booster Materials,"Various types of biochemical boosters, most often used by pod pilots.",2664,1
+1859,1032,Fullerenes,This rare form of gas can only be harvested in wormhole space.,3222,1
+1860,1034,Polymer Materials,Material made from combining fullerenes.,3751,1
+1861,533,Salvage Materials,,3256,0
+1862,1861,Ancient Salvaged Materials,"Despite being very old, these materials hold unimaginable technological secrets.",3722,1
+1863,1861,Salvaged Materials,Materials salvaged from destroyed starships.,3260,1
+1864,1021,Construction Platforms,Outpost Construction Platforms,3303,1
+1865,1035,Structure Components,Modular items used in the manufacture of Space Stations.,2875,1
+1866,1022,Amarr Improvement Platforms,Improvements specifically designed for Amarrian outposts.,20959,1
+1867,1022,Caldari Improvement Platforms,Improvements specifically designed for Caldari outposts.,20966,1
+1868,1022,Gallente Improvement Platforms,Improvements specifically designed for Gallentean outposts.,20967,1
+1869,1022,Minmatar Improvement Platforms,Improvements specifically designed for Minmatar outposts.,20968,1
+1870,1035,Fuel Blocks,Assembled blocks of fuel for starbases and other structures.,10835,1
+1872,475,Research Equipment,Various items used in research and invention,2225,0
+1873,1872,Decryptors,,2885,1
+1880,1872,Datacores,Research Data,3233,1
+1883,1035,Advanced Capital Components,Components used in the manufacture of Tech II capital ships.,2193,0
+1884,1883,Amarr,,20959,1
+1885,1883,Caldari,,20966,1
+1886,1883,Gallente,,20967,1
+1887,1883,Minmatar,,20968,1
+1888,65,Gallente,,20967,1
+1889,65,Minmatar,,20968,1
+1897,533,Faction Materials,,2890,0
+1898,1897,Angel Cartel,Materials used in the construction of specific factional equipment.,2887,1
+1899,1897,Blood Raiders,Materials used in the construction of specific factional equipment.,2890,1
+1900,1897,Guristas,Materials used in the construction of specific factional equipment.,2888,1
+1901,1897,Serpentis,Materials used in the construction of specific factional equipment.,2890,1
+1902,1897,Sleeper,Artifacts of the Sleeper civilization.,2889,1
+1903,1897,Talocan,Artifacts of the Talocan civilization.,2886,1
+1904,1897,Yan Jung,Artifacts of the Yan Jung civilization.,2890,1
+1905,1897,Takmahl,Artifacts of the Takmahl civilization.,2886,1
+1906,1897,Rogue Drones,"Salvaged bits and pieces from destroyed Rogue Drones, can be integrated with current drone technology for improved performance.",3335,1
+1907,1872,R.Db,Databases used in Tech II research jobs.,2225,1
+1908,1035,R.A.M.,Construction tools used in Tech II manufacturing.,2226,1
+1909,1872,Ancient Relics,,3736,1
+1912,798,Construction Platforms,,2703,1
+1913,800,Structure Components,,2703,1
+1918,800,R.A.M.,,2703,1
+1919,1522,R.Db,,2703,1
+1920,800,Fuel Blocks,,2703,1
+1921,1285,Compression Array,Anchorable compression structures.,2222,1
+1922,None,Pilot's Services,"Services available to capsuleers include PLEX, Multiple Pilot Training, Pilot's Body Resculpt Certificates, and Skill Trading items",21481,0
+1923,1922,PLEX,"PLEX is an item that can be traded between players on the regional market. PLEX can also be used in the New Eden Store to upgrade your account to Omega Clone State,  purchase virtual goods, and activate other account services.",21481,1
+1924,1364,Expedition Frigates,,1443,1
+1931,132,Warp Accelerators,,98,1
+1932,1612,Special Edition Interceptors,,1443,1
+1935,657,Warp Disruptors,,111,1
+1936,657,Warp Scramblers,,111,1
+1937,657,Interdiction Sphere Launchers,,111,1
+1938,1566,Warp Disruptors,,2703,1
+1939,1566,Warp Scramblers,,2703,1
+1940,1566,Interdiction Sphere Launchers,,2703,1
+1941,132,Jump Economizers,,98,1
+1942,1922,Pilot's Services,Services available for various customization for capsuleers,21335,1
+1943,1407,Headwear,,21204,1
+1944,1402,"Bottoms, extras",,21275,1
+1945,1841,Compression Array,Blueprint of the Compression Array.,2703,1
+1949,787,ORE,Designs for ORE freighters.,2703,1
+1950,766,ORE,Freighters designed by ORE.,1443,1
+1951,1373,Tactical Destroyers,,1443,0
+1952,1951,Amarr,,20959,1
+1953,1951,Minmatar,,20968,1
+1954,None,Ship SKINs,Super Kerr-Induced Nanocoatings that modify the visual look of a ship,21420,0
+1955,1954,Battlecruisers,,21420,0
+1956,2101,Amarr,,20959,1
+1957,2101,Caldari,,20966,1
+1958,2101,Gallente,,20967,1
+1959,2101,Minmatar,,20968,1
+1960,1954,Battleships,,21420,0
+1961,1960,Faction Battleships,,21420,0
+1962,1960,Standard Battleships,,21420,0
+1963,1961,Pirate Faction,,21420,1
+1964,1962,Amarr,,20959,1
+1965,1962,Caldari,,20966,1
+1966,1962,Gallente,,20967,1
+1967,1962,Minmatar,,20968,1
+1968,1954,Capital Ships,,21420,0
+1969,2114,ORE,,21420,1
+1970,1968,Carriers,,21420,0
+1971,1968,Dreadnoughts,,21420,0
+1972,1968,Freighters,,21420,0
+1973,1968,Titans,,21420,0
+1974,2374,Amarr,,20959,1
+1975,2374,Caldari,,20966,1
+1976,2374,Gallente,,20967,1
+1977,2374,Minmatar,,20968,1
+1978,2381,Amarr,,20959,1
+1979,2381,Gallente,,20967,1
+1980,2377,Amarr,,20959,1
+1981,2377,Caldari,,20966,1
+1982,2377,Gallente,,20967,1
+1983,2377,Minmatar,,20968,1
+1984,1972,Amarr,,20959,1
+1985,1972,Caldari,,20966,1
+1986,1972,Gallente,,20967,1
+1987,1972,Minmatar,,20968,1
+1988,1954,Cruisers,,21420,0
+1989,1954,Destroyers,,21420,0
+1990,2028,Amarr,,20959,1
+1991,2028,Caldari,,20966,1
+1992,2028,Gallente,,20967,1
+1993,2028,Minmatar,,20968,1
+1994,2035,Amarr,,20959,1
+1995,2035,Caldari,,20966,1
+1996,2035,Gallente,,20967,1
+1997,2035,Minmatar,,20968,1
+1998,1954,Frigates,,21420,0
+1999,1998,Faction Frigates,,21420,0
+2000,1999,Navy Faction,,21420,1
+2001,1998,Standard Frigates,,21420,0
+2002,2001,Amarr,,20959,1
+2003,2001,Caldari,,20966,1
+2004,2001,Gallente,,20967,1
+2005,2001,Minmatar,,20968,1
+2006,1954,Haulers and Industrial Ships,,21420,0
+2007,2085,Amarr,,20959,1
+2008,2085,Caldari,,20966,1
+2009,2085,Gallente,,20967,1
+2010,2085,Minmatar,,20968,1
+2011,1954,Mining Barges,,21420,0
+2012,2011,Exhumers,,21420,1
+2013,19,Unknown Components,Mysterious pieces of technology of unknown origin,2889,1
+2014,2015,Industrial Upgrades,Blueprints of Industrial Upgrades.,2703,1
+2015,1338,Sovereignty and Infrastructure,,2703,0
+2016,2015,Military Upgrades,Blueprints of Military Upgrades,2703,1
+2017,2015,Strategic Upgrades,Blueprints of Strategic Upgrades,2703,1
+2018,1708,Entosis Links,,107,1
+2020,1710,Entosis Links,Entosis Link Blueprints,2703,1
+2021,1951,Caldari,,20966,1
+2022,1960,Advanced Battleships,,21420,0
+2023,2022,Marauders,,21420,0
+2024,2023,Amarr,,20959,1
+2025,2023,Caldari,,20966,1
+2026,2023,Gallente,,20967,1
+2027,2023,Minmatar,,20968,1
+2028,1988,Standard Cruisers,,21420,0
+2029,1988,Faction Cruisers,,21420,0
+2030,2029,Pirate Faction,,21420,1
+2031,1999,Pirate Faction,,21420,1
+2032,143,Missile Guidance Computers,,21437,1
+2033,143,Missile Guidance Enhancers,,21439,1
+2034,1951,Gallente,,20967,1
+2035,1989,Standard Destroyers,,21420,0
+2036,1989,Advanced Destroyers,,21420,0
+2037,2036,Interdictors,,21420,0
+2038,2037,Amarr,,20959,1
+2039,2037,Caldari,,20966,1
+2040,2037,Gallente,,20967,1
+2041,2037,Minmatar,,20968,1
+2042,1998,Advanced Frigates,,21420,0
+2043,2042,Assault Frigates,,21420,0
+2044,2042,Covert Ops,,21420,0
+2045,2042,Electronic Attack Frigates,,21420,0
+2046,2042,Interceptors,,21420,0
+2047,2043,Amarr,,20959,1
+2048,2043,Caldari,,20966,1
+2049,2043,Gallente,,20967,1
+2050,2043,Minmatar,,20968,1
+2051,2044,Amarr,,20959,1
+2052,2044,Caldari,,20966,1
+2053,2044,Gallente,,20967,1
+2054,2044,Minmatar,,20968,1
+2055,2045,Amarr,,20959,1
+2056,2045,Caldari,,20966,1
+2057,2045,Gallente,,20967,1
+2058,2045,Minmatar,,20968,1
+2059,2046,Amarr,,20959,1
+2060,2046,Caldari,,20966,1
+2061,2046,Gallente,,20967,1
+2062,2046,Minmatar,,20968,1
+2063,2029,Navy Faction,,21420,1
+2064,1988,Advanced Cruisers,,21420,0
+2065,2064,Heavy Assault Cruisers,,21420,0
+2066,2064,Heavy Interdiction Cruisers,,21420,0
+2067,2064,Logistics,,21420,0
+2068,2064,Recon Ships,,21420,0
+2069,2065,Amarr,,20959,1
+2070,2065,Caldari,,20966,1
+2071,2065,Gallente,,20967,1
+2072,2065,Minmatar,,20968,1
+2073,2066,Amarr,,20959,1
+2074,2066,Caldari,,20966,1
+2075,2066,Gallente,,20967,1
+2076,2066,Minmatar,,20968,1
+2077,2067,Amarr,,20959,1
+2078,2067,Caldari,,20966,1
+2079,2067,Gallente,,20967,1
+2080,2067,Minmatar,,20968,1
+2081,2068,Amarr,,20959,1
+2082,2068,Caldari,,20966,1
+2083,2068,Gallente,,20967,1
+2084,2068,Minmatar,,20968,1
+2085,2006,Standard Haulers,,21420,0
+2086,2006,Advanced Haulers,,21420,0
+2087,2086,Transport Ships,,21420,0
+2088,2087,Amarr,,20959,1
+2089,2087,Caldari,,20966,1
+2090,2087,Gallente,,20967,1
+2091,2087,Minmatar,,20968,1
+2092,2381,Caldari,,20966,1
+2093,2381,Minmatar,,20968,1
+2094,1968,Jump Freighters,,21420,0
+2095,2094,Amarr,,20959,1
+2096,2094,Caldari,,20966,1
+2097,2094,Gallente,,20967,1
+2098,2094,Minmatar,,20968,1
+2099,1955,Advanced Battlecruisers,,21420,0
+2100,1955,Faction Battlecruisers,,21420,0
+2101,1955,Standard Battlecruisers,,21420,0
+2102,2099,Command Ships,,21420,0
+2103,2100,Navy Faction,,21420,1
+2104,2102,Amarr,,20959,1
+2105,2102,Caldari,,20966,1
+2106,2102,Gallente,,20967,1
+2107,2102,Minmatar,,20968,1
+2108,1961,Navy Faction,,21420,1
+2109,2022,Black Ops,,21420,0
+2110,2109,Amarr,,20959,1
+2111,2109,Caldari,,20966,1
+2112,2109,Gallente,,20967,1
+2113,2109,Minmatar,,20968,1
+2114,1968,Capital Industrial Ships,,21420,0
+2115,1612,Special Edition Heavy Interdiction Cruisers,Heavy Interdiction Cruisers which have been offered to capsuleers on occasion for limited periods.,1443,1
+2119,1954,Multiple Hull SKINs,,21420,0
+2120,2119,Special Edition SKINs,,21420,1
+2125,1373,Command Destroyers,,1443,0
+2126,2125,Amarr,,20959,1
+2131,2125,Caldari,,20966,1
+2132,2125,Gallente,,20967,1
+2133,2125,Minmatar,,20968,1
+2134,252,Micro Jump Field Generators,,2703,1
+2135,52,Micro Jump Field Generators,,20971,1
+2136,2042,Logistics Frigates,,21420,0
+2137,2136,Amarr,,20959,1
+2138,2136,Caldari,,20966,1
+2139,2136,Gallente,,20967,1
+2140,2136,Minmatar,,20968,1
+2141,2036,Command Destroyers,,21420,0
+2142,2141,Amarr,,20959,1
+2143,2141,Caldari,,20966,1
+2144,2141,Gallente,,20967,1
+2145,2141,Minmatar,,20968,1
+2146,1364,Logistics Frigates,Frigates specialized in repairing their allies,1443,0
+2147,2146,Amarr,Amarr Logistics Frigates,20959,1
+2148,2146,Caldari,Caldari Logistics Frigates,20966,1
+2149,2146,Gallente,Gallente Logistics Frigates,20967,1
+2150,2146,Minmatar,Minmatar Logistics Frigates,20968,1
+2151,1713,Ice Mining Lasers,Ice mining laser designs.,1061,1
+2152,150,Structure Management,Skills pertaining to the efficient use of player owned structures,33,1
+2153,1566,Stasis Grapplers,Stasis Grappler Blueprints,2703,1
+2154,657,Stasis Grapplers,Stasis Grapplers,1284,1
+2155,533,Named Components,,2890,1
+2156,1338,Citadels,Blueprints of Citadel structures.,2703,1
+2157,2,Structure Modifications,Blueprints of structure modifications.,2703,0
+2158,2,Structure Equipment,Blueprints of Structure Modules.,2703,0
+2159,2157,Structure Combat Rigs,Blueprints for Structure Combat rigs.,2703,1
+2160,2157,Structure Resource Processing Rigs,Blueprints for structure reprocessing and reactions rigs.,2703,1
+2161,2158,Electronic Warfare,,2703,0
+2162,2158,Electronics and Sensor Upgrades,,2703,0
+2163,2158,Engineering Equipment,,2703,0
+2164,2158,Structure Weapons,,2703,0
+2165,2158,Fighter Upgrades,,2703,1
+2166,2158,Service Modules,,2703,0
+2167,2161,Electronic Counter Measures,,2703,1
+2168,2161,Remote Sensor Dampeners,,2703,1
+2169,2161,Stasis Webifiers,,2703,1
+2170,2161,Target Painters,,2703,1
+2171,2161,Weapon Disruptors,Weapon Disruptors,2703,1
+2172,2161,Warp Scramblers,,2703,1
+2173,2162,CPU Upgrades,,2703,1
+2174,2162,Signal Amplifiers,,2703,1
+2175,2163,Capacitor Batteries,,2703,1
+2176,2163,Energy Neutralizers,,2703,1
+2177,2163,Reactor Control Units,,2703,1
+2178,2164,Missile Launchers,,2703,0
+2179,2164,Weapon Upgrades,,2703,0
+2180,2164,Doomsday Devices,,2703,1
+2181,2166,Citadel Service Modules,,2703,1
+2182,2166,Resource Processing Service Modules,,2703,1
+2183,2178,Structure Anticapital Launcher,,2703,1
+2184,2178,Structure Antisubcapital Launcher,,2703,1
+2185,2164,Guided Bomb Launchers,,2703,1
+2186,2163,Point Defense Batteries,,2703,1
+2187,2162,Ship Tractor Beams,,2703,1
+2188,2163,Capacitor Power Relays,,2703,1
+2189,2179,Ballistic Control Systems,,2703,1
+2190,2179,Missile Guidance Enhancers,,2703,1
+2191,314,Structure Anticapital Missiles,,2703,1
+2192,314,Structure Antisubcapital Missiles,,2703,1
+2193,211,Structure Guided Bombs,,2703,1
+2196,114,Structure Antisubcapital Missiles,,21568,1
+2197,114,Structure Anticapital Missiles,,21567,1
+2198,11,Structure Guided Bombs,,21569,1
+2199,477,Citadels,,2222,0
+2200,2199,Faction Citadels,,2222,1
+2201,2199,Standard Citadels,,2222,1
+2202,None,Structure Equipment,Modules that provide functionality to Structures,21561,0
+2203,None,Structure Modifications,Rigs that improve functionality in Structures,2887,0
+2204,2203,Structure Resource Processing Rigs,Structure Reprocessing and Reaction Rigs,21602,0
+2205,2203,Structure Combat Rigs,Structure Combat Rigs,21599,0
+2206,2202,Electronic Warfare,,111,0
+2207,2202,Electronics and Sensor Upgrades,,104,0
+2208,2202,Engineering Equipment,,70,0
+2209,2202,Structure Weapons,,365,0
+2210,2202,Service Modules,,21596,0
+2211,2206,Electronic Counter Measures,,109,1
+2212,2206,Remote Sensor Dampeners,,105,1
+2213,2206,Stasis Webifiers,,1284,1
+2214,2206,Target Painters,,2983,1
+2215,2206,Weapon Disruptors,Weapon Disruptors,1639,1
+2216,2206,Warp Disruptors,,111,1
+2218,2207,CPU Upgrades,,1405,1
+2219,2207,Signal Amplifiers,,104,1
+2220,2208,Capacitor Power Relays,,90,1
+2221,2208,Point Defense Batteries,,21561,1
+2222,2208,Reactor Control Units,,70,1
+2223,2208,Energy Neutralizers,,1283,1
+2224,2208,Capacitor Batteries,,89,1
+2226,2209,Missile Launchers,,168,0
+2227,2209,Weapon Upgrades,,21440,0
+2228,2209,Doomsday Devices,,2934,1
+2229,2209,Guided Bomb Launchers,,21564,1
+2230,2226,Structure Anticapital Launcher,,21565,1
+2231,2226,Structure Antisubcapital Launcher,,21566,1
+2232,2210,Citadel Service Modules,,21596,1
+2233,2210,Resource Processing Service Modules,,21597,1
+2234,2227,Ballistic Control Systems,,21440,1
+2235,2227,Missile Guidance Enhancers,,21439,1
+2236,157,Fighters,Fighters are small combat craft launched in squadrons from Capital Ships and Structures,1084,0
+2237,357,Fighters,,2703,0
+2238,2237,Support Fighters,Blueprints of support fighter designs.,2703,1
+2239,2410,Support Fighters,"Piloted combat vessels, deployable from Carriers and Supercarriers.",1084,1
+2240,133,25000mm Armor Plate,25000mm Armor Plate,79,1
+2241,551,Capital,Capital-class shield extension systems.,1044,1
+2242,664,Capital,Capital-sized capacitor batteries.,89,1
+2243,668,Capital,Capital-sized capacitor boosters.,1031,1
+2244,538,Capital,"Hull repair system designs, intended for Capital vessels.",80,1
+2245,535,Scriptable Armor Hardeners,Armor Hardeners that can be reconfigured on the fly using scripts.,10933,1
+2246,553,Scriptable Shield Hardeners,Shield Hardeners that can be reconfigured on the fly using scripts.,81,1
+2247,140,Rapid Torpedo Launchers,,170,1
+2248,1566,Burst Projectors,,2703,1
+2249,657,Burst Projectors,,21604,1
+2250,661,Capital,Capital-sized energy neutralizers.,1283,1
+2251,662,Capital,Capital-sized energy nosferatu.,1029,1
+2252,846,Extra Large,Fired by dreadnaught-sized guns and stationary defense systems.,1287,1
+2253,847,Extra Large,Fired by dreadnaught-sized guns and stationary defense systems.,1291,1
+2254,849,Extra Large,Fired by dreadnought-sized guns and stationary defense systems.,1310,1
+2255,850,Extra Large,Fired by dreadnought-sized guns and stationary defense systems.,1311,1
+2256,853,Extra Large,For use with dreadnought-sized lasers and stationary defense systems.,1140,1
+2257,852,Extra Large,For use with dreadnought-sized lasers and stationary defense systems.,1145,1
+2258,505,Advanced Anti-Ship XL Torpedoes,Advanced Anti-Ship Torpedoes,1346,1
+2259,505,Advanced Long Range XL Torpedoes,Advanced Long Range Torpedoes,1346,1
+2260,1316,Advanced High Precision XL Cruise Missiles,Advanced High Precision XL Cruise Missiles,183,1
+2261,1316,Advanced High Damage XL Cruise Missiles,Advanced High Damage XL Cruise Missiles,183,1
+2262,204,Force Auxiliaries,Blueprints of force auxiliary-class vessels.,2703,0
+2263,2262,Amarr,Blueprints of Amarr force auxiliary designs.,2703,1
+2264,2262,Caldari,Blueprints of Caldari force auxiliary designs.,2703,1
+2265,2262,Gallente,Blueprints of Gallente force auxiliary designs.,2703,1
+2266,2262,Minmatar,Blueprints of Minmatar force auxiliary designs.,2703,1
+2267,912,Amarr,,2934,1
+2268,912,Caldari,,2934,1
+2269,912,Gallente,,2934,1
+2270,912,Minmatar,,2934,1
+2271,1381,Force Auxiliaries,"Capital warships, able to support fleets with their logistics power.",1443,0
+2272,2271,Amarr,Amarr force auxiliary designs.,20959,1
+2273,2271,Caldari,Caldari force auxiliary designs.,20966,1
+2274,2271,Gallente,Gallente force auxiliary designs.,20967,1
+2275,2271,Minmatar,Minmatar force auxiliary designs.,20968,1
+2276,912,Non-Racial,,2934,1
+2277,1968,Force Auxiliaries,,21420,0
+2278,2277,Amarr,,20959,1
+2279,2277,Caldari,,20966,1
+2280,2277,Gallente,,20967,1
+2281,2277,Minmatar,,20968,1
+2283,1954,Capsules,,21420,0
+2285,2283,Capsules,,21420,1
+2286,2283,Special Edition Capsules,,21420,1
+2287,812,Faction Titans,Faction Titan designs.,1443,1
+2288,761,Faction Dreadnoughts,Faction Dreadnought designs.,1443,0
+2290,211,Command Burst Charges,Command Burst Charges,2703,0
+2291,2290,Armor Command Burst Charges,Armor Command Burst Charges,2703,1
+2292,2290,Information Command Burst Charges,Information Command Burst Charges,2703,1
+2293,2290,Mining Foreman Burst Charges,Mining Foreman Burst Charges,2703,1
+2294,2290,Shield Command Burst Charges,Shield Command Burst Charges,2703,1
+2295,2290,Skirmish Command Burst Charges,Skirmish Command Burst Charges,2703,1
+2297,11,Command Burst Charges,Command Burst Charges,20970,0
+2298,2297,Armor Command Burst Charges,Armor Command Burst Charges,20970,1
+2299,2297,Information Command Burst Charges,Information Command Burst Charges,20970,1
+2300,2297,Mining Foreman Burst Charges,Mining Foreman Burst Charges,20970,1
+2301,2297,Shield Command Burst Charges,Shield Command Burst Charges,20970,1
+2302,2297,Skirmish Command Burst Charges,Skirmish Command Burst Charges,20970,1
+2306,1954,Corvettes,,21420,0
+2307,2306,Standard Corvettes,,21420,0
+2308,2307,Amarr,,20959,1
+2309,2036,Tactical Destroyers,,21420,0
+2310,2309,Amarr,,20959,1
+2311,1955,Special Battlecruisers,,21420,0
+2312,2311,Special Battlecruisers,,21420,1
+2313,1989,Special Destroyers,,21420,0
+2314,2313,Special Destroyers,,21420,1
+2315,1954,Shuttles,,21420,0
+2316,2315,Special Shuttles,,21420,1
+2317,19,Strong Boxes,,2039,1
+2318,1972,ORE,,1443,1
+2319,2011,Mining Barges,,21420,1
+2320,2042,Expedition Frigates,,1443,1
+2321,2001,ORE,,1443,1
+2322,1338,Engineering Complexes,Blueprints of Engineering Complex structures.,2703,1
+2323,2166,Engineering Service Modules,,2703,1
+2324,477,Engineering Complexes,,2222,1
+2325,912,ORE,,2934,1
+2327,477,Refineries,,2222,1
+2328,2085,ORE,,1443,1
+2330,2006,Special Edition Haulers,,21420,0
+2331,2330,ORE,,None,1
+2332,2210,Engineering Service Modules,,3007,1
+2333,204,Industrial Command Ships,Blueprints of industrial command ships,2703,0
+2334,2333,ORE,Blueprints of ORE industrial command ship designs.,2703,1
+2335,1382,Industrial Command Ships,,1443,0
+2336,2335,ORE,,1443,1
+2337,2006,Industrial Command Ships,,21420,0
+2338,2337,ORE,,1443,1
+2339,2157,Structure Engineering Rigs,Blueprints for Structure Combat rigs.,2703,1
+2340,2203,Structure Engineering Rigs,Structure Engineering Rigs,21729,0
+2341,2204,Medium Structure Resource Processing Rigs,Medium Structure Reprocessing and Reaction Rigs,21602,1
+2342,2204,Large Structure Resource Processing Rigs,Large Structure Reprocessing and Reaction Rigs,21602,1
+2343,2204,X-Large Structure Resource Processing Rigs,X-Large Structure Reprocessing and Reaction Rigs,21602,1
+2344,2205,Medium Structure Combat Rigs,Medium Structure Combat Rigs,21599,1
+2345,2205,Large Structure Combat Rigs,Large Structure Combat Rigs,21599,1
+2346,2205,X-Large Structure Combat Rigs,X-Large Structure Combat Rigs,21599,1
+2347,2340,Medium Structure Engineering Rigs,Medium Structure Engineering Rigs,21729,1
+2348,2340,Large Structure Engineering Rigs,Large Structure Engineering Rigs,21729,1
+2349,2340,X-Large Structure Engineering Rigs,X-Large Structure Engineering Rigs,21729,1
+2350,1612,Special Edition Destroyers,Destroyers which have been offered to capsuleers on occasion for limited periods.,1443,1
+2351,140,Defender Launchers,For launching defender missiles.,1345,1
+2353,2307,Caldari,,20966,1
+2354,2307,Gallente,,20967,1
+2355,2307,Minmatar,,20968,1
+2356,2309,Gallente,,20967,1
+2357,2271,Faction Force Auxiliaries,Faction force auxiliary designs.,1443,1
+2358,1922,Skill Trading,Items used to extract and inject skill points.,21531,1
+2359,2306,Faction Corvettes,,21420,0
+2360,2359,Pirate Faction,,21420,1
+2361,2044,Special Covert Ops,,21420,1
+2362,2068,Special Recon Ships,,21420,1
+2369,2064,Strategic Cruisers,,21420,0
+2370,2369,Caldari,,20966,1
+2371,2369,Amarr,,20959,1
+2372,2369,Gallente,,20967,1
+2373,2369,Minmatar,,20968,1
+2374,1970,Standard Carriers,,21420,0
+2375,1970,Faction Carriers,,21420,0
+2376,2375,Pirate Faction,,21420,1
+2377,1971,Standard Dreadnoughts,,21420,0
+2378,1971,Faction Dreadnoughts,,21420,0
+2380,2378,Pirate Faction,,21420,1
+2381,1973,Standard Titans,,21420,0
+2382,1973,Faction Titans,,21420,0
+2383,2382,Pirate Faction,,21420,1
+2387,2315,Amarr,Amarr Shuttle Skins,20959,1
+2388,2315,Caldari,Caldari Shuttle Skins,20966,1
+2389,2315,Gallente,Gallente Shuttle Skins,20967,1
+2390,2315,Minmatar,Minmatar Shuttle Skins,20968,1
+2391,2309,Caldari,,20966,1
+2392,2309,Minmatar,,20968,1
+2393,1338,Refineries,Blueprints of Refinery structures.,2703,1
+2395,1031,Moon Ores,,1270,0
+2396,2395,Ubiquitous Moon Ores,The most common forms of moon ore,232,1
+2397,2395,Common Moon Ores,,1356,1
+2398,2395,Uncommon Moon Ores,,231,1
+2400,2395,Rare Moon Ores,,230,1
+2401,2395,Exceptional Moon Ores,,1271,1
+2402,1849,Biochemical Reaction Formulas,Reaction formulas that enable the creation of raw boosters in Refineries,21783,1
+2403,1849,Composite Reaction Formulas,Reaction formulas that enable the creation of Tech 2 construction materials in Refineries,21783,1
+2404,1849,Polymer Reaction Formulas,Reaction formulas that enable the creation of Tech 3 construction materials in Refineries,21783,1
+2406,2109,Special Black Ops,,21420,1
+2407,2161,Structure Burst Projectors,,2703,1
+2408,2206,Structure Burst Projectors,,21604,1
+2409,2236,Structure-based Fighters,,1084,0
+2410,2236,Carrier-based Fighters,,1084,0
+2411,2409,Standup Light Fighters,,1084,1
+2412,2409,Standup Heavy Fighters,,1084,1
+2413,2409,Standup Support Fighters,,1084,1
+2414,2208,Armor Reinforcers,,79,1
+2415,2163,Armor Reinforcers,,2703,1
+2416,1368,Flag Cruisers,,1443,0
+2417,2416,CONCORD,,1443,1
+2418,2064,Flag Cruisers,,21420,0
+2419,2418,CONCORD,,1443,1
+2420,1960,Special Battleships,,21420,0
+2421,2420,Special Battleships,,21420,1
+2425,1361,Precursor Frigates,Precursor Frigates,1443,0
+2426,2425,Triglavian,Triglavian Frigates,24135,1
+2427,1367,Precursor Cruisers,Precursor Cruisers,1443,0
+2428,2427,Triglavian,Triglavian Cruisers,24135,1
+2429,1376,Precursor Battleships,Precursor Battleships,1443,0
+2430,2429,Triglavian,Triglavian Battleships,24135,1
+2431,10,Precursor Turrets,Precursor Turrets,21923,0
+2432,2431,Entropic Disintegrators,Entropic Disintegrators,21921,0
+2433,2432,Small,Small Entropic Disintegrators,21923,1
+2434,2432,Medium,Medium Entropic Disintegrators,21922,1
+2435,2432,Large,Large Entropic Disintegrators,21921,1
+2436,955,Mutaplasmids,Mutaplasmids permanently alter a module's attributes,21891,0
+2437,2436,Armor Mutaplasmids,Mutaplasmids that are used on Armor modules,21989,0
+2438,2436,Shield Mutaplasmids,Mutaplasmids that can be used on shield modules.,21985,0
+2439,2436,Astronautic Mutaplasmids,Mutaplasmids that can be used on Propulsion modules.,21984,0
+2440,2436,Engineering Mutaplasmids,Mutaplasmids that can be used on Engineering modules,21987,0
+2441,2436,Warp Disruption Mutaplasmids,Mutaplasmids that can be used on Warp Disruption modules.,21993,1
+2442,2436,Stasis Webifier Mutaplasmids,Mutaplasmids that can be used on Stasis Webifier modules.,21992,1
+2443,2437,Small Armor Mutaplasmids,Small Armor Mutaplasmids,None,1
+2444,2437,Medium Armor Mutaplasmids,Medium Armor Mutaplasmids,None,1
+2445,2437,Large Armor Mutaplasmids,Large Armor Mutaplasmids,None,1
+2446,2438,Small Shield Mutaplasmids,Small Shield Mutaplasmids,None,1
+2447,2438,Medium Shield Mutaplasmids,Medium Shield Mutaplasmids,None,1
+2448,2438,Large Shield Mutaplasmids,Large Shield Mutaplasmids,None,1
+2449,2438,X-Large Shield Mutaplasmids,X-Large Shield Mutaplasmids,None,1
+2450,2439,Small Astronautic Mutaplasmids,Small Atronautic Mutaplasmids,None,1
+2451,2439,Medium Astronautic Mutaplasmids,Medium Astronautic Mutaplasmids,None,1
+2452,2439,Large Astronautic Mutaplasmids,Large Astronautic Mutaplasmids,None,1
+2453,2440,Small Engineering Mutaplasmids,Small Engineering Mutaplasmids,None,1
+2454,2440,Medium Engineering Mutaplasmids,Medium Engineering Mutaplasmids,None,1
+2455,2440,Large Engineering Mutaplasmids,Large Engineering Mutaplasmids,None,1
+2456,19,Filaments,Abyssal Filaments and Jump Filaments,21924,0
+2457,2456,Exotic Filaments,Filaments connected to Abyssal pockets with Exotic Particle Storms,21905,1
+2458,2456,Dark Filaments,Filaments that connect to Abyssal pockets with Dark Matter Fields,21906,1
+2459,2456,Firestorm Filaments,Filaments that connect to Abyssal pockets with Plasma Firestorms,21907,1
+2460,2456,Gamma Filaments,Filaments that connect to Abyssal pockets with Gamma-Ray Afterglow,21904,1
+2461,2456,Electrical Filaments,Filaments that connect to Abyssal pockets with Electrical Storms,21903,1
+2462,11,Exotic Plasma Charges,Exotic Plasma Charges are used in Entropic Disintegrators,21918,0
+2463,2462,Standard Exotic Plasma Charges,Standard Exotic Plasma Charges,21918,0
+2464,2462,Advanced Exotic Plasma Charges,Advanced Exotic Plasma Charges,21920,0
+2465,2463,Small,Small Exotic Plasma Charge,21918,1
+2466,2463,Medium,Medium Exotic Plasma Charges,21918,1
+2467,2463,Large,Large Exotic Plasma Charges,21918,1
+2468,2464,Small,Small Advanced Exotic Plasma Charges,21920,1
+2469,2464,Medium,Medium Advanced Exotic Plasma Charges,21920,1
+2470,2464,Large,Large Advanced Exotic Plasma Charges,21920,1
+2471,143,Entropic Radiation Sinks,Increases damage and rate of fire for Entropic Disintegrators,1046,1
+2473,531,Drone Implants,Drone Implants,2224,0
+2474,2473,Implant Slot 06,Implant Slot 06,2224,1
+2475,2473,Implant Slot 07,Implant Slot 07,2224,1
+2476,2473,Implant Slot 08,Implant Slot 08,2224,1
+2477,2473,Implant Slot 09,Implant Slot 09,2224,1
+2478,2473,Implant Slot 10,Implant Slot 10,2224,1
+2479,1031,Abyssal Materials,Materials found in Abyssal Deadspace,2103,1
+2480,19,Triglavian Data,Triglavian Data Storage Devices,21982,1
+2481,1960,Precursor Battleships,Precursor Battleships,21420,0
+2482,2481,Triglavian,Triglavian Battleships,21420,1
+2483,1988,Precursor Cruisers,Precursor Cruisers,21420,0
+2484,1998,Precursor Frigates,Precursor Frigates,21420,0
+2485,2483,Triglavian,Triglavian Cruisers,21420,1
+2486,2484,Triglavian,Triglavian Frigates,21420,1
+2487,24,Cerebral Accelerators,"Cerebral Accelerators come in a variety of different forms, but in the end the effects are similar. These drugs, devices, and boosters that significantly increase a pilot's skill development.",10144,1
+2488,977,Booster Slot 01,Booster Slot 01,3211,0
+2489,977,Booster Slot 02,Booster Slot 02,3211,0
+2490,977,Booster Slot 03,Booster Slot 03,3211,0
+2491,2488,Blue Pill,Blue Pill Boosters,3215,1
+2492,2488,Exile,Exile Boosters,3211,1
+2493,2488,Mindflood,Mindflood Boosters,3214,1
+2494,2488,X-Instinct,X-Instinct Boosters,3217,1
+2495,2488,Antipharmakon,Antipharmakon Boosters,3211,1
+2496,2489,Drop,Drop Boosters,3212,1
+2497,2489,Frentix,Frentix Boosters,3213,1
+2498,2489,Sooth Sayer,Sooth Sayer Boosters,3216,1
+2499,2489,Antipharmakon,Antipharmakon Boosters,3211,1
+2500,2490,Crash,Crash Boosters,3210,1
+2501,2490,Antipharmakon,Antipharmakon Boosters,3211,1
+2502,977,Booster Slot 11,Booster Slot 11,3211,0
+2503,2502,Hardshell,Hardshell Boosters,21841,1
+2504,2502,Overclocker,Overclocker Boosters,21840,1
+2505,2502,Pyrolancea,Pyrolancea Boosters,21839,1
+2506,2488,Other,Other Boosters,3211,1
+2508,214,Mass Entangler,Blueprints for Mass Entanglers.,2703,1
+2509,14,Mass Entanglers,Mass Entanglers lower ship mass at the cost of ship velocity.,97,1
+2510,1338,Navigation Structures,Blueprints of navigation structures.,2703,1
+2511,477,Navigation Structures,,2222,1
+2512,2436,Weapon Upgrade Mutaplasmids,,22064,0
+2513,2512,Magnetic Field Stabilizer Mutaplasmids,,None,1
+2514,2512,Heat Sink Mutaplasmids,,None,1
+2515,2512,Gyrostabilizer Mutaplasmids,,None,1
+2516,2512,Entropic Radiation Sink Mutaplasmids,,None,1
+2517,2512,Ballistic Control System Mutaplasmids,,None,1
+2518,1955,Precursor Battlecruisers,Precursor Battlecruisers,21420,0
+2519,2518,Triglavian,Triglavian Battlecruisers,21420,1
+2520,1989,Precursor Destroyers,Precursor Destroyers,21420,0
+2521,2520,Triglavian,Triglavian Destroyers,21420,1
+2522,1372,Precursor Destroyers,Precursor Destroyers,1443,0
+2523,2522,Triglavian,Triglavian Destroyers,24135,1
+2524,1374,Precursor Battlecruisers,Precursor Battlecruisers.,1443,0
+2525,2524,Triglavian,Triglavian Battlecruisers.,24135,1
+2526,437,Triglavian,Triglavian Logistics Cruisers,24135,1
+2527,14,Mutadaptive Remote Armor Repairers,,80,1
+2529,2527,Medium,Medium Mutadaptive Remote Armor Repairers,80,1
+2530,977,Booster Slot 12,,3211,1
+2531,977,Booster Slot 14,,3215,1
+2532,2436,Damage Control Mutaplasmids,Damage Control and Assault Damage Control Mutaplasmids,24129,0
+2533,2532,Damage Control Mutaplasmids,Damage Control Mutaplasmids,None,1
+2534,2532,Assault Damage Control Mutaplasmids,Assault Damage Control Mutaplasmids,None,1
+2535,448,Triglavian,Triglavian Heavy Assault Cruisers,24135,1
+2536,432,Triglavian,Triglavian Assault Frigates,24135,1
+2537,2125,Triglavian,Triglavian Command Destroyers,24135,1
+2538,54,Bezdnacine,Bezdnacine,24143,1
+2539,54,Rakovene,Rakovene,24144,1
+2540,54,Talassonite,Talassonite,24136,1
+2658,65,Triglavian,Advanced Components of Triglavian origin.,24135,1
+2690,761,Triglavian,Triglavian Dreadnoughts,24135,1
+2691,2432,Extra Large,"Capital ship entropic disintegrators, for use on dreadnoughts and titans.",24237,1
+2692,2463,Extra Large,For use with dreadnought-sized entropic disintegrators.,21918,1
+2693,1883,Triglavian,,24135,1
+2701,1922,HyperNet Relay,Items used in the HyperNet Relay,24205,1
+2702,1612,Special Edition Corvettes,Corvettes that have been offered to capsuleers on occasion for limited periods.,1443,1
+2703,1971,Precursor Dreadnoughts,Precursor Dreadnoughts,21420,0
+2704,2703,Triglavian,Triglavian Dreadnoughts,21420,1
+2706,2456,Jump Filaments,Filaments that jump fleets unpredictably to other locations in known space.,21924,1
+2728,11,Condenser Packs,Condenser Pack charges used in Vorton Projectors,24481,0
+2729,2728,Standard Condenser Packs,Standard Condenser Packs,24481,0
+2730,2728,Advanced Condenser Packs,Advanced Condenser Packs,24480,0
+2734,2729,Small,,24469,1
+2735,2729,Medium,,24475,1
+2736,2729,Large,,24481,1
+2737,2730,Small,,24468,1
+2738,2730,Medium,,24474,1
+2739,2730,Large,,24480,1
+2740,143,Vorton Tuning Systems,,24467,1
+2741,10,Vorton Projectors,Vorton Projectors made by Upwell,24466,0
+2742,2741,Small,,24464,1
+2743,2741,Medium,,24465,1
+2744,2741,Large,,24466,1
+2747,2456,Proving Ground Filaments,Filaments that connect to the Abyssal Proving Grounds for limited time PVP events.,21925,1
+2749,2202,Quantum Cores,Quantum Cores are FTL communications facillities vital to the efficient operation of Upwell structures.,21729,1
+2750,2439,Capital Astronautic Mutaplasmids,Capital Astronautic Mutaplasmids,None,1
+2751,2437,Capital Armor Mutaplasmids,Capital Armor Mutaplasmids,None,1
+2752,2438,Capital Shield Mutaplasmids,Capital Shield Mutaplasmids,None,1
+2753,2440,Capital Engineering Mutaplasmids,Capital Engineering Mutaplasmids,None,1
+2754,2512,Siege Module Mutaplasmids,Siege Module Mutaplasmids,None,1
+2756,2456,Triglavian Space Outbound,Filaments that jump users out of the Triglavian Region Pochven,24530,1
+2757,2456,Triglavian Space Inbound,Filaments that jump users into the Triglavian Region Pochven,24530,1
+2760,1659,Special Edition Deployable Structures,Special Edition Deployable Structures,16,1
+2761,977,Clone Mappers,Boosters used in reconfiguration of clone mapping to allow the use of Tactical Capsuleer Recloners,10144,1
+2763,404,Mobile Cynosural Beacons,,16,1
+2764,406,Mobile Cynosural Beacons,,2703,1
+2765,533,Advanced Protective Technology,,24608,1
+2766,533,Molecular-Forging Tools,,24623,1
+2767,1034,Molecular-Forged Materials,,24619,1
+2768,1035,Protective Components,,24638,1
+2769,1849,Molecular-Forged Reaction Formulas,,21783,1
+2770,800,Protective Components,,2703,1
+2771,404,Mobile Observatories,,16,1
+2772,406,Mobile Observatories,Blueprints for Mobile Observatories,2703,1
+2783,132,Interdiction Nullifiers,Modules which negate the effects of warp disrupt probes and mobile warp disruptors,24730,1
+2790,977,Booster Slot 15,,3215,1
+2791,977,Booster Slot 16,,3215,1
+2792,977,Booster Slot 17,,3215,1
+2795,1713,Gas Cloud Harvesters,,3074,1
+2797,406,Analysis Beacons,Blueprints for Analysis Beacons,2703,1
+2798,404,Analysis Beacons,,16,1
+2799,19,Rogue Drone Data,Data pertaining to Rogue Drones,21785,1
+2800,2436,Drone Mutaplasmids,,24905,1
+2801,19,AEGIS Databases,,10065,1
+2804,593,Asteroid Mining Crystals,Frequency crystals custom-cut for different asteroid ore types,24968,1
+2805,593,Moon Mining Crystals,Frequency crystals custom-cut for different moon ore types,25021,1
+2806,753,Asteroid Mining Crystals,,2703,1
+2807,753,Moon Mining Crystals,,2703,1
+2814,1032,Compressed Gas,,25169,1
+2815,9,Compressors,,25152,1
+2816,209,Compressor Blueprints,,2703,1
+2819,1612,Special Edition Electronic Attack Frigates,Electronic Attack Frigates which have been offered to capsuleers on occasion for limited periods.,1443,1
+2820,11,Structure Area Denial Ammunition,"Area denial ammunition, fired by structure defense systems.",1004,1
+2821,211,Structure Area Denial Ammunition,Blueprints of area denial ammunition.,2703,1
+3450,404,Mobile Strategic Objectives,,16,1
+3451,406,Mobile Strategic Objectives,Blueprints for Mobile Objectives,2703,0
+3453,1897,Amarr Empire,Materials used in the construction of specific factional equipment.,1436,1
+3454,1897,Minmatar Republic,Materials used in the construction of specific factional equipment.,1436,1
+3455,1897,Caldari State,Materials used in the construction of specific factional equipment.,1436,1
+3456,1897,Gallente Federation,Materials used in the construction of specific factional equipment.,1436,1
+3478,1407,Masks,,24411,1
+3480,1372,Faction Destroyers,Destroyers designed by specific factions.,1443,0
+3481,3480,Navy Faction,Navy faction destroyer designs.,1443,1
+3483,2288,Pirate Faction,Non-Empire faction dreadnought designs.,1443,1
+3484,2288,Navy Faction,Navy faction dreadnought designs.,1443,1
+3487,54,Mordunium,,15,1
+3488,54,Ytirium,,15,1
+3489,54,Eifyrium,,15,1
+3490,54,Ducinium,,15,1
+3495,2378,Navy Faction,,21420,1
+3496,1989,Faction Destroyers,,21420,0
+3497,3496,Navy Faction,,21420,1

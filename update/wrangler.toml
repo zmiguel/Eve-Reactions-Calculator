@@ -1,0 +1,18 @@
+name = "eve-reactions-updater"
+main = "src/index.ts"
+compatibility_date = "2023-05-23"
+usage_model = "bundled"
+env = { }
+
+kv_namespaces = [
+    { binding = "ENDPOINTS", id = "17fda7ccf69547a9b679d139571222ee", preview_id = "17fda7ccf69547a9b679d139571222ee" },
+    { binding = "DATA", id = "f1bf8614eb0247ecb5e870200c531bcd", preview_id = "f1bf8614eb0247ecb5e870200c531bcd" }
+]
+
+[[d1_databases]]
+binding = "DB"
+database_name = "eve-reactions"
+database_id = "6b9eff3c-a356-44e5-8575-58f82f777485"
+
+[triggers]
+crons = ["*/30 * * * *"]

@@ -1,0 +1,7 @@
+kv_namespaces = [
+    { binding = "KV_DATA", id = "f1bf8614eb0247ecb5e870200c531bcd", preview_id = "f1bf8614eb0247ecb5e870200c531bcd" }
+]
+
+d1_databases = [
+    { binding = "DB", database_id = "6b9eff3c-a356-44e5-8575-58f82f777485", preview_id = "6b9eff3c-a356-44e5-8575-58f82f777485", database_name = "eve-reactions" }
+]
