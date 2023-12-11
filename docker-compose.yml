@@ -1,9 +1,0 @@
-version: '3.8'
-services:
-    reactions-calculator:
-        image: zmiguel/eve-reactions-calculator:dev
-#        build: ./
-        container_name: reactions-calculator
-        restart: unless-stopped
-        ports:
-            - '3000:3000'
