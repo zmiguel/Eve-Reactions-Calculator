@@ -9,15 +9,14 @@
 </script>
 
 <svelte:head>
-	<script async src="https://www.googletagmanager.com/gtag/js?id=UA-109766629-1"></script>
+	<!-- Google tag (gtag.js) -->
+	<script async src="https://www.googletagmanager.com/gtag/js?id=G-MZK5Y3B3KH"></script>
 	<script>
 		window.dataLayer = window.dataLayer || [];
-		function gtag() {
-			dataLayer.push(arguments);
-		}
+		function gtag(){dataLayer.push(arguments);}
 		gtag('js', new Date());
 
-		gtag('config', 'UA-109766629-1');
+		gtag('config', 'G-MZK5Y3B3KH');
 	</script>
 	<meta charset="UTF-8" />
 	<meta
