@@ -157,14 +157,3 @@
 		</div>
 	</div>
 </footer>
-<span>
-	<noscript
-		><img
-			src="https://shy.zmiguel.me/ingress/e89a1319-3efb-40ee-87a9-67c0f0f0865c/pixel.gif"
-			alt="pixel"
-		/></noscript
-	>
-	<script
-		src="https://shy.zmiguel.me/ingress/e89a1319-3efb-40ee-87a9-67c0f0f0865c/script.js"
-	></script>
-</span>
