@@ -64,7 +64,7 @@ export async function prep(options, blueprints, env) {
 	};
 }
 
-export async function hybrid(env, options, db, material, amount) {
+export async function hybrid(env, options, db, material, amount, advanced = false) {
 	// Calculate material bonus
 	let material_bonus = 1;
 	switch (options.rigs) {
@@ -98,26 +98,26 @@ export async function hybrid(env, options, db, material, amount) {
 	let time_per_run = 180 * (1 - (4 * parseInt(options.skill)) / 100);
 	// Facility bonus
 	if (options.facility === 'medium') {
-		time_per_run = time_per_run * (1 - 0);
+		time_per_run = time_per_run * 1;
 	} else if (options.facility === 'large') {
 		time_per_run = time_per_run * (1 - 25 / 100);
 	}
 	// Rig bonus
 	switch (options.rigs) {
 		case '0':
-			if (options.space === 'null') {
+			if (options.space === 'nullsec') {
 				time_per_run = time_per_run * (1 - 1.1 / 100);
 			}
 			break;
 		case '1':
-			if (options.space === 'null') {
+			if (options.space === 'nullsec') {
 				time_per_run = time_per_run * (1 - (20 * 1.1) / 100);
 			} else {
 				time_per_run = time_per_run * (1 - 20 / 100);
 			}
 			break;
 		case '2':
-			if (options.space === 'null') {
+			if (options.space === 'nullsec') {
 				time_per_run = time_per_run * (1 - (24 * 1.1) / 100);
 			} else {
 				time_per_run = time_per_run * (1 - 24 / 100);
@@ -139,14 +139,29 @@ export async function hybrid(env, options, db, material, amount) {
 
 	// Sanity Check
 	if (blueprint === undefined) {
-		console.log('Blueprint not found');
+		console.log('Blueprint not found | material: ' + material);
 		return;
 	}
 
+	// calculate the cycle data
+	let cycle_data = {
+		cycle_time: Math.round(parseInt(options.cycles) * time_per_run),
+		num_cycles: 1,
+		total_time: parseInt(options.duration)
+	};
+	if (advanced) {
+		cycle_data = {
+			cycle_time: Math.round(parseInt(options.cycles) * time_per_run),
+			num_cycles: Math.floor(parseInt(options.duration) / (parseInt(options.cycles) * time_per_run)),
+			total_time: Math.round(parseInt(options.cycles) * time_per_run) * Math.floor(parseInt(options.duration) / (parseInt(options.cycles) * time_per_run))
+		};
+		amount = parseInt(options.cycles) * parseInt(blueprint.output.qt);
+	}
+
 	// Should be fine
-	// Calculate total of items to build bases on the requested amount
+	// Calculate total of items to build based on the requested amount
 	const difference = amount % parseInt(blueprint.output.qt);
-	let items_to_make = 0;
+	let items_to_make;
 	let remaining_items = 0;
 	if (difference === 0) {
 		items_to_make = amount;
@@ -161,13 +176,6 @@ export async function hybrid(env, options, db, material, amount) {
 	} else {
 		runs = cycles;
 	}
-
-	// calculate the cycle data
-	let cycle_data = {
-		cycle_time: Math.round(parseInt(options.cycles) * time_per_run),
-		total_time: parseInt(options.duration),
-		num_cycles: Math.floor(parseInt(options.duration) / (parseInt(options.cycles) * time_per_run))
-	};
 
 	// Calculate the Total Installation Fee
 	// TIF = EIV * ((SCI * bonuses) + FacilityTax + SCC + AlphaClone)
@@ -231,6 +239,7 @@ export async function hybrid(env, options, db, material, amount) {
 	if (remaining_items !== 0) {
 		remaining_outputs = {
 			id: blueprint.output.id,
+			name: output.name,
 			quantity: remaining_items,
 			price:
 				db.prices.find((price) => {
@@ -239,8 +248,20 @@ export async function hybrid(env, options, db, material, amount) {
 		};
 	}
 
+	// Multipliers
+	// number of runs
+	if (advanced) {
+		// multiply all inputs and output by cycle_data.num_cycles
+		inputs.forEach((input) => {
+			input.quantity *= cycle_data.num_cycles;
+			input.price *= cycle_data.num_cycles;
+		});
+		output.quantity *= cycle_data.num_cycles;
+		output.price *= cycle_data.num_cycles;
+	}
+
 	// Style
-	let style = '';
+	let style;
 	if (profit > 0) {
 		style = 'table-success';
 	} else if (profit < 0) {
@@ -253,19 +274,19 @@ export async function hybrid(env, options, db, material, amount) {
 	return {
 		name: output.name,
 		input: inputs,
-		input_total: total,
+		input_total: total * cycle_data.num_cycles,
 		taxes: {
-			system: SCI,
-			facility: FacilityTax,
-			scc: SCC,
-			total: TIF
+			system: SCI * cycle_data.num_cycles,
+			facility: FacilityTax * cycle_data.num_cycles,
+			scc: SCC * cycle_data.num_cycles,
+			total: TIF * cycle_data.num_cycles
 		},
-		taxes_total: TIF,
+		taxes_total: TIF * cycle_data.num_cycles,
 		output: output,
 		output_total: output.price,
-		profit: profit,
+		profit: profit * cycle_data.num_cycles,
 		profit_per: (profit / output.price) * 100,
-		runs: runs,
+		runs: runs * cycle_data.num_cycles,
 		remaining: remaining_outputs,
 		cycle_data: cycle_data,
 		style: style

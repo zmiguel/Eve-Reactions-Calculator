@@ -5,12 +5,12 @@
 </script>
 
 <svelte:head>
-	<title>{data.results?.output.name} Reactions</title>
+	<title>{data.results?.name} Reactions</title>
 </svelte:head>
 
 <div class="container">
 	<div class="row mt-2">
-		<h1 class="text-center w-100">{data.results?.output.name} Reaction</h1>
+		<h1 class="text-center w-100">{data.results?.name} Reaction</h1>
 	</div>
 
 	<div class="row mt-2">
@@ -348,6 +348,15 @@
 								<td>{data.results?.output.quantity}</td>
 								<td class="isk">{nFormat.format(data.results?.output.price)}</td>
 							</tr>
+							{#if data.results?.remaining.length > 0}
+								{#each data.results?.remaining as mat}
+									<tr class="">
+										<td>{mat.name}</td>
+										<td>{mat.quantity}</td>
+										<td>-</td>
+									</tr>
+								{/each}
+							{/if}
 						</tbody>
 						<tfoot>
 							<tr class="fw-bold">

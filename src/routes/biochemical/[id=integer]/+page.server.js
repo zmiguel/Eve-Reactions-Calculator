@@ -34,7 +34,7 @@ export const load = async ({ cookies, platform, params }) => {
 	if (!db_prep) {
 		throw error(500, `db_prep is undefined`);
 	}
-	let results = await bio(platform.env, options, db_prep, parseInt(params.id), 0);
+	let results = await bio(platform.env, options, db_prep, parseInt(params.id), 0, true);
 
 	return {
 		input: cookies.get('input'),
