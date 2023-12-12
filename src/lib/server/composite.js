@@ -366,7 +366,7 @@ export async function prep(type, options, blueprints, env) {
 	}
 }
 
-export async function simple(env, options, db, material, amount) {
+export async function simple(env, options, db, material, amount, advanced = false) {
 	// Calculate material bonus
 	let material_bonus = 1;
 	switch (options.rigs) {
@@ -407,19 +407,19 @@ export async function simple(env, options, db, material, amount) {
 	// Rig bonus
 	switch (options.rigs) {
 		case '0':
-			if (options.space === 'null') {
+			if (options.space === 'nullsec') {
 				time_per_run = time_per_run * (1 - 1.1 / 100);
 			}
 			break;
 		case '1':
-			if (options.space === 'null') {
+			if (options.space === 'nullsec') {
 				time_per_run = time_per_run * (1 - (20 * 1.1) / 100);
 			} else {
 				time_per_run = time_per_run * (1 - 20 / 100);
 			}
 			break;
 		case '2':
-			if (options.space === 'null') {
+			if (options.space === 'nullsec') {
 				time_per_run = time_per_run * (1 - (24 * 1.1) / 100);
 			} else {
 				time_per_run = time_per_run * (1 - 24 / 100);
@@ -445,8 +445,23 @@ export async function simple(env, options, db, material, amount) {
 		return;
 	}
 
+	// calculate the cycle data
+	let cycle_data = {
+		cycle_time: Math.round(parseInt(options.cycles) * time_per_run),
+		num_cycles: 1,
+		total_time: parseInt(options.duration)
+	};
+	if (advanced) {
+		cycle_data = {
+			cycle_time: Math.round(parseInt(options.cycles) * time_per_run),
+			num_cycles: Math.floor(parseInt(options.duration) / (parseInt(options.cycles) * time_per_run)),
+			total_time: Math.round(parseInt(options.cycles) * time_per_run) * Math.floor(parseInt(options.duration) / (parseInt(options.cycles) * time_per_run))
+		};
+		amount = parseInt(options.cycles) * parseInt(blueprint.output.qt);
+	}
+
 	// Should be fine
-	// Calculate total of items to build bases on the requested amount
+	// Calculate total of items to build based on the requested amount
 	const difference = amount % parseInt(blueprint.output.qt);
 	let items_to_make;
 	let remaining_items = 0;
@@ -463,13 +478,6 @@ export async function simple(env, options, db, material, amount) {
 	} else {
 		runs = cycles;
 	}
-
-	// calculate the cycle data
-	let cycle_data = {
-		cycle_time: Math.round(parseInt(options.cycles) * time_per_run),
-		total_time: parseInt(options.duration),
-		num_cycles: Math.floor(parseInt(options.duration) / (parseInt(options.cycles) * time_per_run))
-	};
 
 	// Calculate the Total Installation Fee
 	// TIF = EIV * ((SCI * bonuses) + FacilityTax + SCC + AlphaClone)
@@ -533,12 +541,25 @@ export async function simple(env, options, db, material, amount) {
 	if (remaining_items !== 0) {
 		remaining_outputs = {
 			id: blueprint.output.id,
+			name: output.name,
 			quantity: remaining_items,
 			price:
 				db.prices.find((price) => {
 					return price.item_id === blueprint.output.id && price.system === options.outMarket;
 				})[options.output] * remaining_items
 		};
+	}
+
+	// Multipliers
+	// number of runs
+	if (advanced) {
+		// multiply all inputs and output by cycle_data.num_cycles
+		inputs.forEach((input) => {
+			input.quantity *= cycle_data.num_cycles;
+			input.price *= cycle_data.num_cycles;
+		});
+		output.quantity *= cycle_data.num_cycles;
+		output.price *= cycle_data.num_cycles;
 	}
 
 	// Style
@@ -555,26 +576,26 @@ export async function simple(env, options, db, material, amount) {
 	return {
 		name: output.name,
 		input: inputs,
-		input_total: total,
+		input_total: total * cycle_data.num_cycles,
 		taxes: {
-			system: SCI,
-			facility: FacilityTax,
-			scc: SCC,
-			total: TIF
+			system: SCI * cycle_data.num_cycles,
+			facility: FacilityTax * cycle_data.num_cycles,
+			scc: SCC * cycle_data.num_cycles,
+			total: TIF * cycle_data.num_cycles
 		},
-		taxes_total: TIF,
+		taxes_total: TIF * cycle_data.num_cycles,
 		output: output,
 		output_total: output.price,
-		profit: profit,
+		profit: profit * cycle_data.num_cycles,
 		profit_per: (profit / output.price) * 100,
-		runs: runs,
+		runs: runs * cycle_data.num_cycles,
 		remaining: remaining_outputs,
 		cycle_data: cycle_data,
 		style: style
 	};
 }
 
-export async function chain(env, options, db, material, amount) {
+export async function chain(env, options, db, material, amount, advanced = false) {
 	// Get blueprint data for this material
 	const blueprints = await env.KV_DATA.get('bp-comp');
 	const blueprint = JSON.parse(blueprints).find((bp) => {
@@ -587,13 +608,25 @@ export async function chain(env, options, db, material, amount) {
 		return;
 	}
 
+	if (advanced) {
+		amount = parseInt(options.cycles) * parseInt(blueprint.output.qt);
+	}
+
 	// Actually calculate the costs
 	// get data from simple
-	let base = await simple(env, options, db, material, amount);
+	let base = await simple(env, options, db, material, amount, advanced);
 	base.intermediates = {};
 	base.intermediates.input = JSON.parse(JSON.stringify(base.input));
 	base.intermediates.taxes = JSON.parse(JSON.stringify(base.taxes));
 	base.intermediates.taxes_total = base.taxes_total;
+
+	// calculate intermediate remaining items
+
+	if (base.remaining.quantity === undefined) {
+		base.remaining = [];
+	} else {
+		base.remaining = [base.remaining];
+	}
 
 	// new inputs array
 	let new_inputs = [];
@@ -642,11 +675,28 @@ export async function chain(env, options, db, material, amount) {
 				new_inputs_total += simple_input.price;
 			}
 		});
+
+		// add remaining items to base
+		let remaining = simple_mat.remaining;
+		if (remaining.quantity !== 0) {
+			let mat = base.remaining.find((in_mat) => {
+				return in_mat.id === remaining.id;
+			});
+			if (mat === undefined) {
+				// doesn't exist so we just add it
+				base.remaining.push(remaining);
+			} else {
+				// already exists so we have to add to it
+				mat.quantity += remaining.quantity;
+				mat.price += remaining.price;
+			}
+		}
 	});
 
 	base.input = new_inputs;
 	base.input_total = new_inputs_total;
 	// Calculate the profit
+	console.log(`Profit for ${base.name} is ${base.output_total} - ${base.input_total} - ${base.taxes_total}`);
 	base.profit = base.output_total - base.input_total - base.taxes_total;
 	base.profit_per = (base.profit / base.output_total) * 100;
 	// Style
@@ -661,7 +711,7 @@ export async function chain(env, options, db, material, amount) {
 	return base;
 }
 
-export async function refined(env, options, db_unrefined, db_refined, material, amount) {
+export async function refined(env, options, db_unrefined, db_refined, material, amount, advanced = false) {
 	// Get blueprint data for this material
 	const blueprints = await env.KV_DATA.get('bp-comp');
 	const blueprint = JSON.parse(blueprints).find((bp) => {
@@ -676,7 +726,7 @@ export async function refined(env, options, db_unrefined, db_refined, material, 
 
 	// Actually calculate the costs
 	// get data from simple
-	let base = await simple(env, options, db_unrefined, material, amount);
+	let base = await simple(env, options, db_unrefined, material, amount, advanced);
 	base.intermediates = base.output;
 
 	base.output_total = 0;
