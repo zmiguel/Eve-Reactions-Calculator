@@ -1,10 +1,14 @@
 import { error } from '@sveltejs/kit';
 
-export async function prep(type, options, blueprints, env) {
+/**
+ * @param {String} type
+ * @param {Object[]} blueprints
+ * @returns {Object[]}
+ */
+function get_item_string_for_type(type, blueprints){
+	let materials = [], item_string = ''
 	if (type === 'simple') {
-		const simple_blueprints = await JSON.parse(blueprints).filter((bp) => bp.type === 'simple');
-		let materials = [];
-		simple_blueprints.forEach((bp) => {
+		blueprints.filter((bp) => bp.type === 'simple').forEach((bp) => {
 			// check if item is already in list
 			if (!materials.includes(bp._id)) {
 				materials.push(bp._id);
@@ -15,61 +19,8 @@ export async function prep(type, options, blueprints, env) {
 				}
 			});
 		});
-		// make string of items for query
-		let item_string = '';
-		materials.forEach((item) => {
-			item_string += item + ',';
-		});
-		item_string = item_string.slice(0, -1);
-		let system_string = '"' + options.inMarket + '","' + options.outMarket + '"';
-		let db_calls = [
-			{
-				name: 'prices',
-				call: env.DB.prepare(
-					(await env.KV_DATA.get('query-prices-for-item-at-system'))
-						.replace('###', item_string)
-						.replace('$$$', system_string)
-				)
-			},
-			{
-				name: 'items',
-				call: env.DB.prepare(
-					(await env.KV_DATA.get('query-select-items-by-id')).replace('###', item_string)
-				)
-			},
-			{
-				name: 'cost_index',
-				call: env.DB.prepare(await env.KV_DATA.get('query-cost-index-for-system')).bind(
-					options.system
-				)
-			}
-		];
-		let prices, items, cost_index;
-		// execute calls
-		await Promise.all(
-			db_calls.map(async (call) => {
-				switch (call.name) {
-					case 'prices':
-						prices = (await call.call.all()).results;
-						break;
-					case 'items':
-						items = (await call.call.all()).results;
-						break;
-					case 'cost_index':
-						cost_index = await call.call.first('cost_index');
-						break;
-				}
-			})
-		);
-		return {
-			prices: prices,
-			items: items,
-			cost_index: cost_index
-		};
 	} else if (type === 'complex') {
-		const complex_blueprints = await JSON.parse(blueprints).filter((bp) => bp.type === 'complex');
-		let materials = [];
-		complex_blueprints.forEach((bp) => {
+		blueprints.filter((bp) => bp.type === 'complex').forEach((bp) => {
 			// check if item is already in list
 			if (!materials.includes(bp._id)) {
 				materials.push(bp._id);
@@ -80,62 +31,10 @@ export async function prep(type, options, blueprints, env) {
 				}
 			});
 		});
-		// make string of items for query
-		let item_string = '';
-		materials.forEach((item) => {
-			item_string += item + ',';
-		});
-		item_string = item_string.slice(0, -1);
-		let system_string = '"' + options.inMarket + '","' + options.outMarket + '"';
-		let db_calls = [
-			{
-				name: 'prices',
-				call: env.DB.prepare(
-					(await env.KV_DATA.get('query-prices-for-item-at-system'))
-						.replace('###', item_string)
-						.replace('$$$', system_string)
-				)
-			},
-			{
-				name: 'items',
-				call: env.DB.prepare(
-					(await env.KV_DATA.get('query-select-items-by-id')).replace('###', item_string)
-				)
-			},
-			{
-				name: 'cost_index',
-				call: env.DB.prepare(await env.KV_DATA.get('query-cost-index-for-system')).bind(
-					options.system
-				)
-			}
-		];
-		let prices, items, cost_index;
-		// execute calls
-		await Promise.all(
-			db_calls.map(async (call) => {
-				switch (call.name) {
-					case 'prices':
-						prices = (await call.call.all()).results;
-						break;
-					case 'items':
-						items = (await call.call.all()).results;
-						break;
-					case 'cost_index':
-						cost_index = await call.call.first('cost_index');
-						break;
-				}
-			})
-		);
-		return {
-			prices: prices,
-			items: items,
-			cost_index: cost_index
-		};
 	} else if (type === 'chain') {
-		const simple_blueprints = await JSON.parse(blueprints).filter((bp) => bp.type === 'simple');
-		const complex_blueprints = await JSON.parse(blueprints).filter((bp) => bp.type === 'complex');
-		let materials = [];
-		simple_blueprints.forEach((bp) => {
+		blueprints.filter((bp) => {
+			return (bp.type === 'simple' || bp.type === 'complex');
+		}).forEach((bp) => {
 			// check if item is already in list
 			if (!materials.includes(bp._id)) {
 				materials.push(bp._id);
@@ -146,74 +45,10 @@ export async function prep(type, options, blueprints, env) {
 				}
 			});
 		});
-		complex_blueprints.forEach((bp) => {
-			// check if item is already in list
-			if (!materials.includes(bp._id)) {
-				materials.push(bp._id);
-			}
-			bp.inputs.forEach((input) => {
-				if (!materials.includes(input.id)) {
-					materials.push(input.id);
-				}
-			});
-		});
-		// make string of items for query
-		let item_string = '';
-		materials.forEach((item) => {
-			item_string += item + ',';
-		});
-		item_string = item_string.slice(0, -1);
-		let system_string = '"' + options.inMarket + '","' + options.outMarket + '"';
-		let db_calls = [
-			{
-				name: 'prices',
-				call: env.DB.prepare(
-					(await env.KV_DATA.get('query-prices-for-item-at-system'))
-						.replace('###', item_string)
-						.replace('$$$', system_string)
-				)
-			},
-			{
-				name: 'items',
-				call: env.DB.prepare(
-					(await env.KV_DATA.get('query-select-items-by-id')).replace('###', item_string)
-				)
-			},
-			{
-				name: 'cost_index',
-				call: env.DB.prepare(await env.KV_DATA.get('query-cost-index-for-system')).bind(
-					options.system
-				)
-			}
-		];
-		let prices, items, cost_index;
-		// execute calls
-		await Promise.all(
-			db_calls.map(async (call) => {
-				switch (call.name) {
-					case 'prices':
-						prices = (await call.call.all()).results;
-						break;
-					case 'items':
-						items = (await call.call.all()).results;
-						break;
-					case 'cost_index':
-						cost_index = await call.call.first('cost_index');
-						break;
-				}
-			})
-		);
-		return {
-			prices: prices,
-			items: items,
-			cost_index: cost_index
-		};
 	} else if (type === 'unrefined') {
-		const unrefined_blueprints = await JSON.parse(blueprints).filter(
-			(bp) => bp.type === 'unrefined'
-		);
-		let materials = [];
-		unrefined_blueprints.forEach((bp) => {
+		blueprints.filter((bp) => {
+			return (bp.type === 'unrefined');
+		}).forEach((bp) => {
 			// check if item is already in list
 			if (!materials.includes(bp._id)) {
 				materials.push(bp._id);
@@ -224,64 +59,33 @@ export async function prep(type, options, blueprints, env) {
 				}
 			});
 		});
-		// make string of items for query
-		let item_string = '';
-		materials.forEach((item) => {
-			item_string += item + ',';
-		});
-		item_string = item_string.slice(0, -1);
-		let system_string = '"' + options.inMarket + '","' + options.outMarket + '"';
-		let db_calls = [
-			{
-				name: 'prices',
-				call: env.DB.prepare(
-					(await env.KV_DATA.get('query-prices-for-item-at-system'))
-						.replace('###', item_string)
-						.replace('$$$', system_string)
-				)
-			},
-			{
-				name: 'items',
-				call: env.DB.prepare(
-					(await env.KV_DATA.get('query-select-items-by-id')).replace('###', item_string)
-				)
-			},
-			{
-				name: 'cost_index',
-				call: env.DB.prepare(await env.KV_DATA.get('query-cost-index-for-system')).bind(
-					options.system
-				)
-			}
-		];
-		let prices, items, cost_index;
-		// execute calls
-		await Promise.all(
-			db_calls.map(async (call) => {
-				switch (call.name) {
-					case 'prices':
-						prices = (await call.call.all()).results;
-						break;
-					case 'items':
-						items = (await call.call.all()).results;
-						break;
-					case 'cost_index':
-						cost_index = await call.call.first('cost_index');
-						break;
-				}
-			})
-		);
-		return {
-			prices: prices,
-			items: items,
-			cost_index: cost_index
-		};
 	} else if (type === 'refined') {
-		const unrefined_blueprints = await JSON.parse(blueprints).filter(
-			(bp) => bp.type === 'unrefined'
-		);
-		const refined_blueprints = await JSON.parse(blueprints).filter((bp) => bp.type === 'refined');
-		let materials = [];
-		unrefined_blueprints.forEach((bp) => {
+		blueprints.filter((bp) => {
+			return (bp.type === 'unrefined' || bp.type === 'refined');
+		}).forEach((bp) => {
+			if (bp.type === 'unrefined'){
+				// check if item is already in list
+				if (!materials.includes(bp._id)) {
+					materials.push(bp._id);
+				}
+				bp.inputs.forEach((input) => {
+					if (!materials.includes(input.id)) {
+						materials.push(input.id);
+					}
+				});
+			} else {
+				if (!materials.includes(bp._id)) {
+					materials.push(bp._id);
+				}
+				bp.outputs.forEach((input) => {
+					if (!materials.includes(input.id)) {
+						materials.push(input.id);
+					}
+				});
+			}
+		});
+	} else if (type === 'hybrid') {
+		blueprints.forEach((bp) => {
 			// check if item is already in list
 			if (!materials.includes(bp._id)) {
 				materials.push(bp._id);
@@ -292,81 +96,90 @@ export async function prep(type, options, blueprints, env) {
 				}
 			});
 		});
-		refined_blueprints.forEach((bp) => {
+	} else if (type === 'bio') {
+		blueprints.forEach((bp) => {
 			// check if item is already in list
 			if (!materials.includes(bp._id)) {
 				materials.push(bp._id);
 			}
-			bp.outputs.forEach((input) => {
+			bp.inputs.forEach((input) => {
 				if (!materials.includes(input.id)) {
 					materials.push(input.id);
 				}
 			});
 		});
-		// make string of items for query
-		let item_string = '';
-		materials.forEach((item) => {
-			item_string += item + ',';
-		});
-		item_string = item_string.slice(0, -1);
-		let system_string = '"' + options.inMarket + '","' + options.outMarket + '"';
-		let db_calls = [
-			{
-				name: 'prices',
-				call: env.DB.prepare(
-					(await env.KV_DATA.get('query-prices-for-item-at-system'))
-						.replace('###', item_string)
-						.replace('$$$', system_string)
-				)
-			},
-			{
-				name: 'items',
-				call: env.DB.prepare(
-					(await env.KV_DATA.get('query-select-items-by-id')).replace('###', item_string)
-				)
-			},
-			{
-				name: 'cost_index',
-				call: env.DB.prepare(await env.KV_DATA.get('query-cost-index-for-system')).bind(
-					options.system
-				)
-			}
-		];
-		let prices, items, cost_index;
-		// execute calls
-		await Promise.all(
-			db_calls.map(async (call) => {
-				switch (call.name) {
-					case 'prices':
-						prices = (await call.call.all()).results;
-						break;
-					case 'items':
-						items = (await call.call.all()).results;
-						break;
-					case 'cost_index':
-						cost_index = await call.call.first('cost_index');
-						break;
-				}
-			})
-		);
-		if (!prices) {
-			throw error(500, `prices is undefined\n ${JSON.stringify(prices)}`);
-		}
-		if (!items) {
-			throw error(500, `items is undefined\n ${JSON.stringify(items)}`);
-		}
-		if (!cost_index) {
-			throw error(500, `cost_index is undefined\n ${JSON.stringify(cost_index)}`);
-		}
-		return {
-			prices: prices,
-			items: items,
-			cost_index: cost_index
-		};
 	}
+
+	materials.forEach((item) => {
+		item_string += item + ',';
+	});
+	item_string = item_string.slice(0, -1);
+
+	return item_string
 }
 
-export async function simple(env, options, db, material, amount, advanced = false) {
+/**
+ * Prepares the necessary data based on the type of blueprint.
+ *
+ * @param {string} type - The type of blueprint. Can be 'simple', 'complex', 'chain', 'unrefined', or 'refined'.
+ * @param {Object} options - The options for the preparation. Includes 'inMarket', 'outMarket', and 'system'.
+ * @param {Object[]} blueprints - The blueprints Object.
+ * @param {Object} env - The environment object. Includes 'DB' and 'KV_DATA'.
+ *
+ * @returns {Promise<Object>} - The promise that resolves to an object containing 'prices', 'items', and 'cost_index'.
+ *
+ * @throws {Error} - Throws an error if 'prices', 'items', or 'cost_index' is undefined.
+ */
+export async function prep(type, options, blueprints, env) {
+	let item_string = get_item_string_for_type(type, blueprints)
+	let system_string = '"' + options.inMarket + '","' + options.outMarket + '"';
+	let db_calls = [
+		{
+			name: 'prices',
+			call: env.DB.prepare(
+				(await env.KV_DATA.get('query-prices-for-item-at-system'))
+					.replace('###', item_string)
+					.replace('$$$', system_string)
+			)
+		},
+		{
+			name: 'items',
+			call: env.DB.prepare(
+				(await env.KV_DATA.get('query-select-items-by-id')).replace('###', item_string)
+			)
+		},
+		{
+			name: 'cost_index',
+			call: env.DB.prepare(await env.KV_DATA.get('query-cost-index-for-system')).bind(
+				options.system
+			)
+		}
+	];
+	let prices, items, cost_index;
+	// execute calls
+	await Promise.all(
+		db_calls.map(async (call) => {
+			switch (call.name) {
+				case 'prices':
+					prices = (await call.call.all()).results;
+					break;
+				case 'items':
+					items = (await call.call.all()).results;
+					break;
+				case 'cost_index':
+					cost_index = await call.call.first('cost_index');
+					break;
+			}
+		})
+	);
+	return {
+		prices: prices,
+		items: items,
+		cost_index: cost_index
+	};
+}
+
+export async function simple(env, options, db, blueprints, material, amount, advanced = false) {
 	// Calculate material bonus
 	let material_bonus = 1;
 	switch (options.rigs) {
@@ -433,9 +246,7 @@ export async function simple(env, options, db, material, amount, advanced = fals
 	// Calculate how many cycles per job
 	const cycles = Math.floor(parseInt(options.duration) / time_per_run);
 
-	// Get blueprint data for this material
-	const blueprints = await env.KV_DATA.get('bp-comp');
-	const blueprint = JSON.parse(blueprints).find((bp) => {
+	const blueprint = blueprints.find((bp) => {
 		return bp._id === material;
 	});
 
@@ -595,11 +406,10 @@ export async function simple(env, options, db, material, amount, advanced = fals
 	};
 }
 
-export async function chain(env, options, db, material, amount, advanced = false) {
+export async function chain(type, env, options, db, blueprints, material, amount, advanced = false) {
 	// Get blueprint data for this material
-	const blueprints = await env.KV_DATA.get('bp-comp');
-	const blueprint = JSON.parse(blueprints).find((bp) => {
-		return bp._id === material && bp.type === 'complex';
+	const blueprint = blueprints.find((bp) => {
+		return bp._id === material && bp.type === type;
 	});
 
 	// Sanity Check
@@ -614,7 +424,7 @@ export async function chain(env, options, db, material, amount, advanced = false
 
 	// Actually calculate the costs
 	// get data from simple
-	let base = await simple(env, options, db, material, amount, advanced);
+	let base = await simple(env, options, db, blueprints, material, amount, advanced);
 	base.intermediates = {};
 	base.intermediates.input = JSON.parse(JSON.stringify(base.input));
 	base.intermediates.taxes = JSON.parse(JSON.stringify(base.taxes));
@@ -636,12 +446,12 @@ export async function chain(env, options, db, material, amount, advanced = false
 	let input_simple = [];
 	await Promise.all(
 		base.input.map(async (input_mat) => {
-			let mat = JSON.parse(blueprints).find((bp) => {
+			let mat = blueprints.find((bp) => {
 				return bp._id === input_mat.id && bp.type === 'simple';
 			});
 			if (mat !== undefined) {
 				// material exists, get simple of this.
-				let simple_mat = await simple(env, options, db, input_mat.id, input_mat.quantity);
+				let simple_mat = await simple(env, options, db, blueprints, input_mat.id, input_mat.quantity);
 				input_simple.push(simple_mat);
 			} else {
 				new_inputs.push(input_mat);
@@ -696,7 +506,6 @@ export async function chain(env, options, db, material, amount, advanced = false
 	base.input = new_inputs;
 	base.input_total = new_inputs_total;
 	// Calculate the profit
-	console.log(`Profit for ${base.name} is ${base.output_total} - ${base.input_total} - ${base.taxes_total}`);
 	base.profit = base.output_total - base.input_total - base.taxes_total;
 	base.profit_per = (base.profit / base.output_total) * 100;
 	// Style
@@ -711,10 +520,9 @@ export async function chain(env, options, db, material, amount, advanced = false
 	return base;
 }
 
-export async function refined(env, options, db_unrefined, db_refined, material, amount, advanced = false) {
+export async function refined(env, options, db_unrefined, db_refined, blueprints, material, amount, advanced = false) {
 	// Get blueprint data for this material
-	const blueprints = await env.KV_DATA.get('bp-comp');
-	const blueprint = JSON.parse(blueprints).find((bp) => {
+	const blueprint = blueprints.find((bp) => {
 		return bp._id === material && bp.type === 'refined';
 	});
 
@@ -726,7 +534,7 @@ export async function refined(env, options, db_unrefined, db_refined, material, 
 
 	// Actually calculate the costs
 	// get data from simple
-	let base = await simple(env, options, db_unrefined, material, amount, advanced);
+	let base = await simple(env, options, db_unrefined, blueprints, material, amount, advanced);
 	base.intermediates = base.output;
 
 	base.output_total = 0;

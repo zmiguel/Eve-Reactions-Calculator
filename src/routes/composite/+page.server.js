@@ -1,4 +1,4 @@
-import { chain, prep, refined, simple } from '$lib/server/composite';
+import { prep, simple, chain, refined } from '$lib/server/calc'
 import { error } from '@sveltejs/kit';
 
 export const load = async ({ cookies, platform }) => {
@@ -18,10 +18,10 @@ export const load = async ({ cookies, platform }) => {
 		cycles: cookies.get('cycles')
 	};
 
-	const blueprints = await platform.env.KV_DATA.get('bp-comp');
-	const simple_blueprints = await JSON.parse(blueprints).filter((bp) => bp.type === 'simple');
-	const complex_blueprints = await JSON.parse(blueprints).filter((bp) => bp.type === 'complex');
-	const unrefined_blueprints = await JSON.parse(blueprints).filter((bp) => bp.type === 'unrefined');
+	const blueprints = await JSON.parse(await platform.env.KV_DATA.get('bp-comp'));
+	const simple_blueprints = await blueprints.filter((bp) => bp.type === 'simple');
+	const complex_blueprints = await blueprints.filter((bp) => bp.type === 'complex');
+	const unrefined_blueprints = await blueprints.filter((bp) => bp.type === 'unrefined');
 
 	const db_prep = [
 		{ type: 'simple' },
@@ -90,7 +90,7 @@ export const load = async ({ cookies, platform }) => {
 					await Promise.all(
 						bps.blueprints.map(async (bp) => {
 							simple_results.push(
-								await simple(platform.env, options, db_prep_simple, parseInt(bp._id), 0)
+								await simple(platform.env, options, db_prep_simple, blueprints, parseInt(bp._id), 0)
 							);
 						})
 					);
@@ -99,7 +99,7 @@ export const load = async ({ cookies, platform }) => {
 					await Promise.all(
 						bps.blueprints.map(async (bp) => {
 							complex_results.push(
-								await simple(platform.env, options, db_prep_complex, parseInt(bp._id), 0)
+								await simple(platform.env, options, db_prep_complex, blueprints, parseInt(bp._id), 0)
 							);
 						})
 					);
@@ -108,7 +108,7 @@ export const load = async ({ cookies, platform }) => {
 					await Promise.all(
 						bps.blueprints.map(async (bp) => {
 							chain_results.push(
-								await chain(platform.env, options, db_prep_chain, parseInt(bp._id), 0)
+								await chain('complex', platform.env, options, db_prep_chain, blueprints, parseInt(bp._id), 0)
 							);
 						})
 					);
@@ -117,7 +117,7 @@ export const load = async ({ cookies, platform }) => {
 					await Promise.all(
 						bps.blueprints.map(async (bp) => {
 							unrefined_results.push(
-								await simple(platform.env, options, db_prep_unrefined, parseInt(bp._id), 0)
+								await simple(platform.env, options, db_prep_unrefined, blueprints, parseInt(bp._id), 0)
 							);
 						})
 					);
@@ -131,6 +131,7 @@ export const load = async ({ cookies, platform }) => {
 									options,
 									db_prep_unrefined,
 									db_prep_refined,
+									blueprints,
 									parseInt(bp._id),
 									0
 								)
