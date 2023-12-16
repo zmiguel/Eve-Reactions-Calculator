@@ -1,6 +1,9 @@
 export interface Env {
+	// @ts-ignore
 	DB: D1Database;
+	// @ts-ignore
 	ENDPOINTS: KVNamespace;
+	// @ts-ignore
 	DATA: KVNamespace;
 }
 
