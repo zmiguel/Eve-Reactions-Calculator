@@ -1,5 +1,3 @@
-import { error } from '@sveltejs/kit';
-
 /**
  * @param {String} type
  * @param {Object[]} blueprints

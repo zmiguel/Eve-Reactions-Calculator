@@ -2,7 +2,7 @@ import { error, json } from '@sveltejs/kit';
 
 /** @type {import('./$types').RequestHandler} */
 export async function GET({ url, platform }) {
-	// check if id in a integer
+	// check if id in an integer
 	const id = url.searchParams.get('id') ? url.searchParams.get('id') : null;
 	if (id === null) {
 		throw error(400, 'No id provided');
