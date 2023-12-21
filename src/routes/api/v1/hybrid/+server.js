@@ -1,5 +1,5 @@
 import { json } from '@sveltejs/kit';
-import { hybrid, prep } from '$lib/server/hybrid';
+import { prep, simple } from '$lib/server/calc';
 
 /** @type {import('./$types').RequestHandler} */
 export async function GET({ url, platform }) {
@@ -25,7 +25,7 @@ export async function GET({ url, platform }) {
 	const blueprints = await JSON.parse(await platform.env.KV_DATA.get('bp-hybrid'));
 
 	start = performance.now();
-	const db_prep = await prep(options, blueprints, platform.env);
+	const db_prep = await prep('hybrid', options, blueprints, platform.env);
 	end = performance.now();
 	perf.push({ name: 'db_prep', time: end - start });
 
@@ -34,7 +34,7 @@ export async function GET({ url, platform }) {
 	await Promise.all(
 		blueprints.map(async (bp) => {
 			results.push(
-				await hybrid(platform.env, options, db_prep, parseInt(bp._id), parseInt(quantity))
+				await simple(platform.env, options, db_prep, blueprints, parseInt(bp._id), parseInt(quantity))
 			);
 		})
 	);

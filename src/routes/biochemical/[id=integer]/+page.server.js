@@ -1,4 +1,4 @@
-import { bio, prep } from '$lib/server/bio';
+import { prep, simple } from '$lib/server/calc';
 import { error } from '@sveltejs/kit';
 import { setCookie } from '$lib/cookies.js';
 
@@ -30,11 +30,11 @@ export const load = async ({ cookies, platform, params }) => {
 	if (!blueprints.some((bp) => bp._id === params.id)) {
 		throw error(400, `id is not in biochemical`);
 	}
-	const db_prep = await prep(options, blueprints, platform.env);
+	const db_prep = await prep('bio', options, blueprints, platform.env);
 	if (!db_prep) {
 		throw error(500, `db_prep is undefined`);
 	}
-	let results = await bio(platform.env, options, db_prep, parseInt(params.id), 0, true);
+	let results = await simple(platform.env, options, db_prep, blueprints, parseInt(params.id), 0, true);
 
 	return {
 		input: cookies.get('input'),

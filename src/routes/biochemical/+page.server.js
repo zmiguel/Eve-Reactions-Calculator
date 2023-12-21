@@ -1,4 +1,4 @@
-import { bio, prep } from '$lib/server/bio';
+import { prep, simple } from '$lib/server/calc';
 
 export const load = async ({ cookies, platform }) => {
 	let options = {
@@ -18,12 +18,12 @@ export const load = async ({ cookies, platform }) => {
 
 	const blueprints = await JSON.parse(await platform.env.KV_DATA.get('bp-bio'));
 
-	const db_prep = await prep(options, blueprints, platform.env);
+	const db_prep = await prep('bio', options, blueprints, platform.env);
 
 	let results_simple = [];
 	await Promise.all(
 		blueprints.map(async (bp) => {
-			results_simple.push(await bio(platform.env, options, db_prep, parseInt(bp._id), 0));
+			results_simple.push(await simple(platform.env, options, db_prep, blueprints, parseInt(bp._id), 0));
 		})
 	);
 

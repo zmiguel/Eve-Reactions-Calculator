@@ -1,5 +1,5 @@
 import { json } from '@sveltejs/kit';
-import { prep, chain } from '$lib/server/composite';
+import { prep, chain } from '$lib/server/calc'
 
 /** @type {import('./$types').RequestHandler} */
 export async function GET({ url, platform }) {
@@ -25,8 +25,8 @@ export async function GET({ url, platform }) {
 		cycles: '52'
 	};
 
-	const blueprints = await platform.env.KV_DATA.get('bp-comp');
-	const simple_blueprints = await JSON.parse(blueprints).filter((bp) => bp.type === 'complex');
+	const blueprints = await JSON.parse(await platform.env.KV_DATA.get('bp-comp'));
+	const simple_blueprints = await blueprints.filter((bp) => bp.type === 'complex');
 
 	start = performance.now();
 	const db_prep = await prep('chain', options, blueprints, platform.env);
@@ -38,7 +38,7 @@ export async function GET({ url, platform }) {
 	await Promise.all(
 		simple_blueprints.map(async (bp) => {
 			results.push(
-				await chain(platform.env, options, db_prep, parseInt(bp._id), parseInt(quantity))
+				await chain('complex', platform.env, options, db_prep, blueprints, parseInt(bp._id), parseInt(quantity))
 			);
 		})
 	);

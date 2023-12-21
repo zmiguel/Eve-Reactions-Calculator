@@ -1,4 +1,4 @@
-import { hybrid, prep } from '$lib/server/hybrid';
+import { prep, simple } from '$lib/server/calc';
 
 export const load = async ({ cookies, platform }) => {
 	let options = {
@@ -19,12 +19,12 @@ export const load = async ({ cookies, platform }) => {
 
 	const blueprints = await JSON.parse(await platform.env.KV_DATA.get('bp-hybrid'));
 
-	const db_prep = await prep(options, blueprints, platform.env);
+	const db_prep = await prep('bio', options, blueprints, platform.env);
 
 	let results = [];
 	await Promise.all(
 		blueprints.map(async (bp) => {
-			results.push(await hybrid(platform.env, options, db_prep, parseInt(bp._id), 0));
+			results.push(await simple(platform.env, options, db_prep,blueprints, parseInt(bp._id), 0));
 		})
 	);
 
