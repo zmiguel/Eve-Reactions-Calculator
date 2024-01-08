@@ -3,5 +3,5 @@ kv_namespaces = [
 ]
 
 d1_databases = [
-    { binding = "DB", database_id = "6b9eff3c-a356-44e5-8575-58f82f777485", preview_id = "6b9eff3c-a356-44e5-8575-58f82f777485", database_name = "eve-reactions" }
+    { binding = "DB", database_id = "33adc73f-d9df-4107-b072-ad72401f890a", preview_database_id = "288fb95c-1ec0-4ad8-b08b-cc499bba5631", database_name = "eve-reactions" }
 ]
