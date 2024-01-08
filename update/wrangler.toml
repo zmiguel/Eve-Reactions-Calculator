@@ -1,7 +1,6 @@
-name = "eve-reactions-updater"
+name = "eve-reactions-updater-staging"
 main = "src/index.ts"
-compatibility_date = "2023-05-23"
-usage_model = "bundled"
+compatibility_date = "2024-01-08"
 env = { }
 
 kv_namespaces = [
@@ -9,10 +8,14 @@ kv_namespaces = [
     { binding = "DATA", id = "f1bf8614eb0247ecb5e870200c531bcd", preview_id = "f1bf8614eb0247ecb5e870200c531bcd" }
 ]
 
-[[d1_databases]]
-binding = "DB"
-database_name = "eve-reactions"
-database_id = "6b9eff3c-a356-44e5-8575-58f82f777485"
+d1_databases = [
+    { binding = "DB", database_name = "eve-reactions", database_id = "33adc73f-d9df-4107-b072-ad72401f890a", preview_database_id = "288fb95c-1ec0-4ad8-b08b-cc499bba5631" },
+    { binding = "DB-prod", database_name = "eve-reactions-production", database_id = "33adc73f-d9df-4107-b072-ad72401f890a", preview_database_id = "33adc73f-d9df-4107-b072-ad72401f890a" },
+    { binding = "DB-stag", database_name = "eve-reactions-staging", database_id = "288fb95c-1ec0-4ad8-b08b-cc499bba5631", preview_database_id = "288fb95c-1ec0-4ad8-b08b-cc499bba5631" }
+]
 
 [triggers]
 crons = ["*/30 * * * *"]
+
+[placement]
+mode = "smart"
