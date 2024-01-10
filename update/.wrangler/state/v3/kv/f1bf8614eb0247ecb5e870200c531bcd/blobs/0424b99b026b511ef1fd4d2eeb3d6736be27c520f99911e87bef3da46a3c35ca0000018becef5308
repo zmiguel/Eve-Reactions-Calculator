@@ -1,0 +1,1 @@
+UPDATE items SET base_industry_price = ?1 WHERE id = ?2

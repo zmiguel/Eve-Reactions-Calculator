@@ -141,7 +141,8 @@
 						>Oxed G</strong
 					>
 					- Thanks! |
-					<a href="https://www.patreon.com/EVEReactionsCalculator" target="_blank">Patreon</a></span
+					<a href="https://www.patreon.com/EVEReactionsCalculator" target="_blank">Patreon</a> |
+					<a href="https://github.com/zmiguel/Eve-Reactions-Calculator" target="_blank">Report Issue</a></span
 				>
 			</div>
 			<div class="col-4 d-grid gap-2 d-md-flex justify-content-md-end p-0">

@@ -11,9 +11,9 @@
 				alt="Biochemical Reaction Icon"
 			/>
 			<h2 class="text-center mt-3">Biochemical Reactions</h2>
-			<p class="lead mt-3">Drugs/Boosters</p>
+			<p class="lead mt-3">Boosters + Molecular-Forged items</p>
 			<p class="lead mt-3">
-				<strong>Inputs:</strong> K-space gas + stuff<br /><strong>Outputs:</strong> boosters
+				<strong>Inputs:</strong> K-space gas + minerals<br /><strong>Outputs:</strong> Boosters + Molecular-Forged
 			</p>
 			<a class="btn btn-primary" href="/biochemical" role="button">View Biochemical</a>
 		</div>
@@ -25,9 +25,9 @@
 				alt="Composite Reaction Icon"
 			/>
 			<h2 class="text-center mt-3">Composite Reactions</h2>
-			<p class="lead mt-3">T2 Materials</p>
+			<p class="lead mt-3">Ship Materials</p>
 			<p class="lead mt-3">
-				<strong>Inputs:</strong> Moon goo<br /><strong>Outputs:</strong> T2 build materials
+				<strong>Inputs:</strong> Moon goo<br /><strong>Outputs:</strong> T2 Ship Materials + Other
 			</p>
 			<a class="btn btn-primary" href="/composite" role="button">View Composite</a>
 		</div>
@@ -38,10 +38,10 @@
 				class="rounded mx-auto d-block"
 				alt="Hybrid Reaction Icon"
 			/>
-			<h2 class="text-center mt-3">Hybrid Reactions</h2>
-			<p class="lead mt-3">T3 Materials</p>
+			<h2 class="text-center mt-3">Hybrid Polymer Reactions</h2>
+			<p class="lead mt-3">Ship Materials & Booster Components</p>
 			<p class="lead mt-3">
-				<strong>Inputs:</strong> J-space gas + stuff<br /><strong>Outputs:</strong> T3 build materials
+				<strong>Inputs:</strong> J-space gas + minerals<br /><strong>Outputs:</strong> T3 Ship Materials + Other
 			</p>
 			<a class="btn btn-primary" href="/hybrid" role="button">View Hybrid</a>
 		</div>

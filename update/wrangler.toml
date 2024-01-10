@@ -4,14 +4,14 @@ compatibility_date = "2024-01-08"
 env = { }
 
 kv_namespaces = [
-    { binding = "ENDPOINTS", id = "17fda7ccf69547a9b679d139571222ee", preview_id = "17fda7ccf69547a9b679d139571222ee" },
-    { binding = "DATA", id = "f1bf8614eb0247ecb5e870200c531bcd", preview_id = "f1bf8614eb0247ecb5e870200c531bcd" }
+    { binding = "ENDPOINTS", id = "17fda7ccf69547a9b679d139571222ee" },
+    { binding = "DATA", id = "f1bf8614eb0247ecb5e870200c531bcd" }
 ]
 
 d1_databases = [
-    { binding = "DB", database_name = "eve-reactions", database_id = "33adc73f-d9df-4107-b072-ad72401f890a", preview_database_id = "288fb95c-1ec0-4ad8-b08b-cc499bba5631" },
-    { binding = "DB-prod", database_name = "eve-reactions-production", database_id = "33adc73f-d9df-4107-b072-ad72401f890a", preview_database_id = "33adc73f-d9df-4107-b072-ad72401f890a" },
-    { binding = "DB-stag", database_name = "eve-reactions-staging", database_id = "288fb95c-1ec0-4ad8-b08b-cc499bba5631", preview_database_id = "288fb95c-1ec0-4ad8-b08b-cc499bba5631" }
+    { binding = "DB", database_name = "eve-reactions", database_id = "288fb95c-1ec0-4ad8-b08b-cc499bba5631"},
+    { binding = "DB-prod", database_name = "eve-reactions-production", database_id = "33adc73f-d9df-4107-b072-ad72401f890a"},
+    { binding = "DB-stag", database_name = "eve-reactions-staging", database_id = "288fb95c-1ec0-4ad8-b08b-cc499bba5631"}
 ]
 
 [triggers]
