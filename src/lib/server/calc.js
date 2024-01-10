@@ -182,11 +182,7 @@ export async function simple(env, options, db, blueprints, material, amount, adv
 	let material_bonus = 1;
 	switch (options.rigs) {
 		case '0':
-			if (options.space === 'nullsec') {
-				material_bonus = 1 - 1.1 / 100;
-			} else {
-				material_bonus = 1;
-			}
+			material_bonus = 1;
 			break;
 		case '1':
 			if (options.space === 'nullsec') {
