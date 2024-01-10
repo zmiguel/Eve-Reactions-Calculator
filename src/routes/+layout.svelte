@@ -63,21 +63,21 @@
 					<a
 						class="nav-link"
 						href="/biochemical"
-						class:active={$page.url.pathname === '/biochemical'}>Biochemical</a
+						class:active={$page.url.pathname.includes('biochemical')}>Biochemical</a
 					>
 				</li>
 				<li class="nav-item">
-					<a class="nav-link" href="/composite" class:active={$page.url.pathname === '/composite'}
+					<a class="nav-link" href="/composite" class:active={$page.url.pathname.includes('composite')}
 						>Composite</a
 					>
 				</li>
 				<li class="nav-item">
-					<a class="nav-link" href="/hybrid" class:active={$page.url.pathname === '/hybrid'}
+					<a class="nav-link" href="/hybrid" class:active={$page.url.pathname.includes('hybrid')}
 						>Hybrid</a
 					>
 				</li>
 				<li class="nav-item">
-					<a class="nav-link" href="/settings" class:active={$page.url.pathname === '/settings'}
+					<a class="nav-link" href="/settings" class:active={$page.url.pathname.includes('settings')}
 						>Settings</a
 					>
 				</li>
