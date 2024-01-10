@@ -305,7 +305,10 @@ export async function simple(env, options, db, blueprints, material, amount, adv
 	let inputs = [];
 	blueprint.inputs.forEach((item) => {
 		// calculate amount with material bonus
-		const amount = Math.ceil(item.qt * runs * material_bonus);
+		let amount = Math.ceil(item.qt * runs * material_bonus);
+		if ( item.qt === 1 ) {
+			amount = Math.ceil(item.qt * runs);
+		}
 		// find price for this item * amount
 		const price =
 			db.prices.find((price) => {
