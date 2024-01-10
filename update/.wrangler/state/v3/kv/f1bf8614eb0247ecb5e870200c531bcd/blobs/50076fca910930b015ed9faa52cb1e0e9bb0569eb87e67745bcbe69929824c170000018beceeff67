@@ -1,0 +1,1 @@
+UPDATE systems SET cost_index = ?1 WHERE id = ?2

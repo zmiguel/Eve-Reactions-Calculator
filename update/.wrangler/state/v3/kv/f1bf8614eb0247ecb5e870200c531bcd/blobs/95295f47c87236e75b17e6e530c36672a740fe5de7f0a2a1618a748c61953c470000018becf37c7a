@@ -504,78 +504,6 @@
 		}
 	},
 	{
-		"_id": 57453,
-		"bpid": 57490,
-		"name": "Carbon Fiber",
-		"type": "simple",
-		"inputs": [
-			{
-				"id": 4246,
-				"qt": 5
-			},
-			{
-				"id": 16633,
-				"qt": 100
-			},
-			{
-				"id": 16635,
-				"qt": 100
-			}
-		],
-		"output": {
-			"id": 57453,
-			"qt": 200
-		}
-	},
-	{
-		"_id": 57455,
-		"bpid": 57494,
-		"name": "Thermosetting Polymer",
-		"type": "simple",
-		"inputs": [
-			{
-				"id": 4312,
-				"qt": 5
-			},
-			{
-				"id": 16634,
-				"qt": 100
-			},
-			{
-				"id": 16636,
-				"qt": 100
-			}
-		],
-		"output": {
-			"id": 57455,
-			"qt": 200
-		}
-	},
-	{
-		"_id": 57454,
-		"bpid": 57491,
-		"name": "Oxy-Organic Solvents",
-		"type": "simple",
-		"inputs": [
-			{
-				"id": 4312,
-				"qt": 5
-			},
-			{
-				"id": 16633,
-				"qt": 2000
-			},
-			{
-				"id": 16634,
-				"qt": 2000
-			}
-		],
-		"output": {
-			"id": 57454,
-			"qt": 10
-		}
-	},
-	{
 		"_id": 32821,
 		"bpid": 46187,
 		"name": "Unrefined Vanadium Hafnite",
@@ -1372,366 +1300,318 @@
 		}
 	},
 	{
-		"_id": 57456,
-		"bpid": 57492,
-		"name": "Pressurized Oxidizer",
-		"type": "complex",
-		"inputs": [
-			{
-				"id": 57454,
-				"qt": 1
-			},
-			{
-				"id": 16659,
-				"qt": 200
-			},
-			{
-				"id": 16661,
-				"qt": 200
-			}
-		],
-		"output": {
-			"id": 57456,
-			"qt": 200
-		}
-	},
-	{
-		"_id": 57457,
-		"bpid": 57493,
-		"name": "Pressurized Oxidizer",
-		"type": "complex",
-		"inputs": [
-			{
-				"id": 57454,
-				"qt": 1
-			},
-			{
-				"id": 57453,
-				"qt": 200
-			},
-			{
-				"id": 57455,
-				"qt": 200
-			}
-		],
-		"output": {
-			"id": 57457,
-			"qt": 200
-		}
-	},
-	{
-      "_id": 32821,
-      "name": "Unrefined Vanadium Hafnite",
-      "type": "refined",
-      "inputs": {
-        "id": 32821,
-        "quantity": 1
-      },
-      "outputs": [
-        {
-          "id": 16642,
-          "quantity": 164
-        },
-        {
-          "id": 17959,
-          "quantity": 36
-        }
-      ]
+        "_id": 32821,
+        "name": "Unrefined Vanadium Hafnite",
+        "type": "refined",
+        "inputs": [{
+            "id": 32821,
+            "quantity": 1
+        }],
+        "outputs": [
+            {
+                "id": 16642,
+                "quantity": 164
+            },
+            {
+                "id": 17959,
+                "quantity": 36
+            }
+        ]
     },
-  {
-    "_id": 32822,
-    "name": "Unrefined Platinum Technite",
-    "type": "refined",
-    "inputs": {
-      "id": 32822,
-      "quantity": 1
+    {
+        "_id": 32822,
+        "name": "Unrefined Platinum Technite",
+        "type": "refined",
+        "inputs": [{
+            "id": 32822,
+            "quantity": 1
+        }],
+        "outputs": [
+            {
+                "id": 16644,
+                "quantity": 164
+            },
+            {
+                "id": 16662,
+                "quantity": 36
+            }
+        ]
     },
-    "outputs": [
-      {
-        "id": 16644,
-        "quantity": 164
-      },
-      {
-        "id": 16662,
-        "quantity": 36
-      }
-    ]
-  },
-  {
-    "_id": 32823,
-    "name": "Unrefined Solerium",
-    "type": "refined",
-    "inputs": {
-      "id": 32823,
-      "quantity": 1
+    {
+        "_id": 32823,
+        "name": "Unrefined Solerium",
+        "type": "refined",
+        "inputs": [{
+            "id": 32823,
+            "quantity": 1
+        }],
+        "outputs": [
+            {
+                "id": 16641,
+                "quantity": 164
+            },
+            {
+                "id": 16664,
+                "quantity": 36
+            }
+        ]
     },
-    "outputs": [
-      {
-        "id": 16641,
-        "quantity": 164
-      },
-      {
-        "id": 16664,
-        "quantity": 36
-      }
-    ]
-  },
-  {
-    "_id": 32824,
-    "name": "Unrefined Caesarium Cadmide",
-    "type": "refined",
-    "inputs": {
-      "id": 32824,
-      "quantity": 1
+    {
+        "_id": 32824,
+        "name": "Unrefined Caesarium Cadmide",
+        "type": "refined",
+        "inputs": [{
+            "id": 32824,
+            "quantity": 1
+        }],
+        "outputs": [
+            {
+                "id": 16643,
+                "quantity": 164
+            },
+            {
+                "id": 16663,
+                "quantity": 36
+            }
+        ]
     },
-    "outputs": [
-      {
-        "id": 16643,
-        "quantity": 164
-      },
-      {
-        "id": 16663,
-        "quantity": 36
-      }
-    ]
-  },
-  {
-    "_id": 32825,
-    "name": "Unrefined Hexite",
-    "type": "refined",
-    "inputs": {
-      "id": 32825,
-      "quantity": 1
+    {
+        "_id": 32825,
+        "name": "Unrefined Hexite",
+        "type": "refined",
+        "inputs": [{
+            "id": 32825,
+            "quantity": 1
+        }],
+        "outputs": [
+            {
+                "id": 16665,
+                "quantity": 36
+            }
+        ]
     },
-    "outputs": [
-      {
-        "id": 16665,
-        "quantity": 36
-      }
-    ]
-  },
-  {
-    "_id": 32826,
-    "name": "Unrefined Rolled Tungsten Alloy",
-    "type": "refined",
-    "inputs": {
-      "id": 32826,
-      "quantity": 1
+    {
+        "_id": 32826,
+        "name": "Unrefined Rolled Tungsten Alloy",
+        "type": "refined",
+        "inputs": [{
+            "id": 32826,
+            "quantity": 1
+        }],
+        "outputs": [
+            {
+                "id": 16637,
+                "quantity": 164
+            },
+            {
+                "id": 16657,
+                "quantity": 36
+            }
+        ]
     },
-    "outputs": [
-      {
-        "id": 16637,
-        "quantity": 164
-      },
-      {
-        "id": 16657,
-        "quantity": 36
-      }
-    ]
-  },
-  {
-    "_id": 32827,
-    "name": "Unrefined Titanium Chromide",
-    "type": "refined",
-    "inputs": {
-      "id": 32827,
-      "quantity": 1
+    {
+        "_id": 32827,
+        "name": "Unrefined Titanium Chromide",
+        "type": "refined",
+        "inputs": [{
+            "id": 32827,
+            "quantity": 1
+        }],
+        "outputs": [
+            {
+                "id": 16638,
+                "quantity": 164
+            },
+            {
+                "id": 16654,
+                "quantity": 36
+            }
+        ]
     },
-    "outputs": [
-      {
-        "id": 16638,
-        "quantity": 164
-      },
-      {
-        "id": 16654,
-        "quantity": 36
-      }
-    ]
-  },
-  {
-    "_id": 32828,
-    "name": "Unrefined Fernite Alloy",
-    "type": "refined",
-    "inputs": {
-      "id": 32828,
-      "quantity": 1
+    {
+        "_id": 32828,
+        "name": "Unrefined Fernite Alloy",
+        "type": "refined",
+        "inputs": [{
+            "id": 32828,
+            "quantity": 1
+        }],
+        "outputs": [
+            {
+                "id": 16639,
+                "quantity": 164
+            },
+            {
+                "id": 16656,
+                "quantity": 36
+            }
+        ]
     },
-    "outputs": [
-      {
-        "id": 16639,
-        "quantity": 164
-      },
-      {
-        "id": 16656,
-        "quantity": 36
-      }
-    ]
-  },
-  {
-    "_id": 32829,
-    "name": "Unrefined Crystallite Alloy",
-    "type": "refined",
-    "inputs": {
-      "id": 32829,
-      "quantity": 1
+    {
+        "_id": 32829,
+        "name": "Unrefined Crystallite Alloy",
+        "type": "refined",
+        "inputs": [{
+            "id": 32829,
+            "quantity": 1
+        }],
+        "outputs": [
+            {
+                "id": 16640,
+                "quantity": 164
+            },
+            {
+                "id": 16655,
+                "quantity": 36
+            }
+        ]
     },
-    "outputs": [
-      {
-        "id": 16640,
-        "quantity": 164
-      },
-      {
-        "id": 16655,
-        "quantity": 36
-      }
-    ]
-  },
-  {
-    "_id": 29664,
-    "name": "Unrefined Hyperflurite",
-    "type": "refined",
-    "inputs": {
-      "id": 29664,
-      "quantity": 1
+    {
+        "_id": 29664,
+        "name": "Unrefined Hyperflurite",
+        "type": "refined",
+        "inputs": [{
+            "id": 29664,
+            "quantity": 1
+        }],
+        "outputs": [
+            {
+                "id": 16642,
+                "quantity": 173
+            },
+            {
+                "id": 16666,
+                "quantity": 73
+            }
+        ]
     },
-    "outputs": [
-      {
-        "id": 16642,
-        "quantity": 173
-      },
-      {
-        "id": 16666,
-        "quantity": 73
-      }
-    ]
-  },
-  {
-    "_id": 29663,
-    "name": "Unrefined Ferrofluid",
-    "type": "refined",
-    "inputs": {
-      "id": 29663,
-      "quantity": 1
+    {
+        "_id": 29663,
+        "name": "Unrefined Ferrofluid",
+        "type": "refined",
+        "inputs": [{
+            "id": 29663,
+            "quantity": 1
+        }],
+        "outputs": [
+            {
+                "id": 16648,
+                "quantity": 173
+            },
+            {
+                "id": 16669,
+                "quantity": 73
+            }
+        ]
     },
-    "outputs": [
-      {
-        "id": 16648,
-        "quantity": 173
-      },
-      {
-        "id": 16669,
-        "quantity": 73
-      }
-    ]
-  },
-  {
-    "_id": 29662,
-    "name": "Unrefined Prometium",
-    "type": "refined",
-    "inputs": {
-      "id": 29662,
-      "quantity": 1
+    {
+        "_id": 29662,
+        "name": "Unrefined Prometium",
+        "type": "refined",
+        "inputs": [{
+            "id": 29662,
+            "quantity": 1
+        }],
+        "outputs": [
+            {
+                "id": 16643,
+                "quantity": 173
+            },
+            {
+                "id": 17960,
+                "quantity": 73
+            }
+        ]
     },
-    "outputs": [
-      {
-        "id": 16643,
-        "quantity": 173
-      },
-      {
-        "id": 17960,
-        "quantity": 73
-      }
-    ]
-  },
-  {
-    "_id": 29661,
-    "name": "Unrefined Neo Mercurite",
-    "type": "refined",
-    "inputs": {
-      "id": 29661,
-      "quantity": 1
+    {
+        "_id": 29661,
+        "name": "Unrefined Neo Mercurite",
+        "type": "refined",
+        "inputs": [{
+            "id": 29661,
+            "quantity": 1
+        }],
+        "outputs": [
+            {
+                "id": 16646,
+                "quantity": 173
+            },
+            {
+                "id": 16667,
+                "quantity": 73
+            }
+        ]
     },
-    "outputs": [
-      {
-        "id": 16646,
-        "quantity": 173
-      },
-      {
-        "id": 16667,
-        "quantity": 73
-      }
-    ]
-  },
-  {
-    "_id": 29660,
-    "name": "Unrefined Dysporite",
-    "type": "refined",
-    "inputs": {
-      "id": 29660,
-      "quantity": 1
+    {
+        "_id": 29660,
+        "name": "Unrefined Dysporite",
+        "type": "refined",
+        "inputs": [{
+            "id": 29660,
+            "quantity": 1
+        }],
+        "outputs": [
+            {
+                "id": 16646,
+                "quantity": 173
+            },
+            {
+                "id": 16668,
+                "quantity": 73
+            }
+        ]
     },
-    "outputs": [
-      {
-        "id": 16646,
-        "quantity": 173
-      },
-      {
-        "id": 16668,
-        "quantity": 73
-      }
-    ]
-  },
-  {
-    "_id": 29659,
-    "name": "Unrefined Fluxed Condensates",
-    "type": "refined",
-    "inputs": {
-      "id": 29659,
-      "quantity": 1
+    {
+        "_id": 29659,
+        "name": "Unrefined Fluxed Condensates",
+        "type": "refined",
+        "inputs": [{
+            "id": 29659,
+            "quantity": 1
+        }],
+        "outputs": [
+            {
+                "id": 17769,
+                "quantity": 73
+            }
+        ]
     },
-    "outputs": [
-      {
-        "id": 17769,
-        "quantity": 73
-      }
-    ]
-  },
-  {
-    "_id": 33339,
-    "name": "Unrefined Thulium Hafnite",
-    "type": "refined",
-    "inputs": {
-      "id": 33339,
-      "quantity": 1
+    {
+        "_id": 33339,
+        "name": "Unrefined Thulium Hafnite",
+        "type": "refined",
+        "inputs": [{
+            "id": 33339,
+            "quantity": 1
+        }],
+        "outputs": [
+            {
+                "id": 16648,
+                "quantity": 173
+            },
+            {
+                "id": 33336,
+                "quantity": 73
+            }
+        ]
     },
-    "outputs": [
-      {
-        "id": 16648,
-        "quantity": 173
-      },
-      {
-        "id": 33336,
-        "quantity": 73
-      }
-    ]
-  },
-  {
-    "_id": 33338,
-    "name": "Unrefined Promethium Mercurite",
-    "type": "refined",
-    "inputs": {
-      "id": 33338,
-      "quantity": 1
-    },
-    "outputs": [
-      {
-        "id": 16646,
-        "quantity": 173
-      },
-      {
-        "id": 33337,
-        "quantity": 73
-      }
-    ]
-  }
+    {
+        "_id": 33338,
+        "name": "Unrefined Promethium Mercurite",
+        "type": "refined",
+        "inputs": [{
+            "id": 33338,
+            "quantity": 1
+        }],
+        "outputs": [
+            {
+                "id": 16646,
+                "quantity": 173
+            },
+            {
+                "id": 33337,
+                "quantity": 73
+            }
+        ]
+    }
 ]

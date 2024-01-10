@@ -1,0 +1,1 @@
+SELECT items.id, items.name AS name, items.adjusted_price, items.base_industry_price, groups.name AS group FROM (items, groups, categories) WHERE (items.id = ?1)
