@@ -2,8 +2,11 @@
 	// noinspection ES6UnusedImports
 	import Fa from 'svelte-fa';
 	import { faHome } from '@fortawesome/free-solid-svg-icons';
+	import AutoComplete from "simple-svelte-autocomplete"
+	import { systems } from '$lib/systems';
 
 	export let data;
+	let selected_system = data.system;
 </script>
 
 <svelte:head>
@@ -272,15 +275,16 @@
 							<div class="input-group-text" id="systemHelpBlock">
 								<Fa icon={faHome} />
 							</div>
-							<input
+							<AutoComplete
+								hideArrow
+								items="{systems}"
 								id="system"
 								name="system"
-								placeholder="Jita"
-								type="text"
-								value={data.system}
+								placeholder="Ignoitton"
 								class="form-control here"
-								aria-describedby="systemHelpBlock"
+								showClear="true"
 								required
+								bind:selectedItem="{selected_system}"
 							/>
 						</div>
 						<div id="systemHelpBlock" class="form-text text-muted">

@@ -74,7 +74,7 @@ export async function load({ cookies }) {
 	}
 	// System
 	if (cookies.get('system') === undefined || cookies.get('system') === '') {
-		setCookie(cookies, 'system', 'Jita');
+		setCookie(cookies, 'system', 'Ignoitton');
 	}
 	// Tax
 	if (cookies.get('indyTax') === undefined || cookies.get('indyTax') === '') {
