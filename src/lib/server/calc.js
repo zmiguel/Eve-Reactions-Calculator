@@ -500,7 +500,88 @@ export async function chain(type, env, options, db, blueprints, material, amount
 			});
 			if (mat !== undefined) {
 				// material exists, get simple of this.
-				let simple_mat = await simple(env, options, db, blueprints, input_mat.id, input_mat.quantity);
+				let simple_mat;
+				if (mat.name === 'Oxy-Organic Solvents') { // This is an edge case...
+					simple_mat = await simple(env, options, db, blueprints, input_mat.id, input_mat.quantity);
+				} else {
+					// Math.ceil(items_to_make / parseInt(blueprint.output.qt));
+					// runs needed to get the amount of this material
+					let runs = Math.ceil(input_mat.quantity / parseInt(mat.output.qt));
+					// check if there's a remainder of runs per cycles
+					let remainder = runs % parseInt(options.cycles);
+					// if there is a remainder, we need to split this...
+					if (remainder !== 0) {
+						// this means we need to make option.cycle * (base.cycle_data.num_cycles - 1) runs
+						// and then make the remaining option.cycle - remainder runs
+						let num_main_cycles = Math.floor(runs / parseInt(options.cycles));
+						let amount_main_cycles = parseInt(options.cycles) * parseInt(mat.output.qt);
+						simple_mat = await simple(env, options, db, blueprints, input_mat.id, amount_main_cycles);
+						simple_mat.input.forEach((input) => {
+							input.quantity *= num_main_cycles;
+							input.price *= num_main_cycles;
+						});
+						simple_mat.input_total *= num_main_cycles;
+						simple_mat.taxes.system *= num_main_cycles;
+						simple_mat.taxes.facility *= num_main_cycles;
+						simple_mat.taxes.scc *= num_main_cycles;
+						simple_mat.taxes.market.inputs.brokers *= num_main_cycles;
+						simple_mat.taxes.market.output.brokers *= num_main_cycles;
+						simple_mat.taxes.market.output.sales *= num_main_cycles;
+						simple_mat.taxes.market.total.inputs *= num_main_cycles;
+						simple_mat.taxes.market.total.output *= num_main_cycles;
+						simple_mat.taxes.market.total.total *= num_main_cycles;
+						simple_mat.taxes.total.install *= num_main_cycles;
+						simple_mat.taxes.total.market *= num_main_cycles;
+						simple_mat.taxes.total.total *= num_main_cycles;
+						simple_mat.taxes_total *= num_main_cycles;
+						simple_mat.output.quantity *= num_main_cycles;
+						simple_mat.output.price *= num_main_cycles;
+						simple_mat.output_total *= num_main_cycles;
+						simple_mat.profit *= num_main_cycles;
+						simple_mat.runs *= num_main_cycles;
+						if (Object.keys(simple_mat.remaining).length > 0){
+							simple_mat.remaining.quantity *= num_main_cycles;
+							simple_mat.remaining.price *= num_main_cycles;
+						}
+						// now we need to make the remainder runs
+						let remaining_amount = input_mat.quantity - (amount_main_cycles * num_main_cycles);
+						let remainder_mat = await simple(env, options, db, blueprints, input_mat.id, remaining_amount);
+
+						// add everything to simple_mat
+						simple_mat.input.forEach((input) => {
+							remainder_mat.input.forEach((remainder_input) => {
+								if (input.id === remainder_input.id) {
+									input.quantity += remainder_input.quantity;
+									input.price += remainder_input.price;
+								}
+							});
+						});
+						simple_mat.input_total += remainder_mat.input_total;
+						simple_mat.taxes.system += remainder_mat.taxes.system;
+						simple_mat.taxes.facility += remainder_mat.taxes.facility;
+						simple_mat.taxes.scc += remainder_mat.taxes.scc;
+						simple_mat.taxes.market.inputs.brokers += remainder_mat.taxes.market.inputs.brokers;
+						simple_mat.taxes.market.output.brokers += remainder_mat.taxes.market.output.brokers;
+						simple_mat.taxes.market.output.sales += remainder_mat.taxes.market.output.sales;
+						simple_mat.taxes.market.total.inputs += remainder_mat.taxes.market.total.inputs;
+						simple_mat.taxes.market.total.output += remainder_mat.taxes.market.total.output;
+						simple_mat.taxes.market.total.total += remainder_mat.taxes.market.total.total;
+						simple_mat.taxes.total.install += remainder_mat.taxes.total.install;
+						simple_mat.taxes.total.market += remainder_mat.taxes.total.market;
+						simple_mat.taxes.total.total += remainder_mat.taxes.total.total;
+						simple_mat.taxes_total += remainder_mat.taxes_total;
+						simple_mat.output.quantity += remainder_mat.output.quantity;
+						simple_mat.output.price += remainder_mat.output.price;
+						simple_mat.output_total += remainder_mat.output_total;
+						simple_mat.profit += remainder_mat.profit;
+						simple_mat.runs += remainder_mat.runs;
+						if (Object.keys(remainder_mat.remaining).length > 0){
+							simple_mat.remaining = JSON.parse(JSON.stringify(remainder_mat.remaining));
+						}
+					} else {
+						simple_mat = await simple(env, options, db, blueprints, input_mat.id, input_mat.quantity);
+					}
+				}
 				input_simple.push(simple_mat);
 			} else {
 				new_inputs.push(input_mat);
@@ -548,7 +629,6 @@ export async function chain(type, env, options, db, blueprints, material, amount
 			if (mat === undefined) {
 				// doesn't exist so we just add it
 				base.remaining.push(remaining);
-				console.log("adding remaining: " + JSON.stringify(remaining));
 			} else {
 				// already exists so we have to add to it
 				mat.quantity += remaining.quantity;
