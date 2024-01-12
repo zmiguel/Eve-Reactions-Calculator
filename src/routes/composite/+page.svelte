@@ -51,6 +51,7 @@
 				<tr>
 					<th>In Method</th>
 					<th>Out Method</th>
+					<th>Market</th>
 					<th>Reactions</th>
 					<th>Facility</th>
 					<th>Rig</th>
@@ -65,6 +66,7 @@
 				<tr class="">
 					<td>{data.input} ({data.inMarket})</td>
 					<td>{data.output} ({data.outMarket})</td>
+					<td>B: {data.brokers} | S: {data.sales}</td>
 					<td>Level {data.skill}</td>
 					<td>{data.facility} Refinery</td>
 					<td>Tech {data.rigs} Rig</td>

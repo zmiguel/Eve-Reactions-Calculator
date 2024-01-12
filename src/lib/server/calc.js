@@ -279,7 +279,7 @@ export async function simple(env, options, db, blueprints, material, amount, adv
 	// check if we should just calculate for the items request or max for the time
 	let runs = 0;
 	if (amount !== 0) {
-		runs = items_to_make / parseInt(blueprint.output.qt);
+		runs = Math.ceil(items_to_make / parseInt(blueprint.output.qt));
 	} else {
 		runs = cycles;
 	}
@@ -335,14 +335,39 @@ export async function simple(env, options, db, blueprints, material, amount, adv
 			runs
 	};
 
+	// Calculate Market taxes
+	// brokers fee if *in* is *buy* order and if *out* is *sell* order
+	// sales tax only on out
+	let in_market_fees = {
+		brokers: 0
+	};
+	let out_market_fees = {
+		brokers: 0,
+		sales: 0
+	};
+	// inputs
+	if (options.input === 'buy') {
+		inputs.forEach((input) => {
+			in_market_fees.brokers += input.price * (parseFloat(options.brokers) / 100);
+		});
+	}
+	// output
+	if (options.output === 'sell') {
+		out_market_fees.brokers += output.price * (parseFloat(options.brokers) / 100);
+		out_market_fees.sales += output.price * (parseFloat(options.sales) / 100);
+	} else {
+		out_market_fees.sales += output.price * (parseFloat(options.brokers) / 100);
+	}
+	const total_market_fees = in_market_fees.brokers + out_market_fees.brokers + out_market_fees.sales;
+
 	// Calculate the total cost
-	let total = 0;
+	let total_inputs = 0;
 	inputs.forEach((input) => {
-		total += input.price;
+		total_inputs += input.price;
 	});
 
 	// Calculate the profit
-	const profit = output.price - total - TIF;
+	const profit = output.price - total_inputs - TIF - total_market_fees;
 
 	// Calculate remaining
 	let remaining_outputs = {};
@@ -384,14 +409,32 @@ export async function simple(env, options, db, blueprints, material, amount, adv
 	return {
 		name: output.name,
 		input: inputs,
-		input_total: total * cycle_data.num_cycles,
+		input_total: total_inputs * cycle_data.num_cycles,
 		taxes: {
 			system: SCI * cycle_data.num_cycles,
 			facility: FacilityTax * cycle_data.num_cycles,
 			scc: SCC * cycle_data.num_cycles,
-			total: TIF * cycle_data.num_cycles
+			market: {
+				inputs: {
+					brokers: in_market_fees.brokers * cycle_data.num_cycles
+				},
+				output: {
+					brokers: out_market_fees.brokers * cycle_data.num_cycles,
+					sales: out_market_fees.sales * cycle_data.num_cycles
+				},
+				total: {
+					inputs: in_market_fees.brokers * cycle_data.num_cycles,
+					output: out_market_fees.brokers * cycle_data.num_cycles + out_market_fees.sales * cycle_data.num_cycles,
+					total: total_market_fees * cycle_data.num_cycles
+				}
+			},
+			total: {
+				install: TIF * cycle_data.num_cycles,
+				market: total_market_fees * cycle_data.num_cycles,
+				total: TIF * cycle_data.num_cycles + total_market_fees * cycle_data.num_cycles
+			}
 		},
-		taxes_total: TIF * cycle_data.num_cycles,
+		taxes_total: TIF * cycle_data.num_cycles + total_market_fees * cycle_data.num_cycles,
 		output: output,
 		output_total: output.price,
 		profit: profit * cycle_data.num_cycles,
@@ -424,8 +467,17 @@ export async function chain(type, env, options, db, blueprints, material, amount
 	let base = await simple(env, options, db, blueprints, material, amount, advanced);
 	base.intermediates = {};
 	base.intermediates.input = JSON.parse(JSON.stringify(base.input));
+
+	base.taxes.market.total.total -= base.taxes.market.total.inputs;
+	base.taxes.market.inputs.brokers = 0;
+	base.taxes.total.market -= base.taxes.market.total.inputs;
+	base.taxes.total.total -= base.taxes.market.total.inputs;
+	base.taxes.market.total.inputs = 0;
+	base.taxes_total = base.taxes.total.total;
+
 	base.intermediates.taxes = JSON.parse(JSON.stringify(base.taxes));
-	base.intermediates.taxes_total = base.taxes_total;
+	base.intermediates.taxes_total = base.taxes.total.install + base.taxes.market.total.output;
+
 
 	// calculate intermediate remaining items
 
@@ -462,8 +514,12 @@ export async function chain(type, env, options, db, blueprints, material, amount
 		base.taxes.system += simple_mat.taxes.system;
 		base.taxes.facility += simple_mat.taxes.facility;
 		base.taxes.scc += simple_mat.taxes.scc;
-		base.taxes.total += simple_mat.taxes.total;
-		base.taxes_total += simple_mat.taxes_total;
+
+		base.taxes.market.inputs.brokers += simple_mat.taxes.market.inputs.brokers;
+		base.taxes.market.total.inputs += simple_mat.taxes.market.total.inputs;
+		base.taxes.total.install += simple_mat.taxes.total.install;
+		base.taxes.total.market += simple_mat.taxes.market.total.inputs;
+		base.taxes.total.total += (simple_mat.taxes.total.total - simple_mat.taxes.market.total.output);
 
 		// for each input...
 		simple_mat.input.forEach((simple_input) => {
@@ -499,6 +555,9 @@ export async function chain(type, env, options, db, blueprints, material, amount
 			}
 		}
 	});
+
+	// fix market taxes
+	base.taxes_total = base.taxes.total.total;
 
 	base.input = new_inputs;
 	base.input_total = new_inputs_total;
@@ -560,6 +619,41 @@ export async function refined(env, options, db_unrefined, db_refined, blueprints
 		base.output_total += temp.price;
 	});
 	base.output = outputs;
+
+	// Calculate Market taxes
+	// remove output from market taxes
+	base.taxes.market.total.total -= base.taxes.market.total.output;
+	base.taxes.total.market -= base.taxes.market.total.output;
+	base.taxes.total.total -= base.taxes.market.total.output;
+	base.taxes.market.total.output = 0;
+	base.taxes.market.output = {
+		brokers: 0,
+		sales: 0
+	};
+	// brokers fee if *in* is *buy* order and if *out* is *sell* order
+	// sales tax only on out
+	let out_market_fees = {
+		brokers: 0,
+		sales: 0
+	};
+	// output
+	if (options.output === 'sell') {
+		outputs.forEach((output) => {
+			out_market_fees.brokers += output.price * (parseFloat(options.brokers) / 100);
+			out_market_fees.sales += output.price * (parseFloat(options.sales) / 100);
+		});
+	} else {
+		outputs.forEach((output) => {
+			out_market_fees.sales += output.price * (parseFloat(options.brokers) / 100);
+		});
+	}
+
+	base.taxes.market.output = out_market_fees;
+	base.taxes.market.total.output = out_market_fees.brokers + out_market_fees.sales;
+	base.taxes.market.total.total += base.taxes.market.total.output;
+	base.taxes.total.market += base.taxes.market.total.output;
+	base.taxes.total.total += base.taxes.market.total.output;
+	base.taxes_total = base.taxes.total.total;
 
 	// Calculate the profit
 	base.profit = base.output_total - base.input_total - base.taxes_total;

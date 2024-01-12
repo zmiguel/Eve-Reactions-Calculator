@@ -19,6 +19,7 @@
 				<tr>
 					<th>In Method</th>
 					<th>Out Method</th>
+					<th>Market</th>
 					<th>Reactions</th>
 					<th>Facility</th>
 					<th>Rig</th>
@@ -33,6 +34,7 @@
 				<tr class="">
 					<td>{data.input} ({data.inMarket})</td>
 					<td>{data.output} ({data.outMarket})</td>
+					<td>B: {data.brokers} | S: {data.sales}</td>
 					<td>Level {data.skill}</td>
 					<td>{data.facility} Refinery</td>
 					<td>Tech {data.rigs} Rig</td>
@@ -140,6 +142,14 @@
 							<tr class="">
 								<td>SCC Tax</td>
 								<td class="isk">{nFormat.format(data.results?.taxes.scc)}</td>
+							</tr>
+							<tr class="">
+								<td>Market Tax Inputs</td>
+								<td class="isk">{nFormat.format(data.results?.taxes.market.total.inputs)}</td>
+							</tr>
+							<tr class="">
+								<td>Market Tax Output</td>
+								<td class="isk">{nFormat.format(data.results?.taxes.market.total.output)}</td>
 							</tr>
 						</tbody>
 						<tfoot>
@@ -263,6 +273,14 @@
 								<td>SCC Tax</td>
 								<td class="isk">{nFormat.format(data.results?.taxes.scc)}</td>
 							</tr>
+							<tr class="">
+								<td>Market Tax Inputs</td>
+								<td class="isk">{nFormat.format(data.results?.taxes.market.total.inputs)}</td>
+							</tr>
+							<tr class="">
+								<td>Market Tax Output</td>
+								<td class="isk">{nFormat.format(data.results?.taxes.market.total.output)}</td>
+							</tr>
 						</tbody>
 						<tfoot>
 							<tr class="fw-bold">
@@ -319,6 +337,14 @@
 							<tr class="">
 								<td>SCC Tax</td>
 								<td class="isk">{nFormat.format(data.results?.intermediates?.taxes.scc)}</td>
+							</tr>
+							<tr class="">
+								<td>Market Tax Inputs</td>
+								<td class="isk">{nFormat.format(data.results?.intermediates?.taxes.market.total.inputs)}</td>
+							</tr>
+							<tr class="">
+								<td>Market Tax Output</td>
+								<td class="isk">{nFormat.format(data.results?.intermediates?.taxes.market.total.output)}</td>
 							</tr>
 						</tbody>
 						<tfoot>
@@ -451,6 +477,14 @@
 							<tr class="">
 								<td>SCC Tax</td>
 								<td class="isk">{nFormat.format(data.results?.taxes.scc)}</td>
+							</tr>
+							<tr class="">
+								<td>Market Tax Inputs</td>
+								<td class="isk">{nFormat.format(data.results?.taxes.market.total.inputs)}</td>
+							</tr>
+							<tr class="">
+								<td>Market Tax Output</td>
+								<td class="isk">{nFormat.format(data.results?.taxes.market.total.output)}</td>
 							</tr>
 						</tbody>
 						<tfoot>

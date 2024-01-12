@@ -36,6 +36,22 @@ export async function load({ cookies }) {
 	) {
 		setCookie(cookies, 'outMarket', 'Jita');
 	}
+	// Brokers fees
+	if (
+		(cookies.get('brokers') === undefined || cookies.get('brokers') === '') &&
+		cookies.get('brokers') < '0' &&
+		cookies.get('brokers') > '10'
+	) {
+		setCookie(cookies, 'brokers', '2');
+	}
+	// Sales Tax
+	if (
+		(cookies.get('sales') === undefined || cookies.get('sales') === '') &&
+		cookies.get('sales') < '0' &&
+		cookies.get('sales') > '8'
+	) {
+		setCookie(cookies, 'sales', '3.6');
+	}
 	// Skill
 	if (
 		(cookies.get('skill') === undefined || cookies.get('skill') === '') &&
