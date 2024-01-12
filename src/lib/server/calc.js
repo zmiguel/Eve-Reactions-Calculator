@@ -541,13 +541,14 @@ export async function chain(type, env, options, db, blueprints, material, amount
 
 		// add remaining items to base
 		let remaining = simple_mat.remaining;
-		if (remaining.quantity !== 0) {
+		if (Object.keys(remaining).length > 0 && remaining.quantity !== 0) {
 			let mat = base.remaining.find((in_mat) => {
 				return in_mat.id === remaining.id;
 			});
 			if (mat === undefined) {
 				// doesn't exist so we just add it
 				base.remaining.push(remaining);
+				console.log("adding remaining: " + JSON.stringify(remaining));
 			} else {
 				// already exists so we have to add to it
 				mat.quantity += remaining.quantity;
