@@ -129,6 +129,52 @@
 				</div>
 
 				<div class="form-group mb-3 row">
+					<legend class="col-4 fs-6">Broker's Fee</legend>
+					<div class="col-8">
+						<div class="input-group w-25">
+							<input
+								id="brokers"
+								name="brokers"
+								placeholder="3"
+								type="number"
+								step="0.01"
+								value={data.brokers}
+								class="form-control here"
+								aria-describedby="brokerFeeHelpBlock"
+								required
+							/>
+							<div class="input-group-text append">%</div>
+						</div>
+						<div id="brokerFeeHelpBlock" class="form-text text-muted">
+							What's your broker fee % ?
+						</div>
+					</div>
+				</div>
+
+				<div class="form-group mb-3 row">
+					<legend class="col-4 fs-6">Sales Tax</legend>
+					<div class="col-8">
+						<div class="input-group w-25">
+							<input
+								id="sales"
+								name="sales"
+								placeholder="5"
+								type="number"
+								step="0.01"
+								value={data.sales}
+								class="form-control here"
+								aria-describedby="salesTaxHelpBlock"
+								required
+							/>
+							<div class="input-group-text append">%</div>
+						</div>
+						<div id="salesTaxHelpBlock" class="form-text text-muted">
+							What's your sales tax % ?
+						</div>
+					</div>
+				</div>
+
+				<div class="form-group mb-3 row">
 					<legend class="col-4 fs-6">Reactions Skill Level</legend>
 					<div class="col-8">
 						<select
@@ -387,6 +433,14 @@
 					<tr>
 						<th>Out Market</th>
 						<td>{data.outMarket}</td>
+					</tr>
+					<tr>
+						<th>Broker's Fee</th>
+						<td>{data.brokers}</td>
+					</tr>
+					<tr>
+						<th>Sales Tax</th>
+						<td>{data.sales}</td>
 					</tr>
 					<tr>
 						<th>Reactions</th>
