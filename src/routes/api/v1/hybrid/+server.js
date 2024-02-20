@@ -34,7 +34,14 @@ export async function GET({ url, platform }) {
 	await Promise.all(
 		blueprints.map(async (bp) => {
 			results.push(
-				await simple(platform.env, options, db_prep, blueprints, parseInt(bp._id), parseInt(quantity))
+				await simple(
+					platform.env,
+					options,
+					db_prep,
+					blueprints,
+					parseInt(bp._id),
+					parseInt(quantity)
+				)
 			);
 		})
 	);

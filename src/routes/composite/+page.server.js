@@ -1,4 +1,4 @@
-import { prep, simple, chain, refined } from '$lib/server/calc'
+import { prep, simple, chain, refined } from '$lib/server/calc';
 import { error } from '@sveltejs/kit';
 
 export const load = async ({ cookies, platform }) => {
@@ -101,7 +101,14 @@ export const load = async ({ cookies, platform }) => {
 					await Promise.all(
 						bps.blueprints.map(async (bp) => {
 							complex_results.push(
-								await simple(platform.env, options, db_prep_complex, blueprints, parseInt(bp._id), 0)
+								await simple(
+									platform.env,
+									options,
+									db_prep_complex,
+									blueprints,
+									parseInt(bp._id),
+									0
+								)
 							);
 						})
 					);
@@ -110,7 +117,15 @@ export const load = async ({ cookies, platform }) => {
 					await Promise.all(
 						bps.blueprints.map(async (bp) => {
 							chain_results.push(
-								await chain('complex', platform.env, options, db_prep_chain, blueprints, parseInt(bp._id), 0)
+								await chain(
+									'complex',
+									platform.env,
+									options,
+									db_prep_chain,
+									blueprints,
+									parseInt(bp._id),
+									0
+								)
 							);
 						})
 					);
@@ -119,7 +134,14 @@ export const load = async ({ cookies, platform }) => {
 					await Promise.all(
 						bps.blueprints.map(async (bp) => {
 							unrefined_results.push(
-								await simple(platform.env, options, db_prep_unrefined, blueprints, parseInt(bp._id), 0)
+								await simple(
+									platform.env,
+									options,
+									db_prep_unrefined,
+									blueprints,
+									parseInt(bp._id),
+									0
+								)
 							);
 						})
 					);

@@ -6960,5 +6960,5 @@ export const systems = [
 	'Ziriert',
 	'Zirsem',
 	'Zoohen',
-	'Zorenyen',
+	'Zorenyen'
 ];

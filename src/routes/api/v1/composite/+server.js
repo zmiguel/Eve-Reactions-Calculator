@@ -1,5 +1,5 @@
 import { json } from '@sveltejs/kit';
-import { prep, chain } from '$lib/server/calc'
+import { prep, chain } from '$lib/server/calc';
 
 /** @type {import('./$types').RequestHandler} */
 export async function GET({ url, platform }) {
@@ -38,7 +38,15 @@ export async function GET({ url, platform }) {
 	await Promise.all(
 		simple_blueprints.map(async (bp) => {
 			results.push(
-				await chain('complex', platform.env, options, db_prep, blueprints, parseInt(bp._id), parseInt(quantity))
+				await chain(
+					'complex',
+					platform.env,
+					options,
+					db_prep,
+					blueprints,
+					parseInt(bp._id),
+					parseInt(quantity)
+				)
 			);
 		})
 	);

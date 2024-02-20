@@ -2,7 +2,7 @@
 	// noinspection ES6UnusedImports
 	import Fa from 'svelte-fa';
 	import { faHome } from '@fortawesome/free-solid-svg-icons';
-	import AutoComplete from "simple-svelte-autocomplete"
+	import AutoComplete from 'simple-svelte-autocomplete';
 	import { systems } from '$lib/systems';
 
 	export let data;
@@ -168,9 +168,7 @@
 							/>
 							<div class="input-group-text append">%</div>
 						</div>
-						<div id="salesTaxHelpBlock" class="form-text text-muted">
-							What's your sales tax % ?
-						</div>
+						<div id="salesTaxHelpBlock" class="form-text text-muted">What's your sales tax % ?</div>
 					</div>
 				</div>
 
@@ -323,14 +321,14 @@
 							</div>
 							<AutoComplete
 								hideArrow
-								items="{systems}"
+								items={systems}
 								id="system"
 								name="system"
 								placeholder="Ignoitton"
 								class="form-control here"
 								showClear="true"
 								required
-								bind:selectedItem="{selected_system}"
+								bind:selectedItem={selected_system}
 							/>
 						</div>
 						<div id="systemHelpBlock" class="form-text text-muted">

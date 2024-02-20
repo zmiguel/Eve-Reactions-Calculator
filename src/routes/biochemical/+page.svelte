@@ -6,8 +6,23 @@
 
 	export let data;
 
-	const bioHandler = new DataHandler(data.results.simple, { rowsPerPage: 50 });
-	const bioRows = bioHandler.getRows();
+	const synthHandler = new DataHandler(data.results.synth, { rowsPerPage: 50 });
+	const synthRows = synthHandler.getRows();
+
+	const standardHandler = new DataHandler(data.results.standard, { rowsPerPage: 50 });
+	const standardRows = standardHandler.getRows();
+
+	const improvedHandler = new DataHandler(data.results.improved, { rowsPerPage: 50 });
+	const improvedRows = improvedHandler.getRows();
+
+	const improvedChainHandler = new DataHandler(data.results.improved_chain, { rowsPerPage: 50 });
+	const improvedChainRows = improvedChainHandler.getRows();
+
+	const strongHandler = new DataHandler(data.results.strong, { rowsPerPage: 50 });
+	const strongRows = strongHandler.getRows();
+
+	const strongChainHandler = new DataHandler(data.results.strong_chain, { rowsPerPage: 50 });
+	const strongChainRows = strongChainHandler.getRows();
 
 	const nFormat = new Intl.NumberFormat();
 
@@ -20,7 +35,12 @@
 	}
 
 	onMount(() => {
-		bioHandler.sortAsc('name');
+		synthHandler.sortAsc('name');
+		standardHandler.sortAsc('name');
+		improvedHandler.sortAsc('name');
+		improvedChainHandler.sortAsc('name');
+		strongHandler.sortAsc('name');
+		strongChainHandler.sortAsc('name');
 	});
 </script>
 
@@ -67,23 +87,203 @@
 	<div class="row mt-4">
 		<div class="card w-100 p-0">
 			<div class="card-header bg-info text-white fw-bold text-center w-100">
-				Biochemical Reactions
+				Synth Booster Reactions
 			</div>
 			<table width="100%" id="stab" class="table table-bordered text-center">
 				<thead>
-					<TH handler={bioHandler} orderBy="name">Reaction</TH>
-					<TH handler={bioHandler} orderBy="input_total">Inputs</TH>
-					<TH handler={bioHandler} orderBy="taxes_total">Tax</TH>
-					<TH handler={bioHandler} orderBy="output_total">Output</TH>
-					<TH handler={bioHandler} orderBy="profit">Profit</TH>
-					<TH handler={bioHandler} orderBy="profit_per">% prof.</TH>
+					<TH handler={synthHandler} orderBy="name">Reaction</TH>
+					<TH handler={synthHandler} orderBy="input_total">Inputs</TH>
+					<TH handler={synthHandler} orderBy="taxes_total">Tax</TH>
+					<TH handler={synthHandler} orderBy="output_total">Output</TH>
+					<TH handler={synthHandler} orderBy="profit">Profit</TH>
+					<TH handler={synthHandler} orderBy="profit_per">% prof.</TH>
 				</thead>
 				<tbody>
-					{#if data.results.simple}
-						{#each $bioRows as reaction}
+					{#if data.results.synth}
+						{#each $synthRows as reaction}
 							<tr
 								class={'link-row ' + reaction.style}
-								data-href="/biochemical/{reaction.output.id}"
+								data-href="/biochemical/simple/{reaction.output.id}"
+								on:click={rowClickHandler}
+							>
+								<td>{reaction.name}</td>
+								<td class="isk">{nFormat.format(reaction.input_total)}</td>
+								<td class="isk">{nFormat.format(reaction.taxes_total)}</td>
+								<td class="isk">{nFormat.format(reaction.output_total)}</td>
+								<td class="isk">{nFormat.format(reaction.profit)}</td>
+								<td>{nFormat.format(reaction.profit_per)} %</td>
+							</tr>
+						{/each}
+					{/if}
+				</tbody>
+			</table>
+		</div>
+	</div>
+
+	<div class="row mt-4">
+		<div class="card w-100 p-0">
+			<div class="card-header bg-info text-white fw-bold text-center w-100">
+				Standard Booster Reactions
+			</div>
+			<table width="100%" id="stab" class="table table-bordered text-center">
+				<thead>
+					<TH handler={synthHandler} orderBy="name">Reaction</TH>
+					<TH handler={synthHandler} orderBy="input_total">Inputs</TH>
+					<TH handler={synthHandler} orderBy="taxes_total">Tax</TH>
+					<TH handler={synthHandler} orderBy="output_total">Output</TH>
+					<TH handler={synthHandler} orderBy="profit">Profit</TH>
+					<TH handler={synthHandler} orderBy="profit_per">% prof.</TH>
+				</thead>
+				<tbody>
+					{#if data.results.standard}
+						{#each $standardRows as reaction}
+							<tr
+								class={'link-row ' + reaction.style}
+								data-href="/biochemical/simple/{reaction.output.id}"
+								on:click={rowClickHandler}
+							>
+								<td>{reaction.name}</td>
+								<td class="isk">{nFormat.format(reaction.input_total)}</td>
+								<td class="isk">{nFormat.format(reaction.taxes_total)}</td>
+								<td class="isk">{nFormat.format(reaction.output_total)}</td>
+								<td class="isk">{nFormat.format(reaction.profit)}</td>
+								<td>{nFormat.format(reaction.profit_per)} %</td>
+							</tr>
+						{/each}
+					{/if}
+				</tbody>
+			</table>
+		</div>
+	</div>
+
+	<div class="row mt-4">
+		<div class="card w-100 p-0">
+			<div class="card-header bg-info text-white fw-bold text-center w-100">
+				Improved Booster Reactions
+			</div>
+			<table width="100%" id="stab" class="table table-bordered text-center">
+				<thead>
+					<TH handler={synthHandler} orderBy="name">Reaction</TH>
+					<TH handler={synthHandler} orderBy="input_total">Inputs</TH>
+					<TH handler={synthHandler} orderBy="taxes_total">Tax</TH>
+					<TH handler={synthHandler} orderBy="output_total">Output</TH>
+					<TH handler={synthHandler} orderBy="profit">Profit</TH>
+					<TH handler={synthHandler} orderBy="profit_per">% prof.</TH>
+				</thead>
+				<tbody>
+					{#if data.results.improved}
+						{#each $improvedRows as reaction}
+							<tr
+								class={'link-row ' + reaction.style}
+								data-href="/biochemical/simple/{reaction.output.id}"
+								on:click={rowClickHandler}
+							>
+								<td>{reaction.name}</td>
+								<td class="isk">{nFormat.format(reaction.input_total)}</td>
+								<td class="isk">{nFormat.format(reaction.taxes_total)}</td>
+								<td class="isk">{nFormat.format(reaction.output_total)}</td>
+								<td class="isk">{nFormat.format(reaction.profit)}</td>
+								<td>{nFormat.format(reaction.profit_per)} %</td>
+							</tr>
+						{/each}
+					{/if}
+				</tbody>
+			</table>
+		</div>
+	</div>
+
+	<div class="row mt-4">
+		<div class="card w-100 p-0">
+			<div class="card-header bg-info text-white fw-bold text-center w-100">
+				Improved Booster Chain Reactions
+			</div>
+			<table width="100%" id="stab" class="table table-bordered text-center">
+				<thead>
+					<TH handler={synthHandler} orderBy="name">Reaction</TH>
+					<TH handler={synthHandler} orderBy="input_total">Inputs</TH>
+					<TH handler={synthHandler} orderBy="taxes_total">Tax</TH>
+					<TH handler={synthHandler} orderBy="output_total">Output</TH>
+					<TH handler={synthHandler} orderBy="profit">Profit</TH>
+					<TH handler={synthHandler} orderBy="profit_per">% prof.</TH>
+				</thead>
+				<tbody>
+					{#if data.results.improved_chain}
+						{#each $improvedChainRows as reaction}
+							<tr
+								class={'link-row ' + reaction.style}
+								data-href="/biochemical/chain/{reaction.output.id}"
+								on:click={rowClickHandler}
+							>
+								<td>{reaction.name}</td>
+								<td class="isk">{nFormat.format(reaction.input_total)}</td>
+								<td class="isk">{nFormat.format(reaction.taxes_total)}</td>
+								<td class="isk">{nFormat.format(reaction.output_total)}</td>
+								<td class="isk">{nFormat.format(reaction.profit)}</td>
+								<td>{nFormat.format(reaction.profit_per)} %</td>
+							</tr>
+						{/each}
+					{/if}
+				</tbody>
+			</table>
+		</div>
+	</div>
+
+	<div class="row mt-4">
+		<div class="card w-100 p-0">
+			<div class="card-header bg-info text-white fw-bold text-center w-100">
+				Strong Booster Reactions
+			</div>
+			<table width="100%" id="stab" class="table table-bordered text-center">
+				<thead>
+					<TH handler={synthHandler} orderBy="name">Reaction</TH>
+					<TH handler={synthHandler} orderBy="input_total">Inputs</TH>
+					<TH handler={synthHandler} orderBy="taxes_total">Tax</TH>
+					<TH handler={synthHandler} orderBy="output_total">Output</TH>
+					<TH handler={synthHandler} orderBy="profit">Profit</TH>
+					<TH handler={synthHandler} orderBy="profit_per">% prof.</TH>
+				</thead>
+				<tbody>
+					{#if data.results.strong}
+						{#each $strongRows as reaction}
+							<tr
+								class={'link-row ' + reaction.style}
+								data-href="/biochemical/simple/{reaction.output.id}"
+								on:click={rowClickHandler}
+							>
+								<td>{reaction.name}</td>
+								<td class="isk">{nFormat.format(reaction.input_total)}</td>
+								<td class="isk">{nFormat.format(reaction.taxes_total)}</td>
+								<td class="isk">{nFormat.format(reaction.output_total)}</td>
+								<td class="isk">{nFormat.format(reaction.profit)}</td>
+								<td>{nFormat.format(reaction.profit_per)} %</td>
+							</tr>
+						{/each}
+					{/if}
+				</tbody>
+			</table>
+		</div>
+	</div>
+
+	<div class="row mt-4">
+		<div class="card w-100 p-0">
+			<div class="card-header bg-info text-white fw-bold text-center w-100">
+				Strong Booster Chain Reactions
+			</div>
+			<table width="100%" id="stab" class="table table-bordered text-center">
+				<thead>
+					<TH handler={synthHandler} orderBy="name">Reaction</TH>
+					<TH handler={synthHandler} orderBy="input_total">Inputs</TH>
+					<TH handler={synthHandler} orderBy="taxes_total">Tax</TH>
+					<TH handler={synthHandler} orderBy="output_total">Output</TH>
+					<TH handler={synthHandler} orderBy="profit">Profit</TH>
+					<TH handler={synthHandler} orderBy="profit_per">% prof.</TH>
+				</thead>
+				<tbody>
+					{#if data.results.strong_chain}
+						{#each $strongChainRows as reaction}
+							<tr
+								class={'link-row ' + reaction.style}
+								data-href="/biochemical/chain/{reaction.output.id}"
 								on:click={rowClickHandler}
 							>
 								<td>{reaction.name}</td>

@@ -1,4 +1,4 @@
-import { prep, simple, chain, refined } from '$lib/server/calc'
+import { prep, simple, chain, refined } from '$lib/server/calc';
 import { error } from '@sveltejs/kit';
 import { setCookie } from '$lib/cookies.js';
 
@@ -27,10 +27,8 @@ export const load = async ({ cookies, platform, params }) => {
 		cycles: cookies.get('cycles')
 	};
 
-
 	const blueprints = await JSON.parse(await platform.env.KV_DATA.get('bp-comp'));
 	let bps, db_prep, db_prep_refined, db_prep_unrefined, results;
-
 
 	switch (params.type) {
 		case 'simple':
@@ -43,9 +41,16 @@ export const load = async ({ cookies, platform, params }) => {
 			if (!db_prep) {
 				throw error(500, `db_prep is undefined`);
 			}
-			results = await simple(platform.env, options, db_prep, blueprints, parseInt(params.id), 0, true);
+			results = await simple(
+				platform.env,
+				options,
+				db_prep,
+				blueprints,
+				parseInt(params.id),
+				0,
+				true
+			);
 			break;
-
 
 		case 'complex':
 			bps = await blueprints.filter((bp) => bp.type === 'complex');
@@ -57,9 +62,16 @@ export const load = async ({ cookies, platform, params }) => {
 			if (!db_prep) {
 				throw error(500, `db_prep is undefined`);
 			}
-			results = await simple(platform.env, options, db_prep, blueprints, parseInt(params.id), 0, true);
+			results = await simple(
+				platform.env,
+				options,
+				db_prep,
+				blueprints,
+				parseInt(params.id),
+				0,
+				true
+			);
 			break;
-
 
 		case 'chain':
 			bps = await blueprints.filter((bp) => bp.type === 'complex');
@@ -71,9 +83,17 @@ export const load = async ({ cookies, platform, params }) => {
 			if (!db_prep) {
 				throw error(500, `db_prep is undefined`);
 			}
-			results = await chain('complex', platform.env, options, db_prep, blueprints, parseInt(params.id), 0, true);
+			results = await chain(
+				'complex',
+				platform.env,
+				options,
+				db_prep,
+				blueprints,
+				parseInt(params.id),
+				0,
+				true
+			);
 			break;
-
 
 		case 'unrefined':
 			bps = await blueprints.filter((bp) => bp.type === 'unrefined');
@@ -85,9 +105,16 @@ export const load = async ({ cookies, platform, params }) => {
 			if (!db_prep) {
 				throw error(500, `db_prep is undefined`);
 			}
-			results = await simple(platform.env, options, db_prep, blueprints, parseInt(params.id), 0, true);
+			results = await simple(
+				platform.env,
+				options,
+				db_prep,
+				blueprints,
+				parseInt(params.id),
+				0,
+				true
+			);
 			break;
-
 
 		case 'refined':
 			bps = await blueprints.filter((bp) => bp.type === 'unrefined');
