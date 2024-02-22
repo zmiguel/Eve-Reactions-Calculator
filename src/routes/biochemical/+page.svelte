@@ -49,7 +49,7 @@
 </script>
 
 <svelte:head>
-	<title>Hybrid Reactions</title>
+	<title>Biochemical Reactions</title>
 </svelte:head>
 
 <div class="container">
