@@ -24,6 +24,9 @@
 	const strongChainHandler = new DataHandler(data.results.strong_chain, { rowsPerPage: 50 });
 	const strongChainRows = strongChainHandler.getRows();
 
+	const molecularHandler = new DataHandler(data.results.molecular, { rowsPerPage: 50 });
+	const molecularRows = molecularHandler.getRows();
+
 	const nFormat = new Intl.NumberFormat();
 
 	function rowClickHandler(e) {
@@ -127,12 +130,12 @@
 			</div>
 			<table width="100%" id="stab" class="table table-bordered text-center">
 				<thead>
-					<TH handler={synthHandler} orderBy="name">Reaction</TH>
-					<TH handler={synthHandler} orderBy="input_total">Inputs</TH>
-					<TH handler={synthHandler} orderBy="taxes_total">Tax</TH>
-					<TH handler={synthHandler} orderBy="output_total">Output</TH>
-					<TH handler={synthHandler} orderBy="profit">Profit</TH>
-					<TH handler={synthHandler} orderBy="profit_per">% prof.</TH>
+					<TH handler={standardHandler} orderBy="name">Reaction</TH>
+					<TH handler={standardHandler} orderBy="input_total">Inputs</TH>
+					<TH handler={standardHandler} orderBy="taxes_total">Tax</TH>
+					<TH handler={standardHandler} orderBy="output_total">Output</TH>
+					<TH handler={standardHandler} orderBy="profit">Profit</TH>
+					<TH handler={standardHandler} orderBy="profit_per">% prof.</TH>
 				</thead>
 				<tbody>
 					{#if data.results.standard}
@@ -163,12 +166,12 @@
 			</div>
 			<table width="100%" id="stab" class="table table-bordered text-center">
 				<thead>
-					<TH handler={synthHandler} orderBy="name">Reaction</TH>
-					<TH handler={synthHandler} orderBy="input_total">Inputs</TH>
-					<TH handler={synthHandler} orderBy="taxes_total">Tax</TH>
-					<TH handler={synthHandler} orderBy="output_total">Output</TH>
-					<TH handler={synthHandler} orderBy="profit">Profit</TH>
-					<TH handler={synthHandler} orderBy="profit_per">% prof.</TH>
+					<TH handler={improvedHandler} orderBy="name">Reaction</TH>
+					<TH handler={improvedHandler} orderBy="input_total">Inputs</TH>
+					<TH handler={improvedHandler} orderBy="taxes_total">Tax</TH>
+					<TH handler={improvedHandler} orderBy="output_total">Output</TH>
+					<TH handler={improvedHandler} orderBy="profit">Profit</TH>
+					<TH handler={improvedHandler} orderBy="profit_per">% prof.</TH>
 				</thead>
 				<tbody>
 					{#if data.results.improved}
@@ -192,6 +195,7 @@
 		</div>
 	</div>
 
+	<!-- TEMP DISABLED WHILE I IMPROVE THE CHAIN CALCULATIONS
 	<div class="row mt-4">
 		<div class="card w-100 p-0">
 			<div class="card-header bg-info text-white fw-bold text-center w-100">
@@ -199,12 +203,12 @@
 			</div>
 			<table width="100%" id="stab" class="table table-bordered text-center">
 				<thead>
-					<TH handler={synthHandler} orderBy="name">Reaction</TH>
-					<TH handler={synthHandler} orderBy="input_total">Inputs</TH>
-					<TH handler={synthHandler} orderBy="taxes_total">Tax</TH>
-					<TH handler={synthHandler} orderBy="output_total">Output</TH>
-					<TH handler={synthHandler} orderBy="profit">Profit</TH>
-					<TH handler={synthHandler} orderBy="profit_per">% prof.</TH>
+					<TH handler={improvedChainHandler} orderBy="name">Reaction</TH>
+					<TH handler={improvedChainHandler} orderBy="input_total">Inputs</TH>
+					<TH handler={improvedChainHandler} orderBy="taxes_total">Tax</TH>
+					<TH handler={improvedChainHandler} orderBy="output_total">Output</TH>
+					<TH handler={improvedChainHandler} orderBy="profit">Profit</TH>
+					<TH handler={improvedChainHandler} orderBy="profit_per">% prof.</TH>
 				</thead>
 				<tbody>
 					{#if data.results.improved_chain}
@@ -227,6 +231,7 @@
 			</table>
 		</div>
 	</div>
+	-->
 
 	<div class="row mt-4">
 		<div class="card w-100 p-0">
@@ -235,12 +240,12 @@
 			</div>
 			<table width="100%" id="stab" class="table table-bordered text-center">
 				<thead>
-					<TH handler={synthHandler} orderBy="name">Reaction</TH>
-					<TH handler={synthHandler} orderBy="input_total">Inputs</TH>
-					<TH handler={synthHandler} orderBy="taxes_total">Tax</TH>
-					<TH handler={synthHandler} orderBy="output_total">Output</TH>
-					<TH handler={synthHandler} orderBy="profit">Profit</TH>
-					<TH handler={synthHandler} orderBy="profit_per">% prof.</TH>
+					<TH handler={strongHandler} orderBy="name">Reaction</TH>
+					<TH handler={strongHandler} orderBy="input_total">Inputs</TH>
+					<TH handler={strongHandler} orderBy="taxes_total">Tax</TH>
+					<TH handler={strongHandler} orderBy="output_total">Output</TH>
+					<TH handler={strongHandler} orderBy="profit">Profit</TH>
+					<TH handler={strongHandler} orderBy="profit_per">% prof.</TH>
 				</thead>
 				<tbody>
 					{#if data.results.strong}
@@ -264,6 +269,7 @@
 		</div>
 	</div>
 
+<!-- TEMP DISABLED WHILE I IMPROVE THE CHAIN CALCULATIONS
 	<div class="row mt-4">
 		<div class="card w-100 p-0">
 			<div class="card-header bg-info text-white fw-bold text-center w-100">
@@ -271,12 +277,12 @@
 			</div>
 			<table width="100%" id="stab" class="table table-bordered text-center">
 				<thead>
-					<TH handler={synthHandler} orderBy="name">Reaction</TH>
-					<TH handler={synthHandler} orderBy="input_total">Inputs</TH>
-					<TH handler={synthHandler} orderBy="taxes_total">Tax</TH>
-					<TH handler={synthHandler} orderBy="output_total">Output</TH>
-					<TH handler={synthHandler} orderBy="profit">Profit</TH>
-					<TH handler={synthHandler} orderBy="profit_per">% prof.</TH>
+					<TH handler={strongChainHandler} orderBy="name">Reaction</TH>
+					<TH handler={strongChainHandler} orderBy="input_total">Inputs</TH>
+					<TH handler={strongChainHandler} orderBy="taxes_total">Tax</TH>
+					<TH handler={strongChainHandler} orderBy="output_total">Output</TH>
+					<TH handler={strongChainHandler} orderBy="profit">Profit</TH>
+					<TH handler={strongChainHandler} orderBy="profit_per">% prof.</TH>
 				</thead>
 				<tbody>
 					{#if data.results.strong_chain}
@@ -299,4 +305,42 @@
 			</table>
 		</div>
 	</div>
+	-->
+
+	<div class="row mt-4">
+		<div class="card w-100 p-0">
+			<div class="card-header bg-info text-white fw-bold text-center w-100">
+				Molecular-Forging Reactions
+			</div>
+			<table width="100%" id="stab" class="table table-bordered text-center">
+				<thead>
+				<TH handler={molecularHandler} orderBy="name">Reaction</TH>
+				<TH handler={molecularHandler} orderBy="input_total">Inputs</TH>
+				<TH handler={molecularHandler} orderBy="taxes_total">Tax</TH>
+				<TH handler={molecularHandler} orderBy="output_total">Output</TH>
+				<TH handler={molecularHandler} orderBy="profit">Profit</TH>
+				<TH handler={molecularHandler} orderBy="profit_per">% prof.</TH>
+				</thead>
+				<tbody>
+				{#if data.results.molecular}
+					{#each $molecularRows as reaction}
+						<tr
+							class={'link-row ' + reaction.style}
+							data-href="/biochemical/simple/{reaction.output.id}"
+							on:click={rowClickHandler}
+						>
+							<td>{reaction.name}</td>
+							<td class="isk">{nFormat.format(reaction.input_total)}</td>
+							<td class="isk">{nFormat.format(reaction.taxes_total)}</td>
+							<td class="isk">{nFormat.format(reaction.output_total)}</td>
+							<td class="isk">{nFormat.format(reaction.profit)}</td>
+							<td>{nFormat.format(reaction.profit_per)} %</td>
+						</tr>
+					{/each}
+				{/if}
+				</tbody>
+			</table>
+		</div>
+	</div>
+
 </div>

@@ -809,3 +809,44 @@ export async function refined(
 	// return all data
 	return base;
 }
+
+export async function fullChain(
+	env,
+	options,
+	db,
+	blueprints,
+	material,
+	amount,
+	advanced = false
+) {
+	const blueprint = blueprints.find((bp) => {
+		return bp._id === material;
+	});
+
+	// Sanity Check
+	if (blueprint === undefined) {
+		console.log('Blueprint not found | material: ' + material);
+		return;
+	}
+
+	if (advanced) {
+		amount = parseInt(options.cycles) * parseInt(blueprint.output.qt);
+	}
+
+	// actually do things
+	let result = {}
+	// get base info for this material
+	let base = await simple(env, options, db, blueprints, material, amount, advanced);
+
+	// copy important fields to the output of the result
+	result.output = JSON.parse(JSON.stringify(base.output));
+	result.output_total = base.output_total;
+	result.runs = base.runs;
+	result.cycle_data = JSON.parse(JSON.stringify(base.cycle_data));
+
+	const last_step_taxes = JSON.parse(JSON.stringify(base.taxes));
+
+	// for each input, check if we have a blueprint for it.
+
+
+}

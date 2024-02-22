@@ -24,6 +24,7 @@ export const load = async ({ cookies, platform }) => {
 	const standard_blueprints = await blueprints.filter((bp) => bp.type === 'stand');
 	const improved_blueprints = await blueprints.filter((bp) => bp.type === 'impro');
 	const strong_blueprints = await blueprints.filter((bp) => bp.type === 'strong');
+	const molecular_blueprints = await blueprints.filter((bp) => bp.type === 'molecular');
 
 	const db_prep = await prep('bio', options, blueprints, platform.env);
 
@@ -37,7 +38,8 @@ export const load = async ({ cookies, platform }) => {
 		{ Type: 'improved', blueprints: improved_blueprints },
 		{ Type: 'improved_chain', blueprints: improved_blueprints },
 		{ Type: 'strong', blueprints: strong_blueprints },
-		{ Type: 'strong_chain', blueprints: strong_blueprints }
+		{ Type: 'strong_chain', blueprints: strong_blueprints },
+		{ Type: 'molecular', blueprints: molecular_blueprints }
 	];
 
 	let results_synth = [];
@@ -46,6 +48,7 @@ export const load = async ({ cookies, platform }) => {
 	let results_improved_chain = [];
 	let results_strong = [];
 	let results_strong_chain = [];
+	let results_molecular = [];
 
 	await Promise.all(
 		all_bps.map(async (bps) => {
@@ -120,6 +123,15 @@ export const load = async ({ cookies, platform }) => {
 						})
 					);
 					break;
+				case 'molecular':
+					await Promise.all(
+						bps.blueprints.map(async (bp) => {
+							results_molecular.push(
+								await simple(platform.env, options, db_prep, blueprints, parseInt(bp._id), 0)
+							);
+						})
+					);
+					break;
 			}
 		})
 	);
@@ -145,7 +157,8 @@ export const load = async ({ cookies, platform }) => {
 			improved: results_improved,
 			improved_chain: results_improved_chain,
 			strong: results_strong,
-			strong_chain: results_strong_chain
+			strong_chain: results_strong_chain,
+			molecular: results_molecular
 		}
 	};
 };
