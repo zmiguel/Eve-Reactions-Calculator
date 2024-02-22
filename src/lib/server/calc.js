@@ -810,15 +810,7 @@ export async function refined(
 	return base;
 }
 
-export async function fullChain(
-	env,
-	options,
-	db,
-	blueprints,
-	material,
-	amount,
-	advanced = false
-) {
+export async function fullChain(env, options, db, blueprints, material, amount, advanced = false) {
 	const blueprint = blueprints.find((bp) => {
 		return bp._id === material;
 	});
@@ -834,7 +826,7 @@ export async function fullChain(
 	}
 
 	// actually do things
-	let result = {}
+	let result = {};
 	// get base info for this material
 	let base = await simple(env, options, db, blueprints, material, amount, advanced);
 
@@ -844,9 +836,7 @@ export async function fullChain(
 	result.runs = base.runs;
 	result.cycle_data = JSON.parse(JSON.stringify(base.cycle_data));
 
-	const last_step_taxes = JSON.parse(JSON.stringify(base.taxes));
+	// const last_step_taxes = JSON.parse(JSON.stringify(base.taxes));
 
 	// for each input, check if we have a blueprint for it.
-
-
 }

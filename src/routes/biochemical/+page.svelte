@@ -15,14 +15,14 @@
 	const improvedHandler = new DataHandler(data.results.improved, { rowsPerPage: 50 });
 	const improvedRows = improvedHandler.getRows();
 
-	const improvedChainHandler = new DataHandler(data.results.improved_chain, { rowsPerPage: 50 });
-	const improvedChainRows = improvedChainHandler.getRows();
+	//const improvedChainHandler = new DataHandler(data.results.improved_chain, { rowsPerPage: 50 });
+	//const improvedChainRows = improvedChainHandler.getRows();
 
 	const strongHandler = new DataHandler(data.results.strong, { rowsPerPage: 50 });
 	const strongRows = strongHandler.getRows();
 
-	const strongChainHandler = new DataHandler(data.results.strong_chain, { rowsPerPage: 50 });
-	const strongChainRows = strongChainHandler.getRows();
+	//const strongChainHandler = new DataHandler(data.results.strong_chain, { rowsPerPage: 50 });
+	//const strongChainRows = strongChainHandler.getRows();
 
 	const molecularHandler = new DataHandler(data.results.molecular, { rowsPerPage: 50 });
 	const molecularRows = molecularHandler.getRows();
@@ -41,9 +41,10 @@
 		synthHandler.sortAsc('name');
 		standardHandler.sortAsc('name');
 		improvedHandler.sortAsc('name');
-		improvedChainHandler.sortAsc('name');
+		//improvedChainHandler.sortAsc('name');
 		strongHandler.sortAsc('name');
-		strongChainHandler.sortAsc('name');
+		//strongChainHandler.sortAsc('name');
+		molecularHandler.sortAsc('name');
 	});
 </script>
 
@@ -269,7 +270,7 @@
 		</div>
 	</div>
 
-<!-- TEMP DISABLED WHILE I IMPROVE THE CHAIN CALCULATIONS
+	<!-- TEMP DISABLED WHILE I IMPROVE THE CHAIN CALCULATIONS
 	<div class="row mt-4">
 		<div class="card w-100 p-0">
 			<div class="card-header bg-info text-white fw-bold text-center w-100">
@@ -314,33 +315,32 @@
 			</div>
 			<table width="100%" id="stab" class="table table-bordered text-center">
 				<thead>
-				<TH handler={molecularHandler} orderBy="name">Reaction</TH>
-				<TH handler={molecularHandler} orderBy="input_total">Inputs</TH>
-				<TH handler={molecularHandler} orderBy="taxes_total">Tax</TH>
-				<TH handler={molecularHandler} orderBy="output_total">Output</TH>
-				<TH handler={molecularHandler} orderBy="profit">Profit</TH>
-				<TH handler={molecularHandler} orderBy="profit_per">% prof.</TH>
+					<TH handler={molecularHandler} orderBy="name">Reaction</TH>
+					<TH handler={molecularHandler} orderBy="input_total">Inputs</TH>
+					<TH handler={molecularHandler} orderBy="taxes_total">Tax</TH>
+					<TH handler={molecularHandler} orderBy="output_total">Output</TH>
+					<TH handler={molecularHandler} orderBy="profit">Profit</TH>
+					<TH handler={molecularHandler} orderBy="profit_per">% prof.</TH>
 				</thead>
 				<tbody>
-				{#if data.results.molecular}
-					{#each $molecularRows as reaction}
-						<tr
-							class={'link-row ' + reaction.style}
-							data-href="/biochemical/simple/{reaction.output.id}"
-							on:click={rowClickHandler}
-						>
-							<td>{reaction.name}</td>
-							<td class="isk">{nFormat.format(reaction.input_total)}</td>
-							<td class="isk">{nFormat.format(reaction.taxes_total)}</td>
-							<td class="isk">{nFormat.format(reaction.output_total)}</td>
-							<td class="isk">{nFormat.format(reaction.profit)}</td>
-							<td>{nFormat.format(reaction.profit_per)} %</td>
-						</tr>
-					{/each}
-				{/if}
+					{#if data.results.molecular}
+						{#each $molecularRows as reaction}
+							<tr
+								class={'link-row ' + reaction.style}
+								data-href="/biochemical/simple/{reaction.output.id}"
+								on:click={rowClickHandler}
+							>
+								<td>{reaction.name}</td>
+								<td class="isk">{nFormat.format(reaction.input_total)}</td>
+								<td class="isk">{nFormat.format(reaction.taxes_total)}</td>
+								<td class="isk">{nFormat.format(reaction.output_total)}</td>
+								<td class="isk">{nFormat.format(reaction.profit)}</td>
+								<td>{nFormat.format(reaction.profit_per)} %</td>
+							</tr>
+						{/each}
+					{/if}
 				</tbody>
 			</table>
 		</div>
 	</div>
-
 </div>
