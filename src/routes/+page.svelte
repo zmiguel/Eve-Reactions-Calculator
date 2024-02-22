@@ -41,7 +41,8 @@
 			<h2 class="text-center mt-3">Hybrid Polymer Reactions</h2>
 			<p class="lead mt-3">Ship Materials & Booster Components</p>
 			<p class="lead mt-3">
-				<strong>Inputs:</strong> J-space gas + minerals<br /><strong>Outputs:</strong> T3 Ship Materials + Other
+				<strong>Inputs:</strong> J-space gas + minerals<br /><strong>Outputs:</strong> T3 Ship Materials
+				+ Other
 			</p>
 			<a class="btn btn-primary" href="/hybrid" role="button">View Hybrid</a>
 		</div>

@@ -36,7 +36,15 @@ export const load = async ({ cookies, platform, params }) => {
 	if (!db_prep) {
 		throw error(500, `db_prep is undefined`);
 	}
-	let results = await simple(platform.env, options, db_prep, blueprints, parseInt(params.id), 0, true);
+	let results = await simple(
+		platform.env,
+		options,
+		db_prep,
+		blueprints,
+		parseInt(params.id),
+		0,
+		true
+	);
 
 	return {
 		input: cookies.get('input'),

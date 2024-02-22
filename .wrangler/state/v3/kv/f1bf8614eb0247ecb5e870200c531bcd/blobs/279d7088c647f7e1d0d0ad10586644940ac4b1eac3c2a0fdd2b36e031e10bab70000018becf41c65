@@ -830,5 +830,361 @@
 			"id": 25241,
 			"qt": 12
 		}
+	},
+	{
+		"_id": 57460,
+		"bpid": 57497,
+		"name": "Axosomatic Neurolink Enhancer",
+		"type": "molecular",
+		"inputs": [
+			{
+				"id": 4051,
+				"qt": 5
+			},
+			{
+				"id": 28694,
+				"qt": 40
+			},
+			{
+				"id": 28697,
+				"qt": 40
+			},
+			{
+				"id": 57446,
+				"qt": 1
+			}
+		],
+		"output": {
+			"id": 57460,
+			"qt": 20
+		}
+	},
+	{
+		"_id": 57461,
+		"bpid": 57498,
+		"name": "Cogni-Emotive Neurolink Enhancer",
+		"type": "molecular",
+		"inputs": [
+			{
+				"id": 4312,
+				"qt": 5
+			},
+			{
+				"id": 28696,
+				"qt": 40
+			},
+			{
+				"id": 28701,
+				"qt": 40
+			},
+			{
+				"id": 57447,
+				"qt": 1
+			}
+		],
+		"output": {
+			"id": 57461,
+			"qt": 20
+		}
+	},
+	{
+		"_id": 57469,
+		"bpid": 57506,
+		"name": "Goal-Orienting Neurolink Stabilizer",
+		"type": "molecular",
+		"inputs": [
+			{
+				"id": 4246,
+				"qt": 5
+			},
+			{
+				"id": 25278,
+				"qt": 10
+			},
+			{
+				"id": 25279,
+				"qt": 10
+			},
+			{
+				"id": 57448,
+				"qt": 1
+			}
+		],
+		"output": {
+			"id": 57469,
+			"qt": 10
+		}
+	},
+	{
+		"_id": 57459,
+		"bpid": 57496,
+		"name": "Hypnagogic Neurolink Enhancer",
+		"type": "molecular",
+		"inputs": [
+			{
+				"id": 4247,
+				"qt": 5
+			},
+			{
+				"id": 28698,
+				"qt": 40
+			},
+			{
+				"id": 28699,
+				"qt": 40
+			},
+			{
+				"id": 57445,
+				"qt": 1
+			}
+		],
+		"output": {
+			"id": 57459,
+			"qt": 20
+		}
+	},
+	{
+		"_id": 57463,
+		"bpid": 57500,
+		"name": "Isotropic Neofullerene Alpha-3",
+		"type": "molecular",
+		"inputs": [
+			{
+				"id": 34,
+				"qt": 10000
+			},
+			{
+				"id": 4247,
+				"qt": 5
+			},
+			{
+				"id": 30371,
+				"qt": 500
+			},
+			{
+				"id": 30374,
+				"qt": 500
+			},
+			{
+				"id": 57452,
+				"qt": 1
+			}
+		],
+		"output": {
+			"id": 57463,
+			"qt": 20
+		}
+	},
+	{
+		"_id": 57464,
+		"bpid": 57501,
+		"name": "Isotropic Neofullerene Beta-6",
+		"type": "molecular",
+		"inputs": [
+			{
+				"id": 34,
+				"qt": 10000
+			},
+			{
+				"id": 4246,
+				"qt": 5
+			},
+			{
+				"id": 30375,
+				"qt": 500
+			},
+			{
+				"id": 30372,
+				"qt": 500
+			},
+			{
+				"id": 57452,
+				"qt": 1
+			}
+		],
+		"output": {
+			"id": 57464,
+			"qt": 20
+		}
+	},
+	{
+		"_id": 57465,
+		"bpid": 57502,
+		"name": "Isotropic Neofullerene Gamma-9",
+		"type": "molecular",
+		"inputs": [
+			{
+				"id": 34,
+				"qt": 10000
+			},
+			{
+				"id": 4051,
+				"qt": 5
+			},
+			{
+				"id": 30370,
+				"qt": 500
+			},
+			{
+				"id": 30373,
+				"qt": 500
+			},
+			{
+				"id": 57452,
+				"qt": 1
+			}
+		],
+		"output": {
+			"id": 57465,
+			"qt": 20
+		}
+	},
+	{
+		"_id": 57458,
+		"bpid": 57495,
+		"name": "Meta-Operant Neurolink Enhancer",
+		"type": "molecular",
+		"inputs": [
+			{
+				"id": 57443,
+				"qt": 1
+			},
+			{
+				"id": 4246,
+				"qt": 5
+			},
+			{
+				"id": 57459,
+				"qt": 80
+			},
+			{
+				"id": 57460,
+				"qt": 80
+			},
+			{
+				"id": 57461,
+				"qt": 80
+			},
+			{
+				"id": 57462,
+				"qt": 80
+			}
+		],
+		"output": {
+			"id": 57458,
+			"qt": 20
+		}
+	},
+	{
+		"_id": 57467,
+		"bpid": 57504,
+		"name": "Reaction-Orienting Neurolink Stabilizer",
+		"type": "molecular",
+		"inputs": [
+			{
+				"id": 4051,
+				"qt": 5
+			},
+			{
+				"id": 25268,
+				"qt": 10
+			},
+			{
+				"id": 25273,
+				"qt": 10
+			},
+			{
+				"id": 57446,
+				"qt": 1
+			}
+		],
+		"output": {
+			"id": 57467,
+			"qt": 10
+		}
+	},
+	{
+		"_id": 57462,
+		"bpid": 57499,
+		"name": "Sense-Heuristic Neurolink Enhancer",
+		"type": "molecular",
+		"inputs": [
+			{
+				"id": 4246,
+				"qt": 5
+			},
+			{
+				"id": 28695,
+				"qt": 40
+			},
+			{
+				"id": 28700,
+				"qt": 40
+			},
+			{
+				"id": 57448,
+				"qt": 1
+			}
+		],
+		"output": {
+			"id": 57462,
+			"qt": 20
+		}
+	},
+	{
+		"_id": 57468,
+		"bpid": 57505,
+		"name": "Stress-Responding Neurolink Stabilizer",
+		"type": "molecular",
+		"inputs": [
+			{
+				"id": 4312,
+				"qt": 5
+			},
+			{
+				"id": 25274,
+				"qt": 10
+			},
+			{
+				"id": 25275,
+				"qt": 10
+			},
+			{
+				"id": 57447,
+				"qt": 1
+			}
+		],
+		"output": {
+			"id": 57468,
+			"qt": 10
+		}
+	},
+	{
+		"_id": 57466,
+		"bpid": 57503,
+		"name": "Ultradian-Cycling Neurolink Stabilizer",
+		"type": "molecular",
+		"inputs": [
+			{
+				"id": 4247,
+				"qt": 5
+			},
+			{
+				"id": 25276,
+				"qt": 10
+			},
+			{
+				"id": 25277,
+				"qt": 10
+			},
+			{
+				"id": 57445,
+				"qt": 1
+			}
+		],
+		"output": {
+			"id": 57466,
+			"qt": 10
+		}
 	}
 ]

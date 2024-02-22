@@ -9,11 +9,12 @@
 </script>
 
 <svelte:head>
-	<!-- Google tag (gtag.js) -->
 	<script async src="https://www.googletagmanager.com/gtag/js?id=G-MZK5Y3B3KH"></script>
 	<script>
 		window.dataLayer = window.dataLayer || [];
-		function gtag(){dataLayer.push(arguments);}
+		function gtag() {
+			dataLayer.push(arguments);
+		}
 		gtag('js', new Date());
 
 		gtag('config', 'G-MZK5Y3B3KH');
@@ -67,8 +68,10 @@
 					>
 				</li>
 				<li class="nav-item">
-					<a class="nav-link" href="/composite" class:active={$page.url.pathname.includes('composite')}
-						>Composite</a
+					<a
+						class="nav-link"
+						href="/composite"
+						class:active={$page.url.pathname.includes('composite')}>Composite</a
 					>
 				</li>
 				<li class="nav-item">
@@ -77,8 +80,10 @@
 					>
 				</li>
 				<li class="nav-item">
-					<a class="nav-link" href="/settings" class:active={$page.url.pathname.includes('settings')}
-						>Settings</a
+					<a
+						class="nav-link"
+						href="/settings"
+						class:active={$page.url.pathname.includes('settings')}>Settings</a
 					>
 				</li>
 				<li class="nav-item">
@@ -142,7 +147,9 @@
 					>
 					- Thanks! |
 					<a href="https://www.patreon.com/EVEReactionsCalculator" target="_blank">Patreon</a> |
-					<a href="https://github.com/zmiguel/Eve-Reactions-Calculator" target="_blank">Report Issue</a></span
+					<a href="https://github.com/zmiguel/Eve-Reactions-Calculator" target="_blank"
+						>Report Issue</a
+					></span
 				>
 			</div>
 			<div class="col-4 d-grid gap-2 d-md-flex justify-content-md-end p-0">

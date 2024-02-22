@@ -38,17 +38,17 @@ export async function load({ cookies }) {
 	}
 	// Brokers fees
 	if (
-		cookies.get('brokers') === undefined || cookies.get('brokers') === '' ||
-		(cookies.get('brokers') < '0' &&
-		cookies.get('brokers') > '10')
+		cookies.get('brokers') === undefined ||
+		cookies.get('brokers') === '' ||
+		(cookies.get('brokers') < '0' && cookies.get('brokers') > '10')
 	) {
 		setCookie(cookies, 'brokers', '3');
 	}
 	// Sales Tax
 	if (
-		cookies.get('sales') === undefined || cookies.get('sales') === '' ||
-		(cookies.get('sales') < '0' &&
-		cookies.get('sales') > '8')
+		cookies.get('sales') === undefined ||
+		cookies.get('sales') === '' ||
+		(cookies.get('sales') < '0' && cookies.get('sales') > '8')
 	) {
 		setCookie(cookies, 'sales', '3.6');
 	}

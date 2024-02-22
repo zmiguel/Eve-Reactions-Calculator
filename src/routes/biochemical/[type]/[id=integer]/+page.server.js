@@ -1,9 +1,9 @@
-import { prep, simple } from '$lib/server/calc';
+import { prep, simple, chain } from '$lib/server/calc.js';
 import { error } from '@sveltejs/kit';
 import { setCookie } from '$lib/cookies.js';
 
 export const load = async ({ cookies, platform, params }) => {
-	if (params.id === undefined) {
+	if (params.id === undefined || params.type === undefined) {
 		throw error(400, `params.slug is undefined`);
 	}
 
@@ -28,7 +28,7 @@ export const load = async ({ cookies, platform, params }) => {
 	};
 
 	const blueprints = await JSON.parse(await platform.env.KV_DATA.get('bp-bio'));
-	// check if type is in hybrid
+	let results;
 	if (!blueprints.some((bp) => bp._id === params.id)) {
 		throw error(400, `id is not in biochemical`);
 	}
@@ -36,7 +36,32 @@ export const load = async ({ cookies, platform, params }) => {
 	if (!db_prep) {
 		throw error(500, `db_prep is undefined`);
 	}
-	let results = await simple(platform.env, options, db_prep, blueprints, parseInt(params.id), 0, true);
+
+	switch (params.type) {
+		case 'simple':
+			results = await simple(
+				platform.env,
+				options,
+				db_prep,
+				blueprints,
+				parseInt(params.id),
+				0,
+				true
+			);
+			break;
+		case 'chain':
+			results = await chain(
+				'impro',
+				platform.env,
+				options,
+				db_prep,
+				blueprints,
+				parseInt(params.id),
+				0,
+				true
+			);
+			break;
+	}
 
 	return {
 		input: cookies.get('input'),
@@ -55,7 +80,7 @@ export const load = async ({ cookies, platform, params }) => {
 		duration: cookies.get('duration'),
 		cycles: cookies.get('cycles'),
 		type: params.type,
-		results: results
+		results: results ? results : {}
 	};
 };
 

@@ -26,7 +26,7 @@ export const load = async ({ cookies, platform }) => {
 	let results = [];
 	await Promise.all(
 		blueprints.map(async (bp) => {
-			results.push(await simple(platform.env, options, db_prep,blueprints, parseInt(bp._id), 0));
+			results.push(await simple(platform.env, options, db_prep, blueprints, parseInt(bp._id), 0));
 		})
 	);
 

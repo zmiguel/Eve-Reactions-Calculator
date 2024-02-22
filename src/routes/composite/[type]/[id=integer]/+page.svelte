@@ -340,11 +340,15 @@
 							</tr>
 							<tr class="">
 								<td>Market Tax Inputs</td>
-								<td class="isk">{nFormat.format(data.results?.intermediates?.taxes.market.total.inputs)}</td>
+								<td class="isk"
+									>{nFormat.format(data.results?.intermediates?.taxes.market.total.inputs)}</td
+								>
 							</tr>
 							<tr class="">
 								<td>Market Tax Output</td>
-								<td class="isk">{nFormat.format(data.results?.intermediates?.taxes.market.total.output)}</td>
+								<td class="isk"
+									>{nFormat.format(data.results?.intermediates?.taxes.market.total.output)}</td
+								>
 							</tr>
 						</tbody>
 						<tfoot>

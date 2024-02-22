@@ -3,65 +3,13 @@
  * @param {Object[]} blueprints
  * @returns {Object[]}
  */
-function get_item_string_for_type(type, blueprints){
-	let materials = [], item_string = ''
+function get_item_string_for_type(type, blueprints) {
+	let materials = [],
+		item_string = '';
 	if (type === 'simple') {
-		blueprints.filter((bp) => bp.type === 'simple').forEach((bp) => {
-			// check if item is already in list
-			if (!materials.includes(bp._id)) {
-				materials.push(bp._id);
-			}
-			bp.inputs.forEach((input) => {
-				if (!materials.includes(input.id)) {
-					materials.push(input.id);
-				}
-			});
-		});
-	} else if (type === 'complex') {
-		blueprints.filter((bp) => bp.type === 'complex').forEach((bp) => {
-			// check if item is already in list
-			if (!materials.includes(bp._id)) {
-				materials.push(bp._id);
-			}
-			bp.inputs.forEach((input) => {
-				if (!materials.includes(input.id)) {
-					materials.push(input.id);
-				}
-			});
-		});
-	} else if (type === 'chain') {
-		blueprints.filter((bp) => {
-			return (bp.type === 'simple' || bp.type === 'complex');
-		}).forEach((bp) => {
-			// check if item is already in list
-			if (!materials.includes(bp._id)) {
-				materials.push(bp._id);
-			}
-			bp.inputs.forEach((input) => {
-				if (!materials.includes(input.id)) {
-					materials.push(input.id);
-				}
-			});
-		});
-	} else if (type === 'unrefined') {
-		blueprints.filter((bp) => {
-			return (bp.type === 'unrefined');
-		}).forEach((bp) => {
-			// check if item is already in list
-			if (!materials.includes(bp._id)) {
-				materials.push(bp._id);
-			}
-			bp.inputs.forEach((input) => {
-				if (!materials.includes(input.id)) {
-					materials.push(input.id);
-				}
-			});
-		});
-	} else if (type === 'refined') {
-		blueprints.filter((bp) => {
-			return (bp.type === 'unrefined' || bp.type === 'refined');
-		}).forEach((bp) => {
-			if (bp.type === 'unrefined'){
+		blueprints
+			.filter((bp) => bp.type === 'simple')
+			.forEach((bp) => {
 				// check if item is already in list
 				if (!materials.includes(bp._id)) {
 					materials.push(bp._id);
@@ -71,17 +19,80 @@ function get_item_string_for_type(type, blueprints){
 						materials.push(input.id);
 					}
 				});
-			} else {
+			});
+	} else if (type === 'complex') {
+		blueprints
+			.filter((bp) => bp.type === 'complex')
+			.forEach((bp) => {
+				// check if item is already in list
 				if (!materials.includes(bp._id)) {
 					materials.push(bp._id);
 				}
-				bp.outputs.forEach((input) => {
+				bp.inputs.forEach((input) => {
 					if (!materials.includes(input.id)) {
 						materials.push(input.id);
 					}
 				});
-			}
-		});
+			});
+	} else if (type === 'chain') {
+		blueprints
+			.filter((bp) => {
+				return bp.type === 'simple' || bp.type === 'complex';
+			})
+			.forEach((bp) => {
+				// check if item is already in list
+				if (!materials.includes(bp._id)) {
+					materials.push(bp._id);
+				}
+				bp.inputs.forEach((input) => {
+					if (!materials.includes(input.id)) {
+						materials.push(input.id);
+					}
+				});
+			});
+	} else if (type === 'unrefined') {
+		blueprints
+			.filter((bp) => {
+				return bp.type === 'unrefined';
+			})
+			.forEach((bp) => {
+				// check if item is already in list
+				if (!materials.includes(bp._id)) {
+					materials.push(bp._id);
+				}
+				bp.inputs.forEach((input) => {
+					if (!materials.includes(input.id)) {
+						materials.push(input.id);
+					}
+				});
+			});
+	} else if (type === 'refined') {
+		blueprints
+			.filter((bp) => {
+				return bp.type === 'unrefined' || bp.type === 'refined';
+			})
+			.forEach((bp) => {
+				if (bp.type === 'unrefined') {
+					// check if item is already in list
+					if (!materials.includes(bp._id)) {
+						materials.push(bp._id);
+					}
+					bp.inputs.forEach((input) => {
+						if (!materials.includes(input.id)) {
+							materials.push(input.id);
+						}
+					});
+				} else {
+					if (!materials.includes(bp._id)) {
+						materials.push(bp._id);
+					}
+					bp.outputs.forEach((input) => {
+						if (!materials.includes(input.id)) {
+							materials.push(input.id);
+						}
+					});
+				}
+			});
 	} else if (type === 'hybrid') {
 		blueprints.forEach((bp) => {
 			// check if item is already in list
@@ -113,7 +124,7 @@ function get_item_string_for_type(type, blueprints){
 	});
 	item_string = item_string.slice(0, -1);
 
-	return item_string
+	return item_string;
 }
 
 /**
@@ -129,7 +140,7 @@ function get_item_string_for_type(type, blueprints){
  * @throws {Error} - Throws an error if 'prices', 'items', or 'cost_index' is undefined.
  */
 export async function prep(type, options, blueprints, env) {
-	let item_string = get_item_string_for_type(type, blueprints)
+	let item_string = get_item_string_for_type(type, blueprints);
 	let system_string = '"' + options.inMarket + '","' + options.outMarket + '"';
 	let db_calls = [
 		{
@@ -259,8 +270,12 @@ export async function simple(env, options, db, blueprints, material, amount, adv
 	if (advanced) {
 		cycle_data = {
 			cycle_time: Math.round(parseInt(options.cycles) * time_per_run),
-			num_cycles: Math.floor(parseInt(options.duration) / (parseInt(options.cycles) * time_per_run)),
-			total_time: Math.round(parseInt(options.cycles) * time_per_run) * Math.floor(parseInt(options.duration) / (parseInt(options.cycles) * time_per_run))
+			num_cycles: Math.floor(
+				parseInt(options.duration) / (parseInt(options.cycles) * time_per_run)
+			),
+			total_time:
+				Math.round(parseInt(options.cycles) * time_per_run) *
+				Math.floor(parseInt(options.duration) / (parseInt(options.cycles) * time_per_run))
 		};
 		amount = parseInt(options.cycles) * parseInt(blueprint.output.qt);
 	}
@@ -302,7 +317,7 @@ export async function simple(env, options, db, blueprints, material, amount, adv
 	blueprint.inputs.forEach((item) => {
 		// calculate amount with material bonus
 		let amount = Math.ceil(item.qt * runs * material_bonus);
-		if ( item.qt === 1 ) {
+		if (item.qt === 1) {
 			amount = Math.ceil(item.qt * runs);
 		}
 		// find price for this item * amount
@@ -358,7 +373,8 @@ export async function simple(env, options, db, blueprints, material, amount, adv
 	} else {
 		out_market_fees.sales += output.price * (parseFloat(options.brokers) / 100);
 	}
-	const total_market_fees = in_market_fees.brokers + out_market_fees.brokers + out_market_fees.sales;
+	const total_market_fees =
+		in_market_fees.brokers + out_market_fees.brokers + out_market_fees.sales;
 
 	// Calculate the total cost
 	let total_inputs = 0;
@@ -424,7 +440,9 @@ export async function simple(env, options, db, blueprints, material, amount, adv
 				},
 				total: {
 					inputs: in_market_fees.brokers * cycle_data.num_cycles,
-					output: out_market_fees.brokers * cycle_data.num_cycles + out_market_fees.sales * cycle_data.num_cycles,
+					output:
+						out_market_fees.brokers * cycle_data.num_cycles +
+						out_market_fees.sales * cycle_data.num_cycles,
 					total: total_market_fees * cycle_data.num_cycles
 				}
 			},
@@ -446,7 +464,16 @@ export async function simple(env, options, db, blueprints, material, amount, adv
 	};
 }
 
-export async function chain(type, env, options, db, blueprints, material, amount, advanced = false) {
+export async function chain(
+	type,
+	env,
+	options,
+	db,
+	blueprints,
+	material,
+	amount,
+	advanced = false
+) {
 	// Get blueprint data for this material
 	const blueprint = blueprints.find((bp) => {
 		return bp._id === material && bp.type === type;
@@ -478,7 +505,6 @@ export async function chain(type, env, options, db, blueprints, material, amount
 	base.intermediates.taxes = JSON.parse(JSON.stringify(base.taxes));
 	base.intermediates.taxes_total = base.taxes.total.install + base.taxes.market.total.output;
 
-
 	// calculate intermediate remaining items
 
 	if (base.remaining.quantity === undefined) {
@@ -501,7 +527,8 @@ export async function chain(type, env, options, db, blueprints, material, amount
 			if (mat !== undefined) {
 				// material exists, get simple of this.
 				let simple_mat;
-				if (mat.name === 'Oxy-Organic Solvents') { // This is an edge case...
+				if (mat.name === 'Oxy-Organic Solvents') {
+					// This is an edge case...
 					simple_mat = await simple(env, options, db, blueprints, input_mat.id, input_mat.quantity);
 				} else {
 					// Math.ceil(items_to_make / parseInt(blueprint.output.qt));
@@ -515,7 +542,14 @@ export async function chain(type, env, options, db, blueprints, material, amount
 						// and then make the remaining option.cycle - remainder runs
 						let num_main_cycles = Math.floor(runs / parseInt(options.cycles));
 						let amount_main_cycles = parseInt(options.cycles) * parseInt(mat.output.qt);
-						simple_mat = await simple(env, options, db, blueprints, input_mat.id, amount_main_cycles);
+						simple_mat = await simple(
+							env,
+							options,
+							db,
+							blueprints,
+							input_mat.id,
+							amount_main_cycles
+						);
 						simple_mat.input.forEach((input) => {
 							input.quantity *= num_main_cycles;
 							input.price *= num_main_cycles;
@@ -539,13 +573,20 @@ export async function chain(type, env, options, db, blueprints, material, amount
 						simple_mat.output_total *= num_main_cycles;
 						simple_mat.profit *= num_main_cycles;
 						simple_mat.runs *= num_main_cycles;
-						if (Object.keys(simple_mat.remaining).length > 0){
+						if (Object.keys(simple_mat.remaining).length > 0) {
 							simple_mat.remaining.quantity *= num_main_cycles;
 							simple_mat.remaining.price *= num_main_cycles;
 						}
 						// now we need to make the remainder runs
-						let remaining_amount = input_mat.quantity - (amount_main_cycles * num_main_cycles);
-						let remainder_mat = await simple(env, options, db, blueprints, input_mat.id, remaining_amount);
+						let remaining_amount = input_mat.quantity - amount_main_cycles * num_main_cycles;
+						let remainder_mat = await simple(
+							env,
+							options,
+							db,
+							blueprints,
+							input_mat.id,
+							remaining_amount
+						);
 
 						// add everything to simple_mat
 						simple_mat.input.forEach((input) => {
@@ -575,11 +616,18 @@ export async function chain(type, env, options, db, blueprints, material, amount
 						simple_mat.output_total += remainder_mat.output_total;
 						simple_mat.profit += remainder_mat.profit;
 						simple_mat.runs += remainder_mat.runs;
-						if (Object.keys(remainder_mat.remaining).length > 0){
+						if (Object.keys(remainder_mat.remaining).length > 0) {
 							simple_mat.remaining = JSON.parse(JSON.stringify(remainder_mat.remaining));
 						}
 					} else {
-						simple_mat = await simple(env, options, db, blueprints, input_mat.id, input_mat.quantity);
+						simple_mat = await simple(
+							env,
+							options,
+							db,
+							blueprints,
+							input_mat.id,
+							input_mat.quantity
+						);
 					}
 				}
 				input_simple.push(simple_mat);
@@ -600,7 +648,7 @@ export async function chain(type, env, options, db, blueprints, material, amount
 		base.taxes.market.total.inputs += simple_mat.taxes.market.total.inputs;
 		base.taxes.total.install += simple_mat.taxes.total.install;
 		base.taxes.total.market += simple_mat.taxes.market.total.inputs;
-		base.taxes.total.total += (simple_mat.taxes.total.total - simple_mat.taxes.market.total.output);
+		base.taxes.total.total += simple_mat.taxes.total.total - simple_mat.taxes.market.total.output;
 
 		// for each input...
 		simple_mat.input.forEach((simple_input) => {
@@ -657,7 +705,16 @@ export async function chain(type, env, options, db, blueprints, material, amount
 	return base;
 }
 
-export async function refined(env, options, db_unrefined, db_refined, blueprints, material, amount, advanced = false) {
+export async function refined(
+	env,
+	options,
+	db_unrefined,
+	db_refined,
+	blueprints,
+	material,
+	amount,
+	advanced = false
+) {
 	// Get blueprint data for this material
 	const blueprint = blueprints.find((bp) => {
 		return bp._id === material && bp.type === 'refined';
@@ -751,4 +808,35 @@ export async function refined(env, options, db_unrefined, db_refined, blueprints
 
 	// return all data
 	return base;
+}
+
+export async function fullChain(env, options, db, blueprints, material, amount, advanced = false) {
+	const blueprint = blueprints.find((bp) => {
+		return bp._id === material;
+	});
+
+	// Sanity Check
+	if (blueprint === undefined) {
+		console.log('Blueprint not found | material: ' + material);
+		return;
+	}
+
+	if (advanced) {
+		amount = parseInt(options.cycles) * parseInt(blueprint.output.qt);
+	}
+
+	// actually do things
+	let result = {};
+	// get base info for this material
+	let base = await simple(env, options, db, blueprints, material, amount, advanced);
+
+	// copy important fields to the output of the result
+	result.output = JSON.parse(JSON.stringify(base.output));
+	result.output_total = base.output_total;
+	result.runs = base.runs;
+	result.cycle_data = JSON.parse(JSON.stringify(base.cycle_data));
+
+	// const last_step_taxes = JSON.parse(JSON.stringify(base.taxes));
+
+	// for each input, check if we have a blueprint for it.
 }
