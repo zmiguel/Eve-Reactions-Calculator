@@ -35,12 +35,13 @@
 
 body {
 	padding-top: 56px;
-	padding-bottom: 60px;
+	padding-bottom: 40px;
 	font: 16px 'Helvetica Light', sans-serif;
 }
 
 a {
 	color: #00b7ff;
+	margin: 1rem;
 }
 
 .footer {
@@ -118,4 +119,22 @@ h2 {
 	--bs-table-hover-color: #000;
 	color: var(--bs-table-color);
 	border-color: var(--bs-table-border-color);
+}
+
+
+
+@media screen and (max-width:990px) {
+	a {
+		margin: 1rem;
+	}
+
+	body {
+		
+		padding-bottom: 0px;
+		
+	}
+	.footer {
+		bottom: auto; /* Reset bottom property to default */
+		position: relative; /* Change position to relative */
+	  }
 }
