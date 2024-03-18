@@ -44,6 +44,10 @@ a {
 	margin: 1rem;
 }
 
+a.nav-link, a.navbar-brand{
+	margin: 0 !important;
+}
+
 .footer {
 	position: fixed;
 	bottom: 0;
@@ -129,9 +133,9 @@ h2 {
 	}
 
 	body {
-		
+
 		padding-bottom: 0px;
-		
+
 	}
 	.footer {
 		bottom: auto; /* Reset bottom property to default */
