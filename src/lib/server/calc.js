@@ -879,6 +879,7 @@ export async function fullChain(env, options, db, blueprints, material, amount, 
 	result.input = [];
 	let step = {
 		depth: depth,
+		makes: base.name,
 		materials: [],
 	}
 	await Promise.all(
@@ -912,7 +913,9 @@ export async function fullChain(env, options, db, blueprints, material, amount, 
 				}
 				step.materials.push(material);
 				// merge input_chain.steps into result.steps
-				result.steps = result.steps.concat(input_chain.steps);
+				if (Array.isArray(input_chain.steps) && input_chain.steps.length > 0) {
+					result.steps = result.steps.concat(input_chain.steps);
+				}
 				result.taxes.system += input_chain.taxes.system;
 				result.taxes.facility += input_chain.taxes.facility;
 				result.taxes.scc += input_chain.taxes.scc;
@@ -962,11 +965,33 @@ export async function fullChain(env, options, db, blueprints, material, amount, 
 		})
 	);
 
-	result.steps.push(step);
+	if ( step.materials.length > 0 ) {
+		result.steps.push(step);
+	}
+	// Simplify steps if we can
+	if( result.steps.length > 1 ){
+	  // get step with current depth && depth-1
+		let current_depth = result.steps.find((step) => {return step.depth === depth;});
+		current_depth.materials.forEach((material) => {
+			// find a step that makes the same material
+			let makes_step = result.steps.find((step) => {
+				return step.makes === material.output.name;
+			});
+			if (makes_step !== undefined) {
+				// we found a step that makes the same material
+				// replace the result.steps.materials.inputs with the output field of each makes_step.materials
+				material.inputs = [];
+				makes_step.materials.forEach((makes_material) => {
+	        material.inputs.push(makes_material.output);
+				});
+			}
+		});
+	}
 	// sort steps by reverse depth
 	result.steps.sort((a, b) => {
 		return b.depth - a.depth;
 	});
+
 	// calculate the total input
 	result.input.forEach(input => {
 		result.input_total += input.price;

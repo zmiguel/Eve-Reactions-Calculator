@@ -15,14 +15,14 @@
 	const improvedHandler = new DataHandler(data.results.improved, { rowsPerPage: 50 });
 	const improvedRows = improvedHandler.getRows();
 
-	//const improvedChainHandler = new DataHandler(data.results.improved_chain, { rowsPerPage: 50 });
-	//const improvedChainRows = improvedChainHandler.getRows();
+	const improvedChainHandler = new DataHandler(data.results.improved_chain, { rowsPerPage: 50 });
+	const improvedChainRows = improvedChainHandler.getRows();
 
 	const strongHandler = new DataHandler(data.results.strong, { rowsPerPage: 50 });
 	const strongRows = strongHandler.getRows();
 
-	//const strongChainHandler = new DataHandler(data.results.strong_chain, { rowsPerPage: 50 });
-	//const strongChainRows = strongChainHandler.getRows();
+	const strongChainHandler = new DataHandler(data.results.strong_chain, { rowsPerPage: 50 });
+	const strongChainRows = strongChainHandler.getRows();
 
 	const molecularHandler = new DataHandler(data.results.molecular, { rowsPerPage: 50 });
 	const molecularRows = molecularHandler.getRows();
@@ -41,9 +41,9 @@
 		synthHandler.sortAsc('name');
 		standardHandler.sortAsc('name');
 		improvedHandler.sortAsc('name');
-		//improvedChainHandler.sortAsc('name');
+		improvedChainHandler.sortAsc('name');
 		strongHandler.sortAsc('name');
-		//strongChainHandler.sortAsc('name');
+		strongChainHandler.sortAsc('name');
 		molecularHandler.sortAsc('name');
 	});
 </script>
@@ -196,7 +196,6 @@
 		</div>
 	</div>
 
-	<!-- TEMP DISABLED WHILE I IMPROVE THE CHAIN CALCULATIONS
 	<div class="row mt-4">
 		<div class="card w-100 p-0">
 			<div class="card-header bg-info text-white fw-bold text-center w-100">
@@ -232,7 +231,6 @@
 			</table>
 		</div>
 	</div>
-	-->
 
 	<div class="row mt-4">
 		<div class="card w-100 p-0">
@@ -270,7 +268,6 @@
 		</div>
 	</div>
 
-	<!-- TEMP DISABLED WHILE I IMPROVE THE CHAIN CALCULATIONS
 	<div class="row mt-4">
 		<div class="card w-100 p-0">
 			<div class="card-header bg-info text-white fw-bold text-center w-100">
@@ -306,7 +303,6 @@
 			</table>
 		</div>
 	</div>
-	-->
 
 	<div class="row mt-4">
 		<div class="card w-100 p-0">

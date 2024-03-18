@@ -28,7 +28,7 @@ export async function GET({ url, platform }) {
 	};
 
 	const blueprints = await JSON.parse(await platform.env.KV_DATA.get('bp-bio'));
-	const booster_blueprints = await blueprints.filter((bp) => bp.type !== 'molecular');
+	const booster_blueprints = await blueprints.filter((bp) => bp.name === 'Pure Strong Mindflood Booster');
 
 	start = performance.now();
 	const db_prep = await prep('bio', options, blueprints, platform.env);

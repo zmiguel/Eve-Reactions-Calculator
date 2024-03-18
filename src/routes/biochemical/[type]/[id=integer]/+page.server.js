@@ -1,4 +1,4 @@
-import { prep, simple, chain } from '$lib/server/calc.js';
+import { prep, simple, fullChain } from '$lib/server/calc.js';
 import { error } from '@sveltejs/kit';
 import { setCookie } from '$lib/cookies.js';
 
@@ -50,15 +50,14 @@ export const load = async ({ cookies, platform, params }) => {
 			);
 			break;
 		case 'chain':
-			results = await chain(
-				'impro',
+			results = await fullChain(
 				platform.env,
 				options,
 				db_prep,
 				blueprints,
 				parseInt(params.id),
 				0,
-				true
+				false
 			);
 			break;
 	}
