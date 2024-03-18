@@ -811,7 +811,16 @@ export async function refined(
 	return base;
 }
 
-export async function fullChain(env, options, db, blueprints, material, amount, advanced = false, depth = 0) {
+export async function fullChain(
+	env,
+	options,
+	db,
+	blueprints,
+	material,
+	amount,
+	advanced = false,
+	depth = 0
+) {
 	const blueprint = blueprints.find((bp) => {
 		return bp._id === material;
 	});
@@ -836,7 +845,7 @@ export async function fullChain(env, options, db, blueprints, material, amount, 
 
 	let inputs = JSON.parse(JSON.stringify(base.input));
 	let input_counter = 0;
-	inputs.forEach(input => {
+	inputs.forEach((input) => {
 		let bp = blueprints.find((bp) => {
 			return bp._id === input.id;
 		});
@@ -844,9 +853,9 @@ export async function fullChain(env, options, db, blueprints, material, amount, 
 			input_counter++;
 		}
 	});
-	if (input_counter === inputs.length){
+	if (input_counter === inputs.length) {
 		// no blueprints for inputs
-		return base
+		return base;
 	}
 
 	// We have blueprints for the inputs, so we must continue
@@ -880,8 +889,8 @@ export async function fullChain(env, options, db, blueprints, material, amount, 
 	let step = {
 		depth: depth,
 		makes: base.name,
-		materials: [],
-	}
+		materials: []
+	};
 	await Promise.all(
 		inputs.map(async (input) => {
 			let bp = blueprints.find((bp) => {
@@ -890,10 +899,19 @@ export async function fullChain(env, options, db, blueprints, material, amount, 
 			if (bp !== undefined) {
 				// we have a blueprint for this input
 				// calculate full chain for this bp
-				let input_chain = await fullChain(env, options, db, blueprints, input.id, input.quantity, advanced, depth + 1);
+				let input_chain = await fullChain(
+					env,
+					options,
+					db,
+					blueprints,
+					input.id,
+					input.quantity,
+					advanced,
+					depth + 1
+				);
 				// processes the input_chain
 				// add all inputs to result.inputs
-				input_chain.input.forEach(input => {
+				input_chain.input.forEach((input) => {
 					let exists = result.input.find((i) => {
 						return i.id === input.id;
 					});
@@ -909,8 +927,8 @@ export async function fullChain(env, options, db, blueprints, material, amount, 
 				let material = {
 					inputs: JSON.parse(JSON.stringify(input_chain.input)),
 					output: JSON.parse(JSON.stringify(input_chain.output)),
-					install_fee: input_chain.taxes.total.install,
-				}
+					install_fee: input_chain.taxes.total.install
+				};
 				step.materials.push(material);
 				// merge input_chain.steps into result.steps
 				if (Array.isArray(input_chain.steps) && input_chain.steps.length > 0) {
@@ -921,7 +939,7 @@ export async function fullChain(env, options, db, blueprints, material, amount, 
 				result.taxes.scc += input_chain.taxes.scc;
 				// check for remaining items, add them to the remaining array
 				if (Array.isArray(input_chain.remaining) && input_chain.remaining.length > 0) {
-					input_chain.remaining.forEach(remaining => {
+					input_chain.remaining.forEach((remaining) => {
 						let exists = result.remaining.find((i) => {
 							return i.id === remaining.id;
 						});
@@ -957,7 +975,7 @@ export async function fullChain(env, options, db, blueprints, material, amount, 
 					exists.quantity += input.quantity;
 					exists.price += input.price;
 					exists.market_tax += input.market_tax;
-				}	else {
+				} else {
 					result.input.push(input);
 				}
 				result.taxes.market.inputs.brokers += input.market_tax;
@@ -965,13 +983,15 @@ export async function fullChain(env, options, db, blueprints, material, amount, 
 		})
 	);
 
-	if ( step.materials.length > 0 ) {
+	if (step.materials.length > 0) {
 		result.steps.push(step);
 	}
 	// Simplify steps if we can
-	if( result.steps.length > 1 ){
-	  // get step with current depth && depth-1
-		let current_depth = result.steps.find((step) => {return step.depth === depth;});
+	if (result.steps.length > 1) {
+		// get step with current depth && depth-1
+		let current_depth = result.steps.find((step) => {
+			return step.depth === depth;
+		});
 		current_depth.materials.forEach((material) => {
 			// find a step that makes the same material
 			let makes_step = result.steps.find((step) => {
@@ -982,7 +1002,7 @@ export async function fullChain(env, options, db, blueprints, material, amount, 
 				// replace the result.steps.materials.inputs with the output field of each makes_step.materials
 				material.inputs = [];
 				makes_step.materials.forEach((makes_material) => {
-	        material.inputs.push(makes_material.output);
+					material.inputs.push(makes_material.output);
 				});
 			}
 		});
@@ -993,14 +1013,17 @@ export async function fullChain(env, options, db, blueprints, material, amount, 
 	});
 
 	// calculate the total input
-	result.input.forEach(input => {
+	result.input.forEach((input) => {
 		result.input_total += input.price;
 	});
 	// Calculate taxes
 	result.taxes.market.total = {
 		inputs: result.taxes.market.inputs.brokers,
 		output: result.taxes.market.output.brokers + result.taxes.market.output.sales,
-		total: result.taxes.market.inputs.brokers + result.taxes.market.output.brokers + result.taxes.market.output.sales
+		total:
+			result.taxes.market.inputs.brokers +
+			result.taxes.market.output.brokers +
+			result.taxes.market.output.sales
 	};
 	result.taxes.total = {
 		install: result.taxes.system + result.taxes.facility + result.taxes.scc,
@@ -1021,5 +1044,4 @@ export async function fullChain(env, options, db, blueprints, material, amount, 
 
 	// calculate all taxes
 	return result;
-
 }

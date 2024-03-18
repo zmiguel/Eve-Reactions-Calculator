@@ -84,14 +84,7 @@ export const load = async ({ cookies, platform }) => {
 					await Promise.all(
 						bps.blueprints.map(async (bp) => {
 							results_improved_chain.push(
-								await fullChain(
-									platform.env,
-									options,
-									db_prep,
-									blueprints,
-									parseInt(bp._id),
-									0
-								)
+								await fullChain(platform.env, options, db_prep, blueprints, parseInt(bp._id), 0)
 							);
 						})
 					);
@@ -109,14 +102,7 @@ export const load = async ({ cookies, platform }) => {
 					await Promise.all(
 						bps.blueprints.map(async (bp) => {
 							results_strong_chain.push(
-								await fullChain(
-									platform.env,
-									options,
-									db_prep,
-									blueprints,
-									parseInt(bp._id),
-									0
-								)
+								await fullChain(platform.env, options, db_prep, blueprints, parseInt(bp._id), 0)
 							);
 						})
 					);
