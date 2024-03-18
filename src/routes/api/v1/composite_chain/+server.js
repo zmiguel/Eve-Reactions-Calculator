@@ -1,5 +1,5 @@
 import { json } from '@sveltejs/kit';
-import { prep, chain, fullChain } from '$lib/server/calc.js';
+import { prep, fullChain } from '$lib/server/calc.js';
 
 /** @type {import('../../../../../.svelte-kit/types/src/routes').RequestHandler} */
 export async function GET({ url, platform }) {
@@ -28,7 +28,7 @@ export async function GET({ url, platform }) {
 	};
 
 	const blueprints = await JSON.parse(await platform.env.KV_DATA.get('bp-comp'));
-	const simple_blueprints = await blueprints.filter((bp) => bp.type === 'simple');
+	//const simple_blueprints = await blueprints.filter((bp) => bp.type === 'simple');
 	const complex_blueprints = await blueprints.filter((bp) => bp.type === 'complex');
 
 	start = performance.now();

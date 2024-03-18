@@ -16,7 +16,7 @@ createReadStream('./csv/mapSolarSystems.csv')
 		});
 	})
 	.on('end', function () {
-		let writeStream = createWriteStream('./csv/systems.js');
+		let writeStream = createWriteStream('./csv/systems.json');
 		writeStream.write('systems = [\n');
 
 		new_csv.sort();
