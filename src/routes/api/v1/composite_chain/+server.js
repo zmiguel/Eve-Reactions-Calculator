@@ -1,7 +1,7 @@
 import { json } from '@sveltejs/kit';
-import { prep, chain, fullChain } from '$lib/server/calc';
+import { prep, chain, fullChain } from '$lib/server/calc.js';
 
-/** @type {import('./$types').RequestHandler} */
+/** @type {import('../../../../../.svelte-kit/types/src/routes').RequestHandler} */
 export async function GET({ url, platform }) {
 	let start,
 		end,
@@ -54,8 +54,7 @@ export async function GET({ url, platform }) {
 		}) */
 		complex_blueprints.map(async (bp) => {
 			results.push(
-				await chain(
-					'complex',
+				await fullChain(
 					platform.env,
 					options,
 					db_prep,

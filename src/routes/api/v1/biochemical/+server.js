@@ -1,7 +1,7 @@
 import { json } from '@sveltejs/kit';
-import { prep, chain, fullChain } from '$lib/server/calc';
+import { prep, chain, fullChain } from '$lib/server/calc.js';
 
-/** @type {import('./$types').RequestHandler} */
+/** @type {import('../../../../../.svelte-kit/types/src/routes').RequestHandler} */
 export async function GET({ url, platform }) {
 	let start,
 		end,
@@ -27,35 +27,20 @@ export async function GET({ url, platform }) {
 		cycles: '54'
 	};
 
-	const blueprints = await JSON.parse(await platform.env.KV_DATA.get('bp-comp'));
-	const simple_blueprints = await blueprints.filter((bp) => bp.type === 'simple');
-	const complex_blueprints = await blueprints.filter((bp) => bp.type === 'complex');
+	const blueprints = await JSON.parse(await platform.env.KV_DATA.get('bp-bio'));
+	const booster_blueprints = await blueprints.filter((bp) => bp.type !== 'molecular');
 
 	start = performance.now();
-	const db_prep = await prep('chain', options, blueprints, platform.env);
+	const db_prep = await prep('bio', options, blueprints, platform.env);
 	end = performance.now();
 	perf.push({ name: 'db_prep', time: end - start });
 
 	let results = [];
 	start = performance.now();
 	await Promise.all(
-		/* simple_blueprints.map(async (bp) => {
+		booster_blueprints.map(async (bp) => {
 			results.push(
-				await chain(
-					'complex',
-					platform.env,
-					options,
-					db_prep,
-					blueprints,
-					parseInt(bp._id),
-					parseInt(quantity)
-				)
-			);
-		}) */
-		complex_blueprints.map(async (bp) => {
-			results.push(
-				await chain(
-					'complex',
+				await fullChain(
 					platform.env,
 					options,
 					db_prep,
