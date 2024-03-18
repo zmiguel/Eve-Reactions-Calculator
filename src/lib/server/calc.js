@@ -332,7 +332,8 @@ export async function simple(env, options, db, blueprints, material, amount, adv
 				return i.id === item.id;
 			}).name,
 			quantity: amount,
-			price: price
+			price: price,
+			market_tax: options.input === 'buy' ? price * (parseFloat(options.brokers) / 100) : 0
 		});
 	});
 	// output
@@ -810,7 +811,16 @@ export async function refined(
 	return base;
 }
 
-export async function fullChain(env, options, db, blueprints, material, amount, advanced = false) {
+export async function fullChain(
+	env,
+	options,
+	db,
+	blueprints,
+	material,
+	amount,
+	advanced = false,
+	depth = 0
+) {
 	const blueprint = blueprints.find((bp) => {
 		return bp._id === material;
 	});
@@ -830,13 +840,208 @@ export async function fullChain(env, options, db, blueprints, material, amount, 
 	// get base info for this material
 	let base = await simple(env, options, db, blueprints, material, amount, advanced);
 
+	// check if we have the bp for any of the inputs
+	// if we don't then this is the final material, and we can just return the simple base data
+
+	let inputs = JSON.parse(JSON.stringify(base.input));
+	let input_counter = 0;
+	inputs.forEach((input) => {
+		let bp = blueprints.find((bp) => {
+			return bp._id === input.id;
+		});
+		if (bp === undefined) {
+			input_counter++;
+		}
+	});
+	if (input_counter === inputs.length) {
+		// no blueprints for inputs
+		return base;
+	}
+
+	// We have blueprints for the inputs, so we must continue
 	// copy important fields to the output of the result
+	result.name = base.name;
+	result.input = {};
+	result.input_total = 0;
+	result.taxes = {};
+	result.taxes.system = base.taxes.system;
+	result.taxes.facility = base.taxes.facility;
+	result.taxes.scc = base.taxes.scc;
+	result.taxes.market = {};
+	result.taxes.market.inputs = {
+		brokers: 0
+	};
+	result.taxes.market.output = JSON.parse(JSON.stringify(base.taxes.market.output));
+	result.taxes_total = 0;
 	result.output = JSON.parse(JSON.stringify(base.output));
 	result.output_total = base.output_total;
+	result.profit = 0;
+	result.profit_per = 0;
 	result.runs = base.runs;
+	result.remaining = [];
 	result.cycle_data = JSON.parse(JSON.stringify(base.cycle_data));
-
-	// const last_step_taxes = JSON.parse(JSON.stringify(base.taxes));
+	if (result.steps === undefined) {
+		result.steps = [];
+	}
 
 	// for each input, check if we have a blueprint for it.
+	result.input = [];
+	let step = {
+		depth: depth,
+		makes: base.name,
+		materials: []
+	};
+	await Promise.all(
+		inputs.map(async (input) => {
+			let bp = blueprints.find((bp) => {
+				return bp._id === input.id;
+			});
+			if (bp !== undefined) {
+				// we have a blueprint for this input
+				// calculate full chain for this bp
+				let input_chain = await fullChain(
+					env,
+					options,
+					db,
+					blueprints,
+					input.id,
+					input.quantity,
+					advanced,
+					depth + 1
+				);
+				// processes the input_chain
+				// add all inputs to result.inputs
+				input_chain.input.forEach((input) => {
+					let exists = result.input.find((i) => {
+						return i.id === input.id;
+					});
+					if (exists !== undefined) {
+						exists.quantity += input.quantity;
+						exists.price += input.price;
+						exists.market_tax += input.market_tax;
+					} else {
+						result.input.push(input);
+					}
+					result.taxes.market.inputs.brokers += input.market_tax;
+				});
+				let material = {
+					inputs: JSON.parse(JSON.stringify(input_chain.input)),
+					output: JSON.parse(JSON.stringify(input_chain.output)),
+					install_fee: input_chain.taxes.total.install
+				};
+				step.materials.push(material);
+				// merge input_chain.steps into result.steps
+				if (Array.isArray(input_chain.steps) && input_chain.steps.length > 0) {
+					result.steps = result.steps.concat(input_chain.steps);
+				}
+				result.taxes.system += input_chain.taxes.system;
+				result.taxes.facility += input_chain.taxes.facility;
+				result.taxes.scc += input_chain.taxes.scc;
+				// check for remaining items, add them to the remaining array
+				if (Array.isArray(input_chain.remaining) && input_chain.remaining.length > 0) {
+					input_chain.remaining.forEach((remaining) => {
+						let exists = result.remaining.find((i) => {
+							return i.id === remaining.id;
+						});
+						if (exists !== undefined) {
+							exists.quantity += remaining.quantity;
+							exists.price += remaining.price;
+						} else {
+							result.remaining.push(remaining);
+						}
+					});
+				} else {
+					if (Object.keys(input_chain.remaining).length > 0) {
+						// check if we already have this item in the remaining array
+						let exists = result.remaining.find((i) => {
+							return i.id === input_chain.remaining.id;
+						});
+						if (exists !== undefined) {
+							exists.quantity += input_chain.remaining.quantity;
+							exists.price += input_chain.remaining.price;
+						} else {
+							result.remaining.push(input_chain.remaining);
+						}
+					}
+				}
+			} else {
+				// we don't have a blueprint for this input
+				// we need to add this to the result
+				// check if the material already exists in the result.input
+				let exists = result.input.find((i) => {
+					return i.id === input.id;
+				});
+				if (exists !== undefined) {
+					exists.quantity += input.quantity;
+					exists.price += input.price;
+					exists.market_tax += input.market_tax;
+				} else {
+					result.input.push(input);
+				}
+				result.taxes.market.inputs.brokers += input.market_tax;
+			}
+		})
+	);
+
+	if (step.materials.length > 0) {
+		result.steps.push(step);
+	}
+	// Simplify steps if we can
+	if (result.steps.length > 1) {
+		// get step with current depth && depth-1
+		let current_depth = result.steps.find((step) => {
+			return step.depth === depth;
+		});
+		current_depth.materials.forEach((material) => {
+			// find a step that makes the same material
+			let makes_step = result.steps.find((step) => {
+				return step.makes === material.output.name;
+			});
+			if (makes_step !== undefined) {
+				// we found a step that makes the same material
+				// replace the result.steps.materials.inputs with the output field of each makes_step.materials
+				material.inputs = [];
+				makes_step.materials.forEach((makes_material) => {
+					material.inputs.push(makes_material.output);
+				});
+			}
+		});
+	}
+	// sort steps by reverse depth
+	result.steps.sort((a, b) => {
+		return b.depth - a.depth;
+	});
+
+	// calculate the total input
+	result.input.forEach((input) => {
+		result.input_total += input.price;
+	});
+	// Calculate taxes
+	result.taxes.market.total = {
+		inputs: result.taxes.market.inputs.brokers,
+		output: result.taxes.market.output.brokers + result.taxes.market.output.sales,
+		total:
+			result.taxes.market.inputs.brokers +
+			result.taxes.market.output.brokers +
+			result.taxes.market.output.sales
+	};
+	result.taxes.total = {
+		install: result.taxes.system + result.taxes.facility + result.taxes.scc,
+		market: result.taxes.market.total.total,
+		total: 0
+	};
+	result.taxes.total.total = result.taxes.total.install + result.taxes.total.market;
+	result.taxes_total = result.taxes.total.total;
+	result.profit = result.output_total - result.input_total - result.taxes_total;
+	result.profit_per = (result.profit / result.output_total) * 100;
+	if (result.profit > 0) {
+		result.style = 'table-success';
+	} else if (result.profit < 0) {
+		result.style = 'table-danger';
+	} else {
+		result.style = 'table-warning';
+	}
+
+	// calculate all taxes
+	return result;
 }

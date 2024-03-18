@@ -1,0 +1,1 @@
+UPDATE prices SET sell = ?1, buy = ?2 WHERE item_id = ?3 AND system = ?4

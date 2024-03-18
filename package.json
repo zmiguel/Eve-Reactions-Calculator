@@ -1,6 +1,6 @@
 {
 	"name": "eve-reactions-calculator",
-	"version": "2.2.1",
+	"version": "2.3.0",
 	"private": true,
 	"scripts": {
 		"dev": "vite dev",
@@ -20,24 +20,24 @@
 		"@sveltejs/kit": "^1.30.4",
 		"@vincjo/datatables": "^1.14.5",
 		"bootstrap": "^5.3.3",
-		"eslint": "^8.56.0",
-		"eslint-config-prettier": "^8.10.0",
+		"eslint": "^8.57.0",
+		"eslint-config-prettier": "^9.1.0",
 		"eslint-plugin-svelte": "^2.35.1",
 		"prettier": "^2.8.8",
 		"prettier-plugin-svelte": "^2.10.1",
-		"sass": "^1.71.1",
+		"sass": "^1.72.0",
 		"simple-svelte-autocomplete": "^2.5.2",
-		"svelte": "^4.2.11",
-		"svelte-check": "^3.6.4",
-		"svelte-fa": "^3.0.4",
-		"typescript": "^5.3.3",
+		"svelte": "^4.2.12",
+		"svelte-check": "^3.6.7",
+		"svelte-fa": "^4.0.2",
+		"typescript": "^5.4.2",
 		"vite": "^4.5.2",
-		"wrangler": "^3.28.4"
+		"wrangler": "^3.34.2"
 	},
 	"type": "module",
 	"dependencies": {
 		"better-sqlite3": "^9.4.3",
-		"csv-parse": "^5.5.3",
+		"csv-parse": "^5.5.5",
 		"csv-writer": "^1.6.0"
 	}
 }

@@ -1,4 +1,4 @@
-import { prep, simple, chain } from '$lib/server/calc';
+import { prep, simple, fullChain } from '$lib/server/calc';
 import { error } from '@sveltejs/kit';
 
 export const load = async ({ cookies, platform }) => {
@@ -84,15 +84,7 @@ export const load = async ({ cookies, platform }) => {
 					await Promise.all(
 						bps.blueprints.map(async (bp) => {
 							results_improved_chain.push(
-								await chain(
-									'impro',
-									platform.env,
-									options,
-									db_prep,
-									blueprints,
-									parseInt(bp._id),
-									0
-								)
+								await fullChain(platform.env, options, db_prep, blueprints, parseInt(bp._id), 0)
 							);
 						})
 					);
@@ -110,15 +102,7 @@ export const load = async ({ cookies, platform }) => {
 					await Promise.all(
 						bps.blueprints.map(async (bp) => {
 							results_strong_chain.push(
-								await chain(
-									'strong',
-									platform.env,
-									options,
-									db_prep,
-									blueprints,
-									parseInt(bp._id),
-									0
-								)
+								await fullChain(platform.env, options, db_prep, blueprints, parseInt(bp._id), 0)
 							);
 						})
 					);
