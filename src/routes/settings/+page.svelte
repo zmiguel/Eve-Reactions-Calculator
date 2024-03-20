@@ -7,6 +7,16 @@
 
 	export let data;
 	let selected_system = data.system;
+	let space_helper = data.space;
+	let wormhole_helper = false;
+	let wormhole_class = "form-check form-check-inline";
+
+	$: {
+		wormhole_class = "form-check form-check-inline";
+		if(wormhole_helper && space_helper !== 'wormhole') {
+			wormhole_class += ' bg-info';
+		}
+	}
 </script>
 
 <svelte:head>
@@ -280,6 +290,20 @@
 				<fieldset class="form-group mb-3 row">
 					<legend class="col-4 fs-6">Type of space</legend>
 					<div class="col-8">
+						<div class={wormhole_class}>
+							<input
+								class="form-check-input"
+								type="radio"
+								name="space"
+								id="wormhole"
+								value="wormhole"
+								aria-describedby="spaceHelpBlock"
+								required
+								checked={data.space === 'wormhole'}
+								on:click={() => space_helper = 'wormhole'}
+							/>
+							<label class="form-check-label" for="wormhole">Wormhole</label>
+						</div>
 						<div class="form-check form-check-inline">
 							<input
 								class="form-check-input"
@@ -290,6 +314,7 @@
 								aria-describedby="spaceHelpBlock"
 								required
 								checked={data.space === 'nullsec'}
+								on:click={() => space_helper = 'nullsec'}
 							/>
 							<label class="form-check-label" for="secnull">Nullsec</label>
 						</div>
@@ -303,14 +328,40 @@
 								aria-describedby="spaceHelpBlock"
 								required
 								checked={data.space === 'lowsec'}
+								on:click={() => space_helper = 'lowsec'}
 							/>
 							<label class="form-check-label" for="seclow">Lowsec</label>
 						</div>
 						<div id="spaceHelpBlock" class="form-text text-muted">
-							Are you doing reactions in Nullsec or Lowsec?
+							Are you doing reactions in Nullsec, Lowsec or in a Wormhole??
 						</div>
 					</div>
 				</fieldset>
+
+				{#if space_helper === 'wormhole'}
+					<div class="form-group mb-3 row">
+						<legend class="col-4 fs-6">Manual Cost Index</legend>
+						<div class="col-8">
+							<div class="input-group w-25">
+								<input
+									id="costIndex"
+									name="costIndex"
+									placeholder="0"
+									type="number"
+									step="0.01"
+									value={data.costIndex}
+									class="form-control here"
+									aria-describedby="costIndexHelpBlock"
+									required
+								/>
+								<div class="input-group-text append">%</div>
+							</div>
+							<div id="costIndexHelpBlock" class="form-text text-muted">
+								Cost index in your wormhole system?
+							</div>
+						</div>
+					</div>
+				{/if}
 
 				<div class="form-group mb-3 row">
 					<legend class="col-4 fs-6">System</legend>
@@ -329,6 +380,7 @@
 								showClear="true"
 								required
 								bind:selectedItem={selected_system}
+								onChange={() => {wormhole_helper=!!selected_system?.match(/J[0-9]{6}/);}}
 							/>
 						</div>
 						<div id="systemHelpBlock" class="form-text text-muted">
@@ -456,6 +508,12 @@
 						<th>Space</th>
 						<td>{data.space.charAt(0).toUpperCase() + data.space.slice(1)}</td>
 					</tr>
+					{#if space_helper === 'wormhole'}
+						<tr>
+							<th>Cost Index</th>
+							<td>{data.costIndex} %</td>
+						</tr>
+					{/if}
 					<tr>
 						<th>System</th>
 						<td>{data.system.charAt(0).toUpperCase() + data.system.slice(1)}</td>

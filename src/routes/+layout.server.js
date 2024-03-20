@@ -84,7 +84,8 @@ export async function load({ cookies }) {
 	if (
 		(cookies.get('space') === undefined || cookies.get('space') === '') &&
 		cookies.get('space') !== 'nullsec' &&
-		cookies.get('space') !== 'lowsec'
+		cookies.get('space') !== 'lowsec' &&
+		cookies.get('space') !== 'wormhole'
 	) {
 		setCookie(cookies, 'space', 'nullsec');
 	}
@@ -94,11 +95,11 @@ export async function load({ cookies }) {
 	}
 	// Tax
 	if (cookies.get('indyTax') === undefined || cookies.get('indyTax') === '') {
-		setCookie(cookies, 'indyTax', '0');
+		setCookie(cookies, 'indyTax', '1');
 	}
 	// SCC Tax
 	if (cookies.get('sccTax') === undefined || cookies.get('sccTax') === '') {
-		setCookie(cookies, 'sccTax', '1');
+		setCookie(cookies, 'sccTax', '4');
 	}
 	// Build time
 	if (
@@ -107,10 +108,13 @@ export async function load({ cookies }) {
 		(cookies.get('duration') < '60' && cookies.get('duration') > '43200')
 	) {
 		setCookie(cookies, 'duration', '10080');
-		cookies.set('duration', '10080', { maxAge: 60 * 60 * 24 * 365, sameSite: 'strict' });
 	}
 	// cycles
 	if (cookies.get('cycles') === undefined || cookies.get('cycles') === '') {
-		cookies.set('cycles', '50', { maxAge: 60 * 60 * 24 * 365, sameSite: 'strict' });
+		setCookie(cookies, 'cycles', '50');
+	}
+	// costIndex
+	if (cookies.get('costIndex') === undefined || cookies.get('costIndex') === '') {
+		setCookie(cookies, 'costIndex', '0');
 	}
 }
