@@ -20,6 +20,7 @@ export const load = async ({ cookies, platform }) => {
 		tax: cookies.get('indyTax'),
 		scc: cookies.get('sccTax'),
 		duration: cookies.get('duration'),
+		costIndex: cookies.get('costIndex'),
 		market_systems: market_systems
 	};
 };

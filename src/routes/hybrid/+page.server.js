@@ -16,7 +16,8 @@ export const load = async ({ cookies, platform }) => {
 		tax: cookies.get('indyTax'),
 		scc: cookies.get('sccTax'),
 		duration: cookies.get('duration'),
-		cycles: cookies.get('cycles')
+		cycles: cookies.get('cycles'),
+		costIndex: cookies.get('costIndex')
 	};
 
 	const blueprints = await JSON.parse(await platform.env.KV_DATA.get('bp-hybrid'));

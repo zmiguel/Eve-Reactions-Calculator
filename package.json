@@ -1,6 +1,6 @@
 {
 	"name": "eve-reactions-calculator",
-	"version": "2.3.0",
+	"version": "2.3.1",
 	"private": true,
 	"scripts": {
 		"dev": "vite dev",
@@ -28,11 +28,11 @@
 		"sass": "^1.72.0",
 		"simple-svelte-autocomplete": "^2.5.2",
 		"svelte": "^4.2.12",
-		"svelte-check": "^3.6.7",
+		"svelte-check": "^3.6.8",
 		"svelte-fa": "^4.0.2",
 		"typescript": "^5.4.2",
 		"vite": "^4.5.2",
-		"wrangler": "^3.34.2"
+		"wrangler": "^3.35.0"
 	},
 	"type": "module",
 	"dependencies": {
