@@ -9,11 +9,11 @@
 	let selected_system = data.system;
 	let space_helper = data.space;
 	let wormhole_helper = false;
-	let wormhole_class = "form-check form-check-inline";
+	let wormhole_class = 'form-check form-check-inline';
 
 	$: {
-		wormhole_class = "form-check form-check-inline";
-		if(wormhole_helper && space_helper !== 'wormhole') {
+		wormhole_class = 'form-check form-check-inline';
+		if (wormhole_helper && space_helper !== 'wormhole') {
 			wormhole_class += ' bg-info';
 		}
 	}
@@ -300,7 +300,7 @@
 								aria-describedby="spaceHelpBlock"
 								required
 								checked={data.space === 'wormhole'}
-								on:click={() => space_helper = 'wormhole'}
+								on:click={() => (space_helper = 'wormhole')}
 							/>
 							<label class="form-check-label" for="wormhole">Wormhole</label>
 						</div>
@@ -314,7 +314,7 @@
 								aria-describedby="spaceHelpBlock"
 								required
 								checked={data.space === 'nullsec'}
-								on:click={() => space_helper = 'nullsec'}
+								on:click={() => (space_helper = 'nullsec')}
 							/>
 							<label class="form-check-label" for="secnull">Nullsec</label>
 						</div>
@@ -328,7 +328,7 @@
 								aria-describedby="spaceHelpBlock"
 								required
 								checked={data.space === 'lowsec'}
-								on:click={() => space_helper = 'lowsec'}
+								on:click={() => (space_helper = 'lowsec')}
 							/>
 							<label class="form-check-label" for="seclow">Lowsec</label>
 						</div>
@@ -380,7 +380,9 @@
 								showClear="true"
 								required
 								bind:selectedItem={selected_system}
-								onChange={() => {wormhole_helper=!!selected_system?.match(/J[0-9]{6}/);}}
+								onChange={() => {
+									wormhole_helper = !!selected_system?.match(/J[0-9]{6}/);
+								}}
 							/>
 						</div>
 						<div id="systemHelpBlock" class="form-text text-muted">

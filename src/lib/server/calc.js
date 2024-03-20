@@ -181,7 +181,7 @@ export async function prep(type, options, blueprints, env) {
 			}
 		})
 	);
-	if( options.space === 'wormhole' ) {
+	if (options.space === 'wormhole') {
 		cost_index = parseFloat(options.costIndex) / 100;
 	}
 	return {
