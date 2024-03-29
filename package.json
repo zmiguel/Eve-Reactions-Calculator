@@ -17,7 +17,7 @@
 		"@popperjs/core": "^2.11.8",
 		"@sveltejs/adapter-auto": "^2.1.1",
 		"@sveltejs/adapter-cloudflare": "^2.3.4",
-		"@sveltejs/kit": "^1.30.4",
+		"@sveltejs/kit": "^2.5.5",
 		"@vincjo/datatables": "^1.14.5",
 		"bootstrap": "^5.3.3",
 		"eslint": "^8.57.0",
