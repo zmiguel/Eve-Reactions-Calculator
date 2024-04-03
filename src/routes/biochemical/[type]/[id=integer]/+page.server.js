@@ -4,7 +4,7 @@ import { setCookie } from '$lib/cookies.js';
 
 export const load = async ({ cookies, platform, params }) => {
 	if (params.id === undefined || params.type === undefined) {
-		throw error(400, `params.slug is undefined`);
+		error(400, `params.slug is undefined`);
 	}
 
 	params.id = parseInt(params.id);
@@ -31,11 +31,11 @@ export const load = async ({ cookies, platform, params }) => {
 	const blueprints = await JSON.parse(await platform.env.KV_DATA.get('bp-bio'));
 	let results;
 	if (!blueprints.some((bp) => bp._id === params.id)) {
-		throw error(400, `id is not in biochemical`);
+		error(400, `id is not in biochemical`);
 	}
 	const db_prep = await prep('bio', options, blueprints, platform.env);
 	if (!db_prep) {
-		throw error(500, `db_prep is undefined`);
+		error(500, `db_prep is undefined`);
 	}
 
 	switch (params.type) {

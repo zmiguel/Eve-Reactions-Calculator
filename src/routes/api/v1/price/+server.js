@@ -5,10 +5,10 @@ export async function GET({ url, platform }) {
 	// check if id in an integer
 	const id = url.searchParams.get('id') ? url.searchParams.get('id') : null;
 	if (id === null) {
-		throw error(400, 'No id provided');
+		error(400, 'No id provided');
 	}
 	if (isNaN(id)) {
-		throw error(400, 'Not a number');
+		error(400, 'Not a number');
 	}
 
 	const price = await platform.env.DB.prepare('SELECT * FROM prices WHERE item_id = ?')
