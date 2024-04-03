@@ -4,7 +4,7 @@ import { setCookie } from '$lib/cookies.js';
 
 export const load = async ({ cookies, platform, params }) => {
 	if (params.id === undefined || params.type === undefined) {
-		throw error(400, `params.slug is undefined`);
+		error(400, `params.slug is undefined`);
 	}
 
 	params.id = parseInt(params.id);
@@ -36,11 +36,11 @@ export const load = async ({ cookies, platform, params }) => {
 			bps = await blueprints.filter((bp) => bp.type === 'simple');
 			// check if type is in simple
 			if (!bps.some((bp) => bp._id === params.id)) {
-				throw error(400, `id is not in simple`);
+				error(400, `id is not in simple`);
 			}
 			db_prep = await prep('simple', options, blueprints, platform.env);
 			if (!db_prep) {
-				throw error(500, `db_prep is undefined`);
+				error(500, `db_prep is undefined`);
 			}
 			results = await simple(
 				platform.env,
@@ -57,11 +57,11 @@ export const load = async ({ cookies, platform, params }) => {
 			bps = await blueprints.filter((bp) => bp.type === 'complex');
 			// check if type is in complex
 			if (!bps.some((bp) => bp._id === params.id)) {
-				throw error(400, `id is not in complex`);
+				error(400, `id is not in complex`);
 			}
 			db_prep = await prep('complex', options, blueprints, platform.env);
 			if (!db_prep) {
-				throw error(500, `db_prep is undefined`);
+				error(500, `db_prep is undefined`);
 			}
 			results = await simple(
 				platform.env,
@@ -78,11 +78,11 @@ export const load = async ({ cookies, platform, params }) => {
 			bps = await blueprints.filter((bp) => bp.type === 'complex');
 			// check if type is in chain
 			if (!bps.some((bp) => bp._id === params.id)) {
-				throw error(400, `id is not in chain`);
+				error(400, `id is not in chain`);
 			}
 			db_prep = await prep('chain', options, blueprints, platform.env);
 			if (!db_prep) {
-				throw error(500, `db_prep is undefined`);
+				error(500, `db_prep is undefined`);
 			}
 			results = await chain(
 				'complex',
@@ -100,11 +100,11 @@ export const load = async ({ cookies, platform, params }) => {
 			bps = await blueprints.filter((bp) => bp.type === 'unrefined');
 			// check if type is in unrefined
 			if (!bps.some((bp) => bp._id === params.id)) {
-				throw error(400, `id is not in unrefined`);
+				error(400, `id is not in unrefined`);
 			}
 			db_prep = await prep('unrefined', options, blueprints, platform.env);
 			if (!db_prep) {
-				throw error(500, `db_prep is undefined`);
+				error(500, `db_prep is undefined`);
 			}
 			results = await simple(
 				platform.env,
@@ -121,12 +121,12 @@ export const load = async ({ cookies, platform, params }) => {
 			bps = await blueprints.filter((bp) => bp.type === 'unrefined');
 			// check if type is in refined
 			if (!bps.some((bp) => bp._id === params.id)) {
-				throw error(400, `id is not in refined`);
+				error(400, `id is not in refined`);
 			}
 			db_prep_unrefined = await prep('refined', options, blueprints, platform.env);
 			db_prep_refined = await prep('refined', options, blueprints, platform.env);
 			if (!db_prep_unrefined || !db_prep_refined) {
-				throw error(500, `db_prep is undefined`);
+				error(500, `db_prep is undefined`);
 			}
 			results = await refined(
 				platform.env,
@@ -140,7 +140,7 @@ export const load = async ({ cookies, platform, params }) => {
 			);
 			break;
 		default:
-			throw error(400, `type is not in simple, complex, chain, unrefined, or refined`);
+			error(400, `type is not in simple, complex, chain, unrefined, or refined`);
 	}
 
 	return {

@@ -30,7 +30,7 @@ export const load = async ({ cookies, platform }) => {
 	const db_prep = await prep('bio', options, blueprints, platform.env);
 
 	if (!db_prep) {
-		throw error(500, `db_prep is undefined`);
+		error(500, `db_prep is undefined`);
 	}
 
 	const all_bps = [

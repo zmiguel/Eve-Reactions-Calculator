@@ -58,19 +58,19 @@ export const load = async ({ cookies, platform }) => {
 	);
 
 	if (!db_prep_simple) {
-		throw error(500, `db_prep_simple is undefined`);
+		error(500, `db_prep_simple is undefined`);
 	}
 	if (!db_prep_complex) {
-		throw error(500, `db_prep_complex is undefined`);
+		error(500, `db_prep_complex is undefined`);
 	}
 	if (!db_prep_chain) {
-		throw error(500, `db_prep_complex is undefined`);
+		error(500, `db_prep_complex is undefined`);
 	}
 	if (!db_prep_unrefined) {
-		throw error(500, `db_prep_unrefined is undefined`);
+		error(500, `db_prep_unrefined is undefined`);
 	}
 	if (!db_prep_refined) {
-		throw error(500, `db_prep_refined is undefined`);
+		error(500, `db_prep_refined is undefined`);
 	}
 
 	const all_bps = [
