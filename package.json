@@ -13,7 +13,7 @@
 		"format": "prettier --plugin-search-dir . --write src/"
 	},
 	"devDependencies": {
-		"@fortawesome/free-solid-svg-icons": "^6.5.1",
+		"@fortawesome/free-solid-svg-icons": "^6.5.2",
 		"@popperjs/core": "^2.11.8",
 		"@sveltejs/adapter-auto": "^2.1.1",
 		"@sveltejs/adapter-cloudflare": "^2.3.4",
@@ -28,15 +28,15 @@
 		"sass": "^1.72.0",
 		"simple-svelte-autocomplete": "^2.5.2",
 		"svelte": "^4.2.12",
-		"svelte-check": "^3.6.8",
+		"svelte-check": "^3.6.9",
 		"svelte-fa": "^4.0.2",
-		"typescript": "^5.4.2",
-		"vite": "^4.5.2",
-		"wrangler": "^3.35.0"
+		"typescript": "^5.4.3",
+		"vite": "^4.5.3",
+		"wrangler": "^3.44.0"
 	},
 	"type": "module",
 	"dependencies": {
-		"better-sqlite3": "^9.4.3",
+		"better-sqlite3": "^9.4.4",
 		"csv-parse": "^5.5.5",
 		"csv-writer": "^1.6.0"
 	}
