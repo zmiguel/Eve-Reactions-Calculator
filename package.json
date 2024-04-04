@@ -37,7 +37,7 @@
 	},
 	"type": "module",
 	"dependencies": {
-		"better-sqlite3": "^9.4.4",
+		"better-sqlite3": "^9.4.5",
 		"csv-parse": "^5.5.5",
 		"csv-writer": "^1.6.0"
 	}
