@@ -36,7 +36,9 @@
 body {
 	padding-top: 56px;
 	padding-bottom: 40px;
-	font: 16px 'Helvetica Light', sans-serif;
+	font:
+		16px 'Helvetica Light',
+		sans-serif;
 }
 
 a {
@@ -131,7 +133,7 @@ h2 {
 	}
 
 	body {
-		padding-bottom: 0px;
+		padding-bottom: 0;
 	}
 	.footer {
 		bottom: auto; /* Reset bottom property to default */
