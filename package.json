@@ -9,10 +9,12 @@
 		"preview": "vite preview",
 		"check": "svelte-kit sync && svelte-check --tsconfig ./jsconfig.json",
 		"check:watch": "svelte-kit sync && svelte-check --tsconfig ./jsconfig.json --watch",
-		"lint": "prettier --plugin-search-dir . --check src/ && eslint .",
-		"format": "prettier --plugin-search-dir . --write src/"
+		"lint": "prettier --check src/ && eslint .",
+		"format": "prettier --write src/"
 	},
 	"devDependencies": {
+		"@eslint/eslintrc": "^3.1.0",
+		"@eslint/js": "^9.8.0",
 		"@fortawesome/free-solid-svg-icons": "^6.6.0",
 		"@popperjs/core": "^2.11.8",
 		"@sveltejs/adapter-auto": "^3.2.2",
@@ -21,9 +23,10 @@
 		"@sveltejs/vite-plugin-svelte": "^3.1.1",
 		"@vincjo/datatables": "^1.14.10",
 		"bootstrap": "^5.3.3",
-		"eslint": "^8.57.0",
+		"eslint": "^9.8.0",
 		"eslint-config-prettier": "^9.1.0",
 		"eslint-plugin-svelte": "^2.43.0",
+		"globals": "^15.9.0",
 		"prettier": "^3.3.3",
 		"prettier-plugin-svelte": "^3.2.6",
 		"sass": "^1.77.8",
