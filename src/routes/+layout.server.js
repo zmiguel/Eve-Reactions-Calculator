@@ -117,4 +117,14 @@ export async function load({ cookies }) {
 	if (cookies.get('costIndex') === undefined || cookies.get('costIndex') === '') {
 		setCookie(cookies, 'costIndex', '0');
 	}
+
+	let partner = true;
+	if (cookies.get('partner') === undefined || cookies.get('partner') === '') {
+		partner = false;
+		setCookie(cookies, 'partner', 'true');
+	}
+
+	return {
+		partner: partner
+	};
 }

@@ -3,8 +3,18 @@
 	import { page } from '$app/stores';
 	import { onMount } from 'svelte';
 
+	export let data;
+
 	onMount(() => {
-		import('bootstrap/dist/js/bootstrap.bundle.min.js');
+		import('bootstrap/dist/js/bootstrap.bundle.min.js').then((bootstrap) => {
+			// Bootstrap JS loaded
+			console.log('Bootstrap JS loaded');
+			if (data.partner === false) {
+				let modalElement = document.getElementById('partnerModal');
+				let modalInstance = new bootstrap.Modal(modalElement);
+				modalInstance.show();
+			}
+		});
 	});
 </script>
 
@@ -137,14 +147,46 @@
 	</div>
 </div>
 
+<div
+	class="modal fade"
+	id="partnerModal"
+	tabindex="-1"
+	aria-labelledby="partnerModalLabel"
+	aria-hidden="true"
+>
+	<div class="modal-dialog modal-dialog-centered modal-lg">
+		<div class="modal-content bg-dark text-white">
+			<div class="modal-header">
+				<h1 class="modal-title fs-5" id="partnerModalLabel">EVE Online Partner</h1>
+				<button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close" />
+			</div>
+			<div class="modal-body">
+				<p>
+					<img src="/PartnerBadge2.png" class="partner-image" alt="EVE Partner" />
+				</p>
+				<p>
+					Proud member of the EVE Online Partner Program.
+					<br />
+					Support me by using code <strong class="patreon">oxed</strong> on the
+					<strong class="patreon">EVE Online Store</strong>, and I will receive a small commission
+					(5%) on your purchase. No extra cost to you, this is CCP sharing their profits with me.
+					<br />
+					This will help keep the site running and up to date.
+					<br />
+					Thank you for your support!
+				</p>
+			</div>
+		</div>
+	</div>
+</div>
+
 <footer class="footer bg-dark" data-bs-theme="dark">
 	<div class="container">
 		<div class="row">
 			<div class="col">
 				<span class="text-body-secondary"
-					>If this service has helped you, please consider donating some ISK to <strong
-						>Oxed G</strong
-					>
+					>Support me by using code <strong class="patreon">oxed</strong> on the
+					<strong class="patreon">EVE Online Store</strong>
 					- Thanks! |
 					<a href="https://www.patreon.com/EVEReactionsCalculator" target="_blank">Patreon</a> |
 					<a href="https://github.com/zmiguel/Eve-Reactions-Calculator" target="_blank"
@@ -153,6 +195,15 @@
 				>
 			</div>
 			<div class="col-4 d-grid gap-2 d-md-flex justify-content-md-end p-0">
+				<button
+					type="button"
+					class="btn btn-link text-body-secondary text-end p-0"
+					data-bs-toggle="modal"
+					data-bs-target="#partnerModal"
+				>
+					EVE Online Partner!
+				</button>
+				|
 				<button
 					type="button"
 					class="btn btn-link text-body-secondary text-end p-0"
