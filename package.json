@@ -19,7 +19,7 @@
 		"@popperjs/core": "^2.11.8",
 		"@sveltejs/adapter-auto": "^3.2.2",
 		"@sveltejs/adapter-cloudflare": "^4.7.0",
-		"@sveltejs/kit": "^2.5.20",
+		"@sveltejs/kit": "^2.5.21",
 		"@sveltejs/vite-plugin-svelte": "^3.1.1",
 		"@vincjo/datatables": "^1.14.10",
 		"bootstrap": "^5.3.3",
