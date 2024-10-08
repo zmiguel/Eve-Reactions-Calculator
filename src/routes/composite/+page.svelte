@@ -215,7 +215,7 @@
 
 		<div class="card w-100 mt-4 p-0">
 			<div class="card-header bg-info text-white fw-bold text-center w-100">
-				Unrefined Reactions (60% Efficiency)
+				Unrefined Reactions (55% Efficiency)
 			</div>
 			<table width="100%" id="stab" class="table table-bordered text-center">
 				<thead>
