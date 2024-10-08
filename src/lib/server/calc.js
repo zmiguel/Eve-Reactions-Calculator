@@ -748,7 +748,7 @@ export async function refined(
 			name: db_refined.items.find((items) => {
 				return items.id === item.id;
 			}).name,
-			quantity: item.quantity * input.quantity * 0.6,
+			quantity: item.quantity * input.quantity * 0.55,
 			price:
 				db_refined.prices.find((price) => {
 					return price.item_id === item.id && price.system === options.outMarket;
