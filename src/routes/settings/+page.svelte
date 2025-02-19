@@ -1,18 +1,25 @@
 <script>
-	// noinspection ES6UnusedImports
-	import Fa from 'svelte-fa';
-	import { faHome } from '@fortawesome/free-solid-svg-icons';
-	import AutoComplete from 'simple-svelte-autocomplete';
-	import { systems } from '$lib/systems';
-	import SettingsForm from './SettingsForm.svelte';
-
+	import { goto } from '$app/navigation';
+	import { enhance } from '$app/forms';
 	export let data;
+
+	$: ({ settings, market_systems, settingsMode } = data);
+
+	let selected = {
+		suffix: settingsMode === 'single' ? 'single' : 'biochemical'
+	};
+
+	let suffixes = [
+		{ value: 'biochemical', label: 'Biochemical Reactions' },
+		{ value: 'composite', label: 'Composite Reactions' },
+		{ value: 'hybrid', label: 'Hybrid Polymer Reactions' }
+	];
+
 	let selected_system = data.settings.single.system;
 	let space_helper = data.settings.single.space;
 	let wormhole_helper = false;
 	let wormhole_class = 'form-check form-check-inline';
 
-	let settingsMode = data.settingsMode;
 	let activeTab = settingsMode === 'single' ? 'single' : 'biochemical';
 
 	// Get current settings based on active tab
