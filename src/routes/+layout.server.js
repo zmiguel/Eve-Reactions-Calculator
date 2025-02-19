@@ -10,7 +10,6 @@ export async function load({ cookies }) {
     ) {
         setCookie(cookies, 'settingsMode', 'single');
     }
-    const settingsMode = cookies.get('settingsMode') || 'single';
 
     // For each setting, check if we need to set default values
     // We only set defaults for the base/single settings
