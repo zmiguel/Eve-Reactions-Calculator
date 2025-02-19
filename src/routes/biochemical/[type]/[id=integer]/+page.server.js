@@ -7,25 +7,26 @@ export const load = async ({ cookies, platform, params }) => {
 		error(400, `params.slug is undefined`);
 	}
 
-	params.id = parseInt(params.id);
+	const settingsMode = cookies.get('settingsMode') || 'single';
+	const suffix = settingsMode === 'single' ? '' : '_biochemical';
 
 	let options = {
-		input: cookies.get('input'),
-		inMarket: cookies.get('inMarket'),
-		output: cookies.get('output'),
-		outMarket: cookies.get('outMarket'),
-		brokers: cookies.get('brokers'),
-		sales: cookies.get('sales'),
-		skill: cookies.get('skill'),
-		facility: cookies.get('facility'),
-		rigs: cookies.get('rigs'),
-		space: cookies.get('space'),
-		system: cookies.get('system'),
-		tax: cookies.get('indyTax'),
-		scc: cookies.get('sccTax'),
-		duration: cookies.get('duration'),
-		cycles: cookies.get('cycles'),
-		costIndex: cookies.get('costIndex')
+		input: cookies.get(`input${suffix}`),
+		inMarket: cookies.get(`inMarket${suffix}`),
+		output: cookies.get(`output${suffix}`),
+		outMarket: cookies.get(`outMarket${suffix}`),
+		brokers: cookies.get(`brokers${suffix}`),
+		sales: cookies.get(`sales${suffix}`),
+		skill: cookies.get(`skill${suffix}`),
+		facility: cookies.get(`facility${suffix}`),
+		rigs: cookies.get(`rigs${suffix}`),
+		space: cookies.get(`space${suffix}`),
+		system: cookies.get(`system${suffix}`),
+		tax: cookies.get(`indyTax${suffix}`),
+		scc: cookies.get(`sccTax${suffix}`),
+		duration: cookies.get(`duration${suffix}`),
+		cycles: cookies.get(`cycles${suffix}`),
+		costIndex: cookies.get(`costIndex${suffix}`)
 	};
 
 	const blueprints = await JSON.parse(await platform.env.KV_DATA.get('bp-bio'));
@@ -64,21 +65,21 @@ export const load = async ({ cookies, platform, params }) => {
 	}
 
 	return {
-		input: cookies.get('input'),
-		inMarket: cookies.get('inMarket'),
-		output: cookies.get('output'),
-		outMarket: cookies.get('outMarket'),
-		brokers: cookies.get('brokers'),
-		sales: cookies.get('sales'),
-		skill: cookies.get('skill'),
-		facility: cookies.get('facility'),
-		rigs: cookies.get('rigs'),
-		space: cookies.get('space'),
-		system: cookies.get('system'),
-		tax: cookies.get('indyTax'),
-		scc: cookies.get('sccTax'),
-		duration: cookies.get('duration'),
-		cycles: cookies.get('cycles'),
+		input: cookies.get(`input${suffix}`),
+		inMarket: cookies.get(`inMarket${suffix}`),
+		output: cookies.get(`output${suffix}`),
+		outMarket: cookies.get(`outMarket${suffix}`),
+		brokers: cookies.get(`brokers${suffix}`),
+		sales: cookies.get(`sales${suffix}`),
+		skill: cookies.get(`skill${suffix}`),
+		facility: cookies.get(`facility${suffix}`),
+		rigs: cookies.get(`rigs${suffix}`),
+		space: cookies.get(`space${suffix}`),
+		system: cookies.get(`system${suffix}`),
+		tax: cookies.get(`indyTax${suffix}`),
+		scc: cookies.get(`sccTax${suffix}`),
+		duration: cookies.get(`duration${suffix}`),
+		cycles: cookies.get(`cycles${suffix}`),
 		type: params.type,
 		results: results ? results : {}
 	};
@@ -87,8 +88,11 @@ export const load = async ({ cookies, platform, params }) => {
 export const actions = {
 	default: async ({ cookies, request }) => {
 		const data = await request.formData();
+		const settingsMode = cookies.get('settingsMode') || 'single';
+		const suffix = settingsMode === 'single' ? '' : '_biochemical';
+
 		for (const [key, value] of data.entries()) {
-			setCookie(cookies, key, value.toString());
+			setCookie(cookies, `${key}${suffix}`, value.toString());
 		}
 	}
 };

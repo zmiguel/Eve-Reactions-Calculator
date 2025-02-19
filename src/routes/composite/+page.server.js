@@ -2,24 +2,27 @@ import { prep, simple, chain, refined } from '$lib/server/calc';
 import { error } from '@sveltejs/kit';
 
 export const load = async ({ cookies, platform }) => {
-	let options = {
-		input: cookies.get('input'),
-		inMarket: cookies.get('inMarket'),
-		output: cookies.get('output'),
-		outMarket: cookies.get('outMarket'),
-		brokers: cookies.get('brokers'),
-		sales: cookies.get('sales'),
-		skill: cookies.get('skill'),
-		facility: cookies.get('facility'),
-		rigs: cookies.get('rigs'),
-		space: cookies.get('space'),
-		system: cookies.get('system'),
-		tax: cookies.get('indyTax'),
-		scc: cookies.get('sccTax'),
-		duration: cookies.get('duration'),
-		cycles: cookies.get('cycles'),
-		costIndex: cookies.get('costIndex')
-	};
+    const settingsMode = cookies.get('settingsMode') || 'single';
+    const suffix = settingsMode === 'single' ? '' : '_composite';
+
+    let options = {
+        input: cookies.get(`input${suffix}`),
+        inMarket: cookies.get(`inMarket${suffix}`),
+        output: cookies.get(`output${suffix}`),
+        outMarket: cookies.get(`outMarket${suffix}`),
+        brokers: cookies.get(`brokers${suffix}`),
+        sales: cookies.get(`sales${suffix}`),
+        skill: cookies.get(`skill${suffix}`),
+        facility: cookies.get(`facility${suffix}`),
+        rigs: cookies.get(`rigs${suffix}`),
+        space: cookies.get(`space${suffix}`),
+        system: cookies.get(`system${suffix}`),
+        tax: cookies.get(`indyTax${suffix}`),
+        scc: cookies.get(`sccTax${suffix}`),
+        duration: cookies.get(`duration${suffix}`),
+        cycles: cookies.get(`cycles${suffix}`),
+        costIndex: cookies.get(`costIndex${suffix}`)
+    };
 
 	const blueprints = await JSON.parse(await platform.env.KV_DATA.get('bp-comp'));
 	const simple_blueprints = await blueprints.filter((bp) => bp.type === 'simple');
@@ -169,21 +172,21 @@ export const load = async ({ cookies, platform }) => {
 	);
 
 	return {
-		input: cookies.get('input'),
-		inMarket: cookies.get('inMarket'),
-		output: cookies.get('output'),
-		outMarket: cookies.get('outMarket'),
-		brokers: cookies.get('brokers'),
-		sales: cookies.get('sales'),
-		skill: cookies.get('skill'),
-		facility: cookies.get('facility'),
-		rigs: cookies.get('rigs'),
-		space: cookies.get('space'),
-		system: cookies.get('system'),
-		tax: cookies.get('indyTax'),
-		scc: cookies.get('sccTax'),
-		duration: cookies.get('duration'),
-		cycles: cookies.get('cycles'),
+		input: cookies.get(`input${suffix}`),
+		inMarket: cookies.get(`inMarket${suffix}`),
+		output: cookies.get(`output${suffix}`),
+		outMarket: cookies.get(`outMarket${suffix}`),
+		brokers: cookies.get(`brokers${suffix}`),
+		sales: cookies.get(`sales${suffix}`),
+		skill: cookies.get(`skill${suffix}`),
+		facility: cookies.get(`facility${suffix}`),
+		rigs: cookies.get(`rigs${suffix}`),
+		space: cookies.get(`space${suffix}`),
+		system: cookies.get(`system${suffix}`),
+		tax: cookies.get(`indyTax${suffix}`),
+		scc: cookies.get(`sccTax${suffix}`),
+		duration: cookies.get(`duration${suffix}`),
+		cycles: cookies.get(`cycles${suffix}`),
 		results: {
 			simple: simple_results,
 			complex: complex_results,
