@@ -19,8 +19,10 @@
 	$: currentSettings = data.settings[activeTab];
 
 	function handleTabClick(tab) {
-		if ((settingsMode === 'single' && tab !== 'single') ||
-			(settingsMode === 'separate' && tab === 'single')) {
+		if (
+			(settingsMode === 'single' && tab !== 'single') ||
+			(settingsMode === 'separate' && tab === 'single')
+		) {
 			return;
 		}
 		activeTab = tab;
@@ -44,10 +46,10 @@
 
 	// Add mapping for tab to suffix
 	const tabToSuffix = {
-		'single': '',
-		'biochemical': 'biochemical',
-		'composite': 'composite',
-		'hybrid': 'hybrid'
+		single: '',
+		biochemical: 'biochemical',
+		composite: 'composite',
+		hybrid: 'hybrid'
 	};
 </script>
 
@@ -60,7 +62,7 @@
 		<div class="col-lg-8">
 			<div class="d-flex justify-content-between align-items-center">
 				<h4 class="mb-0">New Settings:</h4>
-					<div class="col-sm-8 col-md-6 col-lg-5">
+				<div class="col-sm-8 col-md-6 col-lg-5">
 					<select
 						class="form-select"
 						bind:value={settingsMode}
@@ -116,11 +118,11 @@
 			</ul>
 
 			<form class="mt-4" method="post">
-				<input type="hidden" name="settingsMode" value={settingsMode}>
+				<input type="hidden" name="settingsMode" value={settingsMode} />
 
 				{#if activeTab === 'single'}
 					<div class="tab-content">
-						 <SettingsForm
+						<SettingsForm
 							settings={currentSettings}
 							market_systems={data.market_systems}
 							{space_helper}
@@ -222,7 +224,9 @@
 					<tbody>
 						<tr>
 							<th>In Method</th>
-							<td>{currentSettings.input?.charAt(0).toUpperCase() + currentSettings.input?.slice(1)} Order</td>
+							<td
+								>{currentSettings.input?.charAt(0).toUpperCase() + currentSettings.input?.slice(1)} Order</td
+							>
 						</tr>
 						<tr>
 							<th>In Market</th>
@@ -230,7 +234,10 @@
 						</tr>
 						<tr>
 							<th>Out Method</th>
-							<td>{currentSettings.output?.charAt(0).toUpperCase() + currentSettings.output?.slice(1)} Order</td>
+							<td
+								>{currentSettings.output?.charAt(0).toUpperCase() +
+									currentSettings.output?.slice(1)} Order</td
+							>
 						</tr>
 						<tr>
 							<th>Out Market</th>
@@ -250,7 +257,10 @@
 						</tr>
 						<tr>
 							<th>Facility</th>
-							<td>{currentSettings.facility?.charAt(0).toUpperCase() + currentSettings.facility?.slice(1)} Refinery</td>
+							<td
+								>{currentSettings.facility?.charAt(0).toUpperCase() +
+									currentSettings.facility?.slice(1)} Refinery</td
+							>
 						</tr>
 						<tr>
 							<th>Rig</th>
@@ -258,7 +268,10 @@
 						</tr>
 						<tr>
 							<th>Space</th>
-							<td>{currentSettings.space?.charAt(0).toUpperCase() + currentSettings.space?.slice(1)}</td>
+							<td
+								>{currentSettings.space?.charAt(0).toUpperCase() +
+									currentSettings.space?.slice(1)}</td
+							>
 						</tr>
 						{#if space_helper === 'wormhole'}
 							<tr>
@@ -268,7 +281,10 @@
 						{/if}
 						<tr>
 							<th>System</th>
-							<td>{currentSettings.system?.charAt(0).toUpperCase() + currentSettings.system?.slice(1)}</td>
+							<td
+								>{currentSettings.system?.charAt(0).toUpperCase() +
+									currentSettings.system?.slice(1)}</td
+							>
 						</tr>
 						<tr>
 							<th>IndyTax</th>
