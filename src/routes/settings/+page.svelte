@@ -9,11 +9,11 @@
 	let wormhole_helper = false;
 	let wormhole_class = 'form-check form-check-inline';
 
-    let activeTab;
-    $: {
-        // This will re-run whenever settingsMode changes
-        activeTab = settingsMode === 'single' ? 'single' : 'biochemical';
-    }
+	let activeTab;
+	$: {
+		// This will re-run whenever settingsMode changes
+		activeTab = settingsMode === 'single' ? 'single' : 'biochemical';
+	}
 
 	// Get current settings based on active tab
 	$: currentSettings = data.settings[activeTab];
@@ -37,14 +37,14 @@
 		activeTab = 'biochemical';
 	}
 
-    // Reactive update for settingsMode without form submission
-    function handleSettingsModeChange() {
-        if (settingsMode === 'single') {
-            activeTab = 'single';
-        } else {
-            activeTab = 'biochemical';
-        }
-    }
+	// Reactive update for settingsMode without form submission
+	function handleSettingsModeChange() {
+		if (settingsMode === 'single') {
+			activeTab = 'single';
+		} else {
+			activeTab = 'biochemical';
+		}
+	}
 </script>
 
 <svelte:head>
