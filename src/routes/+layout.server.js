@@ -2,7 +2,17 @@ import { setCookie } from '$lib/cookies';
 
 /** @type {import('./$types').LayoutServerLoad} */
 export async function load({ cookies }) {
-	// Input
+	// Check and set default settingsMode
+	if (
+		(cookies.get('settingsMode') === undefined || cookies.get('settingsMode') === '') &&
+		cookies.get('settingsMode') !== 'single' &&
+		cookies.get('settingsMode') !== 'separate'
+	) {
+		setCookie(cookies, 'settingsMode', 'single');
+	}
+
+	// For each setting, check if we need to set default values
+	// We only set defaults for the base/single settings
 	if (
 		(cookies.get('input') === undefined || cookies.get('input') === '') &&
 		cookies.get('input') !== 'buy' &&

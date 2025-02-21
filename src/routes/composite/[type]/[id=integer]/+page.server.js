@@ -7,25 +7,31 @@ export const load = async ({ cookies, platform, params }) => {
 		error(400, `params.slug is undefined`);
 	}
 
-	params.id = parseInt(params.id);
+	const settingsMode = cookies.get('settingsMode') || 'single';
+	const suffix = settingsMode === 'single' ? '' : '_composite';
+
+	// check for cycles cookie depending on settingsMode with suffix and set it if it doesn't exist
+	if (!cookies.get(`cycles${suffix}`)) {
+		setCookie(cookies, `cycles${suffix}`, cookies.get('cycles') || '50');
+	}
 
 	let options = {
-		input: cookies.get('input'),
-		inMarket: cookies.get('inMarket'),
-		output: cookies.get('output'),
-		outMarket: cookies.get('outMarket'),
-		brokers: cookies.get('brokers'),
-		sales: cookies.get('sales'),
-		skill: cookies.get('skill'),
-		facility: cookies.get('facility'),
-		rigs: cookies.get('rigs'),
-		space: cookies.get('space'),
-		system: cookies.get('system'),
-		tax: cookies.get('indyTax'),
-		scc: cookies.get('sccTax'),
-		duration: cookies.get('duration'),
-		cycles: cookies.get('cycles'),
-		costIndex: cookies.get('costIndex')
+		input: cookies.get(`input${suffix}`),
+		inMarket: cookies.get(`inMarket${suffix}`),
+		output: cookies.get(`output${suffix}`),
+		outMarket: cookies.get(`outMarket${suffix}`),
+		brokers: cookies.get(`brokers${suffix}`),
+		sales: cookies.get(`sales${suffix}`),
+		skill: cookies.get(`skill${suffix}`),
+		facility: cookies.get(`facility${suffix}`),
+		rigs: cookies.get(`rigs${suffix}`),
+		space: cookies.get(`space${suffix}`),
+		system: cookies.get(`system${suffix}`),
+		tax: cookies.get(`indyTax${suffix}`),
+		scc: cookies.get(`sccTax${suffix}`),
+		duration: cookies.get(`duration${suffix}`),
+		cycles: cookies.get(`cycles${suffix}`),
+		costIndex: cookies.get(`costIndex${suffix}`)
 	};
 
 	const blueprints = await JSON.parse(await platform.env.KV_DATA.get('bp-comp'));
@@ -35,7 +41,7 @@ export const load = async ({ cookies, platform, params }) => {
 		case 'simple':
 			bps = await blueprints.filter((bp) => bp.type === 'simple');
 			// check if type is in simple
-			if (!bps.some((bp) => bp._id === params.id)) {
+			if (!bps.some((bp) => bp._id === parseInt(params.id))) {
 				error(400, `id is not in simple`);
 			}
 			db_prep = await prep('simple', options, blueprints, platform.env);
@@ -56,7 +62,7 @@ export const load = async ({ cookies, platform, params }) => {
 		case 'complex':
 			bps = await blueprints.filter((bp) => bp.type === 'complex');
 			// check if type is in complex
-			if (!bps.some((bp) => bp._id === params.id)) {
+			if (!bps.some((bp) => bp._id === parseInt(params.id))) {
 				error(400, `id is not in complex`);
 			}
 			db_prep = await prep('complex', options, blueprints, platform.env);
@@ -77,7 +83,7 @@ export const load = async ({ cookies, platform, params }) => {
 		case 'chain':
 			bps = await blueprints.filter((bp) => bp.type === 'complex');
 			// check if type is in chain
-			if (!bps.some((bp) => bp._id === params.id)) {
+			if (!bps.some((bp) => bp._id === parseInt(params.id))) {
 				error(400, `id is not in chain`);
 			}
 			db_prep = await prep('chain', options, blueprints, platform.env);
@@ -99,7 +105,7 @@ export const load = async ({ cookies, platform, params }) => {
 		case 'unrefined':
 			bps = await blueprints.filter((bp) => bp.type === 'unrefined');
 			// check if type is in unrefined
-			if (!bps.some((bp) => bp._id === params.id)) {
+			if (!bps.some((bp) => bp._id === parseInt(params.id))) {
 				error(400, `id is not in unrefined`);
 			}
 			db_prep = await prep('unrefined', options, blueprints, platform.env);
@@ -120,7 +126,7 @@ export const load = async ({ cookies, platform, params }) => {
 		case 'refined':
 			bps = await blueprints.filter((bp) => bp.type === 'unrefined');
 			// check if type is in refined
-			if (!bps.some((bp) => bp._id === params.id)) {
+			if (!bps.some((bp) => bp._id === parseInt(params.id))) {
 				error(400, `id is not in refined`);
 			}
 			db_prep_unrefined = await prep('refined', options, blueprints, platform.env);
@@ -144,23 +150,23 @@ export const load = async ({ cookies, platform, params }) => {
 	}
 
 	return {
-		input: cookies.get('input'),
-		inMarket: cookies.get('inMarket'),
-		output: cookies.get('output'),
-		outMarket: cookies.get('outMarket'),
-		brokers: cookies.get('brokers'),
-		sales: cookies.get('sales'),
-		skill: cookies.get('skill'),
-		facility: cookies.get('facility'),
-		rigs: cookies.get('rigs'),
-		space: cookies.get('space'),
-		system: cookies.get('system'),
-		tax: cookies.get('indyTax'),
-		scc: cookies.get('sccTax'),
-		duration: cookies.get('duration'),
-		cycles: cookies.get('cycles'),
+		input: cookies.get(`input${suffix}`),
+		inMarket: cookies.get(`inMarket${suffix}`),
+		output: cookies.get(`output${suffix}`),
+		outMarket: cookies.get(`outMarket${suffix}`),
+		brokers: cookies.get(`brokers${suffix}`),
+		sales: cookies.get(`sales${suffix}`),
+		skill: cookies.get(`skill${suffix}`),
+		facility: cookies.get(`facility${suffix}`),
+		rigs: cookies.get(`rigs${suffix}`),
+		space: cookies.get(`space${suffix}`),
+		system: cookies.get(`system${suffix}`),
+		tax: cookies.get(`indyTax${suffix}`),
+		scc: cookies.get(`sccTax${suffix}`),
+		duration: cookies.get(`duration${suffix}`),
+		cycles: cookies.get(`cycles${suffix}`),
 		type: params.type,
-		name: bps.find((bp) => bp._id === params.id).name,
+		name: bps.find((bp) => bp._id === parseInt(params.id)).name,
 		results: results
 	};
 };
@@ -168,8 +174,11 @@ export const load = async ({ cookies, platform, params }) => {
 export const actions = {
 	default: async ({ cookies, request }) => {
 		const data = await request.formData();
+		const settingsMode = cookies.get('settingsMode') || 'single';
+		const suffix = settingsMode === 'single' ? '' : '_composite';
+
 		for (const [key, value] of data.entries()) {
-			setCookie(cookies, key, value.toString());
+			setCookie(cookies, `${key}${suffix}`, value.toString());
 		}
 	}
 };
