@@ -10,6 +10,11 @@ export const load = async ({ cookies, platform, params }) => {
 	const settingsMode = cookies.get('settingsMode') || 'single';
 	const suffix = settingsMode === 'single' ? '' : '_composite';
 
+	// check for cycles cookie depending on settingsMode with suffix and set it if it doesn't exist
+	if (!cookies.get(`cycles${suffix}`)) {
+		setCookie(cookies, `cycles${suffix}`, cookies.get('cycles') || '50');
+	}
+
 	let options = {
 		input: cookies.get(`input${suffix}`),
 		inMarket: cookies.get(`inMarket${suffix}`),
@@ -36,7 +41,7 @@ export const load = async ({ cookies, platform, params }) => {
 		case 'simple':
 			bps = await blueprints.filter((bp) => bp.type === 'simple');
 			// check if type is in simple
-			if (!bps.some((bp) => bp._id === params.id)) {
+			if (!bps.some((bp) => bp._id === parseInt(params.id))) {
 				error(400, `id is not in simple`);
 			}
 			db_prep = await prep('simple', options, blueprints, platform.env);
@@ -57,7 +62,7 @@ export const load = async ({ cookies, platform, params }) => {
 		case 'complex':
 			bps = await blueprints.filter((bp) => bp.type === 'complex');
 			// check if type is in complex
-			if (!bps.some((bp) => bp._id === params.id)) {
+			if (!bps.some((bp) => bp._id === parseInt(params.id))) {
 				error(400, `id is not in complex`);
 			}
 			db_prep = await prep('complex', options, blueprints, platform.env);
@@ -78,7 +83,7 @@ export const load = async ({ cookies, platform, params }) => {
 		case 'chain':
 			bps = await blueprints.filter((bp) => bp.type === 'complex');
 			// check if type is in chain
-			if (!bps.some((bp) => bp._id === params.id)) {
+			if (!bps.some((bp) => bp._id === parseInt(params.id))) {
 				error(400, `id is not in chain`);
 			}
 			db_prep = await prep('chain', options, blueprints, platform.env);
@@ -100,7 +105,7 @@ export const load = async ({ cookies, platform, params }) => {
 		case 'unrefined':
 			bps = await blueprints.filter((bp) => bp.type === 'unrefined');
 			// check if type is in unrefined
-			if (!bps.some((bp) => bp._id === params.id)) {
+			if (!bps.some((bp) => bp._id === parseInt(params.id))) {
 				error(400, `id is not in unrefined`);
 			}
 			db_prep = await prep('unrefined', options, blueprints, platform.env);
@@ -121,7 +126,7 @@ export const load = async ({ cookies, platform, params }) => {
 		case 'refined':
 			bps = await blueprints.filter((bp) => bp.type === 'unrefined');
 			// check if type is in refined
-			if (!bps.some((bp) => bp._id === params.id)) {
+			if (!bps.some((bp) => bp._id === parseInt(params.id))) {
 				error(400, `id is not in refined`);
 			}
 			db_prep_unrefined = await prep('refined', options, blueprints, platform.env);
@@ -161,7 +166,7 @@ export const load = async ({ cookies, platform, params }) => {
 		duration: cookies.get(`duration${suffix}`),
 		cycles: cookies.get(`cycles${suffix}`),
 		type: params.type,
-		name: bps.find((bp) => bp._id === params.id).name,
+		name: bps.find((bp) => bp._id === parseInt(params.id)).name,
 		results: results
 	};
 };

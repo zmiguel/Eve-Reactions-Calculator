@@ -14,6 +14,13 @@
 
 	// Add suffix to input names if it exists
 	const getName = (base) => (suffix ? `${base}_${suffix}` : base);
+
+	$: {
+		wormhole_class = 'form-check form-check-inline';
+		if (wormhole_helper && space_helper !== 'wormhole') {
+			wormhole_class += ' bg-info';
+		}
+	}
 </script>
 
 <!-- Input Method -->

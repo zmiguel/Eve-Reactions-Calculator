@@ -6,6 +6,11 @@ export const load = async ({ cookies, platform, params }) => {
 	const settingsMode = cookies.get('settingsMode') || 'single';
 	const suffix = settingsMode === 'single' ? '' : '_hybrid';
 
+	// check for cycles cookie depending on settingsMode with suffix and set it if it doesn't exist
+	if (!cookies.get(`cycles${suffix}`)) {
+		setCookie(cookies, `cycles${suffix}`, cookies.get('cycles') || '50');
+	}
+
 	let options = {
 		input: cookies.get(`input${suffix}`),
 		inMarket: cookies.get(`inMarket${suffix}`),
@@ -27,7 +32,7 @@ export const load = async ({ cookies, platform, params }) => {
 
 	const blueprints = await JSON.parse(await platform.env.KV_DATA.get('bp-hybrid'));
 	// check if type is in hybrid
-	if (!blueprints.some((bp) => bp._id === params.id)) {
+	if (!blueprints.some((bp) => bp._id === parseInt(params.id))) {
 		error(400, `id is not in hybrid`);
 	}
 	const db_prep = await prep('hybrid', options, blueprints, platform.env);

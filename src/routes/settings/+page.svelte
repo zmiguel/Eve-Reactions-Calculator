@@ -1,26 +1,19 @@
 <script>
-	import { goto } from '$app/navigation';
-	import { enhance } from '$app/forms';
 	export let data;
+	import SettingsForm from './SettingsForm.svelte';
 
-	$: ({ settings, market_systems, settingsMode } = data);
-
-	let selected = {
-		suffix: settingsMode === 'single' ? 'single' : 'biochemical'
-	};
-
-	let suffixes = [
-		{ value: 'biochemical', label: 'Biochemical Reactions' },
-		{ value: 'composite', label: 'Composite Reactions' },
-		{ value: 'hybrid', label: 'Hybrid Polymer Reactions' }
-	];
+	let settingsMode = data.settingsMode;
 
 	let selected_system = data.settings.single.system;
 	let space_helper = data.settings.single.space;
 	let wormhole_helper = false;
 	let wormhole_class = 'form-check form-check-inline';
 
-	let activeTab = settingsMode === 'single' ? 'single' : 'biochemical';
+    let activeTab;
+    $: {
+        // This will re-run whenever settingsMode changes
+        activeTab = settingsMode === 'single' ? 'single' : 'biochemical';
+    }
 
 	// Get current settings based on active tab
 	$: currentSettings = data.settings[activeTab];
@@ -44,20 +37,14 @@
 		activeTab = 'biochemical';
 	}
 
-	$: {
-		wormhole_class = 'form-check form-check-inline';
-		if (wormhole_helper && space_helper !== 'wormhole') {
-			wormhole_class += ' bg-info';
-		}
-	}
-
-	// Add mapping for tab to suffix
-	const tabToSuffix = {
-		single: '',
-		biochemical: 'biochemical',
-		composite: 'composite',
-		hybrid: 'hybrid'
-	};
+    // Reactive update for settingsMode without form submission
+    function handleSettingsModeChange() {
+        if (settingsMode === 'single') {
+            activeTab = 'single';
+        } else {
+            activeTab = 'biochemical';
+        }
+    }
 </script>
 
 <svelte:head>
@@ -73,11 +60,7 @@
 					<select
 						class="form-select"
 						bind:value={settingsMode}
-						on:change={() => {
-							if (settingsMode === 'single') {
-								activeTab = 'single';
-							}
-						}}
+						on:change={handleSettingsModeChange}
 					>
 						<option value="single">Single Settings Mode</option>
 						<option value="separate">Separate Settings Mode</option>
