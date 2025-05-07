@@ -18,9 +18,9 @@
 		"@fortawesome/free-solid-svg-icons": "^6.7.2",
 		"@popperjs/core": "^2.11.8",
 		"@sveltejs/adapter-auto": "^4.0.0",
-		"@sveltejs/adapter-cloudflare": "^4.9.0",
+		"@sveltejs/adapter-cloudflare": "^7.0.3",
 		"@sveltejs/kit": "^2.20.8",
-		"@sveltejs/vite-plugin-svelte": "^3.1.2",
+		"@sveltejs/vite-plugin-svelte": "^5.0.3",
 		"@vincjo/datatables": "^1.14.10",
 		"bootstrap": "^5.3.6",
 		"eslint": "^9.26.0",
@@ -35,8 +35,8 @@
 		"svelte-check": "^4.1.7",
 		"svelte-fa": "^4.0.4",
 		"typescript": "^5.8.3",
-		"vite": "^5.4.19",
-		"wrangler": "^3.114.8"
+		"vite": "^6.3.5",
+		"wrangler": "^4.14.3"
 	},
 	"type": "module",
 	"dependencies": {
