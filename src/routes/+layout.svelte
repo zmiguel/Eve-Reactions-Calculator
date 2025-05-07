@@ -2,8 +2,10 @@
 	import '../app.scss';
 	import { page } from '$app/stores';
 	import { onMount } from 'svelte';
+	import rybbit from '@rybbit/js';
 
 	export let data;
+	let rybbitInstance = rybbit;
 
 	onMount(() => {
 		import('bootstrap/dist/js/bootstrap.bundle.min.js').then((bootstrap) => {
@@ -14,6 +16,12 @@
 				let modalInstance = new bootstrap.Modal(modalElement);
 				modalInstance.show();
 			}
+		});
+
+		rybbitInstance.init({
+			analyticsHost: "https://ry.zm.gl/api",
+			siteId: "1",
+			debounce: 250
 		});
 	});
 </script>
