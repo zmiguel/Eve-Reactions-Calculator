@@ -170,7 +170,7 @@
 
 	{#if isOpen && filteredItems.length > 0}
 		<div class="autocomplete-dropdown">
-			{#each filteredItems as item, index}
+			{#each filteredItems as item, index (item.id || item.name || index)}
 				<div
 					class="autocomplete-item {index === highlightedIndex ? 'highlighted' : ''}"
 					onclick={() => selectItem(item)}

@@ -112,7 +112,7 @@
 						</tr>
 					</thead>
 					<tbody>
-						{#each data.results?.input as mat}
+						{#each data.results?.input as mat (mat.id || mat.name)}
 							<tr class="">
 								<td>{mat.name}</td>
 								<td>{mat.quantity}</td>

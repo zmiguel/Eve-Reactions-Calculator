@@ -1,13 +1,12 @@
 <script>
-	import { DataHandler } from '@vincjo/datatables';
+	import { TableHandler } from '@vincjo/datatables';
 	import TH from '../TH.svelte';
 	import { onMount } from 'svelte';
 	import { goto } from '$app/navigation';
 
 	let { data } = $props();
 
-	const hybridHandler = new DataHandler(data.results, { rowsPerPage: 50 });
-	const hybridRows = hybridHandler.getRows();
+	const hybridHandler = new TableHandler(data.results, { rowsPerPage: 50 });
 
 	const nFormat = new Intl.NumberFormat();
 
@@ -28,7 +27,8 @@
 	}
 
 	onMount(() => {
-		hybridHandler.sortAsc('name');
+		const sort = hybridHandler.createSort('name');
+		sort.asc();
 	});
 </script>
 
@@ -86,7 +86,7 @@
 				</thead>
 				<tbody>
 					{#if data.results}
-						{#each $hybridRows as reaction}
+						{#each hybridHandler.rows as reaction (reaction.output.id)}
 							<tr
 								class={'link-row ' + reaction.style}
 								data-href="/hybrid/{reaction.output.id}"

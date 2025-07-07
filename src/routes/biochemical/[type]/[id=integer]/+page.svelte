@@ -4,7 +4,15 @@
 	const nFormat = new Intl.NumberFormat();
 
 	/**
-	 * @param {number | undefined} value - The number to format
+	 * @param {number | undefined						<tbody>
+							{#each data.results?.input as mat (mat.id)}
+								<tr class="">
+									<td>{mat.name}</td>
+									<td>{mat.quantity}</td>
+									<td class="isk">{nFormat.format(mat.price)}</td>
+								</tr>
+							{/each}
+						</tbody> The number to format
 	 * @returns {string} Formatted number or empty string if undefined
 	 */
 	function formatNumber(value) {
@@ -113,7 +121,7 @@
 							</tr>
 						</thead>
 						<tbody>
-							{#each data.results?.input as mat}
+							{#each data.results?.input as mat (mat.id || mat.name)}
 								<tr class="">
 									<td>{mat.name}</td>
 									<td>{mat.quantity}</td>
@@ -171,12 +179,12 @@
 			</div>
 
 			<div class="col-4">
-				{#each data.results?.steps as step}
+				{#each data.results?.steps as step (step.depth)}
 					<div class="card w-100 mb-4">
 						<div class="card-header bg-warning text-white text-center w-100 fw-bold">
 							INTERMEDIATE STEP {step.depth + 1}
 						</div>
-						{#each step.materials as mat}
+						{#each step.materials as mat (mat.output.id)}
 							<div class="card w-100 rounded-0">
 								<div class="card-header bg-warning-subtle text-center w-100 fw-bold rounded-0">
 									{mat.output.name}
@@ -189,7 +197,7 @@
 										</tr>
 									</thead>
 									<tbody>
-										{#each mat.inputs as input}
+										{#each mat.inputs as input (input.id)}
 											<tr class="">
 												<td>{input.name}</td>
 												<td>{input.quantity}</td>
@@ -221,7 +229,7 @@
 								<td class="isk">{formatNumber(data.results?.output.price)}</td>
 							</tr>
 							{#if data.results?.remaining.length > 0}
-								{#each data.results?.remaining as mat}
+								{#each data.results?.remaining as mat (mat.id || mat.name)}
 									<tr class="">
 										<td>{mat.name}</td>
 										<td>{mat.quantity}</td>
@@ -283,7 +291,7 @@
 							</tr>
 						</thead>
 						<tbody>
-							{#each data.results?.input as mat}
+							{#each data.results?.input as mat (mat.id || mat.name)}
 								<tr class="">
 									<td>{mat.name}</td>
 									<td>{mat.quantity}</td>
@@ -357,7 +365,7 @@
 								<td class="isk">{formatNumber(data.results?.output.price)}</td>
 							</tr>
 							{#if data.results?.remaining.length > 0}
-								{#each data.results?.remaining as mat}
+								{#each data.results?.remaining as mat (mat.id || mat.name)}
 									<tr class="">
 										<td>{mat.name}</td>
 										<td>{mat.quantity}</td>
