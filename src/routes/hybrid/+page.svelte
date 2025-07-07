@@ -1,7 +1,6 @@
 <script>
 	import { TableHandler } from '@vincjo/datatables';
 	import TH from '../TH.svelte';
-	import { onMount } from 'svelte';
 	import { goto } from '$app/navigation';
 
 	let { data } = $props();
@@ -25,11 +24,6 @@
 			goto(e.currentTarget.dataset.href);
 		}
 	}
-
-	onMount(() => {
-		const sort = hybridHandler.createSort('name');
-		sort.asc();
-	});
 </script>
 
 <svelte:head>
@@ -77,12 +71,14 @@
 			<div class="card-header bg-info text-white fw-bold text-center w-100">Hybrid Reactions</div>
 			<table width="100%" id="stab" class="table table-bordered text-center">
 				<thead>
-					<TH handler={hybridHandler} orderBy="name">Reaction</TH>
-					<TH handler={hybridHandler} orderBy="input_total">Inputs</TH>
-					<TH handler={hybridHandler} orderBy="taxes_total">Tax</TH>
-					<TH handler={hybridHandler} orderBy="output_total">Output</TH>
-					<TH handler={hybridHandler} orderBy="profit">Profit</TH>
-					<TH handler={hybridHandler} orderBy="profit_per">% prof.</TH>
+					<tr>
+						<TH handler={hybridHandler} orderBy="name">Reaction</TH>
+						<TH handler={hybridHandler} orderBy="input_total">Inputs</TH>
+						<TH handler={hybridHandler} orderBy="taxes_total">Tax</TH>
+						<TH handler={hybridHandler} orderBy="output_total">Output</TH>
+						<TH handler={hybridHandler} orderBy="profit">Profit</TH>
+						<TH handler={hybridHandler} orderBy="profit_per">% prof.</TH>
+					</tr>
 				</thead>
 				<tbody>
 					{#if data.results}

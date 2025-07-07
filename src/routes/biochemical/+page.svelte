@@ -1,7 +1,6 @@
 <script>
 	import { TableHandler } from '@vincjo/datatables';
 	import TH from '../TH.svelte';
-	import { onMount } from 'svelte';
 	import { goto } from '$app/navigation';
 
 	let { data } = $props();
@@ -37,23 +36,6 @@
 			goto(e.currentTarget.dataset.href);
 		}
 	}
-
-	onMount(() => {
-		const synthSort = synthHandler.createSort('name');
-		synthSort.asc();
-		const standardSort = standardHandler.createSort('name');
-		standardSort.asc();
-		const improvedSort = improvedHandler.createSort('name');
-		improvedSort.asc();
-		const improvedChainSort = improvedChainHandler.createSort('name');
-		improvedChainSort.asc();
-		const strongSort = strongHandler.createSort('name');
-		strongSort.asc();
-		const strongChainSort = strongChainHandler.createSort('name');
-		strongChainSort.asc();
-		const molecularSort = molecularHandler.createSort('name');
-		molecularSort.asc();
-	});
 </script>
 
 <svelte:head>
@@ -103,12 +85,14 @@
 			</div>
 			<table width="100%" id="stab" class="table table-bordered text-center">
 				<thead>
-					<TH handler={synthHandler} orderBy="name">Reaction</TH>
-					<TH handler={synthHandler} orderBy="input_total">Inputs</TH>
-					<TH handler={synthHandler} orderBy="taxes_total">Tax</TH>
-					<TH handler={synthHandler} orderBy="output_total">Output</TH>
-					<TH handler={synthHandler} orderBy="profit">Profit</TH>
-					<TH handler={synthHandler} orderBy="profit_per">% prof.</TH>
+					<tr>
+						<TH handler={synthHandler} orderBy="name">Reaction</TH>
+						<TH handler={synthHandler} orderBy="input_total">Inputs</TH>
+						<TH handler={synthHandler} orderBy="taxes_total">Tax</TH>
+						<TH handler={synthHandler} orderBy="output_total">Output</TH>
+						<TH handler={synthHandler} orderBy="profit">Profit</TH>
+						<TH handler={synthHandler} orderBy="profit_per">% prof.</TH>
+					</tr>
 				</thead>
 				<tbody>
 					{#if data.results.synth}
@@ -139,12 +123,14 @@
 			</div>
 			<table width="100%" id="stab" class="table table-bordered text-center">
 				<thead>
-					<TH handler={standardHandler} orderBy="name">Reaction</TH>
-					<TH handler={standardHandler} orderBy="input_total">Inputs</TH>
-					<TH handler={standardHandler} orderBy="taxes_total">Tax</TH>
-					<TH handler={standardHandler} orderBy="output_total">Output</TH>
-					<TH handler={standardHandler} orderBy="profit">Profit</TH>
-					<TH handler={standardHandler} orderBy="profit_per">% prof.</TH>
+					<tr>
+						<TH handler={standardHandler} orderBy="name">Reaction</TH>
+						<TH handler={standardHandler} orderBy="input_total">Inputs</TH>
+						<TH handler={standardHandler} orderBy="taxes_total">Tax</TH>
+						<TH handler={standardHandler} orderBy="output_total">Output</TH>
+						<TH handler={standardHandler} orderBy="profit">Profit</TH>
+						<TH handler={standardHandler} orderBy="profit_per">% prof.</TH>
+					</tr>
 				</thead>
 				<tbody>
 					{#if data.results.standard}
@@ -175,12 +161,14 @@
 			</div>
 			<table width="100%" id="stab" class="table table-bordered text-center">
 				<thead>
-					<TH handler={improvedHandler} orderBy="name">Reaction</TH>
-					<TH handler={improvedHandler} orderBy="input_total">Inputs</TH>
-					<TH handler={improvedHandler} orderBy="taxes_total">Tax</TH>
-					<TH handler={improvedHandler} orderBy="output_total">Output</TH>
-					<TH handler={improvedHandler} orderBy="profit">Profit</TH>
-					<TH handler={improvedHandler} orderBy="profit_per">% prof.</TH>
+					<tr>
+						<TH handler={improvedHandler} orderBy="name">Reaction</TH>
+						<TH handler={improvedHandler} orderBy="input_total">Inputs</TH>
+						<TH handler={improvedHandler} orderBy="taxes_total">Tax</TH>
+						<TH handler={improvedHandler} orderBy="output_total">Output</TH>
+						<TH handler={improvedHandler} orderBy="profit">Profit</TH>
+						<TH handler={improvedHandler} orderBy="profit_per">% prof.</TH>
+					</tr>
 				</thead>
 				<tbody>
 					{#if data.results.improved}
@@ -211,12 +199,14 @@
 			</div>
 			<table width="100%" id="stab" class="table table-bordered text-center">
 				<thead>
-					<TH handler={improvedChainHandler} orderBy="name">Reaction</TH>
-					<TH handler={improvedChainHandler} orderBy="input_total">Inputs</TH>
-					<TH handler={improvedChainHandler} orderBy="taxes_total">Tax</TH>
-					<TH handler={improvedChainHandler} orderBy="output_total">Output</TH>
-					<TH handler={improvedChainHandler} orderBy="profit">Profit</TH>
-					<TH handler={improvedChainHandler} orderBy="profit_per">% prof.</TH>
+					<tr>
+						<TH handler={improvedChainHandler} orderBy="name">Reaction</TH>
+						<TH handler={improvedChainHandler} orderBy="input_total">Inputs</TH>
+						<TH handler={improvedChainHandler} orderBy="taxes_total">Tax</TH>
+						<TH handler={improvedChainHandler} orderBy="output_total">Output</TH>
+						<TH handler={improvedChainHandler} orderBy="profit">Profit</TH>
+						<TH handler={improvedChainHandler} orderBy="profit_per">% prof.</TH>
+					</tr>
 				</thead>
 				<tbody>
 					{#if data.results.improved_chain}
@@ -247,12 +237,14 @@
 			</div>
 			<table width="100%" id="stab" class="table table-bordered text-center">
 				<thead>
-					<TH handler={strongHandler} orderBy="name">Reaction</TH>
-					<TH handler={strongHandler} orderBy="input_total">Inputs</TH>
-					<TH handler={strongHandler} orderBy="taxes_total">Tax</TH>
-					<TH handler={strongHandler} orderBy="output_total">Output</TH>
-					<TH handler={strongHandler} orderBy="profit">Profit</TH>
-					<TH handler={strongHandler} orderBy="profit_per">% prof.</TH>
+					<tr>
+						<TH handler={strongHandler} orderBy="name">Reaction</TH>
+						<TH handler={strongHandler} orderBy="input_total">Inputs</TH>
+						<TH handler={strongHandler} orderBy="taxes_total">Tax</TH>
+						<TH handler={strongHandler} orderBy="output_total">Output</TH>
+						<TH handler={strongHandler} orderBy="profit">Profit</TH>
+						<TH handler={strongHandler} orderBy="profit_per">% prof.</TH>
+					</tr>
 				</thead>
 				<tbody>
 					{#if data.results.strong}
@@ -283,12 +275,14 @@
 			</div>
 			<table width="100%" id="stab" class="table table-bordered text-center">
 				<thead>
-					<TH handler={strongChainHandler} orderBy="name">Reaction</TH>
-					<TH handler={strongChainHandler} orderBy="input_total">Inputs</TH>
-					<TH handler={strongChainHandler} orderBy="taxes_total">Tax</TH>
-					<TH handler={strongChainHandler} orderBy="output_total">Output</TH>
-					<TH handler={strongChainHandler} orderBy="profit">Profit</TH>
-					<TH handler={strongChainHandler} orderBy="profit_per">% prof.</TH>
+					<tr>
+						<TH handler={strongChainHandler} orderBy="name">Reaction</TH>
+						<TH handler={strongChainHandler} orderBy="input_total">Inputs</TH>
+						<TH handler={strongChainHandler} orderBy="taxes_total">Tax</TH>
+						<TH handler={strongChainHandler} orderBy="output_total">Output</TH>
+						<TH handler={strongChainHandler} orderBy="profit">Profit</TH>
+						<TH handler={strongChainHandler} orderBy="profit_per">% prof.</TH>
+					</tr>
 				</thead>
 				<tbody>
 					{#if data.results.strong_chain}
@@ -319,12 +313,14 @@
 			</div>
 			<table width="100%" id="stab" class="table table-bordered text-center">
 				<thead>
-					<TH handler={molecularHandler} orderBy="name">Reaction</TH>
-					<TH handler={molecularHandler} orderBy="input_total">Inputs</TH>
-					<TH handler={molecularHandler} orderBy="taxes_total">Tax</TH>
-					<TH handler={molecularHandler} orderBy="output_total">Output</TH>
-					<TH handler={molecularHandler} orderBy="profit">Profit</TH>
-					<TH handler={molecularHandler} orderBy="profit_per">% prof.</TH>
+					<tr>
+						<TH handler={molecularHandler} orderBy="name">Reaction</TH>
+						<TH handler={molecularHandler} orderBy="input_total">Inputs</TH>
+						<TH handler={molecularHandler} orderBy="taxes_total">Tax</TH>
+						<TH handler={molecularHandler} orderBy="output_total">Output</TH>
+						<TH handler={molecularHandler} orderBy="profit">Profit</TH>
+						<TH handler={molecularHandler} orderBy="profit_per">% prof.</TH>
+					</tr>
 				</thead>
 				<tbody>
 					{#if data.results.molecular}

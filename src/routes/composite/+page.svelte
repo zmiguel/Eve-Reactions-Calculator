@@ -1,7 +1,6 @@
 <script>
 	import { TableHandler } from '@vincjo/datatables';
 	import TH from '../TH.svelte';
-	import { onMount } from 'svelte';
 	import { goto } from '$app/navigation';
 
 	let { data } = $props();
@@ -33,19 +32,6 @@
 			goto(e.currentTarget.dataset.href);
 		}
 	}
-
-	onMount(() => {
-		const simpleSort = simpleHandler.createSort('name');
-		simpleSort.asc();
-		const complexSort = complexHandler.createSort('name');
-		complexSort.asc();
-		const chainSort = chainHandler.createSort('name');
-		chainSort.asc();
-		const unrefinedSort = unrefinedHandler.createSort('name');
-		unrefinedSort.asc();
-		const refinedSort = refinedHandler.createSort('name');
-		refinedSort.asc();
-	});
 </script>
 
 <svelte:head>
@@ -93,12 +79,14 @@
 			<div class="card-header bg-info text-white fw-bold text-center w-100">Simple Reactions</div>
 			<table width="100%" id="stab" class="table table-bordered text-center">
 				<thead>
-					<TH handler={simpleHandler} orderBy="name">Reaction</TH>
-					<TH handler={simpleHandler} orderBy="input_total">Inputs</TH>
-					<TH handler={simpleHandler} orderBy="taxes_total">Tax</TH>
-					<TH handler={simpleHandler} orderBy="output_total">Output</TH>
-					<TH handler={simpleHandler} orderBy="profit">Profit</TH>
-					<TH handler={simpleHandler} orderBy="profit_per">% prof.</TH>
+					<tr>
+						<TH handler={simpleHandler} orderBy="name">Reaction</TH>
+						<TH handler={simpleHandler} orderBy="input_total">Inputs</TH>
+						<TH handler={simpleHandler} orderBy="taxes_total">Tax</TH>
+						<TH handler={simpleHandler} orderBy="output_total">Output</TH>
+						<TH handler={simpleHandler} orderBy="profit">Profit</TH>
+						<TH handler={simpleHandler} orderBy="profit_per">% prof.</TH>
+					</tr>
 				</thead>
 				<tbody>
 					{#if data.results.simple}
@@ -125,12 +113,14 @@
 			<div class="card-header bg-info text-white fw-bold text-center w-100">Complex Reactions</div>
 			<table width="100%" id="stab" class="table table-bordered text-center">
 				<thead>
-					<TH handler={complexHandler} orderBy="name">Reaction</TH>
-					<TH handler={complexHandler} orderBy="input_total">Inputs</TH>
-					<TH handler={complexHandler} orderBy="taxes_total">Tax</TH>
-					<TH handler={complexHandler} orderBy="output_total">Output</TH>
-					<TH handler={complexHandler} orderBy="profit">Profit</TH>
-					<TH handler={complexHandler} orderBy="profit_per">% prof.</TH>
+					<tr>
+						<TH handler={complexHandler} orderBy="name">Reaction</TH>
+						<TH handler={complexHandler} orderBy="input_total">Inputs</TH>
+						<TH handler={complexHandler} orderBy="taxes_total">Tax</TH>
+						<TH handler={complexHandler} orderBy="output_total">Output</TH>
+						<TH handler={complexHandler} orderBy="profit">Profit</TH>
+						<TH handler={complexHandler} orderBy="profit_per">% prof.</TH>
+					</tr>
 				</thead>
 				<tbody>
 					{#if data.results.complex}
@@ -159,12 +149,14 @@
 			</div>
 			<table width="100%" id="stab" class="table table-bordered text-center">
 				<thead>
-					<TH handler={chainHandler} orderBy="name">Reaction</TH>
-					<TH handler={chainHandler} orderBy="input_total">Inputs</TH>
-					<TH handler={chainHandler} orderBy="taxes_total">Tax</TH>
-					<TH handler={chainHandler} orderBy="output_total">Output</TH>
-					<TH handler={chainHandler} orderBy="profit">Profit</TH>
-					<TH handler={chainHandler} orderBy="profit_per">% prof.</TH>
+					<tr>
+						<TH handler={chainHandler} orderBy="name">Reaction</TH>
+						<TH handler={chainHandler} orderBy="input_total">Inputs</TH>
+						<TH handler={chainHandler} orderBy="taxes_total">Tax</TH>
+						<TH handler={chainHandler} orderBy="output_total">Output</TH>
+						<TH handler={chainHandler} orderBy="profit">Profit</TH>
+						<TH handler={chainHandler} orderBy="profit_per">% prof.</TH>
+					</tr>
 				</thead>
 				<tbody>
 					{#if data.results.chain}
@@ -193,12 +185,14 @@
 			</div>
 			<table width="100%" id="stab" class="table table-bordered text-center">
 				<thead>
-					<TH handler={unrefinedHandler} orderBy="name">Reaction</TH>
-					<TH handler={unrefinedHandler} orderBy="input_total">Inputs</TH>
-					<TH handler={unrefinedHandler} orderBy="taxes_total">Tax</TH>
-					<TH handler={unrefinedHandler} orderBy="output_total">Output</TH>
-					<TH handler={unrefinedHandler} orderBy="profit">Profit</TH>
-					<TH handler={unrefinedHandler} orderBy="profit_per">% prof.</TH>
+					<tr>
+						<TH handler={unrefinedHandler} orderBy="name">Reaction</TH>
+						<TH handler={unrefinedHandler} orderBy="input_total">Inputs</TH>
+						<TH handler={unrefinedHandler} orderBy="taxes_total">Tax</TH>
+						<TH handler={unrefinedHandler} orderBy="output_total">Output</TH>
+						<TH handler={unrefinedHandler} orderBy="profit">Profit</TH>
+						<TH handler={unrefinedHandler} orderBy="profit_per">% prof.</TH>
+					</tr>
 				</thead>
 				<tbody>
 					{#if data.results.unrefined}
@@ -227,12 +221,14 @@
 			</div>
 			<table width="100%" id="stab" class="table table-bordered text-center">
 				<thead>
-					<TH handler={refinedHandler} orderBy="name">Reaction</TH>
-					<TH handler={refinedHandler} orderBy="input_total">Inputs</TH>
-					<TH handler={refinedHandler} orderBy="taxes_total">Tax</TH>
-					<TH handler={refinedHandler} orderBy="output_total">Output</TH>
-					<TH handler={refinedHandler} orderBy="profit">Profit</TH>
-					<TH handler={refinedHandler} orderBy="profit_per">% prof.</TH>
+					<tr>
+						<TH handler={refinedHandler} orderBy="name">Reaction</TH>
+						<TH handler={refinedHandler} orderBy="input_total">Inputs</TH>
+						<TH handler={refinedHandler} orderBy="taxes_total">Tax</TH>
+						<TH handler={refinedHandler} orderBy="output_total">Output</TH>
+						<TH handler={refinedHandler} orderBy="profit">Profit</TH>
+						<TH handler={refinedHandler} orderBy="profit_per">% prof.</TH>
+					</tr>
 				</thead>
 				<tbody>
 					{#if data.results.refined}
