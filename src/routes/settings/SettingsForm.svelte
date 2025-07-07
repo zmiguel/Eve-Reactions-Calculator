@@ -393,21 +393,21 @@
 		<div class="input-group w-50">
 			<div class="input-group-text" id="systemHelpBlock">
 				<Fa icon={faHome} />
+				<AutoComplete
+					hideArrow
+					items={systems}
+					id={getName('system')}
+					name={getName('system')}
+					placeholder="Ignoitton"
+					class="form-control here"
+					showClear="true"
+					required
+					bind:selectedItem={selected_system}
+					onChange={() => {
+						wormhole_helper = !!selected_system?.match(/J[0-9]{6}/);
+					}}
+				/>
 			</div>
-			<AutoComplete
-				hideArrow
-				items={systems}
-				id={getName('system')}
-				name={getName('system')}
-				placeholder="Ignoitton"
-				class="form-control here"
-				showClear="true"
-				required
-				bind:selectedItem={selected_system}
-				onChange={() => {
-					wormhole_helper = !!selected_system?.match(/J[0-9]{6}/);
-				}}
-			/>
 		</div>
 		<div id="systemHelpBlock" class="form-text text-muted">
 			What system are you doing reactions in? used to calculate cost index.
