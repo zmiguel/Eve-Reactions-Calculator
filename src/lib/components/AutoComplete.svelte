@@ -207,12 +207,6 @@
 		padding-right: 60px; /* Space for clear and arrow buttons */
 	}
 
-	/* When used in Bootstrap input-group, remove conflicting styles */
-	:global(.input-group) .autocomplete-input {
-		border: none;
-		border-radius: 0;
-	}
-
 	.autocomplete-clear,
 	.autocomplete-arrow {
 		position: absolute;
