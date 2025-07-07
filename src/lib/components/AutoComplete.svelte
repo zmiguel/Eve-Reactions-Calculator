@@ -155,7 +155,7 @@
 			on:focus={handleFocus}
 			on:blur={handleBlur}
 			autocomplete="off"
-/>
+		/>
 		{#if showClear && selectedItem}
 			<button
 				type="button"

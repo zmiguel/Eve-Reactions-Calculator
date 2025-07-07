@@ -100,75 +100,75 @@
 	</div>
 
 	<div class="row mt-5">
-	{#if data.results?.steps}
-		<div class="col-4">
-			<div class="card w-100">
-				<div class="card-header bg-danger text-white text-center w-100 fw-bold">INPUTS</div>
-				<table width="100%" class="table table-sm table-bordered text-center">
-					<thead>
-						<tr>
-							<th>Name</th>
-							<th>Quantity</th>
-							<th>Price</th>
-						</tr>
-					</thead>
-					<tbody>
-						{#each data.results?.input as mat}
-							<tr class="">
-								<td>{mat.name}</td>
-								<td>{mat.quantity}</td>
-								<td class="isk">{formatNumber(mat.price)}</td>
+		{#if data.results?.steps}
+			<div class="col-4">
+				<div class="card w-100">
+					<div class="card-header bg-danger text-white text-center w-100 fw-bold">INPUTS</div>
+					<table width="100%" class="table table-sm table-bordered text-center">
+						<thead>
+							<tr>
+								<th>Name</th>
+								<th>Quantity</th>
+								<th>Price</th>
 							</tr>
-						{/each}
-					</tbody>
-					<tfoot>
-						<tr class="fw-bold">
-							<td colspan="2">TOTAL</td>
-							<td class="isk">{formatNumber(data.results?.input_total)}</td>
-						</tr>
-					</tfoot>
-				</table>
+						</thead>
+						<tbody>
+							{#each data.results?.input as mat}
+								<tr class="">
+									<td>{mat.name}</td>
+									<td>{mat.quantity}</td>
+									<td class="isk">{formatNumber(mat.price)}</td>
+								</tr>
+							{/each}
+						</tbody>
+						<tfoot>
+							<tr class="fw-bold">
+								<td colspan="2">TOTAL</td>
+								<td class="isk">{formatNumber(data.results?.input_total)}</td>
+							</tr>
+						</tfoot>
+					</table>
+				</div>
+				<div class="card w-100 mt-4">
+					<div class="card-header bg-danger text-white text-center w-100 fw-bold">TAXES</div>
+					<table width="100%" class="table table-sm table-bordered text-center">
+						<thead>
+							<tr>
+								<th>Name</th>
+								<th>Price</th>
+							</tr>
+						</thead>
+						<tbody>
+							<tr class="">
+								<td>Cost Index</td>
+								<td class="isk">{formatNumber(data.results?.taxes.system)}</td>
+							</tr>
+							<tr class="">
+								<td>Facility Tax</td>
+								<td class="isk">{formatNumber(data.results?.taxes.facility)}</td>
+							</tr>
+							<tr class="">
+								<td>SCC Tax</td>
+								<td class="isk">{formatNumber(data.results?.taxes.scc)}</td>
+							</tr>
+							<tr class="">
+								<td>Market Tax Inputs</td>
+								<td class="isk">{formatNumber(data.results?.taxes.market.total.inputs)}</td>
+							</tr>
+							<tr class="">
+								<td>Market Tax Output</td>
+								<td class="isk">{formatNumber(data.results?.taxes.market.total.output)}</td>
+							</tr>
+						</tbody>
+						<tfoot>
+							<tr class="fw-bold">
+								<td>TOTAL</td>
+								<td class="isk">{formatNumber(data.results?.taxes_total)}</td>
+							</tr>
+						</tfoot>
+					</table>
+				</div>
 			</div>
-			<div class="card w-100 mt-4">
-				<div class="card-header bg-danger text-white text-center w-100 fw-bold">TAXES</div>
-				<table width="100%" class="table table-sm table-bordered text-center">
-					<thead>
-						<tr>
-							<th>Name</th>
-							<th>Price</th>
-						</tr>
-					</thead>
-					<tbody>
-						<tr class="">
-							<td>Cost Index</td>
-							<td class="isk">{formatNumber(data.results?.taxes.system)}</td>
-						</tr>
-						<tr class="">
-							<td>Facility Tax</td>
-							<td class="isk">{formatNumber(data.results?.taxes.facility)}</td>
-						</tr>
-						<tr class="">
-							<td>SCC Tax</td>
-							<td class="isk">{formatNumber(data.results?.taxes.scc)}</td>
-						</tr>
-						<tr class="">
-							<td>Market Tax Inputs</td>
-							<td class="isk">{formatNumber(data.results?.taxes.market.total.inputs)}</td>
-						</tr>
-						<tr class="">
-							<td>Market Tax Output</td>
-							<td class="isk">{formatNumber(data.results?.taxes.market.total.output)}</td>
-						</tr>
-					</tbody>
-					<tfoot>
-						<tr class="fw-bold">
-							<td>TOTAL</td>
-							<td class="isk">{formatNumber(data.results?.taxes_total)}</td>
-						</tr>
-					</tfoot>
-				</table>
-			</div>
-		</div>
 
 			<div class="col-4">
 				{#each data.results?.steps as step}
