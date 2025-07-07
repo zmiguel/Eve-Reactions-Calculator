@@ -4,7 +4,7 @@
 	import { onMount } from 'svelte';
 	import { goto } from '$app/navigation';
 
-	export let data;
+	let { data } = $props();
 
 	const synthHandler = new DataHandler(data.results.synth, { rowsPerPage: 50 });
 	const synthRows = synthHandler.getRows();
@@ -108,7 +108,7 @@
 							<tr
 								class={'link-row ' + reaction.style}
 								data-href="/biochemical/simple/{reaction.output.id}"
-								on:click={rowClickHandler}
+								onclick={rowClickHandler}
 							>
 								<td>{reaction.name}</td>
 								<td class="isk">{nFormat.format(reaction.input_total)}</td>
@@ -144,7 +144,7 @@
 							<tr
 								class={'link-row ' + reaction.style}
 								data-href="/biochemical/simple/{reaction.output.id}"
-								on:click={rowClickHandler}
+								onclick={rowClickHandler}
 							>
 								<td>{reaction.name}</td>
 								<td class="isk">{nFormat.format(reaction.input_total)}</td>
@@ -180,7 +180,7 @@
 							<tr
 								class={'link-row ' + reaction.style}
 								data-href="/biochemical/simple/{reaction.output.id}"
-								on:click={rowClickHandler}
+								onclick={rowClickHandler}
 							>
 								<td>{reaction.name}</td>
 								<td class="isk">{nFormat.format(reaction.input_total)}</td>
@@ -216,7 +216,7 @@
 							<tr
 								class={'link-row ' + reaction.style}
 								data-href="/biochemical/chain/{reaction.output.id}"
-								on:click={rowClickHandler}
+								onclick={rowClickHandler}
 							>
 								<td>{reaction.name}</td>
 								<td class="isk">{nFormat.format(reaction.input_total)}</td>
@@ -252,7 +252,7 @@
 							<tr
 								class={'link-row ' + reaction.style}
 								data-href="/biochemical/simple/{reaction.output.id}"
-								on:click={rowClickHandler}
+								onclick={rowClickHandler}
 							>
 								<td>{reaction.name}</td>
 								<td class="isk">{nFormat.format(reaction.input_total)}</td>
@@ -288,7 +288,7 @@
 							<tr
 								class={'link-row ' + reaction.style}
 								data-href="/biochemical/chain/{reaction.output.id}"
-								on:click={rowClickHandler}
+								onclick={rowClickHandler}
 							>
 								<td>{reaction.name}</td>
 								<td class="isk">{nFormat.format(reaction.input_total)}</td>
@@ -324,7 +324,7 @@
 							<tr
 								class={'link-row ' + reaction.style}
 								data-href="/biochemical/simple/{reaction.output.id}"
-								on:click={rowClickHandler}
+								onclick={rowClickHandler}
 							>
 								<td>{reaction.name}</td>
 								<td class="isk">{nFormat.format(reaction.input_total)}</td>

@@ -4,7 +4,7 @@
 	import { onMount } from 'svelte';
 	import { goto } from '$app/navigation';
 
-	export let data;
+	let { data } = $props();
 
 	const hybridHandler = new DataHandler(data.results, { rowsPerPage: 50 });
 	const hybridRows = hybridHandler.getRows();
@@ -82,7 +82,7 @@
 							<tr
 								class={'link-row ' + reaction.style}
 								data-href="/hybrid/{reaction.output.id}"
-								on:click={rowClickHandler}
+								onclick={rowClickHandler}
 							>
 								<td>{reaction.name}</td>
 								<td class="isk">{nFormat.format(reaction.input_total)}</td>

@@ -1,17 +1,24 @@
 <script>
-	export let handler;
-	export let orderBy = null;
+	/**
+	 * @typedef {Object} Props
+	 * @property {any} handler
+	 * @property {any} [orderBy]
+	 * @property {import('svelte').Snippet} [children]
+	 */
+
+	/** @type {Props} */
+	let { handler, orderBy = null, children } = $props();
 
 	const identifier = orderBy?.toString();
 	const sorted = handler.getSort();
 </script>
 
-<th on:click={() => handler.sort(orderBy)} class:active={$sorted.identifier === identifier}>
+<th onclick={() => handler.sort(orderBy)} class:active={$sorted.identifier === identifier}>
 	<div class="flex">
 		<strong>
-			<slot />
+			{@render children?.()}
 		</strong>
-		<span class:asc={$sorted.direction === 'asc'} class:desc={$sorted.direction === 'desc'} />
+		<span class:asc={$sorted.direction === 'asc'} class:desc={$sorted.direction === 'desc'}></span>
 	</div>
 </th>
 

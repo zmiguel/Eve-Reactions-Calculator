@@ -1,5 +1,5 @@
 <script>
-	export let data;
+	let { data } = $props();
 
 	const nFormat = new Intl.NumberFormat();
 </script>

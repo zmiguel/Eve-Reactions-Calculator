@@ -4,7 +4,7 @@
 	import { onMount } from 'svelte';
 	import { goto } from '$app/navigation';
 
-	export let data;
+	let { data } = $props();
 
 	const simpleHandler = new DataHandler(data.results.simple, { rowsPerPage: 50 });
 	const simpleRows = simpleHandler.getRows();
@@ -98,7 +98,7 @@
 							<tr
 								class={'link-row ' + reaction.style}
 								data-href="/composite/simple/{reaction.output.id}"
-								on:click={rowClickHandler}
+								onclick={rowClickHandler}
 							>
 								<td>{reaction.name}</td>
 								<td class="isk">{nFormat.format(reaction.input_total)}</td>
@@ -130,7 +130,7 @@
 							<tr
 								class={'link-row ' + reaction.style}
 								data-href="/composite/complex/{reaction.output.id}"
-								on:click={rowClickHandler}
+								onclick={rowClickHandler}
 							>
 								<td>{reaction.name}</td>
 								<td class="isk">{nFormat.format(reaction.input_total)}</td>
@@ -164,7 +164,7 @@
 							<tr
 								class={'link-row ' + reaction.style}
 								data-href="/composite/chain/{reaction.output.id}"
-								on:click={rowClickHandler}
+								onclick={rowClickHandler}
 							>
 								<td>{reaction.name}</td>
 								<td class="isk">{nFormat.format(reaction.input_total)}</td>
@@ -198,7 +198,7 @@
 							<tr
 								class={'link-row ' + reaction.style}
 								data-href="/composite/unrefined/{reaction.output.id}"
-								on:click={rowClickHandler}
+								onclick={rowClickHandler}
 							>
 								<td>{reaction.name}</td>
 								<td class="isk">{nFormat.format(reaction.input_total)}</td>
@@ -232,7 +232,7 @@
 							<tr
 								class={'link-row ' + reaction.style}
 								data-href="/composite/refined/{reaction.intermediates.id}"
-								on:click={rowClickHandler}
+								onclick={rowClickHandler}
 							>
 								<td>{reaction.name}</td>
 								<td class="isk">{nFormat.format(reaction.input_total)}</td>

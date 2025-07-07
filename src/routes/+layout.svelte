@@ -3,7 +3,7 @@
 	import { page } from '$app/stores';
 	import { onMount } from 'svelte';
 
-	export let data;
+	let { data, children } = $props();
 
 	onMount(() => {
 		import('bootstrap/dist/js/bootstrap.bundle.min.js').then((bootstrap) => {
@@ -63,7 +63,7 @@
 			aria-expanded="false"
 			aria-label="Toggle navigation"
 		>
-			<span class="navbar-toggler-icon" />
+			<span class="navbar-toggler-icon"></span>
 		</button>
 		<div class="collapse navbar-collapse" id="navbarResponsive">
 			<ul class="navbar-nav ms-auto">
@@ -108,7 +108,7 @@
 	</div>
 </nav>
 
-<slot />
+{@render children?.()}
 
 <div
 	class="modal fade"
@@ -121,7 +121,7 @@
 		<div class="modal-content">
 			<div class="modal-header">
 				<h1 class="modal-title fs-5" id="copyrightModalLabel">CCP Copyright Notice</h1>
-				<button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close" />
+				<button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
 			</div>
 			<div class="modal-body">
 				<p>
@@ -158,7 +158,7 @@
 		<div class="modal-content bg-dark text-white">
 			<div class="modal-header">
 				<h1 class="modal-title fs-5" id="partnerModalLabel">EVE Online Partner</h1>
-				<button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close" />
+				<button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
 			</div>
 			<div class="modal-body">
 				<p>
