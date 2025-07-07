@@ -112,7 +112,7 @@
 				</thead>
 				<tbody>
 					{#if data.results.synth}
-						{#each synthHandler.rows as reaction}
+						{#each synthHandler.rows as reaction (reaction.output.id)}
 							<tr
 								class={'link-row ' + reaction.style}
 								data-href="/biochemical/simple/{reaction.output.id}"
@@ -148,7 +148,7 @@
 				</thead>
 				<tbody>
 					{#if data.results.standard}
-						{#each standardHandler.rows as reaction}
+						{#each standardHandler.rows as reaction (reaction.output.id)}
 							<tr
 								class={'link-row ' + reaction.style}
 								data-href="/biochemical/simple/{reaction.output.id}"
@@ -184,7 +184,7 @@
 				</thead>
 				<tbody>
 					{#if data.results.improved}
-						{#each improvedHandler.rows as reaction}
+						{#each improvedHandler.rows as reaction (reaction.output.id)}
 							<tr
 								class={'link-row ' + reaction.style}
 								data-href="/biochemical/simple/{reaction.output.id}"
@@ -220,7 +220,7 @@
 				</thead>
 				<tbody>
 					{#if data.results.improved_chain}
-						{#each improvedChainHandler.rows as reaction}
+						{#each improvedChainHandler.rows as reaction (reaction.output.id)}
 							<tr
 								class={'link-row ' + reaction.style}
 								data-href="/biochemical/chain/{reaction.output.id}"
@@ -256,7 +256,7 @@
 				</thead>
 				<tbody>
 					{#if data.results.strong}
-						{#each strongHandler.rows as reaction}
+						{#each strongHandler.rows as reaction (reaction.output.id)}
 							<tr
 								class={'link-row ' + reaction.style}
 								data-href="/biochemical/simple/{reaction.output.id}"
@@ -292,7 +292,7 @@
 				</thead>
 				<tbody>
 					{#if data.results.strong_chain}
-						{#each strongChainHandler.rows as reaction}
+						{#each strongChainHandler.rows as reaction (reaction.output.id)}
 							<tr
 								class={'link-row ' + reaction.style}
 								data-href="/biochemical/chain/{reaction.output.id}"
@@ -328,7 +328,7 @@
 				</thead>
 				<tbody>
 					{#if data.results.molecular}
-						{#each molecularHandler.rows as reaction}
+						{#each molecularHandler.rows as reaction (reaction.output.id)}
 							<tr
 								class={'link-row ' + reaction.style}
 								data-href="/biochemical/simple/{reaction.output.id}"

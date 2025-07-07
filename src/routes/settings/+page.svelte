@@ -9,10 +9,9 @@
 	let wormhole_helper = $state(false);
 	let wormhole_class = $state('form-check form-check-inline');
 
-	let activeTab = $state();
-	$effect(() => {
-		// This will re-run whenever settingsMode changes
-		activeTab = settingsMode === 'single' ? 'single' : 'biochemical';
+	// Use writable derived instead of state + effect
+	let activeTab = $derived.by(() => {
+		return settingsMode === 'single' ? 'single' : 'biochemical';
 	});
 
 	// Get current settings based on active tab

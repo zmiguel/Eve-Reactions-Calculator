@@ -9,7 +9,6 @@
 	/** @type {Props} */
 	let { handler, orderBy = null, children } = $props();
 
-	const identifier = orderBy?.toString();
 	const sort = handler.createSort(orderBy);
 </script>
 

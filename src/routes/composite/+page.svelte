@@ -102,7 +102,7 @@
 				</thead>
 				<tbody>
 					{#if data.results.simple}
-						{#each simpleHandler.rows as reaction}
+						{#each simpleHandler.rows as reaction (reaction.output.id)}
 							<tr
 								class={'link-row ' + reaction.style}
 								data-href="/composite/simple/{reaction.output.id}"
@@ -134,7 +134,7 @@
 				</thead>
 				<tbody>
 					{#if data.results.complex}
-						{#each complexHandler.rows as reaction}
+						{#each complexHandler.rows as reaction (reaction.output.id)}
 							<tr
 								class={'link-row ' + reaction.style}
 								data-href="/composite/complex/{reaction.output.id}"
@@ -168,7 +168,7 @@
 				</thead>
 				<tbody>
 					{#if data.results.chain}
-						{#each chainHandler.rows as reaction}
+						{#each chainHandler.rows as reaction (reaction.output.id)}
 							<tr
 								class={'link-row ' + reaction.style}
 								data-href="/composite/chain/{reaction.output.id}"
@@ -202,7 +202,7 @@
 				</thead>
 				<tbody>
 					{#if data.results.unrefined}
-						{#each unrefinedHandler.rows as reaction}
+						{#each unrefinedHandler.rows as reaction (reaction.output.id)}
 							<tr
 								class={'link-row ' + reaction.style}
 								data-href="/composite/unrefined/{reaction.output.id}"
@@ -236,7 +236,7 @@
 				</thead>
 				<tbody>
 					{#if data.results.refined}
-						{#each refinedHandler.rows as reaction}
+						{#each refinedHandler.rows as reaction (reaction.intermediates.id)}
 							<tr
 								class={'link-row ' + reaction.style}
 								data-href="/composite/refined/{reaction.intermediates.id}"

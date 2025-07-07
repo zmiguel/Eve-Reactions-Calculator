@@ -113,7 +113,7 @@
 							</tr>
 						</thead>
 						<tbody>
-							{#each data.results?.input as mat}
+							{#each data.results?.input as mat (mat.id || mat.name)}
 								<tr class="">
 									<td>{mat.name}</td>
 									<td>{mat.quantity}</td>
@@ -243,7 +243,7 @@
 							</tr>
 						</thead>
 						<tbody>
-							{#each data.results?.input as mat}
+							{#each data.results?.input as mat (mat.id || mat.name)}
 								<tr class="">
 									<td>{mat.name}</td>
 									<td>{mat.quantity}</td>
@@ -313,7 +313,7 @@
 							</tr>
 						</thead>
 						<tbody>
-							{#each data.results?.intermediates?.input as mat}
+							{#each data.results?.intermediates?.input as mat (mat.id || mat.name)}
 								<tr class="">
 									<td>{mat.name}</td>
 									<td>{mat.quantity}</td>
@@ -387,7 +387,7 @@
 								<td class="isk">{formatNumber(data.results?.output.price)}</td>
 							</tr>
 							{#if data.results?.remaining.length > 0}
-								{#each data.results?.remaining as mat}
+								{#each data.results?.remaining as mat (mat.id || mat.name)}
 									<tr class="">
 										<td>{mat.name}</td>
 										<td>{mat.quantity}</td>
@@ -452,7 +452,7 @@
 							</tr>
 						</thead>
 						<tbody>
-							{#each data.results?.input as mat}
+							{#each data.results?.input as mat (mat.id || mat.name)}
 								<tr class="">
 									<td>{mat.name}</td>
 									<td>{mat.quantity}</td>
@@ -543,7 +543,7 @@
 							</tr>
 						</thead>
 						<tbody>
-							{#each data.results?.output as mat}
+							{#each data.results?.output as mat (mat.id || mat.name)}
 								<tr class="">
 									<td>{mat.name}</td>
 									<td>{mat.quantity}</td>

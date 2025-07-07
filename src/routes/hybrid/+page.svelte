@@ -86,7 +86,7 @@
 				</thead>
 				<tbody>
 					{#if data.results}
-						{#each hybridHandler.rows as reaction}
+						{#each hybridHandler.rows as reaction (reaction.output.id)}
 							<tr
 								class={'link-row ' + reaction.style}
 								data-href="/hybrid/{reaction.output.id}"

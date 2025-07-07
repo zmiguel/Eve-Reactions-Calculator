@@ -89,7 +89,7 @@
 			aria-describedby="inMarketHelpBlock"
 			required
 		>
-			{#each market_systems as system}
+			{#each market_systems as system (system)}
 				<option value={system} selected={settings.inMarket === system}>{system}</option>
 			{/each}
 		</select>
@@ -146,7 +146,7 @@
 			aria-describedby="outMarketHelpBlock"
 			required
 		>
-			{#each market_systems as system}
+			{#each market_systems as system (system)}
 				<option value={system} selected={settings.outMarket === system}>{system}</option>
 			{/each}
 		</select>
