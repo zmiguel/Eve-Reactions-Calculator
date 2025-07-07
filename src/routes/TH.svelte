@@ -10,15 +10,15 @@
 	let { handler, orderBy = null, children } = $props();
 
 	const identifier = orderBy?.toString();
-	const sorted = handler.getSort();
+	const sort = handler.createSort(orderBy);
 </script>
 
-<th onclick={() => handler.sort(orderBy)} class:active={$sorted.identifier === identifier}>
+<th onclick={() => sort.set()} class:active={sort.isActive}>
 	<div class="flex">
 		<strong>
 			{@render children?.()}
 		</strong>
-		<span class:asc={$sorted.direction === 'asc'} class:desc={$sorted.direction === 'desc'}></span>
+		<span class:asc={sort.direction === 'asc'} class:desc={sort.direction === 'desc'}></span>
 	</div>
 </th>
 

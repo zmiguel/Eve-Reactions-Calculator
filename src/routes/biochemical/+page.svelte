@@ -1,31 +1,24 @@
 <script>
-	import { DataHandler } from '@vincjo/datatables';
+	import { TableHandler } from '@vincjo/datatables/server';
 	import TH from '../TH.svelte';
 	import { onMount } from 'svelte';
 	import { goto } from '$app/navigation';
 
 	let { data } = $props();
 
-	const synthHandler = new DataHandler(data.results.synth, { rowsPerPage: 50 });
-	const synthRows = synthHandler.getRows();
+	const synthHandler = new TableHandler(data.results.synth, { rowsPerPage: 50 });
 
-	const standardHandler = new DataHandler(data.results.standard, { rowsPerPage: 50 });
-	const standardRows = standardHandler.getRows();
+	const standardHandler = new TableHandler(data.results.standard, { rowsPerPage: 50 });
 
-	const improvedHandler = new DataHandler(data.results.improved, { rowsPerPage: 50 });
-	const improvedRows = improvedHandler.getRows();
+	const improvedHandler = new TableHandler(data.results.improved, { rowsPerPage: 50 });
 
-	const improvedChainHandler = new DataHandler(data.results.improved_chain, { rowsPerPage: 50 });
-	const improvedChainRows = improvedChainHandler.getRows();
+	const improvedChainHandler = new TableHandler(data.results.improved_chain, { rowsPerPage: 50 });
 
-	const strongHandler = new DataHandler(data.results.strong, { rowsPerPage: 50 });
-	const strongRows = strongHandler.getRows();
+	const strongHandler = new TableHandler(data.results.strong, { rowsPerPage: 50 });
 
-	const strongChainHandler = new DataHandler(data.results.strong_chain, { rowsPerPage: 50 });
-	const strongChainRows = strongChainHandler.getRows();
+	const strongChainHandler = new TableHandler(data.results.strong_chain, { rowsPerPage: 50 });
 
-	const molecularHandler = new DataHandler(data.results.molecular, { rowsPerPage: 50 });
-	const molecularRows = molecularHandler.getRows();
+	const molecularHandler = new TableHandler(data.results.molecular, { rowsPerPage: 50 });
 
 	const nFormat = new Intl.NumberFormat();
 
@@ -46,13 +39,20 @@
 	}
 
 	onMount(() => {
-		synthHandler.sortAsc('name');
-		standardHandler.sortAsc('name');
-		improvedHandler.sortAsc('name');
-		improvedChainHandler.sortAsc('name');
-		strongHandler.sortAsc('name');
-		strongChainHandler.sortAsc('name');
-		molecularHandler.sortAsc('name');
+		const synthSort = synthHandler.createSort('name');
+		synthSort.set('asc');
+		const standardSort = standardHandler.createSort('name');
+		standardSort.set('asc');
+		const improvedSort = improvedHandler.createSort('name');
+		improvedSort.set('asc');
+		const improvedChainSort = improvedChainHandler.createSort('name');
+		improvedChainSort.set('asc');
+		const strongSort = strongHandler.createSort('name');
+		strongSort.set('asc');
+		const strongChainSort = strongChainHandler.createSort('name');
+		strongChainSort.set('asc');
+		const molecularSort = molecularHandler.createSort('name');
+		molecularSort.set('asc');
 	});
 </script>
 
@@ -112,7 +112,7 @@
 				</thead>
 				<tbody>
 					{#if data.results.synth}
-						{#each $synthRows as reaction}
+						{#each synthHandler.rows as reaction}
 							<tr
 								class={'link-row ' + reaction.style}
 								data-href="/biochemical/simple/{reaction.output.id}"
@@ -148,7 +148,7 @@
 				</thead>
 				<tbody>
 					{#if data.results.standard}
-						{#each $standardRows as reaction}
+						{#each standardHandler.rows as reaction}
 							<tr
 								class={'link-row ' + reaction.style}
 								data-href="/biochemical/simple/{reaction.output.id}"
@@ -184,7 +184,7 @@
 				</thead>
 				<tbody>
 					{#if data.results.improved}
-						{#each $improvedRows as reaction}
+						{#each improvedHandler.rows as reaction}
 							<tr
 								class={'link-row ' + reaction.style}
 								data-href="/biochemical/simple/{reaction.output.id}"
@@ -220,7 +220,7 @@
 				</thead>
 				<tbody>
 					{#if data.results.improved_chain}
-						{#each $improvedChainRows as reaction}
+						{#each improvedChainHandler.rows as reaction}
 							<tr
 								class={'link-row ' + reaction.style}
 								data-href="/biochemical/chain/{reaction.output.id}"
@@ -256,7 +256,7 @@
 				</thead>
 				<tbody>
 					{#if data.results.strong}
-						{#each $strongRows as reaction}
+						{#each strongHandler.rows as reaction}
 							<tr
 								class={'link-row ' + reaction.style}
 								data-href="/biochemical/simple/{reaction.output.id}"
@@ -292,7 +292,7 @@
 				</thead>
 				<tbody>
 					{#if data.results.strong_chain}
-						{#each $strongChainRows as reaction}
+						{#each strongChainHandler.rows as reaction}
 							<tr
 								class={'link-row ' + reaction.style}
 								data-href="/biochemical/chain/{reaction.output.id}"
@@ -328,7 +328,7 @@
 				</thead>
 				<tbody>
 					{#if data.results.molecular}
-						{#each $molecularRows as reaction}
+						{#each molecularHandler.rows as reaction}
 							<tr
 								class={'link-row ' + reaction.style}
 								data-href="/biochemical/simple/{reaction.output.id}"

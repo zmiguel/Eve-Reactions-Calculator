@@ -1,25 +1,20 @@
 <script>
-	import { DataHandler } from '@vincjo/datatables';
+	import { TableHandler } from '@vincjo/datatables/server';
 	import TH from '../TH.svelte';
 	import { onMount } from 'svelte';
 	import { goto } from '$app/navigation';
 
 	let { data } = $props();
 
-	const simpleHandler = new DataHandler(data.results.simple, { rowsPerPage: 50 });
-	const simpleRows = simpleHandler.getRows();
+	const simpleHandler = new TableHandler(data.results.simple, { rowsPerPage: 50 });
 
-	const complexHandler = new DataHandler(data.results.complex, { rowsPerPage: 50 });
-	const complexRows = complexHandler.getRows();
+	const complexHandler = new TableHandler(data.results.complex, { rowsPerPage: 50 });
 
-	const chainHandler = new DataHandler(data.results.chain, { rowsPerPage: 50 });
-	const chainRows = chainHandler.getRows();
+	const chainHandler = new TableHandler(data.results.chain, { rowsPerPage: 50 });
 
-	const unrefinedHandler = new DataHandler(data.results.unrefined, { rowsPerPage: 50 });
-	const unrefinedRows = unrefinedHandler.getRows();
+	const unrefinedHandler = new TableHandler(data.results.unrefined, { rowsPerPage: 50 });
 
-	const refinedHandler = new DataHandler(data.results.refined, { rowsPerPage: 50 });
-	const refinedRows = refinedHandler.getRows();
+	const refinedHandler = new TableHandler(data.results.refined, { rowsPerPage: 50 });
 
 	const nFormat = new Intl.NumberFormat();
 
@@ -40,11 +35,16 @@
 	}
 
 	onMount(() => {
-		simpleHandler.sortAsc('name');
-		complexHandler.sortAsc('name');
-		chainHandler.sortAsc('name');
-		unrefinedHandler.sortAsc('name');
-		refinedHandler.sortAsc('name');
+		const simpleSort = simpleHandler.createSort('name');
+		simpleSort.set('asc');
+		const complexSort = complexHandler.createSort('name');
+		complexSort.set('asc');
+		const chainSort = chainHandler.createSort('name');
+		chainSort.set('asc');
+		const unrefinedSort = unrefinedHandler.createSort('name');
+		unrefinedSort.set('asc');
+		const refinedSort = refinedHandler.createSort('name');
+		refinedSort.set('asc');
 	});
 </script>
 
@@ -102,7 +102,7 @@
 				</thead>
 				<tbody>
 					{#if data.results.simple}
-						{#each $simpleRows as reaction}
+						{#each simpleHandler.rows as reaction}
 							<tr
 								class={'link-row ' + reaction.style}
 								data-href="/composite/simple/{reaction.output.id}"
@@ -134,7 +134,7 @@
 				</thead>
 				<tbody>
 					{#if data.results.complex}
-						{#each $complexRows as reaction}
+						{#each complexHandler.rows as reaction}
 							<tr
 								class={'link-row ' + reaction.style}
 								data-href="/composite/complex/{reaction.output.id}"
@@ -168,7 +168,7 @@
 				</thead>
 				<tbody>
 					{#if data.results.chain}
-						{#each $chainRows as reaction}
+						{#each chainHandler.rows as reaction}
 							<tr
 								class={'link-row ' + reaction.style}
 								data-href="/composite/chain/{reaction.output.id}"
@@ -202,7 +202,7 @@
 				</thead>
 				<tbody>
 					{#if data.results.unrefined}
-						{#each $unrefinedRows as reaction}
+						{#each unrefinedHandler.rows as reaction}
 							<tr
 								class={'link-row ' + reaction.style}
 								data-href="/composite/unrefined/{reaction.output.id}"
@@ -236,7 +236,7 @@
 				</thead>
 				<tbody>
 					{#if data.results.refined}
-						{#each $refinedRows as reaction}
+						{#each refinedHandler.rows as reaction}
 							<tr
 								class={'link-row ' + reaction.style}
 								data-href="/composite/refined/{reaction.intermediates.id}"
