@@ -1,18 +1,16 @@
 <script>
-	import { run } from 'svelte/legacy';
-
 	import SettingsForm from './SettingsForm.svelte';
 	let { data } = $props();
 
 	let settingsMode = $state(data.settingsMode);
 
-	let selected_system = data.settings.single.system;
-	let space_helper = data.settings.single.space;
-	let wormhole_helper = false;
-	let wormhole_class = 'form-check form-check-inline';
+	let selected_system = $state(data.settings.single.system);
+	let space_helper = $state(data.settings.single.space);
+	let wormhole_helper = $state(false);
+	let wormhole_class = $state('form-check form-check-inline');
 
 	let activeTab = $state();
-	run(() => {
+	$effect(() => {
 		// This will re-run whenever settingsMode changes
 		activeTab = settingsMode === 'single' ? 'single' : 'biochemical';
 	});
@@ -20,6 +18,9 @@
 	// Get current settings based on active tab
 	let currentSettings = $derived(data.settings[activeTab]);
 
+	/**
+	 * @param {string} tab - The tab to click
+	 */
 	function handleTabClick(tab) {
 		if (
 			(settingsMode === 'single' && tab !== 'single') ||
@@ -30,12 +31,16 @@
 		activeTab = tab;
 	}
 
+	/**
+	 * @param {string} tab - The tab to check if disabled
+	 * @returns {boolean} Whether the tab is disabled
+	 */
 	let tabDisabled = $derived((tab) =>
 		(settingsMode === 'single' && tab !== 'single') ||
 		(settingsMode === 'separate' && tab === 'single'));
 
 	// Update activeTab when changing modes
-	run(() => {
+	$effect(() => {
 		if (settingsMode === 'separate' && activeTab === 'single') {
 			activeTab = 'biochemical';
 		}

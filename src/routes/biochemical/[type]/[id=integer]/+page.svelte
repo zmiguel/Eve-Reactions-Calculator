@@ -2,6 +2,14 @@
 	let { data } = $props();
 
 	const nFormat = new Intl.NumberFormat();
+
+	/**
+	 * @param {number | undefined} value - The number to format
+	 * @returns {string} Formatted number or empty string if undefined
+	 */
+	function formatNumber(value) {
+		return value !== undefined ? nFormat.format(value) : '0';
+	}
 </script>
 
 <svelte:head>

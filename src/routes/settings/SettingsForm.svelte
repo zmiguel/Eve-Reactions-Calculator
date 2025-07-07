@@ -1,9 +1,7 @@
 <script>
-	import { run } from 'svelte/legacy';
-
 	import Fa from 'svelte-fa';
 	import { faHome } from '@fortawesome/free-solid-svg-icons';
-	import AutoComplete from 'simple-svelte-autocomplete';
+	import AutoComplete from '$lib/components/AutoComplete.svelte';
 	import { systems } from '$lib/systems';
 
 	/**
@@ -29,9 +27,14 @@
 	} = $props();
 
 	// Add suffix to input names if it exists
+	/**
+	 * @param {string} base - Base input name
+	 * @returns {string} Input name with optional suffix
+	 */
 	const getName = (base) => (suffix ? `${base}_${suffix}` : base);
 
-	run(() => {
+	// Convert run() to $effect
+	$effect(() => {
 		wormhole_class = 'form-check form-check-inline';
 		if (wormhole_helper && space_helper !== 'wormhole') {
 			wormhole_class += ' bg-info';

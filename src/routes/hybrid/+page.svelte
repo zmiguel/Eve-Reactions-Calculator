@@ -11,6 +11,14 @@
 
 	const nFormat = new Intl.NumberFormat();
 
+	/**
+	 * @param {number | undefined} value - The number to format
+	 * @returns {string} Formatted number or empty string if undefined
+	 */
+	function formatNumber(value) {
+		return value !== undefined ? nFormat.format(value) : '0';
+	}
+
 	function rowClickHandler(e) {
 		if (e.ctrlKey || e.metaKey || e.button == 1) {
 			window.open(e.currentTarget.dataset.href, '_blank');
@@ -85,11 +93,11 @@
 								onclick={rowClickHandler}
 							>
 								<td>{reaction.name}</td>
-								<td class="isk">{nFormat.format(reaction.input_total)}</td>
-								<td class="isk">{nFormat.format(reaction.taxes_total)}</td>
-								<td class="isk">{nFormat.format(reaction.output_total)}</td>
-								<td class="isk">{nFormat.format(reaction.profit)}</td>
-								<td>{nFormat.format(reaction.profit_per)} %</td>
+								<td class="isk">{formatNumber(reaction.input_total)}</td>
+								<td class="isk">{formatNumber(reaction.taxes_total)}</td>
+								<td class="isk">{formatNumber(reaction.output_total)}</td>
+								<td class="isk">{formatNumber(reaction.profit)}</td>
+								<td>{formatNumber(reaction.profit_per)} %</td>
 							</tr>
 						{/each}
 					{/if}
