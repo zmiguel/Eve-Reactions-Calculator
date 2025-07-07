@@ -322,7 +322,7 @@
 				aria-describedby="spaceHelpBlock"
 				required
 				checked={settings.space === 'wormhole'}
-				onclick={() => (space_helper = 'wormhole')}
+				on:click={() => (space_helper = 'wormhole')}
 			/>
 			<label class="form-check-label" for={getName('wormhole')}>Wormhole</label>
 		</div>
@@ -336,7 +336,7 @@
 				aria-describedby="spaceHelpBlock"
 				required
 				checked={settings.space === 'nullsec'}
-				onclick={() => (space_helper = 'nullsec')}
+				on:click={() => (space_helper = 'nullsec')}
 			/>
 			<label class="form-check-label" for={getName('secnull')}>Nullsec</label>
 		</div>
@@ -350,7 +350,7 @@
 				aria-describedby="spaceHelpBlock"
 				required
 				checked={settings.space === 'lowsec'}
-				onclick={() => (space_helper = 'lowsec')}
+				on:click={() => (space_helper = 'lowsec')}
 			/>
 			<label class="form-check-label" for={getName('seclow')}>Lowsec</label>
 		</div>

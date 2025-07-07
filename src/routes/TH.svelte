@@ -13,7 +13,7 @@
 	const sorted = handler.getSort();
 </script>
 
-<th onclick={() => handler.sort(orderBy)} class:active={$sorted.identifier === identifier}>
+<th on:click={() => handler.sort(orderBy)} class:active={$sorted.identifier === identifier}>
 	<div class="flex">
 		<strong>
 			{@render children?.()}

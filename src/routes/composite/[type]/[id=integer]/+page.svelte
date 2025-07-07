@@ -82,7 +82,7 @@
 								value={data.cycles}
 								class="here"
 								aria-describedby="cyclesHelpBlock"
-								required="required"
+								required
 							/>
 						</td>
 						<td>{data.results?.cycle_data.cycle_time} Minutes</td>

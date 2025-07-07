@@ -1,7 +1,21 @@
 <script>
 	/**
 	 * @typedef {Object} Props
-	 * @property {Array} items - Array of items to search through
+	 * 	/**
+	 * @param {any} item - The item to select
+	 */
+	function selectItem(item) {
+		selectedItem = item;
+		i			<button
+				type="button"
+				class="autocomplete-clear-btn"
+				on:click={clearSelection}
+				aria-label="Clear selection"
+			>lue = item ? item.toString() : '';
+		isOpen = false;
+		highlightedIndex = -1;
+		onChange();
+	}ty {Array<any>} items - Array of items to search through
 	 * @property {string} [id] - HTML id attribute
 	 * @property {string} [name] - HTML name attribute
 	 * @property {string} [placeholder] - Placeholder text
@@ -60,6 +74,9 @@
 		onChange();
 	}
 
+	/**
+	 * @param {Event} event - The input event
+	 */
 	function handleInput(event) {
 		inputValue = event.target.value;
 		isOpen = true;
@@ -71,6 +88,9 @@
 		}
 	}
 
+	/**
+	 * @param {KeyboardEvent} event - The keyboard event
+	 */
 	function handleKeydown(event) {
 		if (!isOpen) {
 			if (event.key === 'ArrowDown') {
@@ -130,17 +150,17 @@
 			class="autocomplete-input {className}"
 			type="text"
 			bind:value={inputValue}
-			oninput={handleInput}
-			onkeydown={handleKeydown}
-			onfocus={handleFocus}
-			onblur={handleBlur}
+			on:input={handleInput}
+			on:keydown={handleKeydown}
+			on:focus={handleFocus}
+			on:blur={handleBlur}
 			autocomplete="off"
-		/>
+/>
 		{#if showClear && selectedItem}
 			<button
 				type="button"
 				class="autocomplete-clear"
-				onclick={clearSelection}
+				on:click={clearSelection}
 				aria-label="Clear selection"
 			>
 				×
@@ -150,7 +170,7 @@
 			<button
 				type="button"
 				class="autocomplete-arrow"
-				onclick={() => (isOpen = !isOpen)}
+				on:click={() => (isOpen = !isOpen)}
 				aria-label="Toggle dropdown"
 			>
 				▼
@@ -163,8 +183,8 @@
 			{#each filteredItems as item, index}
 				<div
 					class="autocomplete-item {index === highlightedIndex ? 'highlighted' : ''}"
-					onclick={() => selectItem(item)}
-					onkeydown={(e) => e.key === 'Enter' && selectItem(item)}
+					on:click={() => selectItem(item)}
+					on:keydown={(e) => e.key === 'Enter' && selectItem(item)}
 					role="option"
 					aria-selected={index === highlightedIndex}
 					tabindex="-1"
