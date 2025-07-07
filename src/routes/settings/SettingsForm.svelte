@@ -1,26 +1,45 @@
 <script>
 	import Fa from 'svelte-fa';
 	import { faHome } from '@fortawesome/free-solid-svg-icons';
-	import AutoComplete from 'simple-svelte-autocomplete';
+	import AutoComplete from '$lib/components/AutoComplete.svelte';
 	import { systems } from '$lib/systems';
 
-	export let suffix = '';
-	export let settings;
-	export let market_systems;
-	export let space_helper;
-	export let wormhole_helper;
-	export let wormhole_class;
-	export let selected_system;
+	/**
+	 * @typedef {Object} Props
+	 * @property {string} [suffix]
+	 * @property {any} settings
+	 * @property {any} market_systems
+	 * @property {any} space_helper
+	 * @property {any} wormhole_helper
+	 * @property {any} wormhole_class
+	 * @property {any} selected_system
+	 */
+
+	/** @type {Props} */
+	let {
+		suffix = '',
+		settings,
+		market_systems,
+		space_helper = $bindable(),
+		wormhole_helper = $bindable(),
+		wormhole_class = $bindable(),
+		selected_system = $bindable()
+	} = $props();
 
 	// Add suffix to input names if it exists
+	/**
+	 * @param {string} base - Base input name
+	 * @returns {string} Input name with optional suffix
+	 */
 	const getName = (base) => (suffix ? `${base}_${suffix}` : base);
 
-	$: {
+	// Convert run() to $effect
+	$effect(() => {
 		wormhole_class = 'form-check form-check-inline';
 		if (wormhole_helper && space_helper !== 'wormhole') {
 			wormhole_class += ' bg-info';
 		}
-	}
+	});
 </script>
 
 <!-- Input Method -->
@@ -70,7 +89,7 @@
 			aria-describedby="inMarketHelpBlock"
 			required
 		>
-			{#each market_systems as system}
+			{#each market_systems as system (system)}
 				<option value={system} selected={settings.inMarket === system}>{system}</option>
 			{/each}
 		</select>
@@ -127,7 +146,7 @@
 			aria-describedby="outMarketHelpBlock"
 			required
 		>
-			{#each market_systems as system}
+			{#each market_systems as system (system)}
 				<option value={system} selected={settings.outMarket === system}>{system}</option>
 			{/each}
 		</select>
@@ -303,7 +322,7 @@
 				aria-describedby="spaceHelpBlock"
 				required
 				checked={settings.space === 'wormhole'}
-				on:click={() => (space_helper = 'wormhole')}
+				onclick={() => (space_helper = 'wormhole')}
 			/>
 			<label class="form-check-label" for={getName('wormhole')}>Wormhole</label>
 		</div>
@@ -317,7 +336,7 @@
 				aria-describedby="spaceHelpBlock"
 				required
 				checked={settings.space === 'nullsec'}
-				on:click={() => (space_helper = 'nullsec')}
+				onclick={() => (space_helper = 'nullsec')}
 			/>
 			<label class="form-check-label" for={getName('secnull')}>Nullsec</label>
 		</div>
@@ -331,7 +350,7 @@
 				aria-describedby="spaceHelpBlock"
 				required
 				checked={settings.space === 'lowsec'}
-				on:click={() => (space_helper = 'lowsec')}
+				onclick={() => (space_helper = 'lowsec')}
 			/>
 			<label class="form-check-label" for={getName('seclow')}>Lowsec</label>
 		</div>

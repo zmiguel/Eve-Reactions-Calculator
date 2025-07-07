@@ -1,23 +1,25 @@
 <script>
-	export let data;
 	import SettingsForm from './SettingsForm.svelte';
+	let { data } = $props();
 
-	let settingsMode = data.settingsMode;
+	let settingsMode = $state(data.settingsMode);
 
-	let selected_system = data.settings.single.system;
-	let space_helper = data.settings.single.space;
-	let wormhole_helper = false;
-	let wormhole_class = 'form-check form-check-inline';
+	let selected_system = $state(data.settings.single.system);
+	let space_helper = $state(data.settings.single.space);
+	let wormhole_helper = $state(false);
+	let wormhole_class = $state('form-check form-check-inline');
 
-	let activeTab;
-	$: {
-		// This will re-run whenever settingsMode changes
-		activeTab = settingsMode === 'single' ? 'single' : 'biochemical';
-	}
+	// Use writable derived instead of state + effect
+	let activeTab = $derived.by(() => {
+		return settingsMode === 'single' ? 'single' : 'biochemical';
+	});
 
 	// Get current settings based on active tab
-	$: currentSettings = data.settings[activeTab];
+	let currentSettings = $derived(data.settings[activeTab]);
 
+	/**
+	 * @param {string} tab - The tab to click
+	 */
 	function handleTabClick(tab) {
 		if (
 			(settingsMode === 'single' && tab !== 'single') ||
@@ -28,14 +30,22 @@
 		activeTab = tab;
 	}
 
-	$: tabDisabled = (tab) =>
-		(settingsMode === 'single' && tab !== 'single') ||
-		(settingsMode === 'separate' && tab === 'single');
+	/**
+	 * @param {string} tab - The tab to check if disabled
+	 * @returns {boolean} Whether the tab is disabled
+	 */
+	let tabDisabled = $derived(
+		(tab) =>
+			(settingsMode === 'single' && tab !== 'single') ||
+			(settingsMode === 'separate' && tab === 'single')
+	);
 
 	// Update activeTab when changing modes
-	$: if (settingsMode === 'separate' && activeTab === 'single') {
-		activeTab = 'biochemical';
-	}
+	$effect(() => {
+		if (settingsMode === 'separate' && activeTab === 'single') {
+			activeTab = 'biochemical';
+		}
+	});
 
 	// Reactive update for settingsMode without form submission
 	function handleSettingsModeChange() {
@@ -57,11 +67,7 @@
 			<div class="d-flex justify-content-between align-items-center">
 				<h4 class="mb-0">New Settings:</h4>
 				<div class="col-sm-8 col-md-6 col-lg-5">
-					<select
-						class="form-select"
-						bind:value={settingsMode}
-						on:change={handleSettingsModeChange}
-					>
+					<select class="form-select" bind:value={settingsMode} onchange={handleSettingsModeChange}>
 						<option value="single">Single Settings Mode</option>
 						<option value="separate">Separate Settings Mode</option>
 					</select>
@@ -72,7 +78,7 @@
 				<li class="nav-item">
 					<button
 						class="nav-link {activeTab === 'single' ? 'active' : ''}"
-						on:click={() => handleTabClick('single')}
+						onclick={() => handleTabClick('single')}
 						disabled={tabDisabled('single')}
 					>
 						Single Settings
@@ -81,7 +87,7 @@
 				<li class="nav-item">
 					<button
 						class="nav-link {activeTab === 'biochemical' ? 'active' : ''}"
-						on:click={() => handleTabClick('biochemical')}
+						onclick={() => handleTabClick('biochemical')}
 						disabled={tabDisabled('biochemical')}
 					>
 						Biochemical
@@ -90,7 +96,7 @@
 				<li class="nav-item">
 					<button
 						class="nav-link {activeTab === 'composite' ? 'active' : ''}"
-						on:click={() => handleTabClick('composite')}
+						onclick={() => handleTabClick('composite')}
 						disabled={tabDisabled('composite')}
 					>
 						Composite
@@ -99,7 +105,7 @@
 				<li class="nav-item">
 					<button
 						class="nav-link {activeTab === 'hybrid' ? 'active' : ''}"
-						on:click={() => handleTabClick('hybrid')}
+						onclick={() => handleTabClick('hybrid')}
 						disabled={tabDisabled('hybrid')}
 					>
 						Hybrid
@@ -174,7 +180,7 @@
 				<li class="nav-item">
 					<button
 						class="nav-link {activeTab === 'single' ? 'active' : ''}"
-						on:click={() => handleTabClick('single')}
+						onclick={() => handleTabClick('single')}
 						disabled={tabDisabled('single')}
 					>
 						Single
@@ -183,7 +189,7 @@
 				<li class="nav-item">
 					<button
 						class="nav-link {activeTab === 'biochemical' ? 'active' : ''}"
-						on:click={() => handleTabClick('biochemical')}
+						onclick={() => handleTabClick('biochemical')}
 						disabled={tabDisabled('biochemical')}
 					>
 						Bio
@@ -192,7 +198,7 @@
 				<li class="nav-item">
 					<button
 						class="nav-link {activeTab === 'composite' ? 'active' : ''}"
-						on:click={() => handleTabClick('composite')}
+						onclick={() => handleTabClick('composite')}
 						disabled={tabDisabled('composite')}
 					>
 						Comp
@@ -201,7 +207,7 @@
 				<li class="nav-item">
 					<button
 						class="nav-link {activeTab === 'hybrid' ? 'active' : ''}"
-						on:click={() => handleTabClick('hybrid')}
+						onclick={() => handleTabClick('hybrid')}
 						disabled={tabDisabled('hybrid')}
 					>
 						Hybrid

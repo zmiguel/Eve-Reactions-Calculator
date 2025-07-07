@@ -1,27 +1,29 @@
 <script>
-	import { DataHandler } from '@vincjo/datatables';
+	import { TableHandler } from '@vincjo/datatables';
 	import TH from '../TH.svelte';
-	import { onMount } from 'svelte';
 	import { goto } from '$app/navigation';
 
-	export let data;
+	let { data } = $props();
 
-	const simpleHandler = new DataHandler(data.results.simple, { rowsPerPage: 50 });
-	const simpleRows = simpleHandler.getRows();
+	const simpleHandler = new TableHandler(data.results.simple, { rowsPerPage: 50 });
 
-	const complexHandler = new DataHandler(data.results.complex, { rowsPerPage: 50 });
-	const complexRows = complexHandler.getRows();
+	const complexHandler = new TableHandler(data.results.complex, { rowsPerPage: 50 });
 
-	const chainHandler = new DataHandler(data.results.chain, { rowsPerPage: 50 });
-	const chainRows = chainHandler.getRows();
+	const chainHandler = new TableHandler(data.results.chain, { rowsPerPage: 50 });
 
-	const unrefinedHandler = new DataHandler(data.results.unrefined, { rowsPerPage: 50 });
-	const unrefinedRows = unrefinedHandler.getRows();
+	const unrefinedHandler = new TableHandler(data.results.unrefined, { rowsPerPage: 50 });
 
-	const refinedHandler = new DataHandler(data.results.refined, { rowsPerPage: 50 });
-	const refinedRows = refinedHandler.getRows();
+	const refinedHandler = new TableHandler(data.results.refined, { rowsPerPage: 50 });
 
 	const nFormat = new Intl.NumberFormat();
+
+	/**
+	 * @param {number | undefined} value - The number to format
+	 * @returns {string} Formatted number or empty string if undefined
+	 */
+	function formatNumber(value) {
+		return value !== undefined ? nFormat.format(value) : '0';
+	}
 
 	function rowClickHandler(e) {
 		if (e.ctrlKey || e.metaKey || e.button == 1) {
@@ -30,14 +32,6 @@
 			goto(e.currentTarget.dataset.href);
 		}
 	}
-
-	onMount(() => {
-		simpleHandler.sortAsc('name');
-		complexHandler.sortAsc('name');
-		chainHandler.sortAsc('name');
-		unrefinedHandler.sortAsc('name');
-		refinedHandler.sortAsc('name');
-	});
 </script>
 
 <svelte:head>
@@ -85,27 +79,29 @@
 			<div class="card-header bg-info text-white fw-bold text-center w-100">Simple Reactions</div>
 			<table width="100%" id="stab" class="table table-bordered text-center">
 				<thead>
-					<TH handler={simpleHandler} orderBy="name">Reaction</TH>
-					<TH handler={simpleHandler} orderBy="input_total">Inputs</TH>
-					<TH handler={simpleHandler} orderBy="taxes_total">Tax</TH>
-					<TH handler={simpleHandler} orderBy="output_total">Output</TH>
-					<TH handler={simpleHandler} orderBy="profit">Profit</TH>
-					<TH handler={simpleHandler} orderBy="profit_per">% prof.</TH>
+					<tr>
+						<TH handler={simpleHandler} orderBy="name">Reaction</TH>
+						<TH handler={simpleHandler} orderBy="input_total">Inputs</TH>
+						<TH handler={simpleHandler} orderBy="taxes_total">Tax</TH>
+						<TH handler={simpleHandler} orderBy="output_total">Output</TH>
+						<TH handler={simpleHandler} orderBy="profit">Profit</TH>
+						<TH handler={simpleHandler} orderBy="profit_per">% prof.</TH>
+					</tr>
 				</thead>
 				<tbody>
 					{#if data.results.simple}
-						{#each $simpleRows as reaction}
+						{#each simpleHandler.rows as reaction (reaction.output.id)}
 							<tr
 								class={'link-row ' + reaction.style}
 								data-href="/composite/simple/{reaction.output.id}"
-								on:click={rowClickHandler}
+								onclick={rowClickHandler}
 							>
 								<td>{reaction.name}</td>
-								<td class="isk">{nFormat.format(reaction.input_total)}</td>
-								<td class="isk">{nFormat.format(reaction.taxes_total)}</td>
-								<td class="isk">{nFormat.format(reaction.output_total)}</td>
-								<td class="isk">{nFormat.format(reaction.profit)}</td>
-								<td>{nFormat.format(reaction.profit_per)} %</td>
+								<td class="isk">{formatNumber(reaction.input_total)}</td>
+								<td class="isk">{formatNumber(reaction.taxes_total)}</td>
+								<td class="isk">{formatNumber(reaction.output_total)}</td>
+								<td class="isk">{formatNumber(reaction.profit)}</td>
+								<td>{formatNumber(reaction.profit_per)} %</td>
 							</tr>
 						{/each}
 					{/if}
@@ -117,27 +113,29 @@
 			<div class="card-header bg-info text-white fw-bold text-center w-100">Complex Reactions</div>
 			<table width="100%" id="stab" class="table table-bordered text-center">
 				<thead>
-					<TH handler={complexHandler} orderBy="name">Reaction</TH>
-					<TH handler={complexHandler} orderBy="input_total">Inputs</TH>
-					<TH handler={complexHandler} orderBy="taxes_total">Tax</TH>
-					<TH handler={complexHandler} orderBy="output_total">Output</TH>
-					<TH handler={complexHandler} orderBy="profit">Profit</TH>
-					<TH handler={complexHandler} orderBy="profit_per">% prof.</TH>
+					<tr>
+						<TH handler={complexHandler} orderBy="name">Reaction</TH>
+						<TH handler={complexHandler} orderBy="input_total">Inputs</TH>
+						<TH handler={complexHandler} orderBy="taxes_total">Tax</TH>
+						<TH handler={complexHandler} orderBy="output_total">Output</TH>
+						<TH handler={complexHandler} orderBy="profit">Profit</TH>
+						<TH handler={complexHandler} orderBy="profit_per">% prof.</TH>
+					</tr>
 				</thead>
 				<tbody>
 					{#if data.results.complex}
-						{#each $complexRows as reaction}
+						{#each complexHandler.rows as reaction (reaction.output.id)}
 							<tr
 								class={'link-row ' + reaction.style}
 								data-href="/composite/complex/{reaction.output.id}"
-								on:click={rowClickHandler}
+								onclick={rowClickHandler}
 							>
 								<td>{reaction.name}</td>
-								<td class="isk">{nFormat.format(reaction.input_total)}</td>
-								<td class="isk">{nFormat.format(reaction.taxes_total)}</td>
-								<td class="isk">{nFormat.format(reaction.output_total)}</td>
-								<td class="isk">{nFormat.format(reaction.profit)}</td>
-								<td>{nFormat.format(reaction.profit_per)} %</td>
+								<td class="isk">{formatNumber(reaction.input_total)}</td>
+								<td class="isk">{formatNumber(reaction.taxes_total)}</td>
+								<td class="isk">{formatNumber(reaction.output_total)}</td>
+								<td class="isk">{formatNumber(reaction.profit)}</td>
+								<td>{formatNumber(reaction.profit_per)} %</td>
 							</tr>
 						{/each}
 					{/if}
@@ -151,27 +149,29 @@
 			</div>
 			<table width="100%" id="stab" class="table table-bordered text-center">
 				<thead>
-					<TH handler={chainHandler} orderBy="name">Reaction</TH>
-					<TH handler={chainHandler} orderBy="input_total">Inputs</TH>
-					<TH handler={chainHandler} orderBy="taxes_total">Tax</TH>
-					<TH handler={chainHandler} orderBy="output_total">Output</TH>
-					<TH handler={chainHandler} orderBy="profit">Profit</TH>
-					<TH handler={chainHandler} orderBy="profit_per">% prof.</TH>
+					<tr>
+						<TH handler={chainHandler} orderBy="name">Reaction</TH>
+						<TH handler={chainHandler} orderBy="input_total">Inputs</TH>
+						<TH handler={chainHandler} orderBy="taxes_total">Tax</TH>
+						<TH handler={chainHandler} orderBy="output_total">Output</TH>
+						<TH handler={chainHandler} orderBy="profit">Profit</TH>
+						<TH handler={chainHandler} orderBy="profit_per">% prof.</TH>
+					</tr>
 				</thead>
 				<tbody>
 					{#if data.results.chain}
-						{#each $chainRows as reaction}
+						{#each chainHandler.rows as reaction (reaction.output.id)}
 							<tr
 								class={'link-row ' + reaction.style}
 								data-href="/composite/chain/{reaction.output.id}"
-								on:click={rowClickHandler}
+								onclick={rowClickHandler}
 							>
 								<td>{reaction.name}</td>
-								<td class="isk">{nFormat.format(reaction.input_total)}</td>
-								<td class="isk">{nFormat.format(reaction.taxes_total)}</td>
-								<td class="isk">{nFormat.format(reaction.output_total)}</td>
-								<td class="isk">{nFormat.format(reaction.profit)}</td>
-								<td>{nFormat.format(reaction.profit_per)} %</td>
+								<td class="isk">{formatNumber(reaction.input_total)}</td>
+								<td class="isk">{formatNumber(reaction.taxes_total)}</td>
+								<td class="isk">{formatNumber(reaction.output_total)}</td>
+								<td class="isk">{formatNumber(reaction.profit)}</td>
+								<td>{formatNumber(reaction.profit_per)} %</td>
 							</tr>
 						{/each}
 					{/if}
@@ -185,27 +185,29 @@
 			</div>
 			<table width="100%" id="stab" class="table table-bordered text-center">
 				<thead>
-					<TH handler={unrefinedHandler} orderBy="name">Reaction</TH>
-					<TH handler={unrefinedHandler} orderBy="input_total">Inputs</TH>
-					<TH handler={unrefinedHandler} orderBy="taxes_total">Tax</TH>
-					<TH handler={unrefinedHandler} orderBy="output_total">Output</TH>
-					<TH handler={unrefinedHandler} orderBy="profit">Profit</TH>
-					<TH handler={unrefinedHandler} orderBy="profit_per">% prof.</TH>
+					<tr>
+						<TH handler={unrefinedHandler} orderBy="name">Reaction</TH>
+						<TH handler={unrefinedHandler} orderBy="input_total">Inputs</TH>
+						<TH handler={unrefinedHandler} orderBy="taxes_total">Tax</TH>
+						<TH handler={unrefinedHandler} orderBy="output_total">Output</TH>
+						<TH handler={unrefinedHandler} orderBy="profit">Profit</TH>
+						<TH handler={unrefinedHandler} orderBy="profit_per">% prof.</TH>
+					</tr>
 				</thead>
 				<tbody>
 					{#if data.results.unrefined}
-						{#each $unrefinedRows as reaction}
+						{#each unrefinedHandler.rows as reaction (reaction.output.id)}
 							<tr
 								class={'link-row ' + reaction.style}
 								data-href="/composite/unrefined/{reaction.output.id}"
-								on:click={rowClickHandler}
+								onclick={rowClickHandler}
 							>
 								<td>{reaction.name}</td>
-								<td class="isk">{nFormat.format(reaction.input_total)}</td>
-								<td class="isk">{nFormat.format(reaction.taxes_total)}</td>
-								<td class="isk">{nFormat.format(reaction.output_total)}</td>
-								<td class="isk">{nFormat.format(reaction.profit)}</td>
-								<td>{nFormat.format(reaction.profit_per)} %</td>
+								<td class="isk">{formatNumber(reaction.input_total)}</td>
+								<td class="isk">{formatNumber(reaction.taxes_total)}</td>
+								<td class="isk">{formatNumber(reaction.output_total)}</td>
+								<td class="isk">{formatNumber(reaction.profit)}</td>
+								<td>{formatNumber(reaction.profit_per)} %</td>
 							</tr>
 						{/each}
 					{/if}
@@ -219,27 +221,29 @@
 			</div>
 			<table width="100%" id="stab" class="table table-bordered text-center">
 				<thead>
-					<TH handler={refinedHandler} orderBy="name">Reaction</TH>
-					<TH handler={refinedHandler} orderBy="input_total">Inputs</TH>
-					<TH handler={refinedHandler} orderBy="taxes_total">Tax</TH>
-					<TH handler={refinedHandler} orderBy="output_total">Output</TH>
-					<TH handler={refinedHandler} orderBy="profit">Profit</TH>
-					<TH handler={refinedHandler} orderBy="profit_per">% prof.</TH>
+					<tr>
+						<TH handler={refinedHandler} orderBy="name">Reaction</TH>
+						<TH handler={refinedHandler} orderBy="input_total">Inputs</TH>
+						<TH handler={refinedHandler} orderBy="taxes_total">Tax</TH>
+						<TH handler={refinedHandler} orderBy="output_total">Output</TH>
+						<TH handler={refinedHandler} orderBy="profit">Profit</TH>
+						<TH handler={refinedHandler} orderBy="profit_per">% prof.</TH>
+					</tr>
 				</thead>
 				<tbody>
 					{#if data.results.refined}
-						{#each $refinedRows as reaction}
+						{#each refinedHandler.rows as reaction (reaction.intermediates.id)}
 							<tr
 								class={'link-row ' + reaction.style}
 								data-href="/composite/refined/{reaction.intermediates.id}"
-								on:click={rowClickHandler}
+								onclick={rowClickHandler}
 							>
 								<td>{reaction.name}</td>
-								<td class="isk">{nFormat.format(reaction.input_total)}</td>
-								<td class="isk">{nFormat.format(reaction.taxes_total)}</td>
-								<td class="isk">{nFormat.format(reaction.output_total)}</td>
-								<td class="isk">{nFormat.format(reaction.profit)}</td>
-								<td>{nFormat.format(reaction.profit_per)} %</td>
+								<td class="isk">{formatNumber(reaction.input_total)}</td>
+								<td class="isk">{formatNumber(reaction.taxes_total)}</td>
+								<td class="isk">{formatNumber(reaction.output_total)}</td>
+								<td class="isk">{formatNumber(reaction.profit)}</td>
+								<td>{formatNumber(reaction.profit_per)} %</td>
 							</tr>
 						{/each}
 					{/if}

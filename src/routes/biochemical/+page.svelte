@@ -1,33 +1,33 @@
 <script>
-	import { DataHandler } from '@vincjo/datatables';
+	import { TableHandler } from '@vincjo/datatables';
 	import TH from '../TH.svelte';
-	import { onMount } from 'svelte';
 	import { goto } from '$app/navigation';
 
-	export let data;
+	let { data } = $props();
 
-	const synthHandler = new DataHandler(data.results.synth, { rowsPerPage: 50 });
-	const synthRows = synthHandler.getRows();
+	const synthHandler = new TableHandler(data.results.synth, { rowsPerPage: 50 });
 
-	const standardHandler = new DataHandler(data.results.standard, { rowsPerPage: 50 });
-	const standardRows = standardHandler.getRows();
+	const standardHandler = new TableHandler(data.results.standard, { rowsPerPage: 50 });
 
-	const improvedHandler = new DataHandler(data.results.improved, { rowsPerPage: 50 });
-	const improvedRows = improvedHandler.getRows();
+	const improvedHandler = new TableHandler(data.results.improved, { rowsPerPage: 50 });
 
-	const improvedChainHandler = new DataHandler(data.results.improved_chain, { rowsPerPage: 50 });
-	const improvedChainRows = improvedChainHandler.getRows();
+	const improvedChainHandler = new TableHandler(data.results.improved_chain, { rowsPerPage: 50 });
 
-	const strongHandler = new DataHandler(data.results.strong, { rowsPerPage: 50 });
-	const strongRows = strongHandler.getRows();
+	const strongHandler = new TableHandler(data.results.strong, { rowsPerPage: 50 });
 
-	const strongChainHandler = new DataHandler(data.results.strong_chain, { rowsPerPage: 50 });
-	const strongChainRows = strongChainHandler.getRows();
+	const strongChainHandler = new TableHandler(data.results.strong_chain, { rowsPerPage: 50 });
 
-	const molecularHandler = new DataHandler(data.results.molecular, { rowsPerPage: 50 });
-	const molecularRows = molecularHandler.getRows();
+	const molecularHandler = new TableHandler(data.results.molecular, { rowsPerPage: 50 });
 
 	const nFormat = new Intl.NumberFormat();
+
+	/**
+	 * @param {number | undefined} value - The number to format
+	 * @returns {string} Formatted number or empty string if undefined
+	 */
+	function formatNumber(value) {
+		return value !== undefined ? nFormat.format(value) : '0';
+	}
 
 	function rowClickHandler(e) {
 		if (e.ctrlKey || e.metaKey || e.button == 1) {
@@ -36,16 +36,6 @@
 			goto(e.currentTarget.dataset.href);
 		}
 	}
-
-	onMount(() => {
-		synthHandler.sortAsc('name');
-		standardHandler.sortAsc('name');
-		improvedHandler.sortAsc('name');
-		improvedChainHandler.sortAsc('name');
-		strongHandler.sortAsc('name');
-		strongChainHandler.sortAsc('name');
-		molecularHandler.sortAsc('name');
-	});
 </script>
 
 <svelte:head>
@@ -95,27 +85,29 @@
 			</div>
 			<table width="100%" id="stab" class="table table-bordered text-center">
 				<thead>
-					<TH handler={synthHandler} orderBy="name">Reaction</TH>
-					<TH handler={synthHandler} orderBy="input_total">Inputs</TH>
-					<TH handler={synthHandler} orderBy="taxes_total">Tax</TH>
-					<TH handler={synthHandler} orderBy="output_total">Output</TH>
-					<TH handler={synthHandler} orderBy="profit">Profit</TH>
-					<TH handler={synthHandler} orderBy="profit_per">% prof.</TH>
+					<tr>
+						<TH handler={synthHandler} orderBy="name">Reaction</TH>
+						<TH handler={synthHandler} orderBy="input_total">Inputs</TH>
+						<TH handler={synthHandler} orderBy="taxes_total">Tax</TH>
+						<TH handler={synthHandler} orderBy="output_total">Output</TH>
+						<TH handler={synthHandler} orderBy="profit">Profit</TH>
+						<TH handler={synthHandler} orderBy="profit_per">% prof.</TH>
+					</tr>
 				</thead>
 				<tbody>
 					{#if data.results.synth}
-						{#each $synthRows as reaction}
+						{#each synthHandler.rows as reaction (reaction.output.id)}
 							<tr
 								class={'link-row ' + reaction.style}
 								data-href="/biochemical/simple/{reaction.output.id}"
-								on:click={rowClickHandler}
+								onclick={rowClickHandler}
 							>
 								<td>{reaction.name}</td>
-								<td class="isk">{nFormat.format(reaction.input_total)}</td>
-								<td class="isk">{nFormat.format(reaction.taxes_total)}</td>
-								<td class="isk">{nFormat.format(reaction.output_total)}</td>
-								<td class="isk">{nFormat.format(reaction.profit)}</td>
-								<td>{nFormat.format(reaction.profit_per)} %</td>
+								<td class="isk">{formatNumber(reaction.input_total)}</td>
+								<td class="isk">{formatNumber(reaction.taxes_total)}</td>
+								<td class="isk">{formatNumber(reaction.output_total)}</td>
+								<td class="isk">{formatNumber(reaction.profit)}</td>
+								<td>{formatNumber(reaction.profit_per)} %</td>
 							</tr>
 						{/each}
 					{/if}
@@ -131,27 +123,29 @@
 			</div>
 			<table width="100%" id="stab" class="table table-bordered text-center">
 				<thead>
-					<TH handler={standardHandler} orderBy="name">Reaction</TH>
-					<TH handler={standardHandler} orderBy="input_total">Inputs</TH>
-					<TH handler={standardHandler} orderBy="taxes_total">Tax</TH>
-					<TH handler={standardHandler} orderBy="output_total">Output</TH>
-					<TH handler={standardHandler} orderBy="profit">Profit</TH>
-					<TH handler={standardHandler} orderBy="profit_per">% prof.</TH>
+					<tr>
+						<TH handler={standardHandler} orderBy="name">Reaction</TH>
+						<TH handler={standardHandler} orderBy="input_total">Inputs</TH>
+						<TH handler={standardHandler} orderBy="taxes_total">Tax</TH>
+						<TH handler={standardHandler} orderBy="output_total">Output</TH>
+						<TH handler={standardHandler} orderBy="profit">Profit</TH>
+						<TH handler={standardHandler} orderBy="profit_per">% prof.</TH>
+					</tr>
 				</thead>
 				<tbody>
 					{#if data.results.standard}
-						{#each $standardRows as reaction}
+						{#each standardHandler.rows as reaction (reaction.output.id)}
 							<tr
 								class={'link-row ' + reaction.style}
 								data-href="/biochemical/simple/{reaction.output.id}"
-								on:click={rowClickHandler}
+								onclick={rowClickHandler}
 							>
 								<td>{reaction.name}</td>
-								<td class="isk">{nFormat.format(reaction.input_total)}</td>
-								<td class="isk">{nFormat.format(reaction.taxes_total)}</td>
-								<td class="isk">{nFormat.format(reaction.output_total)}</td>
-								<td class="isk">{nFormat.format(reaction.profit)}</td>
-								<td>{nFormat.format(reaction.profit_per)} %</td>
+								<td class="isk">{formatNumber(reaction.input_total)}</td>
+								<td class="isk">{formatNumber(reaction.taxes_total)}</td>
+								<td class="isk">{formatNumber(reaction.output_total)}</td>
+								<td class="isk">{formatNumber(reaction.profit)}</td>
+								<td>{formatNumber(reaction.profit_per)} %</td>
 							</tr>
 						{/each}
 					{/if}
@@ -167,27 +161,29 @@
 			</div>
 			<table width="100%" id="stab" class="table table-bordered text-center">
 				<thead>
-					<TH handler={improvedHandler} orderBy="name">Reaction</TH>
-					<TH handler={improvedHandler} orderBy="input_total">Inputs</TH>
-					<TH handler={improvedHandler} orderBy="taxes_total">Tax</TH>
-					<TH handler={improvedHandler} orderBy="output_total">Output</TH>
-					<TH handler={improvedHandler} orderBy="profit">Profit</TH>
-					<TH handler={improvedHandler} orderBy="profit_per">% prof.</TH>
+					<tr>
+						<TH handler={improvedHandler} orderBy="name">Reaction</TH>
+						<TH handler={improvedHandler} orderBy="input_total">Inputs</TH>
+						<TH handler={improvedHandler} orderBy="taxes_total">Tax</TH>
+						<TH handler={improvedHandler} orderBy="output_total">Output</TH>
+						<TH handler={improvedHandler} orderBy="profit">Profit</TH>
+						<TH handler={improvedHandler} orderBy="profit_per">% prof.</TH>
+					</tr>
 				</thead>
 				<tbody>
 					{#if data.results.improved}
-						{#each $improvedRows as reaction}
+						{#each improvedHandler.rows as reaction (reaction.output.id)}
 							<tr
 								class={'link-row ' + reaction.style}
 								data-href="/biochemical/simple/{reaction.output.id}"
-								on:click={rowClickHandler}
+								onclick={rowClickHandler}
 							>
 								<td>{reaction.name}</td>
-								<td class="isk">{nFormat.format(reaction.input_total)}</td>
-								<td class="isk">{nFormat.format(reaction.taxes_total)}</td>
-								<td class="isk">{nFormat.format(reaction.output_total)}</td>
-								<td class="isk">{nFormat.format(reaction.profit)}</td>
-								<td>{nFormat.format(reaction.profit_per)} %</td>
+								<td class="isk">{formatNumber(reaction.input_total)}</td>
+								<td class="isk">{formatNumber(reaction.taxes_total)}</td>
+								<td class="isk">{formatNumber(reaction.output_total)}</td>
+								<td class="isk">{formatNumber(reaction.profit)}</td>
+								<td>{formatNumber(reaction.profit_per)} %</td>
 							</tr>
 						{/each}
 					{/if}
@@ -203,27 +199,29 @@
 			</div>
 			<table width="100%" id="stab" class="table table-bordered text-center">
 				<thead>
-					<TH handler={improvedChainHandler} orderBy="name">Reaction</TH>
-					<TH handler={improvedChainHandler} orderBy="input_total">Inputs</TH>
-					<TH handler={improvedChainHandler} orderBy="taxes_total">Tax</TH>
-					<TH handler={improvedChainHandler} orderBy="output_total">Output</TH>
-					<TH handler={improvedChainHandler} orderBy="profit">Profit</TH>
-					<TH handler={improvedChainHandler} orderBy="profit_per">% prof.</TH>
+					<tr>
+						<TH handler={improvedChainHandler} orderBy="name">Reaction</TH>
+						<TH handler={improvedChainHandler} orderBy="input_total">Inputs</TH>
+						<TH handler={improvedChainHandler} orderBy="taxes_total">Tax</TH>
+						<TH handler={improvedChainHandler} orderBy="output_total">Output</TH>
+						<TH handler={improvedChainHandler} orderBy="profit">Profit</TH>
+						<TH handler={improvedChainHandler} orderBy="profit_per">% prof.</TH>
+					</tr>
 				</thead>
 				<tbody>
 					{#if data.results.improved_chain}
-						{#each $improvedChainRows as reaction}
+						{#each improvedChainHandler.rows as reaction (reaction.output.id)}
 							<tr
 								class={'link-row ' + reaction.style}
 								data-href="/biochemical/chain/{reaction.output.id}"
-								on:click={rowClickHandler}
+								onclick={rowClickHandler}
 							>
 								<td>{reaction.name}</td>
-								<td class="isk">{nFormat.format(reaction.input_total)}</td>
-								<td class="isk">{nFormat.format(reaction.taxes_total)}</td>
-								<td class="isk">{nFormat.format(reaction.output_total)}</td>
-								<td class="isk">{nFormat.format(reaction.profit)}</td>
-								<td>{nFormat.format(reaction.profit_per)} %</td>
+								<td class="isk">{formatNumber(reaction.input_total)}</td>
+								<td class="isk">{formatNumber(reaction.taxes_total)}</td>
+								<td class="isk">{formatNumber(reaction.output_total)}</td>
+								<td class="isk">{formatNumber(reaction.profit)}</td>
+								<td>{formatNumber(reaction.profit_per)} %</td>
 							</tr>
 						{/each}
 					{/if}
@@ -239,27 +237,29 @@
 			</div>
 			<table width="100%" id="stab" class="table table-bordered text-center">
 				<thead>
-					<TH handler={strongHandler} orderBy="name">Reaction</TH>
-					<TH handler={strongHandler} orderBy="input_total">Inputs</TH>
-					<TH handler={strongHandler} orderBy="taxes_total">Tax</TH>
-					<TH handler={strongHandler} orderBy="output_total">Output</TH>
-					<TH handler={strongHandler} orderBy="profit">Profit</TH>
-					<TH handler={strongHandler} orderBy="profit_per">% prof.</TH>
+					<tr>
+						<TH handler={strongHandler} orderBy="name">Reaction</TH>
+						<TH handler={strongHandler} orderBy="input_total">Inputs</TH>
+						<TH handler={strongHandler} orderBy="taxes_total">Tax</TH>
+						<TH handler={strongHandler} orderBy="output_total">Output</TH>
+						<TH handler={strongHandler} orderBy="profit">Profit</TH>
+						<TH handler={strongHandler} orderBy="profit_per">% prof.</TH>
+					</tr>
 				</thead>
 				<tbody>
 					{#if data.results.strong}
-						{#each $strongRows as reaction}
+						{#each strongHandler.rows as reaction (reaction.output.id)}
 							<tr
 								class={'link-row ' + reaction.style}
 								data-href="/biochemical/simple/{reaction.output.id}"
-								on:click={rowClickHandler}
+								onclick={rowClickHandler}
 							>
 								<td>{reaction.name}</td>
-								<td class="isk">{nFormat.format(reaction.input_total)}</td>
-								<td class="isk">{nFormat.format(reaction.taxes_total)}</td>
-								<td class="isk">{nFormat.format(reaction.output_total)}</td>
-								<td class="isk">{nFormat.format(reaction.profit)}</td>
-								<td>{nFormat.format(reaction.profit_per)} %</td>
+								<td class="isk">{formatNumber(reaction.input_total)}</td>
+								<td class="isk">{formatNumber(reaction.taxes_total)}</td>
+								<td class="isk">{formatNumber(reaction.output_total)}</td>
+								<td class="isk">{formatNumber(reaction.profit)}</td>
+								<td>{formatNumber(reaction.profit_per)} %</td>
 							</tr>
 						{/each}
 					{/if}
@@ -275,27 +275,29 @@
 			</div>
 			<table width="100%" id="stab" class="table table-bordered text-center">
 				<thead>
-					<TH handler={strongChainHandler} orderBy="name">Reaction</TH>
-					<TH handler={strongChainHandler} orderBy="input_total">Inputs</TH>
-					<TH handler={strongChainHandler} orderBy="taxes_total">Tax</TH>
-					<TH handler={strongChainHandler} orderBy="output_total">Output</TH>
-					<TH handler={strongChainHandler} orderBy="profit">Profit</TH>
-					<TH handler={strongChainHandler} orderBy="profit_per">% prof.</TH>
+					<tr>
+						<TH handler={strongChainHandler} orderBy="name">Reaction</TH>
+						<TH handler={strongChainHandler} orderBy="input_total">Inputs</TH>
+						<TH handler={strongChainHandler} orderBy="taxes_total">Tax</TH>
+						<TH handler={strongChainHandler} orderBy="output_total">Output</TH>
+						<TH handler={strongChainHandler} orderBy="profit">Profit</TH>
+						<TH handler={strongChainHandler} orderBy="profit_per">% prof.</TH>
+					</tr>
 				</thead>
 				<tbody>
 					{#if data.results.strong_chain}
-						{#each $strongChainRows as reaction}
+						{#each strongChainHandler.rows as reaction (reaction.output.id)}
 							<tr
 								class={'link-row ' + reaction.style}
 								data-href="/biochemical/chain/{reaction.output.id}"
-								on:click={rowClickHandler}
+								onclick={rowClickHandler}
 							>
 								<td>{reaction.name}</td>
-								<td class="isk">{nFormat.format(reaction.input_total)}</td>
-								<td class="isk">{nFormat.format(reaction.taxes_total)}</td>
-								<td class="isk">{nFormat.format(reaction.output_total)}</td>
-								<td class="isk">{nFormat.format(reaction.profit)}</td>
-								<td>{nFormat.format(reaction.profit_per)} %</td>
+								<td class="isk">{formatNumber(reaction.input_total)}</td>
+								<td class="isk">{formatNumber(reaction.taxes_total)}</td>
+								<td class="isk">{formatNumber(reaction.output_total)}</td>
+								<td class="isk">{formatNumber(reaction.profit)}</td>
+								<td>{formatNumber(reaction.profit_per)} %</td>
 							</tr>
 						{/each}
 					{/if}
@@ -311,27 +313,29 @@
 			</div>
 			<table width="100%" id="stab" class="table table-bordered text-center">
 				<thead>
-					<TH handler={molecularHandler} orderBy="name">Reaction</TH>
-					<TH handler={molecularHandler} orderBy="input_total">Inputs</TH>
-					<TH handler={molecularHandler} orderBy="taxes_total">Tax</TH>
-					<TH handler={molecularHandler} orderBy="output_total">Output</TH>
-					<TH handler={molecularHandler} orderBy="profit">Profit</TH>
-					<TH handler={molecularHandler} orderBy="profit_per">% prof.</TH>
+					<tr>
+						<TH handler={molecularHandler} orderBy="name">Reaction</TH>
+						<TH handler={molecularHandler} orderBy="input_total">Inputs</TH>
+						<TH handler={molecularHandler} orderBy="taxes_total">Tax</TH>
+						<TH handler={molecularHandler} orderBy="output_total">Output</TH>
+						<TH handler={molecularHandler} orderBy="profit">Profit</TH>
+						<TH handler={molecularHandler} orderBy="profit_per">% prof.</TH>
+					</tr>
 				</thead>
 				<tbody>
 					{#if data.results.molecular}
-						{#each $molecularRows as reaction}
+						{#each molecularHandler.rows as reaction (reaction.output.id)}
 							<tr
 								class={'link-row ' + reaction.style}
 								data-href="/biochemical/simple/{reaction.output.id}"
-								on:click={rowClickHandler}
+								onclick={rowClickHandler}
 							>
 								<td>{reaction.name}</td>
-								<td class="isk">{nFormat.format(reaction.input_total)}</td>
-								<td class="isk">{nFormat.format(reaction.taxes_total)}</td>
-								<td class="isk">{nFormat.format(reaction.output_total)}</td>
-								<td class="isk">{nFormat.format(reaction.profit)}</td>
-								<td>{nFormat.format(reaction.profit_per)} %</td>
+								<td class="isk">{formatNumber(reaction.input_total)}</td>
+								<td class="isk">{formatNumber(reaction.taxes_total)}</td>
+								<td class="isk">{formatNumber(reaction.output_total)}</td>
+								<td class="isk">{formatNumber(reaction.profit)}</td>
+								<td>{formatNumber(reaction.profit_per)} %</td>
 							</tr>
 						{/each}
 					{/if}

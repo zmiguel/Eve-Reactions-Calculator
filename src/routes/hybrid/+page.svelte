@@ -1,15 +1,21 @@
 <script>
-	import { DataHandler } from '@vincjo/datatables';
+	import { TableHandler } from '@vincjo/datatables';
 	import TH from '../TH.svelte';
-	import { onMount } from 'svelte';
 	import { goto } from '$app/navigation';
 
-	export let data;
+	let { data } = $props();
 
-	const hybridHandler = new DataHandler(data.results, { rowsPerPage: 50 });
-	const hybridRows = hybridHandler.getRows();
+	const hybridHandler = new TableHandler(data.results, { rowsPerPage: 50 });
 
 	const nFormat = new Intl.NumberFormat();
+
+	/**
+	 * @param {number | undefined} value - The number to format
+	 * @returns {string} Formatted number or empty string if undefined
+	 */
+	function formatNumber(value) {
+		return value !== undefined ? nFormat.format(value) : '0';
+	}
 
 	function rowClickHandler(e) {
 		if (e.ctrlKey || e.metaKey || e.button == 1) {
@@ -18,10 +24,6 @@
 			goto(e.currentTarget.dataset.href);
 		}
 	}
-
-	onMount(() => {
-		hybridHandler.sortAsc('name');
-	});
 </script>
 
 <svelte:head>
@@ -69,27 +71,29 @@
 			<div class="card-header bg-info text-white fw-bold text-center w-100">Hybrid Reactions</div>
 			<table width="100%" id="stab" class="table table-bordered text-center">
 				<thead>
-					<TH handler={hybridHandler} orderBy="name">Reaction</TH>
-					<TH handler={hybridHandler} orderBy="input_total">Inputs</TH>
-					<TH handler={hybridHandler} orderBy="taxes_total">Tax</TH>
-					<TH handler={hybridHandler} orderBy="output_total">Output</TH>
-					<TH handler={hybridHandler} orderBy="profit">Profit</TH>
-					<TH handler={hybridHandler} orderBy="profit_per">% prof.</TH>
+					<tr>
+						<TH handler={hybridHandler} orderBy="name">Reaction</TH>
+						<TH handler={hybridHandler} orderBy="input_total">Inputs</TH>
+						<TH handler={hybridHandler} orderBy="taxes_total">Tax</TH>
+						<TH handler={hybridHandler} orderBy="output_total">Output</TH>
+						<TH handler={hybridHandler} orderBy="profit">Profit</TH>
+						<TH handler={hybridHandler} orderBy="profit_per">% prof.</TH>
+					</tr>
 				</thead>
 				<tbody>
 					{#if data.results}
-						{#each $hybridRows as reaction}
+						{#each hybridHandler.rows as reaction (reaction.output.id)}
 							<tr
 								class={'link-row ' + reaction.style}
 								data-href="/hybrid/{reaction.output.id}"
-								on:click={rowClickHandler}
+								onclick={rowClickHandler}
 							>
 								<td>{reaction.name}</td>
-								<td class="isk">{nFormat.format(reaction.input_total)}</td>
-								<td class="isk">{nFormat.format(reaction.taxes_total)}</td>
-								<td class="isk">{nFormat.format(reaction.output_total)}</td>
-								<td class="isk">{nFormat.format(reaction.profit)}</td>
-								<td>{nFormat.format(reaction.profit_per)} %</td>
+								<td class="isk">{formatNumber(reaction.input_total)}</td>
+								<td class="isk">{formatNumber(reaction.taxes_total)}</td>
+								<td class="isk">{formatNumber(reaction.output_total)}</td>
+								<td class="isk">{formatNumber(reaction.profit)}</td>
+								<td>{formatNumber(reaction.profit_per)} %</td>
 							</tr>
 						{/each}
 					{/if}

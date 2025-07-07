@@ -1,7 +1,23 @@
 <script>
-	export let data;
+	let { data } = $props();
 
 	const nFormat = new Intl.NumberFormat();
+
+	/**
+	 * @param {number | undefined						<tbody>
+							{#each data.results?.input as mat (mat.id)}
+								<tr class="">
+									<td>{mat.name}</td>
+									<td>{mat.quantity}</td>
+									<td class="isk">{nFormat.format(mat.price)}</td>
+								</tr>
+							{/each}
+						</tbody> The number to format
+	 * @returns {string} Formatted number or empty string if undefined
+	 */
+	function formatNumber(value) {
+		return value !== undefined ? nFormat.format(value) : '0';
+	}
 </script>
 
 <svelte:head>
@@ -74,7 +90,7 @@
 								value={data.cycles}
 								class="here"
 								aria-describedby="cyclesHelpBlock"
-								required="required"
+								required
 							/>
 						</td>
 						<td>{data.results?.cycle_data.cycle_time} Minutes</td>
@@ -105,18 +121,18 @@
 							</tr>
 						</thead>
 						<tbody>
-							{#each data.results?.input as mat}
+							{#each data.results?.input as mat (mat.id || mat.name)}
 								<tr class="">
 									<td>{mat.name}</td>
 									<td>{mat.quantity}</td>
-									<td class="isk">{nFormat.format(mat.price)}</td>
+									<td class="isk">{formatNumber(mat.price)}</td>
 								</tr>
 							{/each}
 						</tbody>
 						<tfoot>
 							<tr class="fw-bold">
 								<td colspan="2">TOTAL</td>
-								<td class="isk">{nFormat.format(data.results?.input_total)}</td>
+								<td class="isk">{formatNumber(data.results?.input_total)}</td>
 							</tr>
 						</tfoot>
 					</table>
@@ -133,29 +149,29 @@
 						<tbody>
 							<tr class="">
 								<td>Cost Index</td>
-								<td class="isk">{nFormat.format(data.results?.taxes.system)}</td>
+								<td class="isk">{formatNumber(data.results?.taxes.system)}</td>
 							</tr>
 							<tr class="">
 								<td>Facility Tax</td>
-								<td class="isk">{nFormat.format(data.results?.taxes.facility)}</td>
+								<td class="isk">{formatNumber(data.results?.taxes.facility)}</td>
 							</tr>
 							<tr class="">
 								<td>SCC Tax</td>
-								<td class="isk">{nFormat.format(data.results?.taxes.scc)}</td>
+								<td class="isk">{formatNumber(data.results?.taxes.scc)}</td>
 							</tr>
 							<tr class="">
 								<td>Market Tax Inputs</td>
-								<td class="isk">{nFormat.format(data.results?.taxes.market.total.inputs)}</td>
+								<td class="isk">{formatNumber(data.results?.taxes.market.total.inputs)}</td>
 							</tr>
 							<tr class="">
 								<td>Market Tax Output</td>
-								<td class="isk">{nFormat.format(data.results?.taxes.market.total.output)}</td>
+								<td class="isk">{formatNumber(data.results?.taxes.market.total.output)}</td>
 							</tr>
 						</tbody>
 						<tfoot>
 							<tr class="fw-bold">
 								<td>TOTAL</td>
-								<td class="isk">{nFormat.format(data.results?.taxes_total)}</td>
+								<td class="isk">{formatNumber(data.results?.taxes_total)}</td>
 							</tr>
 						</tfoot>
 					</table>
@@ -163,12 +179,12 @@
 			</div>
 
 			<div class="col-4">
-				{#each data.results?.steps as step}
+				{#each data.results?.steps as step (step.depth)}
 					<div class="card w-100 mb-4">
 						<div class="card-header bg-warning text-white text-center w-100 fw-bold">
 							INTERMEDIATE STEP {step.depth + 1}
 						</div>
-						{#each step.materials as mat}
+						{#each step.materials as mat (mat.output.id)}
 							<div class="card w-100 rounded-0">
 								<div class="card-header bg-warning-subtle text-center w-100 fw-bold rounded-0">
 									{mat.output.name}
@@ -181,7 +197,7 @@
 										</tr>
 									</thead>
 									<tbody>
-										{#each mat.inputs as input}
+										{#each mat.inputs as input (input.id)}
 											<tr class="">
 												<td>{input.name}</td>
 												<td>{input.quantity}</td>
@@ -210,10 +226,10 @@
 							<tr class="">
 								<td>{data.results?.output.name}</td>
 								<td>{data.results?.output.quantity}</td>
-								<td class="isk">{nFormat.format(data.results?.output.price)}</td>
+								<td class="isk">{formatNumber(data.results?.output.price)}</td>
 							</tr>
 							{#if data.results?.remaining.length > 0}
-								{#each data.results?.remaining as mat}
+								{#each data.results?.remaining as mat (mat.id || mat.name)}
 									<tr class="">
 										<td>{mat.name}</td>
 										<td>{mat.quantity}</td>
@@ -225,7 +241,7 @@
 						<tfoot>
 							<tr class="fw-bold">
 								<td colspan="2">TOTAL</td>
-								<td class="isk">{nFormat.format(data.results?.output.price)}</td>
+								<td class="isk">{formatNumber(data.results?.output.price)}</td>
 							</tr>
 						</tfoot>
 					</table>
@@ -242,21 +258,21 @@
 						<tbody>
 							<tr class="">
 								<td>Inputs</td>
-								<td class="isk">{nFormat.format(data.results?.input_total)}</td>
+								<td class="isk">{formatNumber(data.results?.input_total)}</td>
 							</tr>
 							<tr class="">
 								<td>Taxes</td>
-								<td class="isk">{nFormat.format(data.results?.taxes_total)}</td>
+								<td class="isk">{formatNumber(data.results?.taxes_total)}</td>
 							</tr>
 							<tr class="">
 								<td>Output</td>
-								<td class="isk">{nFormat.format(data.results?.output.price)}</td>
+								<td class="isk">{formatNumber(data.results?.output.price)}</td>
 							</tr>
 						</tbody>
 						<tfoot>
 							<tr class="fw-bold">
 								<td>TOTAL</td>
-								<td class="isk">{nFormat.format(data.results?.profit)}</td>
+								<td class="isk">{formatNumber(data.results?.profit)}</td>
 							</tr>
 						</tfoot>
 					</table>
@@ -275,18 +291,18 @@
 							</tr>
 						</thead>
 						<tbody>
-							{#each data.results?.input as mat}
+							{#each data.results?.input as mat (mat.id || mat.name)}
 								<tr class="">
 									<td>{mat.name}</td>
 									<td>{mat.quantity}</td>
-									<td class="isk">{nFormat.format(mat.price)}</td>
+									<td class="isk">{formatNumber(mat.price)}</td>
 								</tr>
 							{/each}
 						</tbody>
 						<tfoot>
 							<tr class="fw-bold">
 								<td colspan="2">TOTAL</td>
-								<td class="isk">{nFormat.format(data.results?.input_total)}</td>
+								<td class="isk">{formatNumber(data.results?.input_total)}</td>
 							</tr>
 						</tfoot>
 					</table>
@@ -303,29 +319,29 @@
 						<tbody>
 							<tr class="">
 								<td>Cost Index</td>
-								<td class="isk">{nFormat.format(data.results?.taxes.system)}</td>
+								<td class="isk">{formatNumber(data.results?.taxes.system)}</td>
 							</tr>
 							<tr class="">
 								<td>Facility Tax</td>
-								<td class="isk">{nFormat.format(data.results?.taxes.facility)}</td>
+								<td class="isk">{formatNumber(data.results?.taxes.facility)}</td>
 							</tr>
 							<tr class="">
 								<td>SCC Tax</td>
-								<td class="isk">{nFormat.format(data.results?.taxes.scc)}</td>
+								<td class="isk">{formatNumber(data.results?.taxes.scc)}</td>
 							</tr>
 							<tr class="">
 								<td>Market Tax Inputs</td>
-								<td class="isk">{nFormat.format(data.results?.taxes.market.total.inputs)}</td>
+								<td class="isk">{formatNumber(data.results?.taxes.market.total.inputs)}</td>
 							</tr>
 							<tr class="">
 								<td>Market Tax Output</td>
-								<td class="isk">{nFormat.format(data.results?.taxes.market.total.output)}</td>
+								<td class="isk">{formatNumber(data.results?.taxes.market.total.output)}</td>
 							</tr>
 						</tbody>
 						<tfoot>
 							<tr class="fw-bold">
 								<td>TOTAL</td>
-								<td class="isk">{nFormat.format(data.results?.taxes_total)}</td>
+								<td class="isk">{formatNumber(data.results?.taxes_total)}</td>
 							</tr>
 						</tfoot>
 					</table>
@@ -346,10 +362,10 @@
 							<tr class="">
 								<td>{data.results?.output.name}</td>
 								<td>{data.results?.output.quantity}</td>
-								<td class="isk">{nFormat.format(data.results?.output.price)}</td>
+								<td class="isk">{formatNumber(data.results?.output.price)}</td>
 							</tr>
 							{#if data.results?.remaining.length > 0}
-								{#each data.results?.remaining as mat}
+								{#each data.results?.remaining as mat (mat.id || mat.name)}
 									<tr class="">
 										<td>{mat.name}</td>
 										<td>{mat.quantity}</td>
@@ -361,7 +377,7 @@
 						<tfoot>
 							<tr class="fw-bold">
 								<td colspan="2">TOTAL</td>
-								<td class="isk">{nFormat.format(data.results?.output.price)}</td>
+								<td class="isk">{formatNumber(data.results?.output.price)}</td>
 							</tr>
 						</tfoot>
 					</table>
@@ -378,21 +394,21 @@
 						<tbody>
 							<tr class="">
 								<td>Inputs</td>
-								<td class="isk">{nFormat.format(data.results?.input_total)}</td>
+								<td class="isk">{formatNumber(data.results?.input_total)}</td>
 							</tr>
 							<tr class="">
 								<td>Taxes</td>
-								<td class="isk">{nFormat.format(data.results?.taxes_total)}</td>
+								<td class="isk">{formatNumber(data.results?.taxes_total)}</td>
 							</tr>
 							<tr class="">
 								<td>Output</td>
-								<td class="isk">{nFormat.format(data.results?.output.price)}</td>
+								<td class="isk">{formatNumber(data.results?.output.price)}</td>
 							</tr>
 						</tbody>
 						<tfoot>
 							<tr class="fw-bold">
 								<td>TOTAL</td>
-								<td class="isk">{nFormat.format(data.results?.profit)}</td>
+								<td class="isk">{formatNumber(data.results?.profit)}</td>
 							</tr>
 						</tfoot>
 					</table>
