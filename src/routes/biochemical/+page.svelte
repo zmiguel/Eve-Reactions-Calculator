@@ -1,5 +1,5 @@
 <script>
-	import { TableHandler } from '@vincjo/datatables/server';
+	import { TableHandler } from '@vincjo/datatables';
 	import TH from '../TH.svelte';
 	import { onMount } from 'svelte';
 	import { goto } from '$app/navigation';
@@ -40,19 +40,19 @@
 
 	onMount(() => {
 		const synthSort = synthHandler.createSort('name');
-		synthSort.set('asc');
+		synthSort.asc();
 		const standardSort = standardHandler.createSort('name');
-		standardSort.set('asc');
+		standardSort.asc();
 		const improvedSort = improvedHandler.createSort('name');
-		improvedSort.set('asc');
+		improvedSort.asc();
 		const improvedChainSort = improvedChainHandler.createSort('name');
-		improvedChainSort.set('asc');
+		improvedChainSort.asc();
 		const strongSort = strongHandler.createSort('name');
-		strongSort.set('asc');
+		strongSort.asc();
 		const strongChainSort = strongChainHandler.createSort('name');
-		strongChainSort.set('asc');
+		strongChainSort.asc();
 		const molecularSort = molecularHandler.createSort('name');
-		molecularSort.set('asc');
+		molecularSort.asc();
 	});
 </script>
 

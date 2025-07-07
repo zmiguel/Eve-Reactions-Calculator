@@ -1,5 +1,5 @@
 <script>
-	import { TableHandler } from '@vincjo/datatables/server';
+	import { TableHandler } from '@vincjo/datatables';
 	import TH from '../TH.svelte';
 	import { onMount } from 'svelte';
 	import { goto } from '$app/navigation';
@@ -36,15 +36,15 @@
 
 	onMount(() => {
 		const simpleSort = simpleHandler.createSort('name');
-		simpleSort.set('asc');
+		simpleSort.asc();
 		const complexSort = complexHandler.createSort('name');
-		complexSort.set('asc');
+		complexSort.asc();
 		const chainSort = chainHandler.createSort('name');
-		chainSort.set('asc');
+		chainSort.asc();
 		const unrefinedSort = unrefinedHandler.createSort('name');
-		unrefinedSort.set('asc');
+		unrefinedSort.asc();
 		const refinedSort = refinedHandler.createSort('name');
-		refinedSort.set('asc');
+		refinedSort.asc();
 	});
 </script>
 
