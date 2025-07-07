@@ -34,9 +34,7 @@
 
 	// Filter items based on input value
 	let filteredItems = $derived(
-		items.filter((item) =>
-			item.toString().toLowerCase().includes(inputValue.toLowerCase())
-		)
+		items.filter((item) => item.toString().toLowerCase().includes(inputValue.toLowerCase()))
 	);
 
 	// Update input value when selectedItem changes

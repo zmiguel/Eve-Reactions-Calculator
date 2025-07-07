@@ -35,9 +35,11 @@
 	 * @param {string} tab - The tab to check if disabled
 	 * @returns {boolean} Whether the tab is disabled
 	 */
-	let tabDisabled = $derived((tab) =>
-		(settingsMode === 'single' && tab !== 'single') ||
-		(settingsMode === 'separate' && tab === 'single'));
+	let tabDisabled = $derived(
+		(tab) =>
+			(settingsMode === 'single' && tab !== 'single') ||
+			(settingsMode === 'separate' && tab === 'single')
+	);
 
 	// Update activeTab when changing modes
 	$effect(() => {
@@ -66,11 +68,7 @@
 			<div class="d-flex justify-content-between align-items-center">
 				<h4 class="mb-0">New Settings:</h4>
 				<div class="col-sm-8 col-md-6 col-lg-5">
-					<select
-						class="form-select"
-						bind:value={settingsMode}
-						onchange={handleSettingsModeChange}
-					>
+					<select class="form-select" bind:value={settingsMode} onchange={handleSettingsModeChange}>
 						<option value="single">Single Settings Mode</option>
 						<option value="separate">Separate Settings Mode</option>
 					</select>
