@@ -189,7 +189,8 @@
 <style>
 	.autocomplete-container {
 		position: relative;
-		display: inline-block;
+		display: flex;
+		flex: 1;
 		width: 100%;
 	}
 
@@ -197,11 +198,19 @@
 		position: relative;
 		display: flex;
 		align-items: center;
+		flex: 1;
 	}
 
 	.autocomplete-input {
-		width: 100%;
+		flex: 1;
+		outline: none;
 		padding-right: 60px; /* Space for clear and arrow buttons */
+	}
+
+	/* When used in Bootstrap input-group, remove conflicting styles */
+	:global(.input-group) .autocomplete-input {
+		border: none;
+		border-radius: 0;
 	}
 
 	.autocomplete-clear,
