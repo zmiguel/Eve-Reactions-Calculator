@@ -18,7 +18,7 @@
 		"@fortawesome/free-solid-svg-icons": "^6.7.2",
 		"@popperjs/core": "^2.11.8",
 		"@sveltejs/adapter-auto": "^6.0.1",
-		"@sveltejs/adapter-cloudflare": "^6.0.1",
+		"@sveltejs/adapter-cloudflare": "^7.0.4",
 		"@sveltejs/kit": "^2.22.2",
 		"@sveltejs/vite-plugin-svelte": "^4.0.4",
 		"@vincjo/datatables": "^2.5.0",
