@@ -30,7 +30,7 @@
 		"prettier": "^3.6.2",
 		"prettier-plugin-svelte": "^3.4.0",
 		"sass": "^1.89.2",
-		"svelte": "^5.35.4",
+		"svelte": "^5.37.3",
 		"svelte-check": "^4.2.2",
 		"svelte-fa": "^4.0.4",
 		"typescript": "^5.8.3",
