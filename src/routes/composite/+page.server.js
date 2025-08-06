@@ -144,7 +144,9 @@ export const load = async ({ cookies, platform }) => {
 									db_prep_unrefined,
 									blueprints,
 									parseInt(bp._id),
-									0
+									0,
+									false,
+									360
 								)
 							);
 						})
