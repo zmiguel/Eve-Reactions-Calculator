@@ -191,7 +191,7 @@ export async function prep(type, options, blueprints, env) {
 	};
 }
 
-export async function simple(env, options, db, blueprints, material, amount, advanced = false) {
+export async function simple(env, options, db, blueprints, material, amount, advanced = false, time = 180) {
 	// Calculate material bonus
 	let material_bonus = 1;
 	switch (options.rigs) {
@@ -218,7 +218,7 @@ export async function simple(env, options, db, blueprints, material, amount, adv
 
 	// Calculate time bonus
 	// skill bonus
-	let time_per_run = 180 * (1 - (4 * parseInt(options.skill)) / 100);
+	let time_per_run = time * (1 - (4 * parseInt(options.skill)) / 100);
 	// Facility bonus
 	if (options.facility === 'medium') {
 		time_per_run = time_per_run * 1;
@@ -247,7 +247,7 @@ export async function simple(env, options, db, blueprints, material, amount, adv
 			}
 			break;
 		default:
-			time_per_run = 180;
+			time_per_run = time;
 			break;
 	}
 
@@ -717,7 +717,8 @@ export async function refined(
 	blueprints,
 	material,
 	amount,
-	advanced = false
+	advanced = false,
+	time = 360
 ) {
 	// Get blueprint data for this material
 	const blueprint = blueprints.find((bp) => {
@@ -732,7 +733,7 @@ export async function refined(
 
 	// Actually calculate the costs
 	// get data from simple
-	let base = await simple(env, options, db_unrefined, blueprints, material, amount, advanced);
+	let base = await simple(env, options, db_unrefined, blueprints, material, amount, advanced, time);
 	base.intermediates = base.output;
 
 	base.output_total = 0;
