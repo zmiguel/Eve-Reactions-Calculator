@@ -35,7 +35,7 @@
 		"svelte-fa": "^4.0.4",
 		"typescript": "^5.9.2",
 		"vite": "^5.4.19",
-		"wrangler": "^3.114.12"
+		"wrangler": "^4.28.0"
 	},
 	"type": "module",
 	"dependencies": {
