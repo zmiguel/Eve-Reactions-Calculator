@@ -1,0 +1,39 @@
+{
+	"name": "eve-reactions",
+	"compatibility_date": "2025-10-29",
+	"main": "./.svelte-kit/cloudflare/_worker.js",
+	"assets": {
+		"directory": ".svelte-kit/cloudflare",
+		"binding": "ASSETS"
+	},
+	"preview_urls": true,
+	"kv_namespaces": [
+		{ "binding": "KV_DATA", "id": "f1bf8614eb0247ecb5e870200c531bcd" },
+		{ "binding": "eve-reactions-endpoints", "id": "17fda7ccf69547a9b679d139571222ee" }
+	],
+	"d1_databases": [
+		{
+			"binding": "DB",
+			"database_id": "33adc73f-d9df-4107-b072-ad72401f890a",
+			"database_name": "eve-reactions"
+		}
+	],
+	"vars": {
+		"NODE_VERSION": "24"
+	},
+    "observability": {
+        "enabled": false,
+        "head_sampling_rate": 1,
+        "logs": {
+            "enabled": true,
+            "head_sampling_rate": 1,
+            "persist": true,
+            "invocation_logs": true
+        },
+        "traces": {
+            "enabled": true,
+            "persist": true,
+            "head_sampling_rate": 1
+        }
+    }
+}

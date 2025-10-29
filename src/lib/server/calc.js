@@ -191,7 +191,16 @@ export async function prep(type, options, blueprints, env) {
 	};
 }
 
-export async function simple(env, options, db, blueprints, material, amount, advanced = false, time = 180) {
+export async function simple(
+	env,
+	options,
+	db,
+	blueprints,
+	material,
+	amount,
+	advanced = false,
+	time = 180
+) {
 	// Calculate material bonus
 	let material_bonus = 1;
 	switch (options.rigs) {

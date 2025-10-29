@@ -2,6 +2,7 @@
 	import { TableHandler } from '@vincjo/datatables';
 	import TH from '../TH.svelte';
 	import { goto } from '$app/navigation';
+	import { resolve } from '$app/paths';
 
 	let { data } = $props();
 
@@ -18,10 +19,11 @@
 	}
 
 	function rowClickHandler(e) {
+		const href = resolve(e.currentTarget.dataset.href);
 		if (e.ctrlKey || e.metaKey || e.button == 1) {
-			window.open(e.currentTarget.dataset.href, '_blank');
+			window.open(href, '_blank');
 		} else {
-			goto(e.currentTarget.dataset.href);
+			goto(href);
 		}
 	}
 </script>
