@@ -36,5 +36,11 @@
             "persist": true,
             "head_sampling_rate": 1
         }
-    }
+    },
+    "routes": [
+        {
+            "pattern": "reactions.coalition.space",
+            "custom_domain": true
+        }
+    ]
 }
