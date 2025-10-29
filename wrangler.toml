@@ -1,5 +1,5 @@
 name = "eve-reactions-calculator"
-pages_build_output_dir = ".svelte-kit/cloudflare"
+compatibility_date = "2025-11-01"
 
 kv_namespaces = [
     { binding = "KV_DATA", id = "f1bf8614eb0247ecb5e870200c531bcd" },
@@ -12,3 +12,7 @@ d1_databases = [
 
 [vars]
 NODE_VERSION = "24"
+
+[assets]
+directory = ".svelte-kit/cloudflare"
+binding = "ASSETS"
