@@ -1,3 +1,7 @@
+<script>
+	import { resolve } from '$app/paths';
+</script>
+
 <svelte:head>
 	<title>EVE Online Reactions Calculator</title>
 </svelte:head>
@@ -15,7 +19,7 @@
 			<p class="lead mt-3">
 				<strong>Inputs:</strong> K-space gas + minerals<br /><strong>Outputs:</strong> Boosters + Molecular-Forged
 			</p>
-			<a class="btn btn-primary" href="/biochemical" role="button">View Biochemical</a>
+			<a class="btn btn-primary" href={resolve('/biochemical')} role="button">View Biochemical</a>
 		</div>
 
 		<div class="d-grid gap-2 col-lg-4 mx-auto">
@@ -29,7 +33,7 @@
 			<p class="lead mt-3">
 				<strong>Inputs:</strong> Moon goo<br /><strong>Outputs:</strong> T2 Ship Materials + Other
 			</p>
-			<a class="btn btn-primary" href="/composite" role="button">View Composite</a>
+			<a class="btn btn-primary" href={resolve('/composite')} role="button">View Composite</a>
 		</div>
 
 		<div class="d-grid gap-2 col-lg-4 mx-auto">
@@ -44,7 +48,7 @@
 				<strong>Inputs:</strong> J-space gas + minerals<br /><strong>Outputs:</strong> T3 Ship Materials
 				+ Other
 			</p>
-			<a class="btn btn-primary" href="/hybrid" role="button">View Hybrid</a>
+			<a class="btn btn-primary" href={resolve('/hybrid')} role="button">View Hybrid</a>
 		</div>
 	</div>
 </div>

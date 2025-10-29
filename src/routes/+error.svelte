@@ -1,5 +1,6 @@
 <script>
 	import { page } from '$app/state';
+	import { resolve } from '$app/paths';
 </script>
 
 <svelte:head>
@@ -12,7 +13,7 @@
 			<p class="lead">
 				{page.error?.message}
 			</p>
-			<a href="/" class="btn btn-link">Go Home</a>
+			<a href={resolve('/')} class="btn btn-link">Go Home</a>
 		</div>
 	</div>
 </div>

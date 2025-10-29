@@ -1,6 +1,7 @@
 <script>
 	import '../app.scss';
 	import { page } from '$app/stores';
+	import { resolve } from '$app/paths';
 	import { onMount } from 'svelte';
 
 	let { data, children } = $props();
@@ -53,7 +54,7 @@
 
 <nav class="navbar navbar-expand-lg navbar-dark bg-dark fixed-top" data-bs-theme="dark">
 	<div class="container">
-		<a class="navbar-brand" href="/">EVE Online Reactions Calculator</a>
+		<a class="navbar-brand" href={resolve('/')}>EVE Online Reactions Calculator</a>
 		<button
 			class="navbar-toggler"
 			type="button"
@@ -68,31 +69,33 @@
 		<div class="collapse navbar-collapse" id="navbarResponsive">
 			<ul class="navbar-nav ms-auto">
 				<li class="nav-item">
-					<a class="nav-link" href="/" class:active={$page.url.pathname === '/'}>Home</a>
+					<a class="nav-link" href={resolve('/')} class:active={$page.url.pathname === '/'}>Home</a>
 				</li>
 				<li class="nav-item">
 					<a
 						class="nav-link"
-						href="/biochemical"
+						href={resolve('/biochemical')}
 						class:active={$page.url.pathname.includes('biochemical')}>Biochemical</a
 					>
 				</li>
 				<li class="nav-item">
 					<a
 						class="nav-link"
-						href="/composite"
+						href={resolve('/composite')}
 						class:active={$page.url.pathname.includes('composite')}>Composite</a
-					>
-				</li>
-				<li class="nav-item">
-					<a class="nav-link" href="/hybrid" class:active={$page.url.pathname.includes('hybrid')}
-						>Hybrid</a
 					>
 				</li>
 				<li class="nav-item">
 					<a
 						class="nav-link"
-						href="/settings"
+						href={resolve('/hybrid')}
+						class:active={$page.url.pathname.includes('hybrid')}>Hybrid</a
+					>
+				</li>
+				<li class="nav-item">
+					<a
+						class="nav-link"
+						href={resolve('/settings')}
 						class:active={$page.url.pathname.includes('settings')}>Settings</a
 					>
 				</li>
