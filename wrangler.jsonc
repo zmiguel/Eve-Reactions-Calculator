@@ -42,5 +42,8 @@
             "pattern": "reactions.coalition.space",
             "custom_domain": true
         }
-    ]
+    ],
+    "placement": {
+        "mode": "smart"
+    }
 }
