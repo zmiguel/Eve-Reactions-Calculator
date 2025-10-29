@@ -1,0 +1,35 @@
+{
+	"name": "eve-reactions-updater",
+	"main": "src/index.ts",
+	"compatibility_date": "2025-10-29",
+	"kv_namespaces": [
+		{ "binding": "ENDPOINTS", "id": "17fda7ccf69547a9b679d139571222ee" },
+		{ "binding": "DATA", "id": "f1bf8614eb0247ecb5e870200c531bcd" }
+	],
+	"d1_databases": [
+		{ "binding": "DB", "database_name": "eve-reactions", "database_id": "33adc73f-d9df-4107-b072-ad72401f890a" }
+	],
+	"triggers": {
+		"crons": ["*/30 * * * *"]
+	},
+	"placement": {
+		"mode": "smart"
+	},
+    "observability": {
+        "enabled": false,
+        "head_sampling_rate": 1,
+        "logs": {
+            "enabled": true,
+            "head_sampling_rate": 1,
+            "persist": true,
+            "invocation_logs": true
+        },
+        "traces": {
+            "enabled": true,
+            "persist": true,
+            "head_sampling_rate": 1
+        }
+    },
+    "preview_urls": false,
+    "workers_dev": false
+}
