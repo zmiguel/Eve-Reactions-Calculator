@@ -7,6 +7,7 @@
 		"binding": "ASSETS"
 	},
 	"preview_urls": true,
+    "workers_dev": false,
 	"kv_namespaces": [
 		{ "binding": "KV_DATA", "id": "f1bf8614eb0247ecb5e870200c531bcd" },
 		{ "binding": "eve-reactions-endpoints", "id": "17fda7ccf69547a9b679d139571222ee" }
