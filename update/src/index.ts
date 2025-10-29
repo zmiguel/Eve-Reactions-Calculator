@@ -12,6 +12,8 @@ export interface Env {
 	DATA: KVNamespace;
 }
 
+const userAgent = "EVE-Reactions-Calculator-Updater/1.1.0 (production; +https://reactions.coalition.space/) (+https://github.com/zmiguel/Eve-Reactions-Calculator; mail:eve@zmiguel.me; eve:Oxed G; discord:oxedpixel)";
+
 async function getRequiredKVText(kv: KVNamespace, key: string): Promise<string> {
 	const value = await kv.get(key, 'text');
 	if (!value) {
@@ -30,7 +32,6 @@ async function getRequiredKVJSON<T>(kv: KVNamespace, key: string): Promise<T> {
 }
 
 async function fetchJSON<T>(url: string): Promise<T> {
-	const userAgent = "EVE-Reactions-Calculator-Updater/1.1.0 (production; +https://reactions.coalition.space/) (+https://github.com/zmiguel/Eve-Reactions-Calculator; mail:eve@zmiguel.me; eve:Oxed G; discord:oxedpixel)";
 	const response = await fetch(url, {
 		headers: {
 			'Content-Type': 'application/json',
@@ -347,7 +348,6 @@ export default {
 		console.info(
 			`Cron triggered at ${new Date(event.scheduledTime ?? Date.now()).toISOString()}`
 		);
-		const userAgent = buildUserAgent();
 		console.info(`Using user agent: ${userAgent}`);
 		await runStep('Update Adjusted Item Prices Cron', () => update_adjusted_item_prices_cron(env));
 		await runStep('Update Base Industry Cost Cron', () => update_base_industry_cost_cron(env));
