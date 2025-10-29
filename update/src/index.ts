@@ -1,100 +1,217 @@
+import type {
+	D1Database,
+	D1PreparedStatement,
+	ExecutionContext,
+	KVNamespace,
+	ScheduledController
+} from '@cloudflare/workers-types';
+
 export interface Env {
-	// @ts-ignore
 	DB: D1Database;
-	// @ts-ignore
 	ENDPOINTS: KVNamespace;
-	// @ts-ignore
 	DATA: KVNamespace;
 }
 
-async function update_adjusted_item_prices_cron(env: Env) {
-	const items_query = await env.DB.prepare(await env.DATA.get('query-items'));
-	const items = await items_query.all();
+async function getRequiredKVText(kv: KVNamespace, key: string): Promise<string> {
+	const value = await kv.get(key, 'text');
+	if (!value) {
+		throw new Error(`Missing KV value for key: ${key}`);
+	}
+	return value;
+}
 
-	// query ESI api to update adjusted price
-	const esi_url =
-		(await env.ENDPOINTS.get('ESI_BASE')) +
-		(await env.ENDPOINTS.get('ESI_MARKET_PRICES')) +
-		(await env.ENDPOINTS.get('ESI_DATA_SOURCE'));
-	const esi_data = await fetch(esi_url);
-	const esi_prices = await esi_data.json();
-	// update adjusted price
-	const update_query = await env.DATA.get('query-update-items-adjusted-price');
-	// go through each item and update adjusted price
-	const batch: any[] = [];
-	const update_batch = env.DB.prepare(update_query);
-	for (const item of items.results) {
-		const adjusted_price = esi_prices.find((price) => price.type_id === item.id)?.adjusted_price;
+async function getRequiredKVJSON<T>(kv: KVNamespace, key: string): Promise<T> {
+	const text = await getRequiredKVText(kv, key);
+	try {
+		return JSON.parse(text) as T;
+	} catch (error) {
+		throw new Error(`Failed to parse JSON for ${key}: ${(error as Error).message}`);
+	}
+}
 
-		if (adjusted_price) {
-			batch.push(update_batch.bind(adjusted_price, item.id));
+async function fetchJSON<T>(url: string): Promise<T> {
+	const userAgent = "EVE-Reactions-Calculator-Updater/1.1.0 (production; +https://reactions.coalition.space/) (+https://github.com/zmiguel/Eve-Reactions-Calculator; mail:eve@zmiguel.me; eve:Oxed G; discord:oxedpixel)";
+	const response = await fetch(url, {
+		headers: {
+			'Content-Type': 'application/json',
+			'Accept': 'application/json',
+			'Accept-Language': 'en',
+			'X-Compatibility-Date': '2025-10-29',
+			'X-Tenant': 'tranquility',
+			'User-Agent': userAgent,
+			'X-User-Agent': userAgent
+		}
+	});
+	if (!response.ok) {
+		throw new Error(`Request failed: ${response.status} ${response.statusText} (${url})`);
+	}
+	return (await response.json()) as T;
+}
+
+type ItemRecord = { id: number; adjusted_price?: number | null };
+type EsiPriceRecord = { type_id: number; adjusted_price?: number | null };
+type BlueprintInput = { id: number; qt: number };
+type BlueprintRecord = { _id: number; type: string; inputs?: BlueprintInput[] };
+type CostIndexActivity = { activity?: string; cost_index?: number | null };
+type CostIndexRecord = { solar_system_id: number; cost_indices?: CostIndexActivity[] };
+type SystemsConfig = { systems: string[] };
+type MarketPriceEntry = { sell?: { min?: number | null }; buy?: { max?: number | null } };
+type MarketPriceResponse = Record<string, MarketPriceEntry>;
+type PriceRow = { item_id: number };
+type SystemRow = { id: number };
+
+function isFiniteNumber(value: unknown): value is number {
+	return typeof value === 'number' && Number.isFinite(value);
+}
+
+function calculateBlueprintCost(
+	blueprint: BlueprintRecord,
+	priceMap: Map<number, number | null | undefined>
+): number {
+	let total = 0;
+	for (const input of blueprint.inputs ?? []) {
+		const adjustedPrice = priceMap.get(input.id);
+		if (isFiniteNumber(adjustedPrice)) {
+			total += adjustedPrice * input.qt;
 		}
 	}
+	return total;
+}
+
+function hasNonZeroPrices(data: MarketPriceResponse, itemIds: number[]): boolean {
+	return itemIds.some((id) => {
+		const entry = data[String(id)];
+		if (!entry) {
+			return false;
+		}
+		const sellMin = entry.sell?.min ?? 0;
+		const buyMax = entry.buy?.max ?? 0;
+		return sellMin > 0 || buyMax > 0;
+	});
+}
+
+async function fetchMarketPricesWithRetry(
+	marketUrl: string,
+	itemIdsParam: string,
+	systemName: string,
+	systemId: number,
+	itemIds: number[]
+): Promise<MarketPriceResponse | null> {
+	const url = `${marketUrl}?types=${itemIdsParam}&region=${systemId}`;
+	for (let attempt = 1; attempt <= 2; attempt++) {
+		try {
+			const data = await fetchJSON<MarketPriceResponse>(url);
+			if (!data || Object.keys(data).length === 0 || !hasNonZeroPrices(data, itemIds)) {
+				if (attempt === 1) {
+					console.warn(
+						`Market data empty for system ${systemName} (ID ${systemId}) on attempt ${attempt}; retrying once.`
+					);
+					continue;
+				}
+				console.error(
+					`Market data empty for system ${systemName} (ID ${systemId}) after retry; skipping.`
+				);
+				return null;
+			}
+			return data;
+		} catch (error) {
+			if (attempt === 1) {
+				console.warn(
+					`Market data fetch failed for system ${systemName} (ID ${systemId}) on attempt ${attempt}; retrying once.`,
+					error
+				);
+				continue;
+			}
+			console.error(
+				`Market data fetch failed for system ${systemName} (ID ${systemId}) after retry; skipping.`,
+				error
+			);
+			return null;
+		}
+	}
+	return null;
+}
+
+async function runStep(name: string, step: () => Promise<void>) {
+	console.info(`Running ${name}`);
+	try {
+		await step();
+	} catch (error) {
+		console.error(`${name} failed:`, error);
+	}
+}
+
+async function update_adjusted_item_prices_cron(env: Env) {
+	const itemsQuery = await getRequiredKVText(env.DATA, 'query-items');
+	const itemsResult = await env.DB.prepare(itemsQuery).all<ItemRecord>();
+	const items = itemsResult.results ?? [];
+	if (!items.length) {
+		console.info('No items found for adjusted price update.');
+		return;
+	}
+
+	const esiUrl =
+		(await getRequiredKVText(env.ENDPOINTS, 'ESI_BASE')) +
+		(await getRequiredKVText(env.ENDPOINTS, 'ESI_MARKET_PRICES')) +
+		(await getRequiredKVText(env.ENDPOINTS, 'ESI_DATA_SOURCE'));
+	const esiPrices = await fetchJSON<EsiPriceRecord[]>(esiUrl);
+	const updateQuery = await getRequiredKVText(env.DATA, 'query-update-items-adjusted-price');
+	const updateStatement = env.DB.prepare(updateQuery);
+
+	const batch: D1PreparedStatement[] = [];
+	for (const item of items) {
+		const adjustedPrice = esiPrices.find((price) => price.type_id === item.id)?.adjusted_price;
+		if (isFiniteNumber(adjustedPrice)) {
+			batch.push(updateStatement.bind(adjustedPrice, item.id));
+		}
+	}
+
+	if (batch.length === 0) {
+		console.info('No adjusted item prices required updating.');
+		return;
+	}
+
 	console.log(`items to update adjusted cost: ${batch.length}`);
 	const info = await env.DB.batch(batch);
 	console.log(`items updated: ${info.length}`);
 }
 
 async function update_base_industry_cost_cron(env: Env) {
-	// update base industry cost based on the adjusted price of the material required to build the item from the blueprints
-	// get updated items first
-	const items_query = await env.DB.prepare(await env.DATA.get('query-items'));
-	const items = await items_query.all();
-
-	// get blueprints
-	const bp_comp = JSON.parse(await env.DATA.get('bp-comp'));
-	const bp_bio = JSON.parse(await env.DATA.get('bp-bio'));
-	const bp_hybrid = JSON.parse(await env.DATA.get('bp-hybrid'));
-	const update_indy_cost = await env.DATA.get('query-update-indy-cost');
-
-	// batch setup
-	const batch: any[] = [];
-	const update_batch = env.DB.prepare(update_indy_cost);
-
-	// get adjusted price for each material
-	// composite
-	for (const bp of bp_comp) {
-		let indyPrice = 0;
-		if(bp.type === 'refined'){
-			continue;
-		}
-		for (const input of bp.inputs) {
-			const item = items.results.find((item) => item.id === input.id)?.adjusted_price;
-
-			if (item) {
-				indyPrice += item * input.qt;
-			}
-		}
-		// update base industry cost
-		batch.push(update_batch.bind(indyPrice, bp._id));
+	const itemsQuery = await getRequiredKVText(env.DATA, 'query-items');
+	const itemsResult = await env.DB.prepare(itemsQuery).all<ItemRecord>();
+	const items = itemsResult.results ?? [];
+	if (!items.length) {
+		console.info('No items found for industry cost update.');
+		return;
 	}
 
-	// bio
-	for (const bp of bp_bio) {
-		let indyPrice = 0;
-		for (const input of bp.inputs) {
-			const item = items.results.find((item) => item.id === input.id)?.adjusted_price;
+	const priceMap = new Map(items.map((item) => [item.id, item.adjusted_price]));
+	const [bpComp, bpBio, bpHybrid] = await Promise.all([
+		getRequiredKVJSON<BlueprintRecord[]>(env.DATA, 'bp-comp'),
+		getRequiredKVJSON<BlueprintRecord[]>(env.DATA, 'bp-bio'),
+		getRequiredKVJSON<BlueprintRecord[]>(env.DATA, 'bp-hybrid')
+	]);
+	const updateQuery = await getRequiredKVText(env.DATA, 'query-update-indy-cost');
+	const updateStatement = env.DB.prepare(updateQuery);
+	const batch: D1PreparedStatement[] = [];
 
-			if (item) {
-				indyPrice += item * input.qt;
+	const queueBlueprints = (blueprints: BlueprintRecord[], skipType?: string) => {
+		for (const blueprint of blueprints ?? []) {
+			if (skipType && blueprint.type === skipType) {
+				continue;
 			}
+			const totalCost = calculateBlueprintCost(blueprint, priceMap);
+			batch.push(updateStatement.bind(totalCost, blueprint._id));
 		}
-		// update base industry cost
-		batch.push(update_batch.bind(indyPrice, bp._id));
-	}
+	};
 
-	// hybrid
-	for (const bp of bp_hybrid) {
-		let indyPrice = 0;
-		for (const input of bp.inputs) {
-			const item = items.results.find((item) => item.id === input.id)?.adjusted_price;
+	queueBlueprints(bpComp, 'refined');
+	queueBlueprints(bpBio);
+	queueBlueprints(bpHybrid);
 
-			if (item) {
-				indyPrice += item * input.qt;
-			}
-		}
-		// update base industry cost
-		batch.push(update_batch.bind(indyPrice, bp._id));
+	if (batch.length === 0) {
+		console.info('No base industry costs required updating.');
+		return;
 	}
 
 	console.log(`items to update industry cost: ${batch.length}`);
@@ -103,107 +220,121 @@ async function update_base_industry_cost_cron(env: Env) {
 }
 
 async function update_cost_index_cron(env: Env) {
-	const systems_query = await env.DB.prepare(await env.DATA.get('query-systems'));
-	const systems = await systems_query.all();
+	const systemsQuery = await getRequiredKVText(env.DATA, 'query-systems');
+	const systemsResult = await env.DB.prepare(systemsQuery).all<SystemRow>();
+	const systems = systemsResult.results ?? [];
+	if (!systems.length) {
+		console.info('No systems found for cost index update.');
+		return;
+	}
 
-	// query ESI api to update adjusted price
-	const esi_url =
-		(await env.ENDPOINTS.get('ESI_BASE')) +
-		(await env.ENDPOINTS.get('ESI_COST_INDEX')) +
-		(await env.ENDPOINTS.get('ESI_DATA_SOURCE'));
-	const esi_data = await fetch(esi_url);
-	const esi_cost_index = await esi_data.json();
-	// update cost index
-	const update_query = await env.DATA.get('query-update-cost-index');
-	// go through each item and update adjusted price
-	const batch: any[] = [];
-	const update_batch = env.DB.prepare(update_query);
-	for (const system of systems.results) {
-		const cost_index = esi_cost_index.find((item) => item.solar_system_id === system.id)
-			?.cost_indices[5].cost_index;
+	const esiUrl =
+		(await getRequiredKVText(env.ENDPOINTS, 'ESI_BASE')) +
+		(await getRequiredKVText(env.ENDPOINTS, 'ESI_COST_INDEX')) +
+		(await getRequiredKVText(env.ENDPOINTS, 'ESI_DATA_SOURCE'));
+	const esiCostIndex = await fetchJSON<CostIndexRecord[]>(esiUrl);
+	const updateQuery = await getRequiredKVText(env.DATA, 'query-update-cost-index');
+	const updateStatement = env.DB.prepare(updateQuery);
+	const batch: D1PreparedStatement[] = [];
 
-		if (cost_index) {
-			batch.push(update_batch.bind(cost_index, system.id));
+	for (const system of systems) {
+		const entry = esiCostIndex.find((item) => item.solar_system_id === system.id);
+		const reactionIndex = entry?.cost_indices?.find((ci) => ci.activity === 'reaction');
+		const fallbackIndex = entry?.cost_indices?.[5];
+		const costIndexValue = reactionIndex?.cost_index ?? fallbackIndex?.cost_index;
+		if (isFiniteNumber(costIndexValue)) {
+			batch.push(updateStatement.bind(costIndexValue, system.id));
 		}
 	}
+
+	if (batch.length === 0) {
+		console.info('No cost index updates required.');
+		return;
+	}
+
 	console.log(`items to update cost index: ${batch.length}`);
 	const info = await env.DB.batch(batch);
 	console.log(`items updated: ${info.length}`);
 }
 
 async function update_item_prices_cron(env: Env) {
-	// get system list for price update
-	const systems = JSON.parse(await env.DATA.get('systems-for-price-tracking')).systems;
+	const systemsConfig = await getRequiredKVJSON<SystemsConfig>(env.DATA, 'systems-for-price-tracking');
+	const systems = Array.isArray(systemsConfig.systems) ? systemsConfig.systems : [];
+	if (!systems.length) {
+		console.warn('No systems configured for price tracking.');
+		return;
+	}
 
-	// config batch for update/creation
-	const batch: any[] = [];
+	const itemsQuery = await getRequiredKVText(env.DATA, 'query-items');
+	const itemsResult = await env.DB.prepare(itemsQuery).all<ItemRecord>();
+	const items = itemsResult.results ?? [];
+	if (!items.length) {
+		console.warn('No items found for price update.');
+		return;
+	}
 
-	const update_query = await env.DATA.get('query-update-price');
-	const update_batch = env.DB.prepare(update_query);
+	const itemIds = items.map((item) => item.id);
+	const itemIdsParam = itemIds.join(',');
 
-	const create_query = await env.DATA.get('query-create-price');
-	const create_batch = env.DB.prepare(create_query);
+	const updateQuery = await getRequiredKVText(env.DATA, 'query-update-price');
+	const createQuery = await getRequiredKVText(env.DATA, 'query-create-price');
+	const updateStatement = env.DB.prepare(updateQuery);
+	const createStatement = env.DB.prepare(createQuery);
 
-	const market_url = await env.ENDPOINTS.get('FUZZWORKS_MARKET_API');
+	const pricesForSystemQuery = await getRequiredKVText(env.DATA, 'query-prices-for-system');
+	const systemIdQuery = await getRequiredKVText(env.DATA, 'query-system-id');
+	const marketUrlBase = await getRequiredKVText(env.ENDPOINTS, 'FUZZWORKS_MARKET_API');
 
-	// go through each system and update/create price
+	const batch: D1PreparedStatement[] = [];
+
 	for (const system of systems) {
-		const current_prices_db = await env.DB.prepare(await env.DATA.get('query-prices-for-system'))
-			.bind(system)
-			.all();
+		try {
+			const currentPricesResult = await env.DB
+				.prepare(pricesForSystemQuery)
+				.bind(system)
+				.all<PriceRow>();
+			const currentPrices = currentPricesResult.results ?? [];
+			const currentPriceMap = new Map(currentPrices.map((row) => [row.item_id, true]));
 
-		// get items from the database and make a string of their ids separated by commas
-		const items = await env.DB.prepare(await env.DATA.get('query-items')).all();
-		const item_ids = items.results.map((item) => item.id).join(',');
+			const systemId = await env.DB
+				.prepare(systemIdQuery)
+				.bind(system)
+				.first<number>('id');
+			if (!isFiniteNumber(systemId)) {
+				console.warn(`Skipping system ${String(system)}: missing numeric ID.`);
+				continue;
+			}
 
-		// get system id from database
-		const system_id = await env.DB.prepare(await env.DATA.get('query-system-id'))
-			.bind(system)
-			.first('id');
+			const marketPrices = await fetchMarketPricesWithRetry(
+				marketUrlBase,
+				itemIdsParam,
+				String(system),
+				systemId,
+				itemIds
+			);
+			if (!marketPrices) {
+				continue;
+			}
 
-		// get prices from fuzzworks
-		const market_data = await fetch(market_url + '?types=' + item_ids + '&region=' + system_id);
-		const market_prices = await market_data.json();
+			for (const item of items) {
+				const entry = marketPrices[String(item.id)];
+				const sellMin = entry?.sell?.min ?? 0;
+				const buyMax = entry?.buy?.max ?? 0;
 
-		if (current_prices_db.results.length > 0) {
-			// go through each item and update or create the price if it doesn't exist in the database
-			for (const item of items.results) {
-				const price_sell = market_prices[item.id].sell?.min;
-				const price_buy = market_prices[item.id].buy?.max;
-
-				const current_price = current_prices_db.results.find((price) => price.item_id === item.id);
-
-				if (current_price) {
-					batch.push(
-						update_batch.bind(
-							price_sell ? price_sell : 0,
-							price_buy ? price_buy : 0,
-							item.id,
-							system
-						)
-					);
+				if (currentPriceMap.has(item.id)) {
+					batch.push(updateStatement.bind(sellMin, buyMax, item.id, system));
 				} else {
-					batch.push(
-						create_batch.bind(
-							item.id,
-							system,
-							price_sell ? price_sell : 0,
-							price_buy ? price_buy : 0
-						)
-					);
+					batch.push(createStatement.bind(item.id, system, sellMin, buyMax));
 				}
 			}
-		} else {
-			// go through each item and update or create the price if it doesn't exist in the database
-			for (const item of items.results) {
-				const price_sell = market_prices[item.id].sell?.min;
-				const price_buy = market_prices[item.id].buy?.max;
-
-				batch.push(
-					create_batch.bind(item.id, system, price_sell ? price_sell : 0, price_buy ? price_buy : 0)
-				);
-			}
+		} catch (error) {
+			console.error(`Failed to update prices for system ${String(system)}:`, error);
 		}
+	}
+
+	if (batch.length === 0) {
+		console.info('No price updates queued.');
+		return;
 	}
 
 	console.log(`items to update prices: ${batch.length}`);
@@ -212,15 +343,17 @@ async function update_item_prices_cron(env: Env) {
 }
 
 export default {
-	async scheduled(event, env, ctx) {
-		console.info('Running Update Adjusted Item Prices Cron');
-		await update_adjusted_item_prices_cron(env);
-		console.info('Running Update Base Industry Cost Cron');
-		await update_base_industry_cost_cron(env);
-		console.info('Running update cost index cron');
-		await update_cost_index_cron(env);
-		console.info('Running update item prices cron');
-		await update_item_prices_cron(env);
-		console.info('Done...');
+	async scheduled(event: ScheduledController, env: Env, ctx: ExecutionContext) {
+		console.info(
+			`Cron triggered at ${new Date(event.scheduledTime ?? Date.now()).toISOString()}`
+		);
+		const userAgent = buildUserAgent();
+		console.info(`Using user agent: ${userAgent}`);
+		await runStep('Update Adjusted Item Prices Cron', () => update_adjusted_item_prices_cron(env));
+		await runStep('Update Base Industry Cost Cron', () => update_base_industry_cost_cron(env));
+		await runStep('Update Cost Index Cron', () => update_cost_index_cron(env));
+		await runStep('Update Item Prices Cron', () => update_item_prices_cron(env));
+		console.info('Cron execution finished.');
+		void ctx; // keep worker runtime happy when not using the execution context
 	}
 };
