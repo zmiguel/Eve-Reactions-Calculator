@@ -4,7 +4,7 @@
 	"private": true,
 	"scripts": {
 		"dev": "vite dev",
-		"dev-local": "wrangler pages dev .svelte-kit/cloudflare --persist-to .wrangler/state",
+		"dev-local": "wrangler dev --persist-to .wrangler/state",
 		"build": "vite build",
 		"preview": "vite preview",
 		"check": "svelte-kit sync && svelte-check --tsconfig ./jsconfig.json",
