@@ -491,7 +491,7 @@
 				id={getName('prismaticite')}
 				name={getName('prismaticite')}
 				placeholder="50"
-				type="range"
+				type="number"
 				step="0.01"
 				value={settings.prismaticite}
 				class="form-control here"
