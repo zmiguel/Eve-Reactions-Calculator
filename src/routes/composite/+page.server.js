@@ -21,7 +21,8 @@ export const load = async ({ cookies, platform }) => {
 		scc: cookies.get(`sccTax${suffix}`),
 		duration: cookies.get(`duration${suffix}`),
 		cycles: cookies.get(`cycles${suffix}`),
-		costIndex: cookies.get(`costIndex${suffix}`)
+		costIndex: cookies.get(`costIndex${suffix}`),
+		prismaticite: cookies.get(`prismaticite${suffix}`)
 	};
 
 	const blueprints = await JSON.parse(await platform.env.KV_DATA.get('bp-comp'));
@@ -189,6 +190,7 @@ export const load = async ({ cookies, platform }) => {
 		scc: cookies.get(`sccTax${suffix}`),
 		duration: cookies.get(`duration${suffix}`),
 		cycles: cookies.get(`cycles${suffix}`),
+		prismaticite: cookies.get(`prismaticite${suffix}`),
 		results: {
 			simple: simple_results,
 			complex: complex_results,

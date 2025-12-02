@@ -24,7 +24,8 @@ export const load = async ({ cookies, platform }) => {
 		tax: cookies.get(`indyTax${suffix}`) || cookies.get('indyTax') || '1',
 		scc: cookies.get(`sccTax${suffix}`) || cookies.get('sccTax') || '4',
 		duration: cookies.get(`duration${suffix}`) || cookies.get('duration') || '10080',
-		costIndex: cookies.get(`costIndex${suffix}`) || cookies.get('costIndex') || '0'
+		costIndex: cookies.get(`costIndex${suffix}`) || cookies.get('costIndex') || '0',
+		prismaticite: cookies.get(`prismaticite${suffix}`) || cookies.get('prismaticite') || '50'
 	});
 
 	return {
@@ -67,7 +68,8 @@ export const actions = {
 				'indyTax',
 				'sccTax',
 				'duration',
-				'costIndex'
+				'costIndex',
+				'prismaticite'
 			];
 
 			// Determine which type we're saving (biochemical, composite, or hybrid)
