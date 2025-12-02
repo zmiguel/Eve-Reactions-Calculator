@@ -297,7 +297,8 @@
 						<tr>
 							<th>Prismaticite</th>
 							<td>{currentSettings.prismaticite} %</td>
-					</tbody>
+						</tr></tbody
+					>
 				</table>
 			{/if}
 		</div>
