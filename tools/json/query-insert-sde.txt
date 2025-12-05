@@ -1,0 +1,1 @@
+INSERT INTO sde (release_date, release_version, run_date, success) VALUES (?, ?, ?, ?)

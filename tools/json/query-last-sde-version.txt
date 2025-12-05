@@ -1,0 +1,1 @@
+SELECT release_version, release_date FROM sde ORDER BY release_version DESC LIMIT 1

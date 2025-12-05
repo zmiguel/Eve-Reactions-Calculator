@@ -294,7 +294,11 @@
 							<th>Build Time</th>
 							<td>{currentSettings.duration} Minutes</td>
 						</tr>
-					</tbody>
+						<tr>
+							<th>Prismaticite</th>
+							<td>{currentSettings.prismaticite} %</td>
+						</tr></tbody
+					>
 				</table>
 			{/if}
 		</div>

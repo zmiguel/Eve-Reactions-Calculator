@@ -1,4 +1,4 @@
-import { prep, simple, chain, refined } from '$lib/server/calc';
+import { prep, simple, chain, refined, eraticRepro } from '$lib/server/calc';
 import { error } from '@sveltejs/kit';
 import { setCookie } from '$lib/cookies.js';
 
@@ -146,8 +146,58 @@ export const load = async ({ cookies, platform, params }) => {
 				true
 			);
 			break;
+
+		case 'eratic':
+			bps = await blueprints.filter((bp) => bp.type === 'eratic');
+			// check if type is in eratic
+			if (!bps.some((bp) => bp._id === parseInt(params.id))) {
+				error(400, `id is not in eratic`);
+			}
+			db_prep = await prep('eratic', options, blueprints, platform.env);
+			if (!db_prep) {
+				error(500, `db_prep is undefined`);
+			}
+			results = await simple(
+				platform.env,
+				options,
+				db_prep,
+				blueprints,
+				parseInt(params.id),
+				0,
+				true
+			);
+			break;
+
+		case 'eratic-repro':
+			bps = await blueprints.filter((bp) => bp.type === 'eratic-repro');
+			// check if type is in eratic-repro
+			if (!bps.some((bp) => bp._id === parseInt(params.id))) {
+				error(400, `id is not in eratic-repro`);
+			}
+			db_prep_unrefined = await prep('eratic', options, blueprints, platform.env);
+			db_prep_refined = await prep('eratic-repro', options, blueprints, platform.env);
+			if (!db_prep_unrefined || !db_prep_refined) {
+				error(500, `db_prep is undefined`);
+			}
+			results = await eraticRepro(
+				platform.env,
+				options,
+				db_prep_unrefined,
+				db_prep_refined,
+				blueprints,
+				parseInt(params.id),
+				0,
+				true,
+				360,
+				0.9063
+			);
+			break;
+
 		default:
-			error(400, `type is not in simple, complex, chain, unrefined, or refined`);
+			error(
+				400,
+				`type is not in simple, complex, chain, unrefined, refined, eratic, or eratic-repro`
+			);
 	}
 
 	return {

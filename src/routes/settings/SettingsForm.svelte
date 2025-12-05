@@ -481,3 +481,27 @@
 		</div>
 	</div>
 </div>
+
+<!-- Prismaticite Percentage -->
+<div class="form-group mb-3 row">
+	<legend class="col-4 fs-6">Prismaticite Luck Percentage</legend>
+	<div class="col-8">
+		<div class="input-group w-25">
+			<input
+				id={getName('prismaticite')}
+				name={getName('prismaticite')}
+				placeholder="50"
+				type="number"
+				step="0.01"
+				value={settings.prismaticite}
+				class="form-control here"
+				aria-describedby="prismaticiteHelpBlock"
+				required
+			/>
+			<div class="input-group-text append">%</div>
+		</div>
+		<div id="prismaticiteHelpBlock" class="form-text text-muted">
+			How lucky do you feel you are when reprocessing Unrefined Minerals? (0% - 100%)
+		</div>
+	</div>
+</div>

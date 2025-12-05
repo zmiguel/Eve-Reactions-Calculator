@@ -29,9 +29,10 @@
 				alt="Composite Reaction Icon"
 			/>
 			<h2 class="text-center mt-3">Composite Reactions</h2>
-			<p class="lead mt-3">Ship Materials</p>
+			<p class="lead mt-3">Ship Materials + Unrefined Minerals</p>
 			<p class="lead mt-3">
-				<strong>Inputs:</strong> Moon goo<br /><strong>Outputs:</strong> T2 Ship Materials + Other
+				<strong>Inputs:</strong> Moon goo + Prismaticite<br /><strong>Outputs:</strong> T2 Ship Materials
+				+ Unrefined Minerals & Others
 			</p>
 			<a class="btn btn-primary" href={resolve('/composite')} role="button">View Composite</a>
 		</div>

@@ -1,0 +1,1 @@
+INSERT INTO groups (id, name, category) VALUES (?, ?, ?) ON CONFLICT(id) DO UPDATE SET name = excluded.name, category = excluded.category

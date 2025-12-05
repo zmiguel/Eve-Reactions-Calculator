@@ -127,6 +127,15 @@ export async function load({ cookies }) {
 	if (cookies.get('costIndex') === undefined || cookies.get('costIndex') === '') {
 		setCookie(cookies, 'costIndex', '0');
 	}
+	// Prismaticite
+	if (
+		cookies.get('prismaticite') === undefined ||
+		cookies.get('prismaticite') === '' ||
+		cookies.get('prismaticite') < '0' ||
+		cookies.get('prismaticite') > '100'
+	) {
+		setCookie(cookies, 'prismaticite', '50');
+	}
 
 	let partner = true;
 	if (cookies.get('partner') === undefined || cookies.get('partner') === '') {

@@ -1,4 +1,4 @@
-import { prep, simple, chain, refined } from '$lib/server/calc';
+import { prep, simple, chain, refined, eraticRepro } from '$lib/server/calc';
 import { error } from '@sveltejs/kit';
 
 export const load = async ({ cookies, platform }) => {
@@ -21,23 +21,34 @@ export const load = async ({ cookies, platform }) => {
 		scc: cookies.get(`sccTax${suffix}`),
 		duration: cookies.get(`duration${suffix}`),
 		cycles: cookies.get(`cycles${suffix}`),
-		costIndex: cookies.get(`costIndex${suffix}`)
+		costIndex: cookies.get(`costIndex${suffix}`),
+		prismaticite: cookies.get(`prismaticite${suffix}`)
 	};
 
 	const blueprints = await JSON.parse(await platform.env.KV_DATA.get('bp-comp'));
 	const simple_blueprints = await blueprints.filter((bp) => bp.type === 'simple');
 	const complex_blueprints = await blueprints.filter((bp) => bp.type === 'complex');
 	const unrefined_blueprints = await blueprints.filter((bp) => bp.type === 'unrefined');
+	const eratic_blueprints = await blueprints.filter((bp) => bp.type === 'eratic');
+	const eratic_reprocessed_blueprints = await blueprints.filter((bp) => bp.type === 'eratic-repro');
 
 	const db_prep = [
 		{ type: 'simple' },
 		{ type: 'complex' },
 		{ type: 'chain' },
 		{ type: 'unrefined' },
-		{ type: 'refined' }
+		{ type: 'refined' },
+		{ type: 'eratic' },
+		{ type: 'eratic-repro' }
 	];
 
-	let db_prep_simple, db_prep_complex, db_prep_unrefined, db_prep_chain, db_prep_refined;
+	let db_prep_simple,
+		db_prep_complex,
+		db_prep_unrefined,
+		db_prep_chain,
+		db_prep_refined,
+		db_prep_eratic,
+		db_prep_eratic_repro;
 	await Promise.all(
 		db_prep.map(async (db) => {
 			switch (db.type) {
@@ -55,6 +66,12 @@ export const load = async ({ cookies, platform }) => {
 					break;
 				case 'refined':
 					db_prep_refined = await prep('refined', options, blueprints, platform.env);
+					break;
+				case 'eratic':
+					db_prep_eratic = await prep('eratic', options, blueprints, platform.env);
+					break;
+				case 'eratic-repro':
+					db_prep_eratic_repro = await prep('eratic-repro', options, blueprints, platform.env);
 					break;
 			}
 		})
@@ -75,13 +92,21 @@ export const load = async ({ cookies, platform }) => {
 	if (!db_prep_refined) {
 		error(500, `db_prep_refined is undefined`);
 	}
+	if (!db_prep_eratic) {
+		error(500, `db_prep_eratic is undefined`);
+	}
+	if (!db_prep_eratic_repro) {
+		error(500, `db_prep_eratic_repro is undefined`);
+	}
 
 	const all_bps = [
 		{ type: 'simple', blueprints: simple_blueprints },
 		{ type: 'complex', blueprints: complex_blueprints },
 		{ type: 'chain', blueprints: complex_blueprints },
 		{ type: 'unrefined', blueprints: unrefined_blueprints },
-		{ type: 'refined', blueprints: unrefined_blueprints }
+		{ type: 'refined', blueprints: unrefined_blueprints },
+		{ type: 'eratic', blueprints: eratic_blueprints },
+		{ type: 'eratic-repro', blueprints: eratic_reprocessed_blueprints }
 	];
 
 	let simple_results = [];
@@ -89,6 +114,9 @@ export const load = async ({ cookies, platform }) => {
 	let chain_results = [];
 	let unrefined_results = [];
 	let refined_results = [];
+	let eratic_results = [];
+	let eratic_repro_results = [];
+
 	await Promise.all(
 		all_bps.map(async (bps) => {
 			switch (bps.type) {
@@ -163,7 +191,48 @@ export const load = async ({ cookies, platform }) => {
 									db_prep_refined,
 									blueprints,
 									parseInt(bp._id),
-									0
+									0,
+									false,
+									360,
+									0.55
+								)
+							);
+						})
+					);
+					break;
+				case 'eratic':
+					await Promise.all(
+						bps.blueprints.map(async (bp) => {
+							eratic_results.push(
+								await simple(
+									platform.env,
+									options,
+									db_prep_eratic,
+									blueprints,
+									parseInt(bp._id),
+									0,
+									false,
+									60
+								)
+							);
+						})
+					);
+					break;
+				case 'eratic-repro':
+					await Promise.all(
+						bps.blueprints.map(async (bp) => {
+							eratic_repro_results.push(
+								await eraticRepro(
+									platform.env,
+									options,
+									db_prep_eratic,
+									db_prep_eratic_repro,
+									blueprints,
+									parseInt(bp._id),
+									0,
+									false,
+									60,
+									0.9063
 								)
 							);
 						})
@@ -189,12 +258,15 @@ export const load = async ({ cookies, platform }) => {
 		scc: cookies.get(`sccTax${suffix}`),
 		duration: cookies.get(`duration${suffix}`),
 		cycles: cookies.get(`cycles${suffix}`),
+		prismaticite: cookies.get(`prismaticite${suffix}`),
 		results: {
 			simple: simple_results,
 			complex: complex_results,
 			chain: chain_results,
 			unrefined: unrefined_results,
-			refined: refined_results
+			refined: refined_results,
+			eratic: eratic_results,
+			eratic_repro: eratic_repro_results
 		}
 	};
 };
