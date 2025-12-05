@@ -12,7 +12,7 @@ export interface Env {
 	DATA: KVNamespace;
 }
 
-const userAgent = "EVE-Reactions-Calculator-Updater/1.1.0 (production; +https://reactions.coalition.space/) (+https://github.com/zmiguel/Eve-Reactions-Calculator; mail:eve@zmiguel.me; eve:Oxed G; discord:oxedpixel)";
+const userAgent = "EVE-Reactions-Calculator-Updater/1.2.0 (production; +https://reactions.coalition.space/) (+https://github.com/zmiguel/Eve-Reactions-Calculator; mail:eve@zmiguel.me; eve:Oxed G; discord:oxedpixel)";
 
 // SDE LINKS
 const SDE_FILE = 'https://developers.eveonline.com/static-data/eve-online-static-data-latest-jsonl.zip';

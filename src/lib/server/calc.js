@@ -379,7 +379,7 @@ export async function simple(
 			amount = Math.ceil(item.qt * runs);
 		}
 		// find price for this item * amount
-		let price
+		let price;
 		try {
 			price =
 				db.prices.find((price) => {
