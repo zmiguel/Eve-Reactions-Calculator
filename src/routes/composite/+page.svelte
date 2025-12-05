@@ -16,6 +16,10 @@
 
 	const refinedHandler = new TableHandler(data.results.refined, { rowsPerPage: 50 });
 
+	const eraticHandler = new TableHandler(data.results.eratic, { rowsPerPage: 50 });
+
+	const eraticReproHandler = new TableHandler(data.results.eratic_repro, { rowsPerPage: 50 });
+
 	const nFormat = new Intl.NumberFormat();
 
 	/**
@@ -235,6 +239,78 @@
 				<tbody>
 					{#if data.results.refined}
 						{#each refinedHandler.rows as reaction (reaction.intermediates.id)}
+							<tr
+								class={'link-row ' + reaction.style}
+								data-href="/composite/refined/{reaction.intermediates.id}"
+								onclick={rowClickHandler}
+							>
+								<td>{reaction.name}</td>
+								<td class="isk">{formatNumber(reaction.input_total)}</td>
+								<td class="isk">{formatNumber(reaction.taxes_total)}</td>
+								<td class="isk">{formatNumber(reaction.output_total)}</td>
+								<td class="isk">{formatNumber(reaction.profit)}</td>
+								<td>{formatNumber(reaction.profit_per)} %</td>
+							</tr>
+						{/each}
+					{/if}
+				</tbody>
+			</table>
+		</div>
+
+		<div class="card w-100 mt-4 p-0">
+			<div class="card-header bg-info text-white fw-bold text-center w-100">
+				Unrefined Mineral Reactions (eratic)
+			</div>
+			<table width="100%" id="stab" class="table table-bordered text-center">
+				<thead>
+					<tr>
+						<TH handler={eraticHandler} orderBy="name">Reaction</TH>
+						<TH handler={eraticHandler} orderBy="input_total">Inputs</TH>
+						<TH handler={eraticHandler} orderBy="taxes_total">Tax</TH>
+						<TH handler={eraticHandler} orderBy="output_total">Output</TH>
+						<TH handler={eraticHandler} orderBy="profit">Profit</TH>
+						<TH handler={eraticHandler} orderBy="profit_per">% prof.</TH>
+					</tr>
+				</thead>
+				<tbody>
+					{#if data.results.eratic}
+						{#each eraticHandler.rows as reaction (reaction.intermediates.id)}
+							<tr
+								class={'link-row ' + reaction.style}
+								data-href="/composite/refined/{reaction.intermediates.id}"
+								onclick={rowClickHandler}
+							>
+								<td>{reaction.name}</td>
+								<td class="isk">{formatNumber(reaction.input_total)}</td>
+								<td class="isk">{formatNumber(reaction.taxes_total)}</td>
+								<td class="isk">{formatNumber(reaction.output_total)}</td>
+								<td class="isk">{formatNumber(reaction.profit)}</td>
+								<td>{formatNumber(reaction.profit_per)} %</td>
+							</tr>
+						{/each}
+					{/if}
+				</tbody>
+			</table>
+		</div>
+
+		<div class="card w-100 mt-4 p-0">
+			<div class="card-header bg-info text-white fw-bold text-center w-100">
+				Unrefined Mineral Reactions (eratic MAX Refine)
+			</div>
+			<table width="100%" id="stab" class="table table-bordered text-center">
+				<thead>
+					<tr>
+						<TH handler={eraticReproHandler} orderBy="name">Reaction</TH>
+						<TH handler={eraticReproHandler} orderBy="input_total">Inputs</TH>
+						<TH handler={eraticReproHandler} orderBy="taxes_total">Tax</TH>
+						<TH handler={eraticReproHandler} orderBy="output_total">Output</TH>
+						<TH handler={eraticReproHandler} orderBy="profit">Profit</TH>
+						<TH handler={eraticReproHandler} orderBy="profit_per">% prof.</TH>
+					</tr>
+				</thead>
+				<tbody>
+					{#if data.results.eratic_repro}
+						{#each eraticReproHandler.rows as reaction (reaction.intermediates.id)}
 							<tr
 								class={'link-row ' + reaction.style}
 								data-href="/composite/refined/{reaction.intermediates.id}"

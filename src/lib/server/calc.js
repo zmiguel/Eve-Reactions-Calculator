@@ -1,7 +1,11 @@
 /**
- * @param {String} type
- * @param {Object[]} blueprints
- * @returns {Object[]}
+ * Builds a comma-separated string of unique item IDs required for a given blueprint type.
+ * This string is used to query prices and item data from the database.
+ *
+ * @param {string} type - The blueprint category to extract items for.
+ *   Supported values: 'simple', 'complex', 'chain', 'unrefined', 'refined', 'hybrid', 'bio'.
+ * @param {Object[]} blueprints - Array of blueprint objects containing `_id`, `type`, `inputs`, and optionally `outputs`.
+ * @returns {string} Comma-separated string of unique item IDs (e.g., "16659,16660,16661").
  */
 function get_item_string_for_type(type, blueprints) {
 	let materials = [],
@@ -191,6 +195,48 @@ export async function prep(type, options, blueprints, env) {
 	};
 }
 
+/**
+ * Calculates profit and costs for a single reaction job.
+ * Applies material/time bonuses from rigs, facility, skills, and space type.
+ * Computes installation fees (SCI + FacilityTax + SCC) and market taxes.
+ *
+ * @param {Object} env - Environment object with `DB` and `KV_DATA` bindings (unused here but kept for signature consistency).
+ * @param {Object} options - User settings object.
+ * @param {string} options.input - Input order type: 'buy' or 'sell'.
+ * @param {string} options.output - Output order type: 'buy' or 'sell'.
+ * @param {string} options.inMarket - Market system for input prices (e.g., 'Jita').
+ * @param {string} options.outMarket - Market system for output prices.
+ * @param {string} options.brokers - Broker fee percentage as string (e.g., '3').
+ * @param {string} options.sales - Sales tax percentage as string (e.g., '3.6').
+ * @param {string} options.skill - Reactions skill level ('1'-'5').
+ * @param {string} options.facility - Facility size: 'medium' or 'large'.
+ * @param {string} options.rigs - Rig tier: '0', '1', or '2'.
+ * @param {string} options.space - Space type: 'nullsec', 'lowsec', or 'wormhole'.
+ * @param {string} options.tax - Facility tax percentage.
+ * @param {string} options.scc - SCC surcharge percentage.
+ * @param {string} options.duration - Total job duration in minutes.
+ * @param {string} options.cycles - Number of runs per cycle (for advanced mode).
+ * @param {Object} db - Database results from `prep()` containing `prices`, `items`, and `cost_index`.
+ * @param {Object[]} blueprints - Array of blueprint objects.
+ * @param {number} material - The `_id` of the blueprint to calculate.
+ * @param {number} amount - Quantity of output items requested (0 = max for duration).
+ * @param {boolean} [advanced=false] - If true, calculates based on cycles instead of amount.
+ * @param {number} [time=180] - Base time per run in seconds.
+ * @returns {Promise<Object|undefined>} Calculation result object with:
+ *   - `name` {string} - Output item name.
+ *   - `input` {Object[]} - Array of input materials with id, name, quantity, price, market_tax.
+ *   - `input_total` {number} - Total input cost.
+ *   - `taxes` {Object} - Nested tax breakdown (system, facility, scc, market, total).
+ *   - `taxes_total` {number} - Sum of all taxes.
+ *   - `output` {Object} - Output item details.
+ *   - `output_total` {number} - Total output value.
+ *   - `profit` {number} - Net profit.
+ *   - `profit_per` {number} - Profit as percentage of output.
+ *   - `runs` {number} - Number of reaction runs.
+ *   - `remaining` {Object} - Leftover items from rounding.
+ *   - `cycle_data` {Object} - Timing metadata.
+ *   - `style` {string} - CSS class for profit display ('table-success', 'table-danger', 'table-warning').
+ */
 export async function simple(
 	env,
 	options,
@@ -477,6 +523,24 @@ export async function simple(
 	};
 }
 
+/**
+ * Calculates profit for a chained reaction where intermediate materials are self-produced.
+ * Replaces purchasable inputs with their own `simple()` calculations when blueprints exist.
+ * Aggregates taxes from all intermediate reactions and tracks remaining/leftover items.
+ *
+ * @param {string} type - Blueprint type filter for the target material (e.g., 'complex').
+ * @param {Object} env - Environment object with `DB` and `KV_DATA` bindings.
+ * @param {Object} options - User settings object (same shape as `simple()`).
+ * @param {Object} db - Database results from `prep()` containing `prices`, `items`, and `cost_index`.
+ * @param {Object[]} blueprints - Array of blueprint objects (must include both simple and complex types).
+ * @param {number} material - The `_id` of the target blueprint to calculate.
+ * @param {number} amount - Quantity of output items requested.
+ * @param {boolean} [advanced=false] - If true, calculates based on cycles.
+ * @returns {Promise<Object|undefined>} Extended calculation result including:
+ *   - All fields from `simple()` result.
+ *   - `intermediates` {Object} - Original input materials and taxes before chain substitution.
+ *   - `remaining` {Object[]} - Array of leftover items from all intermediate reactions.
+ */
 export async function chain(
 	type,
 	env,
@@ -718,6 +782,25 @@ export async function chain(
 	return base;
 }
 
+/**
+ * Calculates profit for reactions where the output is reprocessed into refined materials.
+ * Combines a `simple()` calculation with reprocessing yields to determine final outputs.
+ *
+ * @param {Object} env - Environment object with `DB` and `KV_DATA` bindings.
+ * @param {Object} options - User settings object (same shape as `simple()`).
+ * @param {Object} db_unrefined - Database results from `prep('unrefined', ...)` for input pricing.
+ * @param {Object} db_refined - Database results from `prep('refined', ...)` for output pricing.
+ * @param {Object[]} blueprints - Array of blueprint objects (must include 'refined' type blueprints with `outputs` array).
+ * @param {number} material - The `_id` of the refined blueprint to calculate.
+ * @param {number} amount - Quantity of unrefined output items requested.
+ * @param {boolean} [advanced=false] - If true, calculates based on cycles.
+ * @param {number} [time=360] - Base time per run in seconds (default 6 minutes for unrefined reactions).
+ * @param {number} [efficiency=0.55] - Reprocessing efficiency multiplier (0.0-1.0, default 55%).
+ * @returns {Promise<Object|undefined>} Calculation result including:
+ *   - `intermediates` {Object} - The unrefined output before reprocessing.
+ *   - `output` {Object[]} - Array of refined material outputs with quantities adjusted by efficiency.
+ *   - All other fields from `simple()` result with recalculated taxes and profits.
+ */
 export async function refined(
 	env,
 	options,
@@ -727,7 +810,8 @@ export async function refined(
 	material,
 	amount,
 	advanced = false,
-	time = 360
+	time = 360,
+	efficiency = 0.55
 ) {
 	// Get blueprint data for this material
 	const blueprint = blueprints.find((bp) => {
@@ -758,14 +842,14 @@ export async function refined(
 			name: db_refined.items.find((items) => {
 				return items.id === item.id;
 			}).name,
-			quantity: item.quantity * input.quantity * 0.55,
+			quantity: item.quantity * input.quantity * efficiency,
 			price:
 				db_refined.prices.find((price) => {
 					return price.item_id === item.id && price.system === options.outMarket;
 				})[options.output] *
 				item.quantity *
 				input.quantity *
-				0.6
+				efficiency
 		};
 		outputs.push(temp);
 		base.output_total += temp.price;
@@ -824,6 +908,27 @@ export async function refined(
 	return base;
 }
 
+/**
+ * Recursively calculates profit for a full production chain, building all intermediate materials.
+ * Unlike `chain()`, this recurses through ALL levels of inputs until reaching raw materials.
+ * Tracks production steps at each depth level for visualization.
+ *
+ * @param {Object} env - Environment object with `DB` and `KV_DATA` bindings.
+ * @param {Object} options - User settings object (same shape as `simple()`).
+ * @param {Object} db - Database results from `prep()` containing `prices`, `items`, and `cost_index`.
+ * @param {Object[]} blueprints - Array of blueprint objects for all reaction types.
+ * @param {number} material - The `_id` of the target blueprint to calculate.
+ * @param {number} amount - Quantity of output items requested.
+ * @param {boolean} [advanced=false] - If true, calculates based on cycles.
+ * @param {number} [depth=0] - Current recursion depth (used internally for step tracking).
+ * @returns {Promise<Object|undefined>} Full chain calculation result including:
+ *   - All fields from `simple()` result.
+ *   - `steps` {Object[]} - Array of production steps sorted by depth (deepest first), each containing:
+ *     - `depth` {number} - Recursion level.
+ *     - `makes` {string} - Name of item produced at this step.
+ *     - `materials` {Object[]} - Inputs and outputs for this step.
+ *   - `remaining` {Object[]} - Aggregated leftover items from all production levels.
+ */
 export async function fullChain(
 	env,
 	options,
