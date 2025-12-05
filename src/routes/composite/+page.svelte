@@ -274,10 +274,10 @@
 				</thead>
 				<tbody>
 					{#if data.results.eratic}
-						{#each eraticHandler.rows as reaction (reaction.intermediates.id)}
+						{#each eraticHandler.rows as reaction (reaction.id)}
 							<tr
 								class={'link-row ' + reaction.style}
-								data-href="/composite/refined/{reaction.intermediates.id}"
+								data-href="/composite/eratic/{reaction.id}"
 								onclick={rowClickHandler}
 							>
 								<td>{reaction.name}</td>
@@ -310,10 +310,10 @@
 				</thead>
 				<tbody>
 					{#if data.results.eratic_repro}
-						{#each eraticReproHandler.rows as reaction (reaction.intermediates.id)}
+						{#each eraticReproHandler.rows as reaction (reaction.id)}
 							<tr
 								class={'link-row ' + reaction.style}
-								data-href="/composite/refined/{reaction.intermediates.id}"
+								data-href="/composite/eratic-repro/{reaction.id}"
 								onclick={rowClickHandler}
 							>
 								<td>{reaction.name}</td>

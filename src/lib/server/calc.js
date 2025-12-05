@@ -3,7 +3,7 @@
  * This string is used to query prices and item data from the database.
  *
  * @param {string} type - The blueprint category to extract items for.
- *   Supported values: 'simple', 'complex', 'chain', 'unrefined', 'refined', 'hybrid', 'bio'.
+ *   Supported values: 'simple', 'complex', 'chain', 'unrefined', 'refined', 'hybrid', 'bio', 'eratic', 'eratic-repro'.
  * @param {Object[]} blueprints - Array of blueprint objects containing `_id`, `type`, `inputs`, and optionally `outputs`.
  * @returns {string} Comma-separated string of unique item IDs (e.g., "16659,16660,16661").
  */
@@ -121,6 +121,38 @@ function get_item_string_for_type(type, blueprints) {
 				}
 			});
 		});
+	} else if (type === 'eratic') {
+		blueprints
+			.filter((bp) => bp.type === 'eratic')
+			.forEach((bp) => {
+				if (!materials.includes(bp._id)) {
+					materials.push(bp._id);
+				}
+				(bp.inputs ?? []).forEach((input) => {
+					if (!materials.includes(input.id)) {
+						materials.push(input.id);
+					}
+				});
+				if (bp.output?.id && !materials.includes(bp.output.id)) {
+					materials.push(bp.output.id);
+				}
+			});
+	} else if (type === 'eratic-repro') {
+		blueprints
+			.filter((bp) => bp.type === 'eratic-repro')
+			.forEach((bp) => {
+				if (!materials.includes(bp._id)) {
+					materials.push(bp._id);
+				}
+				(bp.inputs ?? []).forEach((input) => {
+					if (!materials.includes(input.id)) {
+						materials.push(input.id);
+					}
+				});
+				if (bp.outputs?.id && !materials.includes(bp.outputs.id)) {
+					materials.push(bp.outputs.id);
+				}
+			});
 	}
 
 	materials.forEach((item) => {
@@ -379,9 +411,9 @@ export async function simple(
 			amount = Math.ceil(item.qt * runs);
 		}
 		// find price for this item * amount
-		let price;
+		let item_price;
 		try {
-			price =
+			item_price =
 				db.prices.find((price) => {
 					return price.item_id === item.id && price.system === options.inMarket;
 				})[options.input] * amount;
@@ -389,7 +421,7 @@ export async function simple(
 			console.error(
 				`Price not found for item_id: ${item.id} in system: ${options.inMarket} | blueprint id: ${blueprint._id}`
 			);
-			price = 0;
+			item_price = 0;
 		}
 		// add to inputs
 		inputs.push({
@@ -398,8 +430,8 @@ export async function simple(
 				return i.id === item.id;
 			}).name,
 			quantity: amount,
-			price: price,
-			market_tax: options.input === 'buy' ? price * (parseFloat(options.brokers) / 100) : 0
+			price: item_price,
+			market_tax: options.input === 'buy' ? item_price * (parseFloat(options.brokers) / 100) : 0
 		});
 	});
 	// output
@@ -490,6 +522,7 @@ export async function simple(
 
 	// return all data
 	return {
+		id: blueprint._id,
 		name: output.name,
 		input: inputs,
 		input_total: total_inputs * cycle_data.num_cycles,
