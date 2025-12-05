@@ -363,10 +363,10 @@ export async function simple(
 	const output_item = db.items.find((item) => {
 		return item.id === blueprint.output.id;
 	});
-	const SCI = Math.round(output_item.base_industry_price) * db.cost_index * runs;
+	const SCI = Math.round(output_item?.base_industry_price) * db.cost_index * runs;
 	const FacilityTax =
-		Math.round(output_item.base_industry_price) * (parseFloat(options.tax) / 100) * runs;
-	const SCC = Math.round(output_item.base_industry_price) * (parseFloat(options.scc) / 100) * runs;
+		Math.round(output_item?.base_industry_price) * (parseFloat(options.tax) / 100) * runs;
+	const SCC = Math.round(output_item?.base_industry_price) * (parseFloat(options.scc) / 100) * runs;
 	const TIF = SCI + FacilityTax + SCC;
 
 	// Actually calculate the costs
@@ -379,10 +379,18 @@ export async function simple(
 			amount = Math.ceil(item.qt * runs);
 		}
 		// find price for this item * amount
-		const price =
-			db.prices.find((price) => {
-				return price.item_id === item.id && price.system === options.inMarket;
-			})[options.input] * amount;
+		let price
+		try {
+			price =
+				db.prices.find((price) => {
+					return price.item_id === item.id && price.system === options.inMarket;
+				})[options.input] * amount;
+		} catch (e) {
+			console.error(
+				`Price not found for item_id: ${item.id} in system: ${options.inMarket} | blueprint id: ${blueprint._id}`
+			);
+			price = 0;
+		}
 		// add to inputs
 		inputs.push({
 			id: item.id,
@@ -842,12 +850,12 @@ export async function refined(
 			name: db_refined.items.find((items) => {
 				return items.id === item.id;
 			}).name,
-			quantity: item.quantity * input.quantity * efficiency,
+			quantity: item.qt * input.quantity * efficiency,
 			price:
 				db_refined.prices.find((price) => {
 					return price.item_id === item.id && price.system === options.outMarket;
 				})[options.output] *
-				item.quantity *
+				item.qt *
 				input.quantity *
 				efficiency
 		};
@@ -909,7 +917,135 @@ export async function refined(
 }
 
 /**
- * Recursively calculates profit for a full production chain, building all intermediate materials.
+ * Calculates profit for eratic reactions where the output quantity varies based on prismaticite percentage.
+ * The output is interpolated between min and max values from the blueprint based on prismaticite setting.
+ * Combines a `simple()` calculation with variable yields to determine final outputs.
+ *
+ * @param {Object} env - Environment object with `DB` and `KV_DATA` bindings.
+ * @param {Object} options - User settings object (same shape as `simple()`).
+ * @param {string} options.prismaticite - Prismaticite percentage as string ('0'-'100'), determines output between min/max.
+ * @param {Object} db_unrefined - Database results from `prep('eratic', ...)` for input pricing.
+ * @param {Object} db_refined - Database results from `prep('eratic-repro', ...)` for output pricing.
+ * @param {Object[]} blueprints - Array of blueprint objects (must include 'eratic-repro' type blueprints with `outputs.min`/`outputs.max`).
+ * @param {number} material - The `_id` of the eratic-repro blueprint to calculate.
+ * @param {number} amount - Quantity of unrefined output items requested.
+ * @param {boolean} [advanced=false] - If true, calculates based on cycles.
+ * @param {number} [time=360] - Base time per run in seconds (default 6 minutes for eratic reactions).
+ * @param {number} [efficiency=0.9063] - Reprocessing efficiency multiplier (0.0-1.0, default 90.63% for max refine).
+ * @returns {Promise<Object|undefined>} Calculation result including:
+ *   - `intermediates` {Object} - The unrefined output before reprocessing.
+ *   - `output` {Object} - Single output item with quantity interpolated between min/max and adjusted by efficiency.
+ *   - All other fields from `simple()` result with recalculated taxes and profits.
+ */
+export async function eraticRepro(
+	env,
+	options,
+	db_unrefined,
+	db_refined,
+	blueprints,
+	material,
+	amount,
+	advanced = false,
+	time = 360,
+	efficiency = 0.9063
+) {
+	// Get blueprint data for this material
+	const blueprint = blueprints.find((bp) => {
+		return bp._id === material && bp.type === 'eratic-repro';
+	});
+
+	// Sanity Check
+	if (blueprint === undefined) {
+		console.log('Blueprint not found | material: ' + material);
+		return;
+	}
+
+	// Actually calculate the costs
+	// get data from simple using eratic type
+	let base = await simple(env, options, db_unrefined, blueprints, material, amount, advanced, time);
+	base.intermediates = base.output;
+
+	base.output_total = 0;
+	base.profit = 0;
+	base.profit_per = 0;
+
+	// Calculate output quantity based on prismaticite percentage
+	// prismaticite 0% = min output, prismaticite 100% = max output
+	const prismaticitePercent = parseFloat(options.prismaticite || '50') / 100;
+	const minOutput = blueprint.outputs.min;
+	const maxOutput = blueprint.outputs.max;
+	const baseOutputQuantity = minOutput + (maxOutput - minOutput) * prismaticitePercent;
+
+	// Apply efficiency and multiply by number of runs
+	const runs = base.runs;
+	const outputQuantity = baseOutputQuantity * efficiency * runs;
+
+	// Create single output object
+	const output = {
+		id: blueprint.outputs.id,
+		name: db_refined.items.find((items) => {
+			return items.id === blueprint.outputs.id;
+		}).name,
+		quantity: outputQuantity,
+		price:
+			db_refined.prices.find((price) => {
+				return price.item_id === blueprint.outputs.id && price.system === options.outMarket;
+			})[options.output] * outputQuantity
+	};
+
+	base.output = output;
+	base.output_total = output.price;
+
+	// Calculate Market taxes
+	// remove output from market taxes
+	base.taxes.market.total.total -= base.taxes.market.total.output;
+	base.taxes.total.market -= base.taxes.market.total.output;
+	base.taxes.total.total -= base.taxes.market.total.output;
+	base.taxes.market.total.output = 0;
+	base.taxes.market.output = {
+		brokers: 0,
+		sales: 0
+	};
+	// brokers fee if *in* is *buy* order and if *out* is *sell* order
+	// sales tax only on out
+	let out_market_fees = {
+		brokers: 0,
+		sales: 0
+	};
+	// output
+	if (options.output === 'sell') {
+		out_market_fees.brokers += output.price * (parseFloat(options.brokers) / 100);
+		out_market_fees.sales += output.price * (parseFloat(options.sales) / 100);
+	} else {
+		out_market_fees.sales += output.price * (parseFloat(options.brokers) / 100);
+	}
+
+	base.taxes.market.output = out_market_fees;
+	base.taxes.market.total.output = out_market_fees.brokers + out_market_fees.sales;
+	base.taxes.market.total.total += base.taxes.market.total.output;
+	base.taxes.total.market += base.taxes.market.total.output;
+	base.taxes.total.total += base.taxes.market.total.output;
+	base.taxes_total = base.taxes.total.total;
+
+	// Calculate the profit
+	base.profit = base.output_total - base.input_total - base.taxes_total;
+	base.profit_per = (base.profit / base.output_total) * 100;
+
+	// Style
+	if (base.profit > 0) {
+		base.style = 'table-success';
+	} else if (base.profit < 0) {
+		base.style = 'table-danger';
+	} else {
+		base.style = 'table-warning';
+	}
+
+	// return all data
+	return base;
+}
+
+/**
+ * Calculates profit for a fully recursive production chain down to raw materials.
  * Unlike `chain()`, this recurses through ALL levels of inputs until reaching raw materials.
  * Tracks production steps at each depth level for visualization.
  *

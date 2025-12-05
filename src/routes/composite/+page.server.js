@@ -1,4 +1,4 @@
-import { prep, simple, chain, refined } from '$lib/server/calc';
+import { prep, simple, chain, refined, eraticRepro } from '$lib/server/calc';
 import { error } from '@sveltejs/kit';
 
 export const load = async ({ cookies, platform }) => {
@@ -42,7 +42,13 @@ export const load = async ({ cookies, platform }) => {
 		{ type: 'eratic-repro' }
 	];
 
-	let db_prep_simple, db_prep_complex, db_prep_unrefined, db_prep_chain, db_prep_refined, db_prep_eratic, db_prep_eratic_repro;
+	let db_prep_simple,
+		db_prep_complex,
+		db_prep_unrefined,
+		db_prep_chain,
+		db_prep_refined,
+		db_prep_eratic,
+		db_prep_eratic_repro;
 	await Promise.all(
 		db_prep.map(async (db) => {
 			switch (db.type) {
@@ -204,7 +210,9 @@ export const load = async ({ cookies, platform }) => {
 									db_prep_eratic,
 									blueprints,
 									parseInt(bp._id),
-									0
+									0,
+									false,
+									60
 								)
 							);
 						})
@@ -214,7 +222,7 @@ export const load = async ({ cookies, platform }) => {
 					await Promise.all(
 						bps.blueprints.map(async (bp) => {
 							eratic_repro_results.push(
-								await refined(
+								await eraticRepro(
 									platform.env,
 									options,
 									db_prep_eratic,
@@ -223,7 +231,7 @@ export const load = async ({ cookies, platform }) => {
 									parseInt(bp._id),
 									0,
 									false,
-									360,
+									60,
 									0.9063
 								)
 							);

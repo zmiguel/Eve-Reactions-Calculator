@@ -1425,16 +1425,16 @@
 		"type": "refined",
 		"inputs": {
 			"id": 32821,
-			"quantity": 1
+			"qt": 1
 		},
 		"outputs": [
 			{
 				"id": 16642,
-				"quantity": 164
+				"qt": 164
 			},
 			{
 				"id": 17959,
-				"quantity": 36
+				"qt": 36
 			}
 		]
 	},
@@ -1444,16 +1444,16 @@
 		"type": "refined",
 		"inputs": {
 			"id": 32822,
-			"quantity": 1
+			"qt": 1
 		},
 		"outputs": [
 			{
 				"id": 16644,
-				"quantity": 164
+				"qt": 164
 			},
 			{
 				"id": 16662,
-				"quantity": 36
+				"qt": 36
 			}
 		]
 	},
@@ -1463,16 +1463,16 @@
 		"type": "refined",
 		"inputs": {
 			"id": 32823,
-			"quantity": 1
+			"qt": 1
 		},
 		"outputs": [
 			{
 				"id": 16641,
-				"quantity": 164
+				"qt": 164
 			},
 			{
 				"id": 16664,
-				"quantity": 36
+				"qt": 36
 			}
 		]
 	},
@@ -1482,16 +1482,16 @@
 		"type": "refined",
 		"inputs": {
 			"id": 32824,
-			"quantity": 1
+			"qt": 1
 		},
 		"outputs": [
 			{
 				"id": 16643,
-				"quantity": 164
+				"qt": 164
 			},
 			{
 				"id": 16663,
-				"quantity": 36
+				"qt": 36
 			}
 		]
 	},
@@ -1501,12 +1501,12 @@
 		"type": "refined",
 		"inputs": {
 			"id": 32825,
-			"quantity": 1
+			"qt": 1
 		},
 		"outputs": [
 			{
 				"id": 16665,
-				"quantity": 36
+				"qt": 36
 			}
 		]
 	},
@@ -1516,16 +1516,16 @@
 		"type": "refined",
 		"inputs": {
 			"id": 32826,
-			"quantity": 1
+			"qt": 1
 		},
 		"outputs": [
 			{
 				"id": 16637,
-				"quantity": 164
+				"qt": 164
 			},
 			{
 				"id": 16657,
-				"quantity": 36
+				"qt": 36
 			}
 		]
 	},
@@ -1535,16 +1535,16 @@
 		"type": "refined",
 		"inputs": {
 			"id": 32827,
-			"quantity": 1
+			"qt": 1
 		},
 		"outputs": [
 			{
 				"id": 16638,
-				"quantity": 164
+				"qt": 164
 			},
 			{
 				"id": 16654,
-				"quantity": 36
+				"qt": 36
 			}
 		]
 	},
@@ -1554,16 +1554,16 @@
 		"type": "refined",
 		"inputs": {
 			"id": 32828,
-			"quantity": 1
+			"qt": 1
 		},
 		"outputs": [
 			{
 				"id": 16639,
-				"quantity": 164
+				"qt": 164
 			},
 			{
 				"id": 16656,
-				"quantity": 36
+				"qt": 36
 			}
 		]
 	},
@@ -1573,16 +1573,16 @@
 		"type": "refined",
 		"inputs": {
 			"id": 32829,
-			"quantity": 1
+			"qt": 1
 		},
 		"outputs": [
 			{
 				"id": 16640,
-				"quantity": 164
+				"qt": 164
 			},
 			{
 				"id": 16655,
-				"quantity": 36
+				"qt": 36
 			}
 		]
 	},
@@ -1592,16 +1592,16 @@
 		"type": "refined",
 		"inputs": {
 			"id": 29664,
-			"quantity": 1
+			"qt": 1
 		},
 		"outputs": [
 			{
 				"id": 16642,
-				"quantity": 173
+				"qt": 173
 			},
 			{
 				"id": 16666,
-				"quantity": 73
+				"qt": 73
 			}
 		]
 	},
@@ -1611,16 +1611,16 @@
 		"type": "refined",
 		"inputs": {
 			"id": 29663,
-			"quantity": 1
+			"qt": 1
 		},
 		"outputs": [
 			{
 				"id": 16648,
-				"quantity": 173
+				"qt": 173
 			},
 			{
 				"id": 16669,
-				"quantity": 73
+				"qt": 73
 			}
 		]
 	},
@@ -1630,16 +1630,16 @@
 		"type": "refined",
 		"inputs": {
 			"id": 29662,
-			"quantity": 1
+			"qt": 1
 		},
 		"outputs": [
 			{
 				"id": 16643,
-				"quantity": 173
+				"qt": 173
 			},
 			{
 				"id": 17960,
-				"quantity": 73
+				"qt": 73
 			}
 		]
 	},
@@ -1649,16 +1649,16 @@
 		"type": "refined",
 		"inputs": {
 			"id": 29661,
-			"quantity": 1
+			"qt": 1
 		},
 		"outputs": [
 			{
 				"id": 16646,
-				"quantity": 173
+				"qt": 173
 			},
 			{
 				"id": 16667,
-				"quantity": 73
+				"qt": 73
 			}
 		]
 	},
@@ -1668,16 +1668,16 @@
 		"type": "refined",
 		"inputs": {
 			"id": 29660,
-			"quantity": 1
+			"qt": 1
 		},
 		"outputs": [
 			{
 				"id": 16646,
-				"quantity": 173
+				"qt": 173
 			},
 			{
 				"id": 16668,
-				"quantity": 73
+				"qt": 73
 			}
 		]
 	},
@@ -1687,12 +1687,12 @@
 		"type": "refined",
 		"inputs": {
 			"id": 29659,
-			"quantity": 1
+			"qt": 1
 		},
 		"outputs": [
 			{
 				"id": 17769,
-				"quantity": 73
+				"qt": 73
 			}
 		]
 	},
@@ -1702,16 +1702,16 @@
 		"type": "refined",
 		"inputs": {
 			"id": 33339,
-			"quantity": 1
+			"qt": 1
 		},
 		"outputs": [
 			{
 				"id": 16648,
-				"quantity": 173
+				"qt": 173
 			},
 			{
 				"id": 33336,
-				"quantity": 73
+				"qt": 73
 			}
 		]
 	},
@@ -1721,16 +1721,16 @@
 		"type": "refined",
 		"inputs": {
 			"id": 33338,
-			"quantity": 1
+			"qt": 1
 		},
 		"outputs": [
 			{
 				"id": 16646,
-				"quantity": 173
+				"qt": 173
 			},
 			{
 				"id": 33337,
-				"quantity": 73
+				"qt": 73
 			}
 		]
 	},
@@ -1741,16 +1741,16 @@
 		"inputs": [
 			{
 				"id": 90307,
-				"quantity": 100
+				"qt": 100
 			},
 			{
 				"id": 16634,
-				"quantity": 1000
+				"qt": 1000
 			}
 		],
-		"outputs": {
+		"output": {
 			"id": 90283,
-			"quantity": 100
+			"qt": 100
 		}
 	},
 	{
@@ -1760,16 +1760,16 @@
 		"inputs": [
 			{
 				"id": 90307,
-				"quantity": 100
+				"qt": 100
 			},
 			{
 				"id": 16634,
-				"quantity": 250
+				"qt": 250
 			}
 		],
-		"outputs": {
+		"output": {
 			"id": 90284,
-			"quantity": 100
+			"qt": 100
 		}
 	},
 	{
@@ -1779,16 +1779,16 @@
 		"inputs": [
 			{
 				"id": 90307,
-				"quantity": 100
+				"qt": 100
 			},
 			{
 				"id": 16634,
-				"quantity": 300
+				"qt": 300
 			}
 		],
-		"outputs": {
+		"output": {
 			"id": 90286,
-			"quantity": 100
+			"qt": 100
 		}
 	},
 	{
@@ -1798,16 +1798,16 @@
 		"inputs": [
 			{
 				"id": 90307,
-				"quantity": 100
+				"qt": 100
 			},
 			{
 				"id": 16634,
-				"quantity": 1000
+				"qt": 1000
 			}
 		],
-		"outputs": {
+		"output": {
 			"id": 90289,
-			"min": 100
+			"qt": 100
 		}
 	},
 	{
@@ -1817,16 +1817,16 @@
 		"inputs": [
 			{
 				"id": 90307,
-				"quantity": 100
+				"qt": 100
 			},
 			{
 				"id": 16634,
-				"quantity": 600
+				"qt": 600
 			}
 		],
-		"outputs": {
+		"output": {
 			"id": 90292,
-			"quantity": 100
+			"qt": 100
 		}
 	},
 	{
@@ -1836,16 +1836,16 @@
 		"inputs": [
 			{
 				"id": 90307,
-				"quantity": 100
+				"qt": 100
 			},
 			{
 				"id": 16634,
-				"quantity": 600
+				"qt": 600
 			}
 		],
-		"outputs": {
+		"output": {
 			"id": 90294,
-			"quantity": 100
+			"qt": 100
 		}
 	},
 	{
@@ -1855,16 +1855,16 @@
 		"inputs": [
 			{
 				"id": 90307,
-				"quantity": 100
+				"qt": 100
 			},
 			{
 				"id": 16634,
-				"quantity": 1000
+				"qt": 1000
 			}
 		],
-		"outputs": {
+		"output": {
 			"id": 90296,
-			"quantity": 100
+			"qt": 100
 		}
 	},
 	{
@@ -1874,16 +1874,16 @@
 		"inputs": [
 			{
 				"id": 90307,
-				"quantity": 100
+				"qt": 100
 			},
 			{
 				"id": 16634,
-				"quantity": 3000
+				"qt": 3000
 			}
 		],
-		"outputs": {
+		"output": {
 			"id": 90298,
-			"quantity": 100
+			"qt": 100
 		}
 	},
 	{
@@ -1893,11 +1893,11 @@
 		"inputs": [
 			{
 				"id": 90307,
-				"quantity": 100
+				"qt": 100
 			},
 			{
 				"id": 16634,
-				"quantity": 1000
+				"qt": 1000
 			}
 		],
 		"outputs": {
@@ -1913,11 +1913,11 @@
 		"inputs": [
 			{
 				"id": 90307,
-				"quantity": 100
+				"qt": 100
 			},
 			{
 				"id": 16634,
-				"quantity": 250
+				"qt": 250
 			}
 		],
 		"outputs": {
@@ -1933,11 +1933,11 @@
 		"inputs": [
 			{
 				"id": 90307,
-				"quantity": 100
+				"qt": 100
 			},
 			{
 				"id": 16634,
-				"quantity": 300
+				"qt": 300
 			}
 		],
 		"outputs": {
@@ -1953,11 +1953,11 @@
 		"inputs": [
 			{
 				"id": 90307,
-				"quantity": 100
+				"qt": 100
 			},
 			{
 				"id": 16634,
-				"quantity": 1000
+				"qt": 1000
 			}
 		],
 		"outputs": {
@@ -1973,11 +1973,11 @@
 		"inputs": [
 			{
 				"id": 90307,
-				"quantity": 100
+				"qt": 100
 			},
 			{
 				"id": 16634,
-				"quantity": 600
+				"qt": 600
 			}
 		],
 		"outputs": {
@@ -1993,11 +1993,11 @@
 		"inputs": [
 			{
 				"id": 90307,
-				"quantity": 100
+				"qt": 100
 			},
 			{
 				"id": 16634,
-				"quantity": 600
+				"qt": 600
 			}
 		],
 		"outputs": {
@@ -2013,11 +2013,11 @@
 		"inputs": [
 			{
 				"id": 90307,
-				"quantity": 100
+				"qt": 100
 			},
 			{
 				"id": 16634,
-				"quantity": 1000
+				"qt": 1000
 			}
 		],
 		"outputs": {
@@ -2033,11 +2033,11 @@
 		"inputs": [
 			{
 				"id": 90307,
-				"quantity": 100
+				"qt": 100
 			},
 			{
 				"id": 16634,
-				"quantity": 3000
+				"qt": 3000
 			}
 		],
 		"outputs": {
