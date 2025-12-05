@@ -164,7 +164,8 @@ export const load = async ({ cookies, platform, params }) => {
 				blueprints,
 				parseInt(params.id),
 				0,
-				true
+				true,
+				60
 			);
 			break;
 
@@ -188,7 +189,7 @@ export const load = async ({ cookies, platform, params }) => {
 				parseInt(params.id),
 				0,
 				true,
-				360,
+				60,
 				0.9063
 			);
 			break;

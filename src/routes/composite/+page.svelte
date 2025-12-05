@@ -81,7 +81,7 @@
 	</div>
 
 	<div class="row mt-4">
-		<div class="card w-100 p-0">
+		<div class="card w-100 p-0" id="simple-reactions-card">
 			<div class="card-header bg-info text-white fw-bold text-center w-100">Simple Reactions</div>
 			<table width="100%" id="stab" class="table table-bordered text-center">
 				<thead>
@@ -115,7 +115,7 @@
 			</table>
 		</div>
 
-		<div class="card w-100 mt-4 p-0">
+		<div class="card w-100 mt-4 p-0" id="complex-reactions-card">
 			<div class="card-header bg-info text-white fw-bold text-center w-100">Complex Reactions</div>
 			<table width="100%" id="stab" class="table table-bordered text-center">
 				<thead>
@@ -149,7 +149,7 @@
 			</table>
 		</div>
 
-		<div class="card w-100 mt-4 p-0">
+		<div class="card w-100 mt-4 p-0" id="chain-reactions-card">
 			<div class="card-header bg-info text-white fw-bold text-center w-100">
 				Complex Chain Reactions
 			</div>
@@ -185,7 +185,7 @@
 			</table>
 		</div>
 
-		<div class="card w-100 mt-4 p-0">
+		<div class="card w-100 mt-4 p-0" id="unrefined-reactions-card">
 			<div class="card-header bg-info text-white fw-bold text-center w-100">
 				Unrefined Reactions (not reprocessed)
 			</div>
@@ -221,7 +221,7 @@
 			</table>
 		</div>
 
-		<div class="card w-100 mt-4 p-0">
+		<div class="card w-100 mt-4 p-0" id="refined-reactions-card">
 			<div class="card-header bg-info text-white fw-bold text-center w-100">
 				Unrefined Reactions (55% Efficiency)
 			</div>
@@ -257,9 +257,9 @@
 			</table>
 		</div>
 
-		<div class="card w-100 mt-4 p-0">
+		<div class="card w-100 mt-4 p-0" id="eratic-reactions-card">
 			<div class="card-header bg-info text-white fw-bold text-center w-100">
-				Unrefined Mineral Reactions (eratic)
+				Unrefined Mineral Reactions (no reprocessing)
 			</div>
 			<table width="100%" id="stab" class="table table-bordered text-center">
 				<thead>
@@ -293,9 +293,9 @@
 			</table>
 		</div>
 
-		<div class="card w-100 mt-4 p-0">
+		<div class="card w-100 mt-4 p-0" id="eratic-repro-card">
 			<div class="card-header bg-info text-white fw-bold text-center w-100">
-				Unrefined Mineral Reactions (eratic MAX Refine)
+				Unrefined Mineral Reactions (MAX Refine 90.63%)
 			</div>
 			<table width="100%" id="stab" class="table table-bordered text-center">
 				<thead>
