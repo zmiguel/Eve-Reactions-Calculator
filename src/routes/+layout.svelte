@@ -54,7 +54,18 @@
 
 <nav class="navbar navbar-expand-lg navbar-dark bg-dark fixed-top" data-bs-theme="dark">
 	<div class="container">
-		<a class="navbar-brand" href={resolve('/')}>EVE Online Reactions Calculator</a>
+		<div class="d-flex align-items-center gap-2">
+			<a class="navbar-brand mb-0" href={resolve('/')}>EVE Online Reactions Calculator</a>
+			<a
+				class="btn btn-sm btn-secondary fw-semibold py-0 px-2 small"
+				href="https://d-scan.space"
+				target="_blank"
+				rel="noopener"
+				aria-label="Try D-Scan.Space in a new tab"
+			>
+				Try D-Scan.Space!
+			</a>
+		</div>
 		<button
 			class="navbar-toggler"
 			type="button"
@@ -97,6 +108,13 @@
 						class="nav-link"
 						href={resolve('/settings')}
 						class:active={$page.url.pathname.includes('settings')}>Settings</a
+					>
+				</li>
+				<li class="nav-item">
+					<a
+						class="nav-link"
+						href={resolve('/api')}
+						class:active={$page.url.pathname.includes('/api')}>API</a
 					>
 				</li>
 				<li class="nav-item">
