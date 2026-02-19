@@ -83,6 +83,25 @@ test('parameter contract validates missing and valid payloads', () => {
 	assert.ok(valid.params);
 });
 
+test('costIndex is required only for wormhole space', () => {
+	const nonWormhole = validateAndNormalizeParams({
+		...validParams,
+		space: 'nullsec',
+		costIndex: undefined
+	});
+	assert.equal(Boolean(nonWormhole.error), false);
+	assert.equal(nonWormhole.params.costIndex, '0');
+
+	const wormholeMissing = validateAndNormalizeParams({
+		...validParams,
+		space: 'wormhole',
+		costIndex: undefined
+	});
+	assert.equal(Boolean(wormholeMissing.error), true);
+	assert.equal(wormholeMissing.error.code, API_ERROR_CODES.MISSING_PARAMS);
+	assert.deepEqual(wormholeMissing.error.details?.missing, ['costIndex']);
+});
+
 test('includeMeta optimization omits meta when requested', () => {
 	const body = buildSuccessBody([{ ok: true }], { any: 'meta' }, false);
 	assert.ok(Array.isArray(body.results));
@@ -110,4 +129,13 @@ test('openapi spec contains endpoints and machine-readable error schema', () => 
 	assert.ok(spec.paths['/api/v1/hybrid/{id}']);
 	assert.ok(spec.paths['/api/v1/openapi.json']);
 	assert.ok(spec.components.schemas.ErrorResponse);
+
+	const biochemicalGetParams = spec.paths['/api/v1/biochemical/{type}/{id}'].get.parameters;
+	assert.ok(
+		biochemicalGetParams.some((param) => param.in === 'path' && param.name === 'type')
+	);
+	assert.ok(biochemicalGetParams.some((param) => param.in === 'path' && param.name === 'id'));
+
+	const hybridGetParams = spec.paths['/api/v1/hybrid/{id}'].get.parameters;
+	assert.ok(hybridGetParams.some((param) => param.in === 'path' && param.name === 'id'));
 });

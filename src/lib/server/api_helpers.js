@@ -18,7 +18,6 @@ export const REQUIRED_PARAMS = [
 	'scc',
 	'duration',
 	'cycles',
-	'costIndex',
 	'prismaticite'
 ];
 
@@ -143,7 +142,7 @@ export const PARAM_SPECS = {
 		type: 'number',
 		minimum: 0,
 		maximum: 100,
-		description: 'Manual cost index percentage for wormhole workflows'
+		description: 'Manual cost index percentage (required when space is wormhole)'
 	},
 	prismaticite: {
 		type: 'number',
@@ -508,6 +507,25 @@ export function validateAndNormalizeParams(rawParams) {
 		}
 	}
 
+	const hasCostIndex =
+		normalized.costIndex !== undefined &&
+		normalized.costIndex !== null &&
+		normalized.costIndex !== '';
+
+	if (normalized.space === 'wormhole' && !hasCostIndex) {
+		return {
+			error: createApiError(
+				API_ERROR_CODES.MISSING_PARAMS,
+				'Missing required parameters: costIndex. Provide it in query params or JSON body when space=wormhole.',
+				{ missing: ['costIndex'], requiredWhen: { space: 'wormhole' } }
+			)
+		};
+	}
+
+	if (!hasCostIndex) {
+		normalized.costIndex = '0';
+	}
+
 	for (const [key, range] of Object.entries(NUMERIC_RANGES)) {
 		const parsed = Number(normalized[key]);
 
@@ -672,6 +690,19 @@ export function buildOpenApiSpec(config = {}) {
 	const paramSchema = {
 		type: 'object',
 		required: REQUIRED_PARAMS,
+		allOf: [
+			{
+				if: {
+					required: ['space'],
+					properties: {
+						space: { const: 'wormhole' }
+					}
+				},
+				then: {
+					required: [...REQUIRED_PARAMS, 'costIndex']
+				}
+			}
+		],
 		properties: Object.fromEntries(
 			Object.entries(PARAM_SPECS).map(([key, spec]) => {
 				const schemaSpec = /** @type {any} */ (spec);
@@ -747,13 +778,47 @@ export function buildOpenApiSpec(config = {}) {
 		};
 	});
 
+	const biochemicalTypePathParam = {
+		name: 'type',
+		in: 'path',
+		required: true,
+		schema: {
+			type: 'string',
+			enum: BIOCHEMICAL_TYPES
+		},
+		description: 'Biochemical reaction type'
+	};
+
+	const compositeTypePathParam = {
+		name: 'type',
+		in: 'path',
+		required: true,
+		schema: {
+			type: 'string',
+			enum: COMPOSITE_TYPES
+		},
+		description: 'Composite reaction type'
+	};
+
+	const idPathParam = {
+		name: 'id',
+		in: 'path',
+		required: true,
+		schema: {
+			type: 'integer',
+			minimum: 1
+		},
+		description: 'Reaction item id'
+	};
+
 	/**
 	 * @param {string} summary
+	 * @param {any[]} pathParameters
 	 */
-	const createPathEntry = (summary) => ({
+	const createPathEntry = (summary, pathParameters = []) => ({
 		get: {
 			summary,
-			parameters: queryParameters,
+			parameters: [...pathParameters, ...queryParameters],
 			responses: {
 				200: {
 					description: 'Calculation result',
@@ -768,7 +833,7 @@ export function buildOpenApiSpec(config = {}) {
 		},
 		post: {
 			summary,
-			parameters: queryParameters,
+			parameters: [...pathParameters, ...queryParameters],
 			requestBody: {
 				required: false,
 				content: {
@@ -804,10 +869,14 @@ export function buildOpenApiSpec(config = {}) {
 		servers: [{ url: baseUrl }],
 		paths: {
 			'/api/v1/biochemical/{type}/{id}': createPathEntry(
-				'Biochemical reaction by type and item id'
+				'Biochemical reaction by type and item id',
+				[biochemicalTypePathParam, idPathParam]
 			),
-			'/api/v1/composite/{type}/{id}': createPathEntry('Composite reaction by type and item id'),
-			'/api/v1/hybrid/{id}': createPathEntry('Hybrid reaction by item id'),
+			'/api/v1/composite/{type}/{id}': createPathEntry('Composite reaction by type and item id', [
+				compositeTypePathParam,
+				idPathParam
+			]),
+			'/api/v1/hybrid/{id}': createPathEntry('Hybrid reaction by item id', [idPathParam]),
 			'/api/v1/openapi.json': {
 				get: {
 					summary: 'OpenAPI specification',

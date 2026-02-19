@@ -136,7 +136,7 @@
 		{
 			key: 'costIndex',
 			type: 'number',
-			required: 'yes',
+			required: 'wormhole only',
 			values: '0 to 100',
 			notes: 'Manual cost index (primarily for wormhole workflows)'
 		},
@@ -150,7 +150,7 @@
 	];
 
 	const sharedQuery =
-		'inMarket=Jita&outMarket=Jita&system=Ignoitton&input=buy&output=sell&brokers=3&sales=3.6&skill=5&facility=large&rigs=2&space=nullsec&tax=1&scc=4&duration=10080&cycles=50&costIndex=0&prismaticite=50';
+		'inMarket=Jita&outMarket=Jita&system=Ignoitton&input=buy&output=sell&brokers=3&sales=3.6&skill=5&facility=large&rigs=2&space=nullsec&tax=1&scc=4&duration=10080&cycles=50&prismaticite=50';
 
 	const getExample = `curl "${baseUrl}/hybrid/30306?${sharedQuery}"`;
 	const getExampleNoMeta = `curl "${baseUrl}/hybrid/30306?${sharedQuery}&includeMeta=false"`;
@@ -224,7 +224,6 @@
 			"scc": "4",
 			"duration": "10080",
 			"cycles": "50",
-			"costIndex": "0",
 			"prismaticite": "50"
 		}
 	},
