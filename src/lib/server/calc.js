@@ -417,7 +417,7 @@ export async function simple(
 				db.prices.find((price) => {
 					return price.item_id === item.id && price.system === options.inMarket;
 				})[options.input] * amount;
-		} catch (e) {
+		} catch {
 			console.error(
 				`Price not found for item_id: ${item.id} in system: ${options.inMarket} | blueprint id: ${blueprint._id}`
 			);
