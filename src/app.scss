@@ -62,6 +62,10 @@ a.navbar-brand {
 	background-color: #f5f5f5;
 }
 
+.footer .btn-link {
+	text-decoration: none;
+}
+
 strong {
 	font-weight: bold !important;
 }
@@ -127,17 +131,43 @@ h2 {
 	border-color: var(--bs-table-border-color);
 }
 
-@media screen and (max-width: 990px) {
-	a {
-		margin: 1rem;
+@media screen and (max-width: 1199px) {
+	body {
+		padding-top: 56px;
+		padding-bottom: 0;
+		display: flex;
+		flex-direction: column;
+		min-height: calc(100vh - 56px);
+		min-height: calc(100dvh);
 	}
 
-	body {
-		padding-bottom: 0;
+	table#stab {
+		font-size: 0.9rem;
 	}
+
+	table#stab th:nth-child(3),
+	table#stab td:nth-child(3),
+	table#stab th:nth-child(4),
+	table#stab td:nth-child(4) {
+		display: none;
+	}
+
 	.footer {
 		bottom: auto; /* Reset bottom property to default */
 		position: relative; /* Change position to relative */
+		margin-top: auto;
+		line-height: 1.4;
+		padding: 0.5rem 0;
+	}
+
+	.footer .text-body-secondary {
+		line-height: 1.4;
+	}
+}
+
+@media screen and (max-width: 767px) {
+	.table > :not(caption) > * > * {
+		padding: 0.35rem;
 	}
 }
 

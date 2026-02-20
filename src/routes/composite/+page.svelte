@@ -45,7 +45,7 @@
 </svelte:head>
 
 <div class="container">
-	<div class="row">
+	<div class="row table-responsive">
 		<table class="table table-sm table-bordered text-center">
 			<thead>
 				<tr>
@@ -81,15 +81,19 @@
 	</div>
 
 	<div class="row mt-4">
-		<div class="card w-100 p-0" id="simple-reactions-card">
+		<div class="card w-100 p-0 table-responsive" id="simple-reactions-card">
 			<div class="card-header bg-info text-white fw-bold text-center w-100">Simple Reactions</div>
-			<table width="100%" id="stab" class="table table-bordered text-center">
+			<table width="100%" id="stab" class="table table-sm table-bordered text-center small">
 				<thead>
 					<tr>
 						<TH handler={simpleHandler} orderBy="name">Reaction</TH>
 						<TH handler={simpleHandler} orderBy="input_total">Inputs</TH>
-						<TH handler={simpleHandler} orderBy="taxes_total">Tax</TH>
-						<TH handler={simpleHandler} orderBy="output_total">Output</TH>
+						<TH handler={simpleHandler} orderBy="taxes_total" className="d-none d-sm-table-cell"
+							>Tax</TH
+						>
+						<TH handler={simpleHandler} orderBy="output_total" className="d-none d-sm-table-cell"
+							>Output</TH
+						>
 						<TH handler={simpleHandler} orderBy="profit">Profit</TH>
 						<TH handler={simpleHandler} orderBy="profit_per">% prof.</TH>
 					</tr>
@@ -104,8 +108,8 @@
 							>
 								<td>{reaction.name}</td>
 								<td class="isk">{formatNumber(reaction.input_total)}</td>
-								<td class="isk">{formatNumber(reaction.taxes_total)}</td>
-								<td class="isk">{formatNumber(reaction.output_total)}</td>
+								<td class="isk d-none d-sm-table-cell">{formatNumber(reaction.taxes_total)}</td>
+								<td class="isk d-none d-sm-table-cell">{formatNumber(reaction.output_total)}</td>
 								<td class="isk">{formatNumber(reaction.profit)}</td>
 								<td>{formatNumber(reaction.profit_per)} %</td>
 							</tr>
@@ -115,15 +119,19 @@
 			</table>
 		</div>
 
-		<div class="card w-100 mt-4 p-0" id="complex-reactions-card">
+		<div class="card w-100 mt-4 p-0 table-responsive" id="complex-reactions-card">
 			<div class="card-header bg-info text-white fw-bold text-center w-100">Complex Reactions</div>
-			<table width="100%" id="stab" class="table table-bordered text-center">
+			<table width="100%" id="stab" class="table table-sm table-bordered text-center small">
 				<thead>
 					<tr>
 						<TH handler={complexHandler} orderBy="name">Reaction</TH>
 						<TH handler={complexHandler} orderBy="input_total">Inputs</TH>
-						<TH handler={complexHandler} orderBy="taxes_total">Tax</TH>
-						<TH handler={complexHandler} orderBy="output_total">Output</TH>
+						<TH handler={complexHandler} orderBy="taxes_total" className="d-none d-sm-table-cell"
+							>Tax</TH
+						>
+						<TH handler={complexHandler} orderBy="output_total" className="d-none d-sm-table-cell"
+							>Output</TH
+						>
 						<TH handler={complexHandler} orderBy="profit">Profit</TH>
 						<TH handler={complexHandler} orderBy="profit_per">% prof.</TH>
 					</tr>
@@ -138,8 +146,8 @@
 							>
 								<td>{reaction.name}</td>
 								<td class="isk">{formatNumber(reaction.input_total)}</td>
-								<td class="isk">{formatNumber(reaction.taxes_total)}</td>
-								<td class="isk">{formatNumber(reaction.output_total)}</td>
+								<td class="isk d-none d-sm-table-cell">{formatNumber(reaction.taxes_total)}</td>
+								<td class="isk d-none d-sm-table-cell">{formatNumber(reaction.output_total)}</td>
 								<td class="isk">{formatNumber(reaction.profit)}</td>
 								<td>{formatNumber(reaction.profit_per)} %</td>
 							</tr>
@@ -149,17 +157,21 @@
 			</table>
 		</div>
 
-		<div class="card w-100 mt-4 p-0" id="chain-reactions-card">
+		<div class="card w-100 mt-4 p-0 table-responsive" id="chain-reactions-card">
 			<div class="card-header bg-info text-white fw-bold text-center w-100">
 				Complex Chain Reactions
 			</div>
-			<table width="100%" id="stab" class="table table-bordered text-center">
+			<table width="100%" id="stab" class="table table-sm table-bordered text-center small">
 				<thead>
 					<tr>
 						<TH handler={chainHandler} orderBy="name">Reaction</TH>
 						<TH handler={chainHandler} orderBy="input_total">Inputs</TH>
-						<TH handler={chainHandler} orderBy="taxes_total">Tax</TH>
-						<TH handler={chainHandler} orderBy="output_total">Output</TH>
+						<TH handler={chainHandler} orderBy="taxes_total" className="d-none d-sm-table-cell"
+							>Tax</TH
+						>
+						<TH handler={chainHandler} orderBy="output_total" className="d-none d-sm-table-cell"
+							>Output</TH
+						>
 						<TH handler={chainHandler} orderBy="profit">Profit</TH>
 						<TH handler={chainHandler} orderBy="profit_per">% prof.</TH>
 					</tr>
@@ -174,8 +186,8 @@
 							>
 								<td>{reaction.name}</td>
 								<td class="isk">{formatNumber(reaction.input_total)}</td>
-								<td class="isk">{formatNumber(reaction.taxes_total)}</td>
-								<td class="isk">{formatNumber(reaction.output_total)}</td>
+								<td class="isk d-none d-sm-table-cell">{formatNumber(reaction.taxes_total)}</td>
+								<td class="isk d-none d-sm-table-cell">{formatNumber(reaction.output_total)}</td>
 								<td class="isk">{formatNumber(reaction.profit)}</td>
 								<td>{formatNumber(reaction.profit_per)} %</td>
 							</tr>
@@ -185,17 +197,21 @@
 			</table>
 		</div>
 
-		<div class="card w-100 mt-4 p-0" id="unrefined-reactions-card">
+		<div class="card w-100 mt-4 p-0 table-responsive" id="unrefined-reactions-card">
 			<div class="card-header bg-info text-white fw-bold text-center w-100">
 				Unrefined Reactions (not reprocessed)
 			</div>
-			<table width="100%" id="stab" class="table table-bordered text-center">
+			<table width="100%" id="stab" class="table table-sm table-bordered text-center small">
 				<thead>
 					<tr>
 						<TH handler={unrefinedHandler} orderBy="name">Reaction</TH>
 						<TH handler={unrefinedHandler} orderBy="input_total">Inputs</TH>
-						<TH handler={unrefinedHandler} orderBy="taxes_total">Tax</TH>
-						<TH handler={unrefinedHandler} orderBy="output_total">Output</TH>
+						<TH handler={unrefinedHandler} orderBy="taxes_total" className="d-none d-sm-table-cell"
+							>Tax</TH
+						>
+						<TH handler={unrefinedHandler} orderBy="output_total" className="d-none d-sm-table-cell"
+							>Output</TH
+						>
 						<TH handler={unrefinedHandler} orderBy="profit">Profit</TH>
 						<TH handler={unrefinedHandler} orderBy="profit_per">% prof.</TH>
 					</tr>
@@ -210,8 +226,8 @@
 							>
 								<td>{reaction.name}</td>
 								<td class="isk">{formatNumber(reaction.input_total)}</td>
-								<td class="isk">{formatNumber(reaction.taxes_total)}</td>
-								<td class="isk">{formatNumber(reaction.output_total)}</td>
+								<td class="isk d-none d-sm-table-cell">{formatNumber(reaction.taxes_total)}</td>
+								<td class="isk d-none d-sm-table-cell">{formatNumber(reaction.output_total)}</td>
 								<td class="isk">{formatNumber(reaction.profit)}</td>
 								<td>{formatNumber(reaction.profit_per)} %</td>
 							</tr>
@@ -221,17 +237,21 @@
 			</table>
 		</div>
 
-		<div class="card w-100 mt-4 p-0" id="refined-reactions-card">
+		<div class="card w-100 mt-4 p-0 table-responsive" id="refined-reactions-card">
 			<div class="card-header bg-info text-white fw-bold text-center w-100">
 				Unrefined Reactions (55% Efficiency)
 			</div>
-			<table width="100%" id="stab" class="table table-bordered text-center">
+			<table width="100%" id="stab" class="table table-sm table-bordered text-center small">
 				<thead>
 					<tr>
 						<TH handler={refinedHandler} orderBy="name">Reaction</TH>
 						<TH handler={refinedHandler} orderBy="input_total">Inputs</TH>
-						<TH handler={refinedHandler} orderBy="taxes_total">Tax</TH>
-						<TH handler={refinedHandler} orderBy="output_total">Output</TH>
+						<TH handler={refinedHandler} orderBy="taxes_total" className="d-none d-sm-table-cell"
+							>Tax</TH
+						>
+						<TH handler={refinedHandler} orderBy="output_total" className="d-none d-sm-table-cell"
+							>Output</TH
+						>
 						<TH handler={refinedHandler} orderBy="profit">Profit</TH>
 						<TH handler={refinedHandler} orderBy="profit_per">% prof.</TH>
 					</tr>
@@ -246,8 +266,8 @@
 							>
 								<td>{reaction.name}</td>
 								<td class="isk">{formatNumber(reaction.input_total)}</td>
-								<td class="isk">{formatNumber(reaction.taxes_total)}</td>
-								<td class="isk">{formatNumber(reaction.output_total)}</td>
+								<td class="isk d-none d-sm-table-cell">{formatNumber(reaction.taxes_total)}</td>
+								<td class="isk d-none d-sm-table-cell">{formatNumber(reaction.output_total)}</td>
 								<td class="isk">{formatNumber(reaction.profit)}</td>
 								<td>{formatNumber(reaction.profit_per)} %</td>
 							</tr>
@@ -257,17 +277,21 @@
 			</table>
 		</div>
 
-		<div class="card w-100 mt-4 p-0" id="eratic-reactions-card">
+		<div class="card w-100 mt-4 p-0 table-responsive" id="eratic-reactions-card">
 			<div class="card-header bg-info text-white fw-bold text-center w-100">
 				Unrefined Mineral Reactions (no reprocessing)
 			</div>
-			<table width="100%" id="stab" class="table table-bordered text-center">
+			<table width="100%" id="stab" class="table table-sm table-bordered text-center small">
 				<thead>
 					<tr>
 						<TH handler={eraticHandler} orderBy="name">Reaction</TH>
 						<TH handler={eraticHandler} orderBy="input_total">Inputs</TH>
-						<TH handler={eraticHandler} orderBy="taxes_total">Tax</TH>
-						<TH handler={eraticHandler} orderBy="output_total">Output</TH>
+						<TH handler={eraticHandler} orderBy="taxes_total" className="d-none d-sm-table-cell"
+							>Tax</TH
+						>
+						<TH handler={eraticHandler} orderBy="output_total" className="d-none d-sm-table-cell"
+							>Output</TH
+						>
 						<TH handler={eraticHandler} orderBy="profit">Profit</TH>
 						<TH handler={eraticHandler} orderBy="profit_per">% prof.</TH>
 					</tr>
@@ -282,8 +306,8 @@
 							>
 								<td>{reaction.name}</td>
 								<td class="isk">{formatNumber(reaction.input_total)}</td>
-								<td class="isk">{formatNumber(reaction.taxes_total)}</td>
-								<td class="isk">{formatNumber(reaction.output_total)}</td>
+								<td class="isk d-none d-sm-table-cell">{formatNumber(reaction.taxes_total)}</td>
+								<td class="isk d-none d-sm-table-cell">{formatNumber(reaction.output_total)}</td>
 								<td class="isk">{formatNumber(reaction.profit)}</td>
 								<td>{formatNumber(reaction.profit_per)} %</td>
 							</tr>
@@ -293,17 +317,25 @@
 			</table>
 		</div>
 
-		<div class="card w-100 mt-4 p-0" id="eratic-repro-card">
+		<div class="card w-100 mt-4 p-0 table-responsive" id="eratic-repro-card">
 			<div class="card-header bg-info text-white fw-bold text-center w-100">
 				Unrefined Mineral Reactions (MAX Refine 90.63%)
 			</div>
-			<table width="100%" id="stab" class="table table-bordered text-center">
+			<table width="100%" id="stab" class="table table-sm table-bordered text-center small">
 				<thead>
 					<tr>
 						<TH handler={eraticReproHandler} orderBy="name">Reaction</TH>
 						<TH handler={eraticReproHandler} orderBy="input_total">Inputs</TH>
-						<TH handler={eraticReproHandler} orderBy="taxes_total">Tax</TH>
-						<TH handler={eraticReproHandler} orderBy="output_total">Output</TH>
+						<TH
+							handler={eraticReproHandler}
+							orderBy="taxes_total"
+							className="d-none d-sm-table-cell">Tax</TH
+						>
+						<TH
+							handler={eraticReproHandler}
+							orderBy="output_total"
+							className="d-none d-sm-table-cell">Output</TH
+						>
 						<TH handler={eraticReproHandler} orderBy="profit">Profit</TH>
 						<TH handler={eraticReproHandler} orderBy="profit_per">% prof.</TH>
 					</tr>
@@ -318,8 +350,8 @@
 							>
 								<td>{reaction.name}</td>
 								<td class="isk">{formatNumber(reaction.input_total)}</td>
-								<td class="isk">{formatNumber(reaction.taxes_total)}</td>
-								<td class="isk">{formatNumber(reaction.output_total)}</td>
+								<td class="isk d-none d-sm-table-cell">{formatNumber(reaction.taxes_total)}</td>
+								<td class="isk d-none d-sm-table-cell">{formatNumber(reaction.output_total)}</td>
 								<td class="isk">{formatNumber(reaction.profit)}</td>
 								<td>{formatNumber(reaction.profit_per)} %</td>
 							</tr>

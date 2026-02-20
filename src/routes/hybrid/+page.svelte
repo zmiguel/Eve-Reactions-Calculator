@@ -33,7 +33,7 @@
 </svelte:head>
 
 <div class="container">
-	<div class="row">
+	<div class="row table-responsive">
 		<table class="table table-sm table-bordered text-center">
 			<thead>
 				<tr>
@@ -69,15 +69,19 @@
 	</div>
 
 	<div class="row mt-4">
-		<div class="card w-100 p-0">
+		<div class="card w-100 p-0 table-responsive">
 			<div class="card-header bg-info text-white fw-bold text-center w-100">Hybrid Reactions</div>
-			<table width="100%" id="stab" class="table table-bordered text-center">
+			<table width="100%" id="stab" class="table table-sm table-bordered text-center small">
 				<thead>
 					<tr>
 						<TH handler={hybridHandler} orderBy="name">Reaction</TH>
 						<TH handler={hybridHandler} orderBy="input_total">Inputs</TH>
-						<TH handler={hybridHandler} orderBy="taxes_total">Tax</TH>
-						<TH handler={hybridHandler} orderBy="output_total">Output</TH>
+						<TH handler={hybridHandler} orderBy="taxes_total" className="d-none d-sm-table-cell"
+							>Tax</TH
+						>
+						<TH handler={hybridHandler} orderBy="output_total" className="d-none d-sm-table-cell"
+							>Output</TH
+						>
 						<TH handler={hybridHandler} orderBy="profit">Profit</TH>
 						<TH handler={hybridHandler} orderBy="profit_per">% prof.</TH>
 					</tr>
@@ -92,8 +96,8 @@
 							>
 								<td>{reaction.name}</td>
 								<td class="isk">{formatNumber(reaction.input_total)}</td>
-								<td class="isk">{formatNumber(reaction.taxes_total)}</td>
-								<td class="isk">{formatNumber(reaction.output_total)}</td>
+								<td class="isk d-none d-sm-table-cell">{formatNumber(reaction.taxes_total)}</td>
+								<td class="isk d-none d-sm-table-cell">{formatNumber(reaction.output_total)}</td>
 								<td class="isk">{formatNumber(reaction.profit)}</td>
 								<td>{formatNumber(reaction.profit_per)} %</td>
 							</tr>

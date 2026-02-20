@@ -44,8 +44,8 @@
 
 <!-- Input Method -->
 <fieldset class="form-group mb-3 row">
-	<legend class="col-4 fs-6">Input Method</legend>
-	<div class="col-8">
+	<legend class="col-12 col-md-4 fs-6 mb-1 mb-md-0">Input Method</legend>
+	<div class="col-12 col-md-8">
 		<div class="form-check form-check-inline">
 			<input
 				class="form-check-input"
@@ -80,19 +80,21 @@
 
 <!-- Input Market -->
 <div class="form-group mb-3 row">
-	<legend class="col-4 fs-6">Input Market</legend>
-	<div class="col-8">
-		<select
-			id={getName('inMarket')}
-			name={getName('inMarket')}
-			class="form-select w-25"
-			aria-describedby="inMarketHelpBlock"
-			required
-		>
-			{#each market_systems as system (system)}
-				<option value={system} selected={settings.inMarket === system}>{system}</option>
-			{/each}
-		</select>
+	<legend class="col-12 col-md-4 fs-6 mb-1 mb-md-0">Input Market</legend>
+	<div class="col-12 col-md-8">
+		<div class="col-12 col-sm-6 col-lg-4 px-0">
+			<select
+				id={getName('inMarket')}
+				name={getName('inMarket')}
+				class="form-select"
+				aria-describedby="inMarketHelpBlock"
+				required
+			>
+				{#each market_systems as system (system)}
+					<option value={system} selected={settings.inMarket === system}>{system}</option>
+				{/each}
+			</select>
+		</div>
 		<div id="inMarketHelpBlock" class="form-text text-muted">
 			What system to use for inputs prices?
 		</div>
@@ -101,8 +103,8 @@
 
 <!-- Output Method -->
 <fieldset class="form-group mb-3 row">
-	<legend class="col-4 fs-6">Output Method</legend>
-	<div class="col-8">
+	<legend class="col-12 col-md-4 fs-6 mb-1 mb-md-0">Output Method</legend>
+	<div class="col-12 col-md-8">
 		<div class="form-check form-check-inline">
 			<input
 				class="form-check-input"
@@ -137,19 +139,21 @@
 
 <!-- Output Market -->
 <div class="form-group mb-3 row">
-	<legend class="col-4 fs-6">Output Market</legend>
-	<div class="col-8">
-		<select
-			id={getName('outMarket')}
-			name={getName('outMarket')}
-			class="form-select w-25"
-			aria-describedby="outMarketHelpBlock"
-			required
-		>
-			{#each market_systems as system (system)}
-				<option value={system} selected={settings.outMarket === system}>{system}</option>
-			{/each}
-		</select>
+	<legend class="col-12 col-md-4 fs-6 mb-1 mb-md-0">Output Market</legend>
+	<div class="col-12 col-md-8">
+		<div class="col-12 col-sm-6 col-lg-4 px-0">
+			<select
+				id={getName('outMarket')}
+				name={getName('outMarket')}
+				class="form-select"
+				aria-describedby="outMarketHelpBlock"
+				required
+			>
+				{#each market_systems as system (system)}
+					<option value={system} selected={settings.outMarket === system}>{system}</option>
+				{/each}
+			</select>
+		</div>
 		<div id="outMarketHelpBlock" class="form-text text-muted">
 			What system to use for output prices?
 		</div>
@@ -158,9 +162,9 @@
 
 <!-- Broker's Fee -->
 <div class="form-group mb-3 row">
-	<legend class="col-4 fs-6">Broker's Fee</legend>
-	<div class="col-8">
-		<div class="input-group w-25">
+	<legend class="col-12 col-md-4 fs-6 mb-1 mb-md-0">Broker's Fee</legend>
+	<div class="col-12 col-md-8">
+		<div class="input-group col-12 col-sm-6 col-lg-4 px-0">
 			<input
 				id={getName('brokers')}
 				name={getName('brokers')}
@@ -180,9 +184,9 @@
 
 <!-- Sales Tax -->
 <div class="form-group mb-3 row">
-	<legend class="col-4 fs-6">Sales Tax</legend>
-	<div class="col-8">
-		<div class="input-group w-25">
+	<legend class="col-12 col-md-4 fs-6 mb-1 mb-md-0">Sales Tax</legend>
+	<div class="col-12 col-md-8">
+		<div class="input-group col-12 col-sm-6 col-lg-4 px-0">
 			<input
 				id={getName('sales')}
 				name={getName('sales')}
@@ -202,21 +206,23 @@
 
 <!-- Reactions Skill Level -->
 <div class="form-group mb-3 row">
-	<legend class="col-4 fs-6">Reactions Skill Level</legend>
-	<div class="col-8">
-		<select
-			id={getName('skill')}
-			name={getName('skill')}
-			class="form-select w-25"
-			aria-describedby="skillHelpBlock"
-			required
-		>
-			<option value="1" selected={settings.skill === '1'}>1</option>
-			<option value="2" selected={settings.skill === '2'}>2</option>
-			<option value="3" selected={settings.skill === '3'}>3</option>
-			<option value="4" selected={settings.skill === '4'}>4</option>
-			<option value="5" selected={settings.skill === '5'}>5</option>
-		</select>
+	<legend class="col-12 col-md-4 fs-6 mb-1 mb-md-0">Reactions Skill Level</legend>
+	<div class="col-12 col-md-8">
+		<div class="col-12 col-sm-6 col-lg-4 px-0">
+			<select
+				id={getName('skill')}
+				name={getName('skill')}
+				class="form-select"
+				aria-describedby="skillHelpBlock"
+				required
+			>
+				<option value="1" selected={settings.skill === '1'}>1</option>
+				<option value="2" selected={settings.skill === '2'}>2</option>
+				<option value="3" selected={settings.skill === '3'}>3</option>
+				<option value="4" selected={settings.skill === '4'}>4</option>
+				<option value="5" selected={settings.skill === '5'}>5</option>
+			</select>
+		</div>
 		<div id="skillHelpBlock" class="form-text text-muted">
 			What is your reactions skill level at?
 		</div>
@@ -225,8 +231,8 @@
 
 <!-- Facility Size -->
 <fieldset class="form-group mb-3 row">
-	<legend class="col-4 fs-6">Facility Size</legend>
-	<div class="col-8">
+	<legend class="col-12 col-md-4 fs-6 mb-1 mb-md-0">Facility Size</legend>
+	<div class="col-12 col-md-8">
 		<div class="form-check form-check-inline">
 			<input
 				class="form-check-input"
@@ -261,8 +267,8 @@
 
 <!-- Rigs Installed -->
 <fieldset class="form-group mb-3 row">
-	<legend class="col-4 fs-6">Rigs Installed</legend>
-	<div class="col-8">
+	<legend class="col-12 col-md-4 fs-6 mb-1 mb-md-0">Rigs Installed</legend>
+	<div class="col-12 col-md-8">
 		<div class="form-check form-check-inline">
 			<input
 				class="form-check-input"
@@ -310,8 +316,8 @@
 
 <!-- Type of space -->
 <fieldset class="form-group mb-3 row">
-	<legend class="col-4 fs-6">Type of space</legend>
-	<div class="col-8">
+	<legend class="col-12 col-md-4 fs-6 mb-1 mb-md-0">Type of space</legend>
+	<div class="col-12 col-md-8">
 		<div class={wormhole_class}>
 			<input
 				class="form-check-input"
@@ -363,9 +369,9 @@
 <!-- Manual Cost Index (if wormhole) -->
 {#if space_helper === 'wormhole'}
 	<div class="form-group mb-3 row">
-		<legend class="col-4 fs-6">Manual Cost Index</legend>
-		<div class="col-8">
-			<div class="input-group w-25">
+		<legend class="col-12 col-md-4 fs-6 mb-1 mb-md-0">Manual Cost Index</legend>
+		<div class="col-12 col-md-8">
+			<div class="input-group col-12 col-sm-6 col-lg-4 px-0">
 				<input
 					id={getName('costIndex')}
 					name={getName('costIndex')}
@@ -388,9 +394,9 @@
 
 <!-- System -->
 <div class="form-group mb-3 row">
-	<legend class="col-4 fs-6">System</legend>
-	<div class="col-8">
-		<div class="input-group w-50">
+	<legend class="col-12 col-md-4 fs-6 mb-1 mb-md-0">System</legend>
+	<div class="col-12 col-md-8">
+		<div class="input-group col-12 col-sm-8 col-lg-6 px-0">
 			<div class="input-group-text" id="systemHelpBlock">
 				<Fa icon={faHome} />
 			</div>
@@ -417,9 +423,9 @@
 
 <!-- Industry Tax -->
 <div class="form-group mb-3 row">
-	<legend class="col-4 fs-6">Industry Tax</legend>
-	<div class="col-8">
-		<div class="input-group w-25">
+	<legend class="col-12 col-md-4 fs-6 mb-1 mb-md-0">Industry Tax</legend>
+	<div class="col-12 col-md-8">
+		<div class="input-group col-12 col-sm-6 col-lg-4 px-0">
 			<input
 				id={getName('indyTax')}
 				name={getName('indyTax')}
@@ -439,9 +445,9 @@
 
 <!-- SCC Tax -->
 <div class="form-group mb-3 row">
-	<legend class="col-4 fs-6">SCC Tax</legend>
-	<div class="col-8">
-		<div class="input-group w-25">
+	<legend class="col-12 col-md-4 fs-6 mb-1 mb-md-0">SCC Tax</legend>
+	<div class="col-12 col-md-8">
+		<div class="input-group col-12 col-sm-6 col-lg-4 px-0">
 			<input
 				id={getName('sccTax')}
 				name={getName('sccTax')}
@@ -461,9 +467,9 @@
 
 <!-- Batch build time -->
 <div class="form-group mb-3 row">
-	<legend class="col-4 fs-6">Batch build time</legend>
-	<div class="col-8">
-		<div class="input-group w-50">
+	<legend class="col-12 col-md-4 fs-6 mb-1 mb-md-0">Batch build time</legend>
+	<div class="col-12 col-md-8">
+		<div class="input-group col-12 col-sm-8 col-lg-6 px-0">
 			<input
 				id={getName('duration')}
 				name={getName('duration')}
@@ -484,9 +490,9 @@
 
 <!-- Prismaticite Percentage -->
 <div class="form-group mb-3 row">
-	<legend class="col-4 fs-6">Prismaticite Luck Percentage</legend>
-	<div class="col-8">
-		<div class="input-group w-25">
+	<legend class="col-12 col-md-4 fs-6 mb-1 mb-md-0">Prismaticite Luck Percentage</legend>
+	<div class="col-12 col-md-8">
+		<div class="input-group col-12 col-sm-6 col-lg-4 px-0">
 			<input
 				id={getName('prismaticite')}
 				name={getName('prismaticite')}
