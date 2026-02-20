@@ -54,10 +54,12 @@
 
 <nav class="navbar navbar-expand-lg navbar-dark bg-dark fixed-top" data-bs-theme="dark">
 	<div class="container">
-		<div class="d-flex align-items-center gap-2">
-			<a class="navbar-brand mb-0" href={resolve('/')}>EVE Online Reactions Calculator</a>
+		<div class="d-flex align-items-center gap-2 flex-grow-1 overflow-hidden me-2">
+			<a class="navbar-brand mb-0 text-truncate fs-6" href={resolve('/')}>
+				EVE Online Reactions Calculator
+			</a>
 			<a
-				class="btn btn-sm btn-secondary fw-semibold py-0 px-2 small"
+				class="btn btn-sm btn-secondary fw-semibold py-0 px-2 small d-none d-lg-inline-block"
 				href="https://d-scan.space"
 				target="_blank"
 				rel="noopener"
@@ -69,16 +71,16 @@
 		<button
 			class="navbar-toggler"
 			type="button"
-			data-toggle="collapse"
-			data-target="#navbarResponsive"
+			data-bs-toggle="collapse"
+			data-bs-target="#navbarResponsive"
 			aria-controls="navbarResponsive"
 			aria-expanded="false"
 			aria-label="Toggle navigation"
 		>
 			<span class="navbar-toggler-icon"></span>
 		</button>
-		<div class="collapse navbar-collapse" id="navbarResponsive">
-			<ul class="navbar-nav ms-auto">
+		<div class="collapse navbar-collapse mt-2 mt-lg-0" id="navbarResponsive">
+			<ul class="navbar-nav ms-auto pt-2 pt-lg-0">
 				<li class="nav-item">
 					<a class="nav-link" href={resolve('/')} class:active={$page.url.pathname === '/'}>Home</a>
 				</li>
@@ -115,6 +117,11 @@
 						class="nav-link"
 						href={resolve('/api')}
 						class:active={$page.url.pathname.includes('/api')}>API</a
+					>
+				</li>
+				<li class="nav-item d-lg-none">
+					<a class="nav-link" href="https://d-scan.space" target="_blank" rel="noopener"
+						>Try D-Scan.Space!</a
 					>
 				</li>
 				<li class="nav-item">
@@ -203,9 +210,9 @@
 
 <footer class="footer bg-dark" data-bs-theme="dark">
 	<div class="container">
-		<div class="row">
-			<div class="col">
-				<span class="text-body-secondary"
+		<div class="row gy-2 align-items-md-center">
+			<div class="col-12 col-md">
+				<span class="text-body-secondary d-block"
 					>Support me by using code <strong class="patreon">oxed</strong> on the
 					<strong class="patreon">EVE Online Store</strong>
 					- Thanks! |
@@ -215,19 +222,21 @@
 					></span
 				>
 			</div>
-			<div class="col-4 d-grid gap-2 d-md-flex justify-content-md-end p-0">
+			<div
+				class="col-12 col-md-4 d-flex flex-wrap align-items-center gap-2 justify-content-start justify-content-md-end p-0"
+			>
 				<button
 					type="button"
-					class="btn btn-link text-body-secondary text-end p-0"
+					class="btn btn-link text-body-secondary text-start text-md-end text-decoration-none p-0"
 					data-bs-toggle="modal"
 					data-bs-target="#partnerModal"
 				>
 					EVE Online Partner!
 				</button>
-				|
+				<span class="text-body-secondary d-none d-md-inline">|</span>
 				<button
 					type="button"
-					class="btn btn-link text-body-secondary text-end p-0"
+					class="btn btn-link text-body-secondary text-start text-md-end text-decoration-none p-0"
 					data-bs-toggle="modal"
 					data-bs-target="#copyrightModal"
 				>

@@ -64,9 +64,11 @@
 <div class="container">
 	<div class="row">
 		<div class="col-lg-8">
-			<div class="d-flex justify-content-between align-items-center">
+			<div
+				class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-2"
+			>
 				<h4 class="mb-0">New Settings:</h4>
-				<div class="col-sm-8 col-md-6 col-lg-5">
+				<div class="col-12 col-sm-8 col-md-6 col-lg-5 px-0">
 					<select class="form-select" bind:value={settingsMode} onchange={handleSettingsModeChange}>
 						<option value="single">Single Settings Mode</option>
 						<option value="separate">Separate Settings Mode</option>
@@ -74,7 +76,7 @@
 				</div>
 			</div>
 
-			<ul class="nav nav-tabs mt-4">
+			<ul class="nav nav-tabs mt-4 flex-wrap gap-1">
 				<li class="nav-item">
 					<button
 						class="nav-link {activeTab === 'single' ? 'active' : ''}"
@@ -166,7 +168,7 @@
 				{/if}
 
 				<div class="form-group row mt-4">
-					<div class="offset-4 col-8">
+					<div class="col-12 col-md-8 offset-md-4">
 						<button type="submit" class="btn btn-primary">Save All Settings</button>
 					</div>
 				</div>
@@ -176,7 +178,7 @@
 		<div class="col-lg-4">
 			<h4 class="">Current Settings:</h4>
 			<!-- Add tabs for current settings display -->
-			<ul class="nav nav-tabs mt-4">
+			<ul class="nav nav-tabs mt-4 flex-wrap gap-1">
 				<li class="nav-item">
 					<button
 						class="nav-link {activeTab === 'single' ? 'active' : ''}"
@@ -216,90 +218,93 @@
 			</ul>
 
 			{#if ['single', 'biochemical', 'composite', 'hybrid'].includes(activeTab)}
-				<table class="table table-sm table-bordered mt-4">
-					<tbody>
-						<tr>
-							<th>In Method</th>
-							<td
-								>{currentSettings.input?.charAt(0).toUpperCase() + currentSettings.input?.slice(1)} Order</td
-							>
-						</tr>
-						<tr>
-							<th>In Market</th>
-							<td>{currentSettings.inMarket}</td>
-						</tr>
-						<tr>
-							<th>Out Method</th>
-							<td
-								>{currentSettings.output?.charAt(0).toUpperCase() +
-									currentSettings.output?.slice(1)} Order</td
-							>
-						</tr>
-						<tr>
-							<th>Out Market</th>
-							<td>{currentSettings.outMarket}</td>
-						</tr>
-						<tr>
-							<th>Broker's Fee</th>
-							<td>{currentSettings.brokers}</td>
-						</tr>
-						<tr>
-							<th>Sales Tax</th>
-							<td>{currentSettings.sales}</td>
-						</tr>
-						<tr>
-							<th>Reactions</th>
-							<td>Level {currentSettings.skill}</td>
-						</tr>
-						<tr>
-							<th>Facility</th>
-							<td
-								>{currentSettings.facility?.charAt(0).toUpperCase() +
-									currentSettings.facility?.slice(1)} Refinery</td
-							>
-						</tr>
-						<tr>
-							<th>Rig</th>
-							<td>Tech {currentSettings.rigs} Rig</td>
-						</tr>
-						<tr>
-							<th>Space</th>
-							<td
-								>{currentSettings.space?.charAt(0).toUpperCase() +
-									currentSettings.space?.slice(1)}</td
-							>
-						</tr>
-						{#if space_helper === 'wormhole'}
+				<div class="table-responsive mt-4">
+					<table class="table table-sm table-bordered mb-0">
+						<tbody>
 							<tr>
-								<th>Cost Index</th>
-								<td>{currentSettings.costIndex} %</td>
+								<th>In Method</th>
+								<td
+									>{currentSettings.input?.charAt(0).toUpperCase() +
+										currentSettings.input?.slice(1)} Order</td
+								>
 							</tr>
-						{/if}
-						<tr>
-							<th>System</th>
-							<td
-								>{currentSettings.system?.charAt(0).toUpperCase() +
-									currentSettings.system?.slice(1)}</td
-							>
-						</tr>
-						<tr>
-							<th>IndyTax</th>
-							<td>{currentSettings.tax} %</td>
-						</tr>
-						<tr>
-							<th>SCC Tax</th>
-							<td>{currentSettings.scc} %</td>
-						</tr>
-						<tr>
-							<th>Build Time</th>
-							<td>{currentSettings.duration} Minutes</td>
-						</tr>
-						<tr>
-							<th>Prismaticite</th>
-							<td>{currentSettings.prismaticite} %</td>
-						</tr></tbody
-					>
-				</table>
+							<tr>
+								<th>In Market</th>
+								<td>{currentSettings.inMarket}</td>
+							</tr>
+							<tr>
+								<th>Out Method</th>
+								<td
+									>{currentSettings.output?.charAt(0).toUpperCase() +
+										currentSettings.output?.slice(1)} Order</td
+								>
+							</tr>
+							<tr>
+								<th>Out Market</th>
+								<td>{currentSettings.outMarket}</td>
+							</tr>
+							<tr>
+								<th>Broker's Fee</th>
+								<td>{currentSettings.brokers}</td>
+							</tr>
+							<tr>
+								<th>Sales Tax</th>
+								<td>{currentSettings.sales}</td>
+							</tr>
+							<tr>
+								<th>Reactions</th>
+								<td>Level {currentSettings.skill}</td>
+							</tr>
+							<tr>
+								<th>Facility</th>
+								<td
+									>{currentSettings.facility?.charAt(0).toUpperCase() +
+										currentSettings.facility?.slice(1)} Refinery</td
+								>
+							</tr>
+							<tr>
+								<th>Rig</th>
+								<td>Tech {currentSettings.rigs} Rig</td>
+							</tr>
+							<tr>
+								<th>Space</th>
+								<td
+									>{currentSettings.space?.charAt(0).toUpperCase() +
+										currentSettings.space?.slice(1)}</td
+								>
+							</tr>
+							{#if space_helper === 'wormhole'}
+								<tr>
+									<th>Cost Index</th>
+									<td>{currentSettings.costIndex} %</td>
+								</tr>
+							{/if}
+							<tr>
+								<th>System</th>
+								<td
+									>{currentSettings.system?.charAt(0).toUpperCase() +
+										currentSettings.system?.slice(1)}</td
+								>
+							</tr>
+							<tr>
+								<th>IndyTax</th>
+								<td>{currentSettings.tax} %</td>
+							</tr>
+							<tr>
+								<th>SCC Tax</th>
+								<td>{currentSettings.scc} %</td>
+							</tr>
+							<tr>
+								<th>Build Time</th>
+								<td>{currentSettings.duration} Minutes</td>
+							</tr>
+							<tr>
+								<th>Prismaticite</th>
+								<td>{currentSettings.prismaticite} %</td>
+							</tr></tbody
+						>
+					</table>
+				</div>
 			{/if}
 		</div>
 	</div>

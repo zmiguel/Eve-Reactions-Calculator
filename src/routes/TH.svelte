@@ -3,16 +3,17 @@
 	 * @typedef {Object} Props
 	 * @property {any} handler
 	 * @property {any} [orderBy]
+	 * @property {string} [className]
 	 * @property {import('svelte').Snippet} [children]
 	 */
 
 	/** @type {Props} */
-	let { handler, orderBy = null, children } = $props();
+	let { handler, orderBy = null, className = '', children } = $props();
 
 	const sort = handler.createSort(orderBy);
 </script>
 
-<th onclick={() => sort.set()} class:active={sort.isActive}>
+<th onclick={() => sort.set()} class={className} class:active={sort.isActive}>
 	<div class="flex">
 		<strong>
 			{@render children?.()}
@@ -25,7 +26,6 @@
 	th {
 		background: inherit;
 		margin: 0;
-		padding: 8px 20px;
 		border-bottom: 1px solid #e0e0e0;
 		user-select: none;
 	}

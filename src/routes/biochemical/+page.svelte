@@ -45,7 +45,7 @@
 </svelte:head>
 
 <div class="container">
-	<div class="row">
+	<div class="row table-responsive">
 		<table class="table table-sm table-bordered text-center">
 			<thead>
 				<tr>
@@ -81,17 +81,21 @@
 	</div>
 
 	<div class="row mt-4">
-		<div class="card w-100 p-0">
+		<div class="card w-100 p-0 table-responsive">
 			<div class="card-header bg-info text-white fw-bold text-center w-100">
 				Synth Booster Reactions
 			</div>
-			<table width="100%" id="stab" class="table table-bordered text-center">
+			<table width="100%" id="stab" class="table table-sm table-bordered text-center small">
 				<thead>
 					<tr>
 						<TH handler={synthHandler} orderBy="name">Reaction</TH>
 						<TH handler={synthHandler} orderBy="input_total">Inputs</TH>
-						<TH handler={synthHandler} orderBy="taxes_total">Tax</TH>
-						<TH handler={synthHandler} orderBy="output_total">Output</TH>
+						<TH handler={synthHandler} orderBy="taxes_total" className="d-none d-sm-table-cell"
+							>Tax</TH
+						>
+						<TH handler={synthHandler} orderBy="output_total" className="d-none d-sm-table-cell"
+							>Output</TH
+						>
 						<TH handler={synthHandler} orderBy="profit">Profit</TH>
 						<TH handler={synthHandler} orderBy="profit_per">% prof.</TH>
 					</tr>
@@ -106,8 +110,8 @@
 							>
 								<td>{reaction.name}</td>
 								<td class="isk">{formatNumber(reaction.input_total)}</td>
-								<td class="isk">{formatNumber(reaction.taxes_total)}</td>
-								<td class="isk">{formatNumber(reaction.output_total)}</td>
+								<td class="isk d-none d-sm-table-cell">{formatNumber(reaction.taxes_total)}</td>
+								<td class="isk d-none d-sm-table-cell">{formatNumber(reaction.output_total)}</td>
 								<td class="isk">{formatNumber(reaction.profit)}</td>
 								<td>{formatNumber(reaction.profit_per)} %</td>
 							</tr>
@@ -119,17 +123,21 @@
 	</div>
 
 	<div class="row mt-4">
-		<div class="card w-100 p-0">
+		<div class="card w-100 p-0 table-responsive">
 			<div class="card-header bg-info text-white fw-bold text-center w-100">
 				Standard Booster Reactions
 			</div>
-			<table width="100%" id="stab" class="table table-bordered text-center">
+			<table width="100%" id="stab" class="table table-sm table-bordered text-center small">
 				<thead>
 					<tr>
 						<TH handler={standardHandler} orderBy="name">Reaction</TH>
 						<TH handler={standardHandler} orderBy="input_total">Inputs</TH>
-						<TH handler={standardHandler} orderBy="taxes_total">Tax</TH>
-						<TH handler={standardHandler} orderBy="output_total">Output</TH>
+						<TH handler={standardHandler} orderBy="taxes_total" className="d-none d-sm-table-cell"
+							>Tax</TH
+						>
+						<TH handler={standardHandler} orderBy="output_total" className="d-none d-sm-table-cell"
+							>Output</TH
+						>
 						<TH handler={standardHandler} orderBy="profit">Profit</TH>
 						<TH handler={standardHandler} orderBy="profit_per">% prof.</TH>
 					</tr>
@@ -144,8 +152,8 @@
 							>
 								<td>{reaction.name}</td>
 								<td class="isk">{formatNumber(reaction.input_total)}</td>
-								<td class="isk">{formatNumber(reaction.taxes_total)}</td>
-								<td class="isk">{formatNumber(reaction.output_total)}</td>
+								<td class="isk d-none d-sm-table-cell">{formatNumber(reaction.taxes_total)}</td>
+								<td class="isk d-none d-sm-table-cell">{formatNumber(reaction.output_total)}</td>
 								<td class="isk">{formatNumber(reaction.profit)}</td>
 								<td>{formatNumber(reaction.profit_per)} %</td>
 							</tr>
@@ -157,17 +165,21 @@
 	</div>
 
 	<div class="row mt-4">
-		<div class="card w-100 p-0">
+		<div class="card w-100 p-0 table-responsive">
 			<div class="card-header bg-info text-white fw-bold text-center w-100">
 				Improved Booster Reactions
 			</div>
-			<table width="100%" id="stab" class="table table-bordered text-center">
+			<table width="100%" id="stab" class="table table-sm table-bordered text-center small">
 				<thead>
 					<tr>
 						<TH handler={improvedHandler} orderBy="name">Reaction</TH>
 						<TH handler={improvedHandler} orderBy="input_total">Inputs</TH>
-						<TH handler={improvedHandler} orderBy="taxes_total">Tax</TH>
-						<TH handler={improvedHandler} orderBy="output_total">Output</TH>
+						<TH handler={improvedHandler} orderBy="taxes_total" className="d-none d-sm-table-cell"
+							>Tax</TH
+						>
+						<TH handler={improvedHandler} orderBy="output_total" className="d-none d-sm-table-cell"
+							>Output</TH
+						>
 						<TH handler={improvedHandler} orderBy="profit">Profit</TH>
 						<TH handler={improvedHandler} orderBy="profit_per">% prof.</TH>
 					</tr>
@@ -182,8 +194,8 @@
 							>
 								<td>{reaction.name}</td>
 								<td class="isk">{formatNumber(reaction.input_total)}</td>
-								<td class="isk">{formatNumber(reaction.taxes_total)}</td>
-								<td class="isk">{formatNumber(reaction.output_total)}</td>
+								<td class="isk d-none d-sm-table-cell">{formatNumber(reaction.taxes_total)}</td>
+								<td class="isk d-none d-sm-table-cell">{formatNumber(reaction.output_total)}</td>
 								<td class="isk">{formatNumber(reaction.profit)}</td>
 								<td>{formatNumber(reaction.profit_per)} %</td>
 							</tr>
@@ -195,17 +207,25 @@
 	</div>
 
 	<div class="row mt-4">
-		<div class="card w-100 p-0">
+		<div class="card w-100 p-0 table-responsive">
 			<div class="card-header bg-info text-white fw-bold text-center w-100">
 				Improved Booster Chain Reactions
 			</div>
-			<table width="100%" id="stab" class="table table-bordered text-center">
+			<table width="100%" id="stab" class="table table-sm table-bordered text-center small">
 				<thead>
 					<tr>
 						<TH handler={improvedChainHandler} orderBy="name">Reaction</TH>
 						<TH handler={improvedChainHandler} orderBy="input_total">Inputs</TH>
-						<TH handler={improvedChainHandler} orderBy="taxes_total">Tax</TH>
-						<TH handler={improvedChainHandler} orderBy="output_total">Output</TH>
+						<TH
+							handler={improvedChainHandler}
+							orderBy="taxes_total"
+							className="d-none d-sm-table-cell">Tax</TH
+						>
+						<TH
+							handler={improvedChainHandler}
+							orderBy="output_total"
+							className="d-none d-sm-table-cell">Output</TH
+						>
 						<TH handler={improvedChainHandler} orderBy="profit">Profit</TH>
 						<TH handler={improvedChainHandler} orderBy="profit_per">% prof.</TH>
 					</tr>
@@ -220,8 +240,8 @@
 							>
 								<td>{reaction.name}</td>
 								<td class="isk">{formatNumber(reaction.input_total)}</td>
-								<td class="isk">{formatNumber(reaction.taxes_total)}</td>
-								<td class="isk">{formatNumber(reaction.output_total)}</td>
+								<td class="isk d-none d-sm-table-cell">{formatNumber(reaction.taxes_total)}</td>
+								<td class="isk d-none d-sm-table-cell">{formatNumber(reaction.output_total)}</td>
 								<td class="isk">{formatNumber(reaction.profit)}</td>
 								<td>{formatNumber(reaction.profit_per)} %</td>
 							</tr>
@@ -233,17 +253,21 @@
 	</div>
 
 	<div class="row mt-4">
-		<div class="card w-100 p-0">
+		<div class="card w-100 p-0 table-responsive">
 			<div class="card-header bg-info text-white fw-bold text-center w-100">
 				Strong Booster Reactions
 			</div>
-			<table width="100%" id="stab" class="table table-bordered text-center">
+			<table width="100%" id="stab" class="table table-sm table-bordered text-center small">
 				<thead>
 					<tr>
 						<TH handler={strongHandler} orderBy="name">Reaction</TH>
 						<TH handler={strongHandler} orderBy="input_total">Inputs</TH>
-						<TH handler={strongHandler} orderBy="taxes_total">Tax</TH>
-						<TH handler={strongHandler} orderBy="output_total">Output</TH>
+						<TH handler={strongHandler} orderBy="taxes_total" className="d-none d-sm-table-cell"
+							>Tax</TH
+						>
+						<TH handler={strongHandler} orderBy="output_total" className="d-none d-sm-table-cell"
+							>Output</TH
+						>
 						<TH handler={strongHandler} orderBy="profit">Profit</TH>
 						<TH handler={strongHandler} orderBy="profit_per">% prof.</TH>
 					</tr>
@@ -258,8 +282,8 @@
 							>
 								<td>{reaction.name}</td>
 								<td class="isk">{formatNumber(reaction.input_total)}</td>
-								<td class="isk">{formatNumber(reaction.taxes_total)}</td>
-								<td class="isk">{formatNumber(reaction.output_total)}</td>
+								<td class="isk d-none d-sm-table-cell">{formatNumber(reaction.taxes_total)}</td>
+								<td class="isk d-none d-sm-table-cell">{formatNumber(reaction.output_total)}</td>
 								<td class="isk">{formatNumber(reaction.profit)}</td>
 								<td>{formatNumber(reaction.profit_per)} %</td>
 							</tr>
@@ -271,17 +295,25 @@
 	</div>
 
 	<div class="row mt-4">
-		<div class="card w-100 p-0">
+		<div class="card w-100 p-0 table-responsive">
 			<div class="card-header bg-info text-white fw-bold text-center w-100">
 				Strong Booster Chain Reactions
 			</div>
-			<table width="100%" id="stab" class="table table-bordered text-center">
+			<table width="100%" id="stab" class="table table-sm table-bordered text-center small">
 				<thead>
 					<tr>
 						<TH handler={strongChainHandler} orderBy="name">Reaction</TH>
 						<TH handler={strongChainHandler} orderBy="input_total">Inputs</TH>
-						<TH handler={strongChainHandler} orderBy="taxes_total">Tax</TH>
-						<TH handler={strongChainHandler} orderBy="output_total">Output</TH>
+						<TH
+							handler={strongChainHandler}
+							orderBy="taxes_total"
+							className="d-none d-sm-table-cell">Tax</TH
+						>
+						<TH
+							handler={strongChainHandler}
+							orderBy="output_total"
+							className="d-none d-sm-table-cell">Output</TH
+						>
 						<TH handler={strongChainHandler} orderBy="profit">Profit</TH>
 						<TH handler={strongChainHandler} orderBy="profit_per">% prof.</TH>
 					</tr>
@@ -296,8 +328,8 @@
 							>
 								<td>{reaction.name}</td>
 								<td class="isk">{formatNumber(reaction.input_total)}</td>
-								<td class="isk">{formatNumber(reaction.taxes_total)}</td>
-								<td class="isk">{formatNumber(reaction.output_total)}</td>
+								<td class="isk d-none d-sm-table-cell">{formatNumber(reaction.taxes_total)}</td>
+								<td class="isk d-none d-sm-table-cell">{formatNumber(reaction.output_total)}</td>
 								<td class="isk">{formatNumber(reaction.profit)}</td>
 								<td>{formatNumber(reaction.profit_per)} %</td>
 							</tr>
@@ -309,17 +341,21 @@
 	</div>
 
 	<div class="row mt-4">
-		<div class="card w-100 p-0">
+		<div class="card w-100 p-0 table-responsive">
 			<div class="card-header bg-info text-white fw-bold text-center w-100">
 				Molecular-Forging Reactions
 			</div>
-			<table width="100%" id="stab" class="table table-bordered text-center">
+			<table width="100%" id="stab" class="table table-sm table-bordered text-center small">
 				<thead>
 					<tr>
 						<TH handler={molecularHandler} orderBy="name">Reaction</TH>
 						<TH handler={molecularHandler} orderBy="input_total">Inputs</TH>
-						<TH handler={molecularHandler} orderBy="taxes_total">Tax</TH>
-						<TH handler={molecularHandler} orderBy="output_total">Output</TH>
+						<TH handler={molecularHandler} orderBy="taxes_total" className="d-none d-sm-table-cell"
+							>Tax</TH
+						>
+						<TH handler={molecularHandler} orderBy="output_total" className="d-none d-sm-table-cell"
+							>Output</TH
+						>
 						<TH handler={molecularHandler} orderBy="profit">Profit</TH>
 						<TH handler={molecularHandler} orderBy="profit_per">% prof.</TH>
 					</tr>
@@ -334,8 +370,8 @@
 							>
 								<td>{reaction.name}</td>
 								<td class="isk">{formatNumber(reaction.input_total)}</td>
-								<td class="isk">{formatNumber(reaction.taxes_total)}</td>
-								<td class="isk">{formatNumber(reaction.output_total)}</td>
+								<td class="isk d-none d-sm-table-cell">{formatNumber(reaction.taxes_total)}</td>
+								<td class="isk d-none d-sm-table-cell">{formatNumber(reaction.output_total)}</td>
 								<td class="isk">{formatNumber(reaction.profit)}</td>
 								<td>{formatNumber(reaction.profit_per)} %</td>
 							</tr>

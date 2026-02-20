@@ -18,90 +18,98 @@
 
 <div class="container">
 	<div class="row mt-2">
-		<h1 class="text-center w-100">{data.results?.name} Reaction</h1>
+		<h1 class="text-center w-100 fs-2 fs-md-1">{data.results?.name} Reaction</h1>
 	</div>
 
 	<div class="row mt-2">
-		<table class="table table-sm table-bordered text-center">
-			<thead>
-				<tr>
-					<th>In Method</th>
-					<th>Out Method</th>
-					<th>Market</th>
-					<th>Reactions</th>
-					<th>Facility</th>
-					<th>Rig</th>
-					<th>Space</th>
-					<th>System</th>
-					<th>IndyTax</th>
-					<th>SCC</th>
-					<th>Build Time</th>
-				</tr>
-			</thead>
-			<tbody class="table-group-divider">
-				<tr class="">
-					<td>{data.input} ({data.inMarket})</td>
-					<td>{data.output} ({data.outMarket})</td>
-					<td>B: {data.brokers} | S: {data.sales}</td>
-					<td>Level {data.skill}</td>
-					<td>{data.facility} Refinery</td>
-					<td>Tech {data.rigs} Rig</td>
-					<td>{data.space}</td>
-					<td>{data.system}</td>
-					<td>{data.tax}</td>
-					<td>{data.scc}</td>
-					<td>{data.duration} Minutes</td>
-				</tr>
-			</tbody>
-		</table>
+		<div class="table-responsive">
+			<table class="table table-sm table-bordered text-center small">
+				<thead>
+					<tr>
+						<th>In Method</th>
+						<th>Out Method</th>
+						<th>Market</th>
+						<th>Reactions</th>
+						<th>Facility</th>
+						<th>Rig</th>
+						<th>Space</th>
+						<th>System</th>
+						<th>IndyTax</th>
+						<th>SCC</th>
+						<th>Build Time</th>
+					</tr>
+				</thead>
+				<tbody class="table-group-divider">
+					<tr class="">
+						<td>{data.input} ({data.inMarket})</td>
+						<td>{data.output} ({data.outMarket})</td>
+						<td>B: {data.brokers} | S: {data.sales}</td>
+						<td>Level {data.skill}</td>
+						<td>{data.facility} Refinery</td>
+						<td>Tech {data.rigs} Rig</td>
+						<td>{data.space}</td>
+						<td>{data.system}</td>
+						<td>{data.tax}</td>
+						<td>{data.scc}</td>
+						<td>{data.duration} Minutes</td>
+					</tr>
+				</tbody>
+			</table>
+		</div>
 	</div>
 
 	<div class="row mt-4">
 		<form method="post" id="advsettings">
-			<table class="table table-sm table-bordered text-center">
-				<thead>
-					<tr>
-						<th># Runs per cycle</th>
-						<th>Cycle time</th>
-						<th>Total time</th>
-						<th># Cycles</th>
-						<th>Save</th>
-					</tr>
-				</thead>
-				<tbody>
-					<tr class="">
-						<td
-							><input
-								id="cycles"
-								form="advsettings"
-								name="cycles"
-								placeholder="50"
-								type="number"
-								min="1"
-								max="300"
-								value={data.cycles}
-								class="here"
-								aria-describedby="cyclesHelpBlock"
-								required
-							/>
-						</td>
-						<td>{data.results?.cycle_data.cycle_time} Minutes</td>
-						<td>{data.results?.cycle_data.total_time} Minutes</td>
-						<td>{data.results?.cycle_data.num_cycles}</td>
-						<td>
-							<button name="submit" form="advsettings" type="submit" class="btn btn-sm btn-primary"
-								>Save
-							</button>
-						</td>
-					</tr>
-				</tbody>
-			</table>
+			<div class="table-responsive">
+				<table class="table table-sm table-bordered text-center small">
+					<thead>
+						<tr>
+							<th># Runs per cycle</th>
+							<th>Cycle time</th>
+							<th>Total time</th>
+							<th># Cycles</th>
+							<th>Save</th>
+						</tr>
+					</thead>
+					<tbody>
+						<tr class="">
+							<td
+								><input
+									id="cycles"
+									form="advsettings"
+									name="cycles"
+									placeholder="50"
+									type="number"
+									min="1"
+									max="300"
+									value={data.cycles}
+									class="here"
+									aria-describedby="cyclesHelpBlock"
+									required
+								/>
+							</td>
+							<td>{data.results?.cycle_data.cycle_time} Minutes</td>
+							<td>{data.results?.cycle_data.total_time} Minutes</td>
+							<td>{data.results?.cycle_data.num_cycles}</td>
+							<td>
+								<button
+									name="submit"
+									form="advsettings"
+									type="submit"
+									class="btn btn-sm btn-primary"
+									>Save
+								</button>
+							</td>
+						</tr>
+					</tbody>
+				</table>
+			</div>
 		</form>
 	</div>
 
 	{#if data.type !== 'chain' && data.type !== 'refined'}
-		<div class="row mt-5">
-			<div class="col-6">
+		<div class="row mt-2">
+			<div class="col-12 col-lg-6">
 				<div class="card w-100">
 					<div class="card-header bg-danger text-white text-center w-100 fw-bold">INPUTS</div>
 					<table width="100%" class="table table-sm table-bordered text-center">
@@ -169,7 +177,7 @@
 					</table>
 				</div>
 			</div>
-			<div class="col-6">
+			<div class="col-12 col-lg-6 mt-4 mt-lg-0 mb-2 mb-lg-0">
 				<div class="card w-100">
 					<div class="card-header bg-success text-white text-center w-100 fw-bold">OUTPUTS</div>
 					<table width="100%" class="table table-sm table-bordered text-center">
@@ -230,8 +238,8 @@
 			</div>
 		</div>
 	{:else if data.type === 'chain'}
-		<div class="row mt-5">
-			<div class="col-4">
+		<div class="row mt-2">
+			<div class="col-12 col-lg-4">
 				<div class="card w-100">
 					<div class="card-header bg-danger text-white text-center w-100 fw-bold">TOTAL INPUTS</div>
 					<table width="100%" class="table table-sm table-bordered text-center">
@@ -300,7 +308,7 @@
 				</div>
 			</div>
 
-			<div class="col-4">
+			<div class="col-12 col-lg-4 mt-4 mt-lg-0">
 				<div class="card w-100">
 					<div class="card-header bg-warning text-white text-center w-100 fw-bold">
 						INTERMEDIATE INPUTS
@@ -369,7 +377,7 @@
 				</div>
 			</div>
 
-			<div class="col-4">
+			<div class="col-12 col-lg-4 mt-4 mt-lg-0 mb-2 mb-lg-0">
 				<div class="card w-100">
 					<div class="card-header bg-success text-white text-center w-100 fw-bold">OUTPUTS</div>
 					<table width="100%" class="table table-sm table-bordered text-center">
@@ -439,8 +447,8 @@
 			</div>
 		</div>
 	{:else if data.type === 'refined'}
-		<div class="row mt-5">
-			<div class="col-4">
+		<div class="row mt-2">
+			<div class="col-12 col-lg-4">
 				<div class="card w-100">
 					<div class="card-header bg-danger text-white text-center w-100 fw-bold">TOTAL INPUTS</div>
 					<table width="100%" class="table table-sm table-bordered text-center">
@@ -509,7 +517,7 @@
 				</div>
 			</div>
 
-			<div class="col-4">
+			<div class="col-12 col-lg-4 mt-4 mt-lg-0">
 				<div class="card w-100">
 					<div class="card-header bg-warning text-white text-center w-100 fw-bold">
 						INTERMEDIATE INPUTS
@@ -531,7 +539,7 @@
 				</div>
 			</div>
 
-			<div class="col-4">
+			<div class="col-12 col-lg-4 mt-4 mt-lg-0 mb-2 mb-lg-0">
 				<div class="card w-100">
 					<div class="card-header bg-success text-white text-center w-100 fw-bold">OUTPUTS</div>
 					<table width="100%" class="table table-sm table-bordered text-center">
