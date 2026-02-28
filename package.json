@@ -30,7 +30,7 @@
 		"prettier": "^3.8.1",
 		"prettier-plugin-svelte": "^3.5.0",
 		"sass": "^1.97.3",
-		"svelte": "^5.53.0",
+		"svelte": "^5.53.6",
 		"svelte-check": "^4.4.3",
 		"svelte-fa": "^4.0.4",
 		"swagger-ui-dist": "^5.31.2",
