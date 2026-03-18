@@ -979,7 +979,7 @@ export async function eraticRepro(
 	material,
 	amount,
 	advanced = false,
-	time = 360,
+	time = 6,
 	efficiency = 0.9063
 ) {
 	// Get blueprint data for this material
