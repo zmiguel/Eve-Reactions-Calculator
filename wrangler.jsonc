@@ -21,7 +21,9 @@
 		}
 	],
 	"vars": {
-		"NODE_VERSION": "24"
+		"NODE_VERSION": "24",
+        "RYBBIT_SITE_ID": "1",
+        "RYBBIT_TRACK_URL": "https://ry.zm.gl/api/track"
 	},
     "observability": {
         "enabled": true,

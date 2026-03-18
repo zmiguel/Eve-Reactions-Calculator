@@ -8,6 +8,19 @@
 
 <div class="container">
 	<div class="row mt-5">
+		<div class="col-12">
+			<div class="alert alert-success border-0 shadow-sm d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-3 px-4 py-3 mb-0" role="alert">
+				<div>
+					<h1 class="h4 mb-1">New Market History API</h1>
+					<p class="mb-0">Power your tools with historical EVE market data. 1:1 Mokaam replacement, Google Sheets & more!</p>
+				</div>
+				<a class="btn btn-primary" href="https://market.coalition.space" target="_blank" rel="noopener">
+					Visit Market.Coalition.Space!
+				</a>
+			</div>
+		</div>
+	</div>
+	<div class="row mt-5">
 		<div class="d-grid gap-2 col-lg-4 mx-auto">
 			<img
 				src="https://imageserver.eveonline.com/Type/45539_64.png"

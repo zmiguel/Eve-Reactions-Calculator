@@ -212,7 +212,7 @@ export const load = async ({ cookies, platform }) => {
 									parseInt(bp._id),
 									0,
 									false,
-									60
+									6
 								)
 							);
 						})
@@ -231,7 +231,7 @@ export const load = async ({ cookies, platform }) => {
 									parseInt(bp._id),
 									0,
 									false,
-									60,
+									6,
 									0.9063
 								)
 							);

@@ -165,7 +165,7 @@ export const load = async ({ cookies, platform, params }) => {
 				parseInt(params.id),
 				0,
 				true,
-				60
+				6
 			);
 			break;
 
@@ -189,7 +189,7 @@ export const load = async ({ cookies, platform, params }) => {
 				parseInt(params.id),
 				0,
 				true,
-				60,
+				6,
 				0.9063
 			);
 			break;
