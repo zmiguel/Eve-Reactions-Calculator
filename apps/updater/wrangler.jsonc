@@ -1,0 +1,72 @@
+{
+	"$schema": "../../node_modules/wrangler/config-schema.json",
+	// Production values to fill before deploying are marked FILL (runbook: docs/deploy.md).
+	// Gate: `CHECK_PROD_IDS=1 npx vitest run --project scripts` fails while any FILL is left.
+	"name": "reactions-updater",
+	"main": "src/index.ts",
+	"compatibility_date": "2026-10-06",
+	"compatibility_flags": ["nodejs_compat"],
+	// FILL (optional): only needed when your Cloudflare login can see more than one account.
+	// "account_id": "<Cloudflare account id>",
+	// Logs (with invocation logs), traces and real-time Issues in the Cloudflare dashboard.
+	"observability": {
+		"enabled": true,
+		"logs": { "enabled": true, "invocation_logs": true },
+		"traces": { "enabled": true },
+		"issues": { "enabled": true }
+	},
+	// No fetch handler: the worker is reached only through cron and the web app's service binding (from
+	// production and from the web Preview alike). It is deployed to production only and has no `previews`
+	// block: Cloudflare runs cron triggers and Workflows only in production.
+	"workers_dev": false,
+	"preview_urls": false,
+	"triggers": { "crons": ["*/10 * * * *"] },
+	// Needs the Workers Paid plan.
+	"limits": { "cpu_ms": 300000 },
+	"vars": {
+		// Production EVE SSO application (the same as apps/web); refreshes tokens it issued.
+		"EVE_SSO_CLIENT_ID": "0a2e8260fb044242a66d4de9fb9a733b",
+		// The preview's EVE SSO application: refreshes tokens granted on the preview (secret
+		// EVE_SSO_EXTRA_CLIENT_SECRET).
+		"EVE_SSO_EXTRA_CLIENT_ID": "3c4e31a220d64928adbc1c9b420049bf",
+		// User-Agent of outgoing requests (ESI, SSO, SDE, Fuzzwork, mirror): this tool's public URL or source.
+		"USER_AGENT_URL": "https://reactions.coalition.space",
+		// Contact for CCP and API operators.
+		"USER_AGENT_CONTACT": "mail:eve@zmiguel.me; eve:Oxed G; discord:oxedpixel"
+	},
+	// Secrets: never in this file. Set each once with `npx wrangler secret put <NAME>` (from apps/updater):
+	// - EVE_SSO_CLIENT_SECRET: the production SSO application's secret key.
+	// - EVE_SSO_EXTRA_CLIENT_SECRET: the preview SSO application's secret key.
+	// - TOKEN_ENCRYPTION_KEY: base64 of exactly 32 random bytes; the SAME value as the web app.
+	// Local development reads them from apps/updater/.dev.vars (see .dev.vars.example), never from here.
+	"d1_databases": [
+		{
+			"binding": "DB",
+			"database_name": "reactions-core",
+			// FILL: the same id as apps/web/wrangler.jsonc.
+			"database_id": "9b37ba96-b07f-43e8-9405-a7c9db91a0b0",
+			"migrations_dir": "../../packages/db/migrations/core"
+		},
+		{
+			"binding": "HISTORY_DB",
+			"database_name": "reactions-history",
+			// FILL: the same id as apps/web/wrangler.jsonc.
+			"database_id": "a33f0d8e-e1b8-4995-896b-a7464ab03401",
+			"migrations_dir": "../../packages/db/migrations/history"
+		}
+	],
+	// FILL: the same id as apps/web/wrangler.jsonc.
+	"kv_namespaces": [{ "binding": "CACHE", "id": "049b3f69762145c1b7847cf0d341fc7b" }],
+	// Created with `npx wrangler r2 bucket create reactions-archive`; referenced by name, no id.
+	"r2_buckets": [{ "binding": "ARCHIVE", "bucket_name": "reactions-archive" }],
+	"workflows": [
+		{ "name": "reactions-price-refresh", "binding": "PRICE_REFRESH", "class_name": "PriceRefreshWorkflow" },
+		{ "name": "reactions-daily", "binding": "DAILY", "class_name": "DailyWorkflow" },
+		{ "name": "reactions-sde-sync", "binding": "SDE_SYNC", "class_name": "SdeSyncWorkflow" },
+		{
+			"name": "reactions-history-backfill",
+			"binding": "HISTORY_BACKFILL",
+			"class_name": "HistoryBackfillWorkflow"
+		}
+	]
+}

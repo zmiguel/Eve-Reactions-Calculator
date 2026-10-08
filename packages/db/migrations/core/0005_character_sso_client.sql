@@ -1,0 +1,1 @@
+ALTER TABLE `characters` ADD `sso_client_id` text;

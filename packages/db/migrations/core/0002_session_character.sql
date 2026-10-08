@@ -1,0 +1,2 @@
+-- drizzle-kit omits the ON DELETE action for ALTER TABLE … ADD; added by hand to match the schema.
+ALTER TABLE `user_sessions` ADD `character_id` integer REFERENCES characters(character_id) ON DELETE SET NULL;

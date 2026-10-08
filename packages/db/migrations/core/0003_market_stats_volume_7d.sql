@@ -1,0 +1,1 @@
+ALTER TABLE `market_stats` ADD `avg_daily_volume_7d` real;
