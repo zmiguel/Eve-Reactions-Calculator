@@ -1,12 +1,85 @@
-# To get started with Dependabot version updates, you'll need to specify which
-# package ecosystems to update and where the package manifests are located.
-# Please see the documentation for all configuration options:
-# https://docs.github.com/code-security/dependabot/dependabot-version-updates/configuration-options-for-the-dependabot.yml-file
+# Dependabot version updates, opened against the `preview` branch (security updates always target the
+# default branch). Docs: https://docs.github.com/code-security/dependabot/working-with-dependabot/dependabot-options-reference
+#
+# npm workspaces: one entry at `/` covers every workspace (apps/web, apps/updater, packages/db, packages/engine,
+# packages/eve, packages/sde). Dependabot reads the root package.json and its single package-lock.json and
+# edits whichever workspace manifest declares the dependency; the `@reactions/*` workspace links are local.
+#
+# Major versions are ignored: the stack is pinned to its current majors (SvelteKit 2, Svelte 5, TypeScript 6,
+# vitest 4, wrangler 4, zod 4, Tailwind 4, Drizzle 0.x, ESLint 10); a major upgrade is a planned migration.
+# Minor and patch updates are grouped by the tools that must move together. A dependency joins the first group
+# whose pattern matches it.
 
 version: 2
 updates:
-  - package-ecosystem: 'npm' # See documentation for possible values
-    directory: '/' # Location of package manifests
+  - package-ecosystem: 'npm'
+    directory: '/'
+    target-branch: 'preview'
     schedule:
       interval: 'daily'
+    ignore:
+      - dependency-name: '*'
+        update-types: ['version-update:semver-major']
+    groups:
+      # Workers runtime and local dev, plus vitest: @cloudflare/vitest-plugin is built for specific vitest
+      # versions, so they move together.
+      cloudflare:
+        patterns:
+          - 'wrangler'
+          - '@cloudflare/*'
+          - 'vitest'
+          - '@vitest/*'
+        update-types: ['minor', 'patch']
+      # Site framework and UI: Svelte, SvelteKit, Vite, Tailwind, Flowbite and their Svelte-specific tooling.
+      svelte:
+        patterns:
+          - 'svelte'
+          - 'svelte-check'
+          - '@sveltejs/*'
+          - 'vite'
+          - 'tailwindcss'
+          - '@tailwindcss/*'
+          - 'flowbite'
+          - 'flowbite-svelte'
+          - 'flowbite-svelte-icons'
+          - '@flowbite-svelte-plugins/*'
+          - '@testing-library/svelte'
+          - 'eslint-plugin-svelte'
+          - 'prettier-plugin-svelte'
+        update-types: ['minor', 'patch']
+      # Browser and DOM testing: Playwright, Lighthouse CI and jsdom.
+      testing:
+        patterns:
+          - '@playwright/test'
+          - '@lhci/cli'
+          - 'jsdom'
+        update-types: ['minor', 'patch']
+      # Type checking, linting and formatting.
+      tooling:
+        patterns:
+          - 'typescript'
+          - 'typescript-eslint'
+          - 'eslint'
+          - 'eslint-config-prettier'
+          - '@eslint/*'
+          - 'prettier'
+          - 'globals'
+          - '@types/*'
+        update-types: ['minor', 'patch']
+      # Everything else: drizzle-orm, drizzle-kit, zod, jose, fflate, @scalar/api-reference, @resvg/resvg-js, …
+      runtime:
+        patterns:
+          - '*'
+        update-types: ['minor', 'patch']
+
+  # Actions used by .github/workflows (checkout, setup-node, upload-artifact): majors included, since new
+  # majors are how runtime deprecations (such as Node 20) are fixed.
+  - package-ecosystem: 'github-actions'
+    directory: '/'
     target-branch: 'preview'
+    schedule:
+      interval: 'weekly'
+    groups:
+      actions:
+        patterns:
+          - '*'
