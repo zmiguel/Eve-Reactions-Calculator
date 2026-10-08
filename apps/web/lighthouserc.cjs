@@ -17,7 +17,9 @@ module.exports = {
 						startServerReadyPattern: 'Ready on',
 						startServerReadyTimeout: 300000
 					}),
-			settings: { chromeFlags: '--headless=new' }
+			// GitHub's Ubuntu runners block the unprivileged user namespaces Chromium's sandbox needs ("No usable
+			// sandbox!"); Playwright launches the same browser without the sandbox by default, so CI does too.
+			settings: { chromeFlags: process.env.CI ? '--headless=new --no-sandbox' : '--headless=new' }
 		},
 		assert: {
 			assertions: {
