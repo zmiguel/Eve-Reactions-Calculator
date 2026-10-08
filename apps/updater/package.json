@@ -1,0 +1,22 @@
+{
+	"name": "@reactions/updater",
+	"version": "3.0.0",
+	"private": true,
+	"type": "module",
+	"scripts": {
+		"dev": "wrangler dev --test-scheduled --persist-to ../../.wrangler/state",
+		"dev:cron": "node ../../scripts/dev-cron.ts",
+		"check": "tsc --noEmit -p tsconfig.json",
+		"types": "wrangler types src/worker-configuration.d.ts",
+		"db:migrate:local": "wrangler d1 migrations apply DB --local --persist-to ../../.wrangler/state && wrangler d1 migrations apply HISTORY_DB --local --persist-to ../../.wrangler/state"
+	},
+	"dependencies": {
+		"@reactions/db": "*",
+		"@reactions/engine": "*",
+		"@reactions/eve": "*",
+		"@reactions/sde": "*"
+	},
+	"devDependencies": {
+		"fflate": "^0.8.3"
+	}
+}

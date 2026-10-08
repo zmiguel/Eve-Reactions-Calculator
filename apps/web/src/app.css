@@ -1,0 +1,43 @@
+/*
+ * Scalar's layered base/theme CSS (API reference on /api, loaded with it) ranks below the site's Tailwind
+ * layers, so e.g. its `body { background-color: var(--scalar-background-1) }` never overrides the page
+ * background (also after leaving /api, when the variable is unset).
+ */
+@layer scalar-base, scalar-config, scalar-theme;
+
+@import 'tailwindcss';
+@plugin 'flowbite/plugin';
+@source '../../../node_modules/flowbite-svelte/dist';
+@source '../../../node_modules/flowbite-svelte-icons/dist';
+@custom-variant dark (&:where(.dark, .dark *));
+
+@theme {
+	/* Accent (Tailwind sky, as on d-scan.space); flowbite-svelte components and the app's `primary-*` classes use it. */
+	--color-primary-50: var(--color-sky-50);
+	--color-primary-100: var(--color-sky-100);
+	--color-primary-200: var(--color-sky-200);
+	--color-primary-300: var(--color-sky-300);
+	--color-primary-400: var(--color-sky-400);
+	--color-primary-500: var(--color-sky-500);
+	--color-primary-600: var(--color-sky-600);
+	--color-primary-700: var(--color-sky-700);
+	--color-primary-800: var(--color-sky-800);
+	--color-primary-900: var(--color-sky-900);
+	--color-primary-950: var(--color-sky-950);
+}
+
+@layer base {
+	:root {
+		/* Native widgets (date picker, scrollbars) follow the theme. */
+		color-scheme: light;
+		/*
+		 * Accent token of `flowbite/plugin`'s form styles: unstyled checkboxes/radios take it as their colour
+		 * (checked fill = currentColor), and checked radio dots, focus rings, ranges and toggles use it directly.
+		 * Undefined, those fall back to the inherited text colour or transparent.
+		 */
+		--color-brand: var(--color-primary-600);
+	}
+	:root.dark {
+		color-scheme: dark;
+	}
+}

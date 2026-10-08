@@ -1,0 +1,20 @@
+{
+	"name": "@reactions/db",
+	"version": "0.0.0",
+	"private": true,
+	"type": "module",
+	"exports": {
+		".": "./src/index.ts"
+	},
+	"scripts": {
+		"check": "tsc --noEmit -p tsconfig.json",
+		"generate": "drizzle-kit generate --config drizzle.core.config.ts && drizzle-kit generate --config drizzle.history.config.ts"
+	},
+	"dependencies": {
+		"drizzle-orm": "^0.45.3",
+		"@reactions/engine": "*"
+	},
+	"devDependencies": {
+		"drizzle-kit": "^0.31.11"
+	}
+}

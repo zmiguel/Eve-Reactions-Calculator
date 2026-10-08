@@ -1,0 +1,134 @@
+{
+	"$schema": "../../node_modules/wrangler/config-schema.json",
+	// Production values to fill before deploying are marked FILL (runbook: docs/deploy.md).
+	// Gate: `CHECK_PROD_IDS=1 npx vitest run --project scripts` fails while any FILL is left.
+	//
+	// Two deployments of this Worker:
+	// - Production (`npx wrangler deploy`): top-level settings, https://reactions.coalition.space.
+	// - Preview (`npx wrangler preview --name preview`): the `previews` block below,
+	//   https://preview.reactions.coalition.space (Cloudflare Worker Previews: <name>.<custom domain>).
+	"name": "reactions-web",
+	"main": ".svelte-kit/cloudflare/_worker.js",
+	"compatibility_date": "2026-10-06",
+	"compatibility_flags": ["nodejs_compat"],
+	// FILL (optional): only needed when your Cloudflare login can see more than one account.
+	// "account_id": "<Cloudflare account id>",
+	"assets": { "binding": "ASSETS", "directory": ".svelte-kit/cloudflare" },
+	// Logs (with invocation logs), traces and real-time Issues in the Cloudflare dashboard; previews use the same.
+	"observability": {
+		"enabled": true,
+		"logs": { "enabled": true, "invocation_logs": true },
+		"traces": { "enabled": true },
+		"issues": { "enabled": true }
+	},
+	// Production on the custom domain; Previews on <preview name>.reactions.coalition.space
+	// (`npx wrangler preview --name preview` → https://preview.reactions.coalition.space). No workers.dev URL for
+	// either: the preview's SSO callback is on the custom domain, so it has a single address.
+	"workers_dev": false,
+	"preview_urls": false,
+	"routes": [{ "pattern": "reactions.coalition.space", "custom_domain": true, "previews_enabled": true }],
+	"vars": {
+		// Production EVE SSO application (logins here; callback below). The same value as apps/updater.
+		"EVE_SSO_CLIENT_ID": "0a2e8260fb044242a66d4de9fb9a733b",
+		// The preview's SSO application: its structure-market tokens are refreshed with it (secret
+		// EVE_SSO_EXTRA_CLIENT_SECRET). Each character remembers which application issued its token.
+		"EVE_SSO_EXTRA_CLIENT_ID": "3c4e31a220d64928adbc1c9b420049bf",
+		// Must equal the SSO application's callback URL.
+		"EVE_SSO_CALLBACK_URL": "https://reactions.coalition.space/auth/callback",
+		// Comma-separated character ids allowed on /admin, e.g. "12345678,87654321".
+		"ADMIN_CHARACTER_IDS": "95339706",
+		// User-Agent of outgoing requests (ESI, SSO): this tool's public URL or source repository.
+		"USER_AGENT_URL": "https://reactions.coalition.space",
+		// Contact for CCP and API operators, e.g. "mail:you@example.com; eve:Character Name; discord:name".
+		"USER_AGENT_CONTACT": "mail:eve@zmiguel.me; eve:Oxed G; discord:oxedpixel",
+		// "production" or "preview" (a preview answers with X-Robots-Tag: noindex).
+		"DEPLOY_ENV": "production"
+	},
+	// Secrets: never in this file. Set each once with `npx wrangler secret put <NAME>` (from apps/web), and for
+	// previews with `npx wrangler preview base-config secret put <NAME>`:
+	// - EVE_SSO_CLIENT_SECRET: the secret of this deployment's EVE_SSO_CLIENT_ID application
+	//   (production: the production app; preview: the preview app).
+	// - EVE_SSO_EXTRA_CLIENT_SECRET: the secret of the EVE_SSO_EXTRA_CLIENT_ID application.
+	// - SESSION_SECRET: base64 of at least 32 random bytes (login state cookie HMAC key).
+	// - TOKEN_ENCRYPTION_KEY: base64 of exactly 32 random bytes; the SAME value as the updater.
+	// Generate: node -e "console.log(require('node:crypto').randomBytes(32).toString('base64'))"
+	// Local development reads them from apps/web/.dev.vars (see .dev.vars.example), never from here.
+	"d1_databases": [
+		{
+			"binding": "DB",
+			"database_name": "reactions-core",
+			// FILL: id from `npx wrangler d1 create reactions-core` (the same id in apps/updater and previews).
+			"database_id": "9b37ba96-b07f-43e8-9405-a7c9db91a0b0",
+			"migrations_dir": "../../packages/db/migrations/core"
+		},
+		{
+			"binding": "HISTORY_DB",
+			"database_name": "reactions-history",
+			// FILL: id from `npx wrangler d1 create reactions-history` (the same id in apps/updater and previews).
+			"database_id": "a33f0d8e-e1b8-4995-896b-a7464ab03401",
+			"migrations_dir": "../../packages/db/migrations/history"
+		}
+	],
+	// FILL: id from `npx wrangler kv namespace create reactions-cache` (the same id in apps/updater and previews).
+	"kv_namespaces": [{ "binding": "CACHE", "id": "049b3f69762145c1b7847cf0d341fc7b" }],
+	"services": [{ "binding": "UPDATER", "service": "reactions-updater", "entrypoint": "UpdaterRpc" }],
+	"ratelimits": [
+		{
+			"name": "API_RATE_LIMITER",
+			"namespace_id": "3001",
+			"simple": { "limit": 120, "period": 60 }
+		},
+		{
+			"name": "ACCOUNT_RATE_LIMITER",
+			"namespace_id": "3002",
+			"simple": { "limit": 10, "period": 60 }
+		}
+	],
+	// Previews Base: settings of every Preview (`npx wrangler preview`). Previews read the SAME live data as
+	// production (same D1 and KV): only the production updater writes them (cron and Workflows run only in
+	// production, and a Preview's service binding calls the production updater). Never point these at seeded
+	// or test data.
+	"previews": {
+		"vars": {
+			// Preview EVE SSO application (logins here; callback below); its tokens are refreshed with it.
+			"EVE_SSO_CLIENT_ID": "3c4e31a220d64928adbc1c9b420049bf",
+			// The production application, for tokens issued there (secret EVE_SSO_EXTRA_CLIENT_SECRET).
+			"EVE_SSO_EXTRA_CLIENT_ID": "0a2e8260fb044242a66d4de9fb9a733b",
+			"EVE_SSO_CALLBACK_URL": "https://preview.reactions.coalition.space/auth/callback",
+			"ADMIN_CHARACTER_IDS": "95339706",
+			"USER_AGENT_URL": "https://preview.reactions.coalition.space/",
+			"USER_AGENT_CONTACT": "mail:eve@zmiguel.me; eve:Oxed G; discord:oxedpixel",
+			"DEPLOY_ENV": "preview"
+		},
+		"d1_databases": [
+			{
+				"binding": "DB",
+				"database_name": "reactions-core",
+				// FILL: the same id as the top-level DB.
+				"database_id": "9b37ba96-b07f-43e8-9405-a7c9db91a0b0"
+			},
+			{
+				"binding": "HISTORY_DB",
+				"database_name": "reactions-history",
+				// FILL: the same id as the top-level HISTORY_DB.
+				"database_id": "a33f0d8e-e1b8-4995-896b-a7464ab03401"
+			}
+		],
+		// FILL: the same id as the top-level CACHE.
+		"kv_namespaces": [{ "binding": "CACHE", "id": "049b3f69762145c1b7847cf0d341fc7b" }],
+		"services": [{ "binding": "UPDATER", "service": "reactions-updater", "entrypoint": "UpdaterRpc" }],
+		// Own rate-limit counters, so preview traffic never uses up production's.
+		"ratelimits": [
+			{
+				"name": "API_RATE_LIMITER",
+				"namespace_id": "3101",
+				"simple": { "limit": 120, "period": 60 }
+			},
+			{
+				"name": "ACCOUNT_RATE_LIMITER",
+				"namespace_id": "3102",
+				"simple": { "limit": 10, "period": 60 }
+			}
+		]
+	}
+}

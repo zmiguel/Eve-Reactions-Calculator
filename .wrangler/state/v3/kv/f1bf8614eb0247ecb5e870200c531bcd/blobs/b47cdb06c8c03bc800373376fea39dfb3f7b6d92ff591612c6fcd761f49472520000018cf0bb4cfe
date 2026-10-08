@@ -1,1 +1,0 @@
-UPDATE items SET adjusted_price = ?1 WHERE id = ?2

@@ -1,0 +1,18 @@
+# Copy to .dev.vars (gitignored) for `wrangler dev`. Never commit real values.
+# Client id and secret of the EVE SSO application (the same app as apps/web/.dev.vars); needed to
+# refresh structure-market tokens. EVE_SSO_CLIENT_ID here overrides the empty wrangler.jsonc var.
+EVE_SSO_CLIENT_ID=
+EVE_SSO_CLIENT_SECRET=
+# Optional: client id and secret of a second SSO app (e.g. the preview web deployment's) whose stored
+# refresh tokens (characters.sso_client_id) the updater must also refresh. Local dev uses one app.
+EVE_SSO_EXTRA_CLIENT_ID=
+EVE_SSO_EXTRA_CLIENT_SECRET=
+# base64-encoded 32-byte AES-GCM key used to encrypt stored refresh tokens; must match the web app.
+# The value below is the fixed dev key `npm run seed:local` uses (local dev only); production keys:
+# node -e "console.log(crypto.getRandomValues(Buffer.alloc(32)).toString('base64'))"
+TOKEN_ENCRYPTION_KEY=cmVhY3Rpb25zLWRldi10b2tlbi1rZXktMzItYnl0ZXM=
+# Optional: outgoing User-Agent "EVE-Reactions-Calculator/<version> (+<URL>; <CONTACT>)"; empty parts are left out.
+# USER_AGENT_URL: public URL or source repository, e.g. https://reactions.coalition.space/
+# USER_AGENT_CONTACT: your contact, e.g. mail:you@example.com; eve:Character Name; discord:name
+USER_AGENT_URL=
+USER_AGENT_CONTACT=

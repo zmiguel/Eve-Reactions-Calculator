@@ -1,0 +1,48 @@
+{
+  "version": "7",
+  "dialect": "sqlite",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "6",
+      "when": 1791282914206,
+      "tag": "0000_secret_outlaw_kid",
+      "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "6",
+      "when": 1791282915685,
+      "tag": "0001_seed_market_hubs",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1791375439533,
+      "tag": "0002_session_character",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "6",
+      "when": 1791395576849,
+      "tag": "0003_market_stats_volume_7d",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "6",
+      "when": 1791406116014,
+      "tag": "0004_job_run_progress",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "6",
+      "when": 1791465372192,
+      "tag": "0005_character_sso_client",
+      "breakpoints": true
+    }
+  ]
+}

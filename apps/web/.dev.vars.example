@@ -1,0 +1,25 @@
+# Copy to `.dev.vars` (gitignored) for local development.
+# EVE SSO app from https://developers.eveonline.com/ ("Authentication & API Access", every scope listed
+# in `ALL_ESI_SCOPES` of packages/eve/src/scopes.ts). Its callback URL must equal EVE_SSO_CALLBACK_URL,
+# including the port of the dev server. Leave both empty to use /auth/dev-login only.
+EVE_SSO_CLIENT_ID=
+EVE_SSO_CLIENT_SECRET=
+EVE_SSO_CALLBACK_URL=http://localhost:5173/auth/callback
+# Optional: client id and secret of a second SSO app whose stored refresh tokens (characters.sso_client_id)
+# this worker must also refresh, e.g. production and preview sharing one database. Local dev uses one app.
+EVE_SSO_EXTRA_CLIENT_ID=
+EVE_SSO_EXTRA_CLIENT_SECRET=
+# base64, 32 bytes: node -e "console.log(crypto.randomBytes(32).toString('base64'))"
+SESSION_SECRET=
+# Same value in apps/updater/.dev.vars (both workers read and rotate the stored refresh tokens). The
+# value below is the fixed dev key `npm run seed:local` encrypts the seed pilots' dummy token with.
+TOKEN_ENCRYPTION_KEY=cmVhY3Rpb25zLWRldi10b2tlbi1rZXktMzItYnl0ZXM=
+# Comma-separated character ids that may open /admin (90000001 = "Seed Pilot" of `npm run seed:local`).
+ADMIN_CHARACTER_IDS=90000001
+# Enables /auth/dev-login (local + e2e only, never in production).
+DEV_LOGIN=1
+# Optional: outgoing User-Agent "EVE-Reactions-Calculator/<version> (+<URL>; <CONTACT>)"; empty parts are left out.
+# USER_AGENT_URL: public URL or source repository, e.g. https://reactions.coalition.space/
+# USER_AGENT_CONTACT: your contact, e.g. mail:you@example.com; eve:Character Name; discord:name
+USER_AGENT_URL=
+USER_AGENT_CONTACT=
