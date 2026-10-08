@@ -64,4 +64,3 @@ Optional, in two more terminals: `npm run dev -w apps/updater` and `npm run dev:
 - [Development](docs/development.md): local setup, `.dev.vars`, seeding, running both workers, tests.
 - [Deployment](docs/deploy.md): Cloudflare runbook from zero to the Worker Preview (live data only), then the production cutover, rollback, routine operations.
 - [Operations](docs/operations.md): admin pages, jobs and schedule, troubleshooting, data retention.
-- [Changelog](CHANGELOG.md): what changed from v2 to v3.
