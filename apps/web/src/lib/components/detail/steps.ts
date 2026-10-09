@@ -65,9 +65,9 @@ export function replacedReactions(root: ChainNode): string[] {
 /**
  * Groups a job tree into its build steps (`ChainNode.step`: one after its sub-jobs and, in a single-line
  * chain, after the unrefined jobs whose byproducts it uses), so every step only consumes what earlier
- * steps produced; the final product is the last step. `inputs` (the result's aggregated purchases) gives
- * each step's purchases their availability and their share of each market when a type is split (see
- * {@link spreadSources}).
+ * steps produced; the final product is the last step. `inputs` (the result's aggregated purchases, fuel
+ * blocks first) orders each step's purchases and gives them their availability and their share of each
+ * market when a type is split (see {@link spreadSources}).
  */
 export function productionSteps(root: ChainNode, inputs: LineItem[] = []): ProductionStep[] {
 	const jobs: ProductionJob[] = [];
@@ -138,6 +138,9 @@ export function productionSteps(root: ChainNode, inputs: LineItem[] = []): Produ
 		});
 	}
 	spreadSources(steps, inputs);
+	const order = new Map(inputs.map((i, index) => [i.typeId, index]));
+	for (const step of steps)
+		step.purchases.sort((a, b) => (order.get(a.typeId) ?? Infinity) - (order.get(b.typeId) ?? Infinity));
 	return steps;
 }
 

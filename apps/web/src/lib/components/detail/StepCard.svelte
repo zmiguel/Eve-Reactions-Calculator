@@ -1,6 +1,14 @@
 <script lang="ts">
 	import type { ChainReprocess, ReprocessedOutput } from '@reactions/engine';
-	import { formatDuration, formatIsk, formatIskFull, formatNumber, formatPct } from '$lib/format';
+	import {
+		formatDuration,
+		formatIsk,
+		formatIskFull,
+		formatNumber,
+		formatPct,
+		formatRunsPerSlot,
+		runsPerSlotTitle
+	} from '$lib/format';
 	import { typeIconUrl } from '$lib/site';
 	import LineItemsTable from './LineItemsTable.svelte';
 	import type { ProductionStep } from './steps';
@@ -118,21 +126,16 @@
 						{#if slotted}
 							<td class={td} data-field="slots">{formatNumber(slotRuns.length)}</td>
 						{/if}
-						<td
-							class={td}
-							title={slotted ? `${formatNumber(node.runs)} runs in total` : undefined}
-							data-field="runs"
-							>{slotted
-								? [...new Set(slotRuns)].map((n) => formatNumber(n)).join(' / ')
-								: formatNumber(node.runs)}</td
+						<td class={td} title={slotted ? runsPerSlotTitle(slotRuns) : undefined} data-field="runs"
+							>{slotted ? formatRunsPerSlot(slotRuns) : formatNumber(node.runs)}</td
 						>
 						<td class={td} title="{formatNumber(node.runTimeSeconds, 1)} s per run" data-field="runTime"
 							>{formatDuration(node.runTimeSeconds)}</td
 						>
 						<td
 							class={td}
-							title="{formatNumber(slotRuns[0])} runs × {formatDuration(node.runTimeSeconds)}"
-							data-field="duration">{formatDuration(slotRuns[0] * node.runTimeSeconds)}</td
+							title="{formatNumber(Math.max(...slotRuns))} runs × {formatDuration(node.runTimeSeconds)}"
+							data-field="duration">{formatDuration(Math.max(...slotRuns) * node.runTimeSeconds)}</td
 						>
 						<td class={td} data-field="produced">{formatNumber(node.quantityProduced)}</td>
 						<td class={td} data-field="used">{formatNumber(node.quantityUsed)}</td>

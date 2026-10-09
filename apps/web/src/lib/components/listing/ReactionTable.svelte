@@ -1,7 +1,7 @@
 <script lang="ts">
 	import type { Reactor } from '@reactions/engine';
 	import { Badge, Tooltip } from 'flowbite-svelte';
-	import { formatIsk, formatIskFull, formatNumber, formatPct } from '$lib/format';
+	import { formatIsk, formatIskFull, formatNumber, formatPct, formatSlotRuns } from '$lib/format';
 	import { typeIconUrl } from '$lib/site';
 	import { DEFAULT_TABS, reactionHref, tabsFor, type DefaultTabs } from './links';
 	import type { RowSummary, Variant, VariantSummary } from './types';
@@ -218,7 +218,7 @@
 							class={numCell}
 							title={v.slots
 								? `${v.slots.lines} ${v.slots.lines === 1 ? 'line' : 'lines'}: ${v.slots.reactions
-										.map((r) => `${r.name} ${r.slots} × ${formatNumber(r.runsPerSlot)} runs`)
+										.map((r) => `${r.name} ${formatSlotRuns(r.runsPerSlot)} runs`)
 										.join(', ')}`
 								: 'One reaction in one slot'}
 							data-field="slots">{v.slots ? v.slots.levels.join('+') : '1'}</td

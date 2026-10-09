@@ -537,6 +537,10 @@ const PlanStartup = z
 			description:
 				"buy: the start-up cycles buy what later cycles get from the previous cycle's reprocessing; step0: a one-time step 0 runs unrefined jobs whose byproducts other first-cycle jobs use. The cheaper one is used (ties: buy)."
 		}),
+		reused: z.array(PlanItem).meta({
+			description:
+				"Materials a steady cycle gets from the previous cycle's reprocessing byproducts instead of buying them; the start-up cycles buy them until the unrefined jobs making them have run once."
+		}),
 		buy: StartupOption,
 		step0: StartupOption.extend({
 			blueprintTypeIds: z.array(z.number().int()),
@@ -632,6 +636,22 @@ export const PlanResultResponse = z
 				firstCycle: z.number().int(),
 				runTimeSeconds: z.number(),
 				jobCost: z.number(),
+				product: PlanItem.meta({
+					description: 'What one cycle of its jobs makes (an unrefined job: its product before reprocessing).'
+				}),
+				materials: z
+					.array(
+						PlanItem.extend({
+							producer: z.number().int().nullable().meta({
+								description:
+									'Blueprint of the plan reaction building it (an unrefined job: by reprocessing); null = bought.'
+							})
+						})
+					)
+					.meta({
+						description:
+							"What one cycle of its jobs consumes. Bought materials are partly covered by the previous cycle's reprocessing byproducts (reprocess.byproducts[].used)."
+					}),
 				reprocess: z
 					.object({
 						replaces: z.array(PlanItem.extend({ regularName: z.string() })),

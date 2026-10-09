@@ -42,16 +42,25 @@ describe('SlotAllocation', () => {
 		);
 	});
 
-	it('shows n/a for an unpriced initial investment and uneven runs per slot', () => {
+	it('shows n/a for an unpriced initial investment, and how many slots run each count when runs differ', () => {
+		const runsPerSlot = [64, 63, 63];
 		const allocation = {
 			...TIC_ALLOCATION,
 			initialInvestment: null,
 			reactions: [
-				{ ...TIC_ALLOCATION.reactions[0], runsPerSlot: [64, 63], slotDurations: [64 * 4924.8, 63 * 4924.8] }
+				{
+					...TIC_ALLOCATION.reactions[0],
+					slots: 3,
+					runsPerSlot,
+					slotDurations: runsPerSlot.map((n) => n * 4924.8)
+				}
 			]
 		};
 		const { container } = render(SlotAllocation, { allocation });
 		expect(text(container.querySelector('[data-allocation-investment]'))).toBe('Initial investment n/a');
-		expect(text(container.querySelector('[data-field="runs"]'))).toBe('64 / 63');
+		// The most common count first: mostly 63 runs, one slot of 64.
+		const runs = container.querySelector('[data-field="runs"]')!;
+		expect(text(runs)).toBe('2 × 63 + 1 × 64');
+		expect(runs.getAttribute('title')).toBe('2 slots of 63 runs and 1 slot of 64 runs, 190 runs in total');
 	});
 });

@@ -1,4 +1,5 @@
 import type { ChainAllocation } from './allocation.ts';
+import { fuelFirst } from './constants.ts';
 import {
 	SECONDS_PER_DAY,
 	ZERO_JOB_COST,
@@ -145,7 +146,7 @@ export interface ChainNode {
 	 * whose reprocessing byproducts it uses; the top job's step is the result's `chainDepth`.
 	 */
 	step: number;
-	/** Materials in blueprint order, quantities after ME. */
+	/** Materials in blueprint order with fuel blocks first, quantities after ME. */
 	materials: StepMaterial[];
 	/** `runs × runTimeSeconds` of this job only. */
 	slotSeconds: number;
@@ -525,7 +526,7 @@ export function calculateReaction(reaction: Reaction, ctx: CalcContext, opts: Ca
 		const materials: StepMaterial[] = [];
 		const ownSlotSeconds = rRuns * rt;
 		let slotSeconds = ownSlotSeconds;
-		for (const m of r.materials) {
+		for (const m of fuelFirst(r.materials, dataset)) {
 			const need = jobs.reduce((acc, jobRuns) => acc + requiredQuantity(jobRuns, m.quantity, mm), 0);
 			const type = dataset.types[m.typeId];
 			const name = type?.name ?? String(m.typeId);
@@ -692,7 +693,7 @@ export function calculateReaction(reaction: Reaction, ctx: CalcContext, opts: Ca
 	};
 	sumJobs(root.node);
 
-	const inputList = sourcing.annotate(inputs.list());
+	const inputList = fuelFirst(sourcing.annotate(inputs.list()), dataset);
 	const outputList = outputs.list();
 	const sum = (items: LineItem[], key: 'total' | 'fees' | 'shipping') =>
 		items.reduce((acc, i) => acc + i[key], 0);

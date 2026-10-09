@@ -59,11 +59,7 @@ export function summarizeSlots(a: ChainAllocation): SlotsSummary {
 		lines: a.lines,
 		total: a.slotsUsed,
 		levels,
-		reactions: a.reactions.map((r) => ({
-			name: r.name,
-			slots: r.slots,
-			runsPerSlot: Math.max(...r.runsPerSlot)
-		}))
+		reactions: a.reactions.map((r) => ({ name: r.name, runsPerSlot: r.runsPerSlot }))
 	};
 }
 

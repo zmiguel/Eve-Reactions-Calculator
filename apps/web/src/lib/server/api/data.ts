@@ -1,5 +1,5 @@
 import type { MarketSnapshot } from '@reactions/db';
-import { chainable, reprocessable, type Dataset, type Reaction } from '@reactions/engine';
+import { chainable, fuelFirst, reprocessable, type Dataset, type Reaction } from '@reactions/engine';
 import { getDataset, getMarket } from '../data.ts';
 import { getAccessibleHubs, type HubInfo } from '../hubs.ts';
 import { ApiError } from './http.ts';
@@ -67,6 +67,6 @@ export function recipeResponse(reaction: Reaction, dataset: Dataset) {
 		chainable: chainable(reaction, dataset),
 		reprocessable: reprocessable(reaction, dataset),
 		product: material(reaction.product),
-		materials: reaction.materials.map(material)
+		materials: fuelFirst(reaction.materials, dataset).map(material)
 	};
 }

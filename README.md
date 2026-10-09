@@ -8,7 +8,7 @@ Live profitability of every EVE Online reaction at [reactions.coalition.space](h
 - Reaction detail: buy-inputs or full-chain production (an intermediate is made with its Unrefined reaction and reprocessing when that pays better), reprocessed output, material flow, production steps, optimal slot allocation across parallel lines, price timing (inputs bought N days ago) and history charts.
 - Home page with the best final products per reactor over the last 7 days (profitable days, market size in slots) and input price moves.
 - Settings for structure, rigs, system, taxes, skill, market hubs, buy/sell methods and shipping, shared or per reactor; stored as a small cookie, synced to the account when logged in, shareable as a link.
-- Planner: slot targets, auto-fill, stock and owned formulas, shopping lists with market availability, multibuy copy and share links.
+- Planner: slot targets, auto-fill, stock and owned formulas, a material flow of one steady cycle (with reprocessing byproducts drawn back to the material they replace), shopping lists with market availability, multibuy copy and share links.
 - EVE SSO accounts with several characters; structure markets as private hubs, optionally shared after admin review.
 - Public API v2 with JSON and CSV (Google Sheets `IMPORTDATA`), OpenAPI document and interactive reference at `/api`.
 - Price history kept indefinitely: refresh snapshots for 90 days, daily aggregates and ESI regional history forever, raw archives in R2.

@@ -1,4 +1,4 @@
-import type { PlanItem, PlanPhase, PlanReaction, PlanStartup } from '@reactions/engine';
+import type { PlanItem, PlanPhase, PlanStartup } from '@reactions/engine';
 import { formatIsk, formatNumber } from '$lib/format';
 
 const list = (items: PlanItem[]) => items.map((i) => `${formatNumber(i.quantity)} ${i.name}`).join(', ');
@@ -10,75 +10,57 @@ export function phaseTitle(phase: Pick<PlanPhase, 'cycle' | 'label'>): string {
 	return `Cycle ${phase.cycle}, start-up`;
 }
 
+/** How a plan starts, as a short heading and one sentence per point. */
+export interface StartupNote {
+	/** The decision ("No step 0", "Step 0, once before cycle 1"); null when there was none to make. */
+	title: string | null;
+	points: string[];
+}
+
 /**
- * One line on how the plan starts when a step 0 was an option: which start-up is used, both initial
- * investments and what step 0 changes; `null` when no step 0 applies (every start-up buys in full).
- * Without a price for every start-up purchase the investments are not compared (the plan buys first).
+ * How the plan starts, in short points: the decision first (step 0 or not), what step 0 does or why it was
+ * not used, and which reprocessing byproducts later cycles reuse instead of buying. `null` when nothing is
+ * reprocessed for reuse and no step 0 was possible.
  */
-export function startupSummary(startup: PlanStartup, names: ReadonlyMap<number, string>): string | null {
+export function startupSummary(startup: PlanStartup, names: ReadonlyMap<number, string>): StartupNote | null {
 	const s0 = startup.step0;
-	if (!s0) return null;
-	const jobs = s0.blueprintTypeIds.map((id) => names.get(id) ?? `Reaction ${id}`).join(', ');
-	if (startup.buy.initialInvestment === null || s0.initialInvestment === null)
-		return `Cycle 1 buys ${list(s0.saves)}. A step 0 running ${jobs} once could make it instead; some start-up purchases have no price, so the two are not compared.`;
+	if (!s0 && startup.reused.length === 0) return null;
+	const reuse =
+		startup.reused.length === 0
+			? []
+			: [
+					`From the cycle after their first run, their reprocessing byproducts replace purchases: ${list(startup.reused)} per cycle. Until then, the start-up buys these.`
+				];
+	if (!s0)
+		return {
+			title: null,
+			points: ['Every unrefined reaction runs each cycle, like the other reactions.', ...reuse]
+		};
+	const jobNames = s0.blueprintTypeIds.map((id) => names.get(id) ?? `Reaction ${id}`);
+	const jobs = jobNames.join(' and ');
 	const buy = formatIsk(startup.buy.initialInvestment);
 	const step0 = formatIsk(s0.initialInvestment);
-	if (startup.mode === 'buy')
-		return `Cycle 1 buys ${list(s0.saves)}: initial investment ${buy}. A step 0 running ${jobs} once to make it would need ${step0} and one more cycle.`;
-	const stock = s0.stock.length > 0 ? ` Step 0 also leaves ${list(s0.stock)} in stock.` : '';
-	return `Step 0 runs ${jobs} once so cycle 1 uses its reprocessed ${list(s0.saves)} instead of buying it: initial investment ${step0} instead of ${buy}, one cycle longer.${stock}`;
-}
-
-/** One reprocessed byproduct of an unrefined job, as displayed. */
-export interface UnrefinedByproductView {
-	name: string;
-	/** Units per cycle. */
-	quantity: number;
-	/** Units replacing purchases of the jobs in `usedBy`. */
-	used: number;
-	/** Jobs buying less of it; `fromCycle` is shown once for the group when every job shares it. */
-	usedBy: { name: string; fromCycle: number }[];
-	sharedFromCycle: number | null;
-	sold: number;
-}
-
-/** What one unrefined job of a plan does, for the planner's "Unrefined routes" note. */
-export interface UnrefinedRouteView {
-	name: string;
-	/** Regular reactions it replaces. */
-	replaces: string[];
-	/** Runs once in the chosen step 0. */
-	step0: boolean;
-	byproducts: UnrefinedByproductView[];
-}
-
-/**
- * What one unrefined job of a plan does: the reactions it replaces and, per reprocessed byproduct, the
- * jobs that buy less of it from which cycle, and what is sold.
- */
-export function unrefinedRoute(
-	r: PlanReaction,
-	names: ReadonlyMap<number, string>,
-	startup: PlanStartup
-): UnrefinedRouteView {
+	if (startup.mode === 'step0')
+		return {
+			title: 'Step 0, once before cycle 1',
+			points: [
+				`${jobs} ${jobNames.length === 1 ? 'runs' : 'run'} one extra time before cycle 1, so cycle 1 already has ${list(s0.saves)} from reprocessing instead of buying it.`,
+				`Initial investment ${step0} instead of ${buy}, but one more cycle.`,
+				...(s0.stock.length > 0 ? [`Step 0 also leaves ${list(s0.stock)} in stock.`] : []),
+				'From cycle 1, every unrefined reaction runs each cycle, like the other reactions.',
+				...reuse
+			]
+		};
+	const why =
+		startup.buy.initialInvestment === null || s0.initialInvestment === null
+			? 'Not compared: some start-up purchases have no price.'
+			: `Not used: it would raise the initial investment from ${buy} to ${step0} and add a cycle.`;
 	return {
-		name: r.name,
-		replaces: r.reprocess!.replaces.map((x) => x.regularName),
-		step0: startup.mode === 'step0' && startup.step0!.blueprintTypeIds.includes(r.blueprintTypeId),
-		byproducts: r.reprocess!.byproducts.map((b) => {
-			const usedBy = b.usedBy.map((u) => ({
-				name: names.get(u.blueprintTypeId) ?? `Reaction ${u.blueprintTypeId}`,
-				fromCycle: u.fromCycle
-			}));
-			const cycles = new Set(usedBy.map((u) => u.fromCycle));
-			return {
-				name: b.name,
-				quantity: b.quantity,
-				used: b.used,
-				usedBy,
-				sharedFromCycle: cycles.size === 1 ? usedBy[0].fromCycle : null,
-				sold: b.sold
-			};
-		})
+		title: 'No step 0',
+		points: [
+			'Every unrefined reaction runs each cycle, like the other reactions.',
+			...reuse,
+			`A step 0 would run ${jobs} once before cycle 1, so cycle 1 already has ${list(s0.saves)}. ${why}`
+		]
 	};
 }

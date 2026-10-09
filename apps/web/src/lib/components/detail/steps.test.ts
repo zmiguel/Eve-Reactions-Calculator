@@ -36,6 +36,29 @@ describe('productionSteps', () => {
 		]);
 	});
 
+	it("lists a step's purchases in the order of the result's inputs, fuel blocks first", () => {
+		// Titanium Chromide's job lists its fuel block last; the second job of the step brings it too.
+		const root = titaniumCarbide();
+		const chromide = root.children[0];
+		chromide.materials = [...chromide.materials.slice(1), chromide.materials[0]];
+		const inputs = [4312, 16638, 16641, 1, 2].map((typeId) => ({
+			typeId,
+			name: `Type ${typeId}`,
+			quantity: 1,
+			unitPrice: 1,
+			total: 1,
+			fees: 0,
+			shipping: 0,
+			volume: 0
+		}));
+		const [first] = productionSteps(root, inputs);
+		expect(first.purchases.slice(0, 3).map((p) => p.name)).toEqual([
+			'Oxygen Fuel Block',
+			'Titanium',
+			'Chromium'
+		]);
+	});
+
 	it('spreads a split input over the steps in whole units and copies the availability', () => {
 		const root = titaniumCarbide();
 		const blocks = {

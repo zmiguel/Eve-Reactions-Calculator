@@ -24,6 +24,7 @@ import {
 	splitIntoSlots,
 	type JobCostBreakdown
 } from './formulas.ts';
+import { fuelFirst } from './constants.ts';
 import type { ResolvedProfile } from './settings.ts';
 import { InputSourcing } from './sourcing.ts';
 import type { Reaction, Tier } from './types.ts';
@@ -81,6 +82,12 @@ export interface PlanByproduct extends PlanItem {
 	usedBy: { blueprintTypeId: number; fromCycle: number }[];
 }
 
+/** A material one cycle of a plan reaction consumes. */
+export interface PlanMaterial extends PlanItem {
+	/** Blueprint of the plan reaction building it (an unrefined job: by reprocessing); null = bought. */
+	producer: number | null;
+}
+
 export interface PlanReaction {
 	blueprintTypeId: number;
 	name: string;
@@ -93,6 +100,14 @@ export interface PlanReaction {
 	runTimeSeconds: number;
 	/** Job cost (ISK) of all its jobs in one cycle. */
 	jobCost: number;
+	/** What one cycle of its jobs makes (an unrefined job: its unrefined product, before reprocessing). */
+	product: PlanItem;
+	/**
+	 * What one cycle of its jobs consumes, in blueprint order. Bought materials (`producer: null`) are
+	 * partly covered by the previous cycle's reprocessing byproducts in a steady cycle
+	 * (`reprocess.byproducts[].used` of the unrefined jobs).
+	 */
+	materials: PlanMaterial[];
 	/** Unrefined job replacing regular reactions: its product is reprocessed. */
 	reprocess?: {
 		/** Materials it is sized for, each replacing its regular reaction (`regularName`). */
@@ -135,6 +150,12 @@ export interface StartupOption {
  */
 export interface PlanStartup {
 	mode: 'buy' | 'step0';
+	/**
+	 * Materials a steady cycle gets from the previous cycle's reprocessing byproducts instead of buying
+	 * them. The start-up cycles buy them until the unrefined jobs making them have run once (with
+	 * `step0`, the first cycle already gets `step0.saves`).
+	 */
+	reused: PlanItem[];
 	buy: StartupOption;
 	/** Null when no unrefined job of the first cycle feeds another job of that cycle. */
 	step0:
@@ -201,6 +222,8 @@ interface NodeState {
 	runTimeSeconds: number;
 	surplus: number;
 	purchases: Map<number, number>;
+	/** Consumption per cycle in blueprint order; `producer` = the plan node building it. */
+	materials: { typeId: number; quantity: number; producer: number | null }[];
 	jobCost: JobCostBreakdown;
 	/** Unrefined job feeding the plan: what reprocessing its build runs yields. */
 	reprocessed: { typeId: number; quantity: number; demand: number; byproduct: boolean }[];
@@ -296,11 +319,17 @@ export function planReactions(input: PlanInput): PlanResult {
 		const slots = runsPerSlot.length;
 		const mm = materialModifier(profile, constants);
 		const purchases = new Map<number, number>();
-		for (const m of reaction.materials) {
+		const materials: NodeState['materials'] = [];
+		for (const m of fuelFirst(reaction.materials, dataset)) {
 			const need = runsPerSlot.reduce((acc, jobRuns) => acc + requiredQuantity(jobRuns, m.quantity, mm), 0);
-			if (builtBy(m.typeId) && depth.has(builtBy(m.typeId)!.blueprintTypeId)) {
+			const producer = builtBy(m.typeId);
+			if (producer && depth.has(producer.blueprintTypeId)) {
 				demand.set(m.typeId, (demand.get(m.typeId) ?? 0) + need);
-			} else purchases.set(m.typeId, (purchases.get(m.typeId) ?? 0) + need);
+				materials.push({ typeId: m.typeId, quantity: need, producer: producer.blueprintTypeId });
+			} else {
+				purchases.set(m.typeId, (purchases.get(m.typeId) ?? 0) + need);
+				materials.push({ typeId: m.typeId, quantity: need, producer: null });
+			}
 		}
 		const reprocessed =
 			reprocessRuns === 0
@@ -336,6 +365,7 @@ export function planReactions(input: PlanInput): PlanResult {
 				demanded +
 				(fromTarget * reaction.product.quantity - soldUnits),
 			purchases,
+			materials,
 			jobCost: jobCost(estimate.value, profile),
 			reprocessed
 		});
@@ -353,7 +383,11 @@ export function planReactions(input: PlanInput): PlanResult {
 	for (const n of nodes)
 		for (const typeId of n.purchases.keys())
 			if (!purchaseProfile.has(typeId)) purchaseProfile.set(typeId, n.profile);
-	const typeOrder = [...purchaseProfile.keys()];
+	// Every purchase list of the plan follows this order: fuel blocks first.
+	const typeOrder = fuelFirst(
+		[...purchaseProfile.keys()].map((typeId) => ({ typeId })),
+		dataset
+	).map((t) => t.typeId);
 
 	/**
 	 * Quantities one cycle buys: the running jobs' purchases minus what the jobs running the cycle before
@@ -523,6 +557,9 @@ export function planReactions(input: PlanInput): PlanResult {
 			.map(([typeId, quantity]) => ({ typeId, name: typeName(typeId), quantity }));
 	const startup: PlanStartup = {
 		mode: chosen === step0 ? 'step0' : 'buy',
+		reused: items(
+			typeOrder.map((typeId): [number, number] => [typeId, steadyNeeds.credited.get(typeId) ?? 0])
+		),
 		buy: { initialInvestment: investmentOf(buyFirst), cycles: buyFirst.cycles.length },
 		step0: step0 && {
 			initialInvestment: investmentOf(step0),
@@ -656,6 +693,12 @@ export function planReactions(input: PlanInput): PlanResult {
 			firstCycle: firstCycleOf(n),
 			runTimeSeconds: n.runTimeSeconds,
 			jobCost: n.jobCost.total,
+			product: {
+				typeId: n.reaction.product.typeId,
+				name: typeName(n.reaction.product.typeId),
+				quantity: n.totalRuns * n.reaction.product.quantity
+			},
+			materials: n.materials.map((m) => ({ ...m, name: typeName(m.typeId) })),
 			...(n.reprocessed.length > 0 ? { reprocess: reprocessInfo(n) } : {})
 		})),
 		slotsUsed,

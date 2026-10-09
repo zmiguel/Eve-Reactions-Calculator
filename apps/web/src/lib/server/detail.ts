@@ -1,6 +1,7 @@
 import { getCoreDb, regions } from '@reactions/db';
 import {
 	calculateAllocated,
+	isFuelBlock,
 	chainable,
 	reprocessable,
 	unrefinable,
@@ -200,6 +201,8 @@ export interface DetailData {
 	volumeSeries: { regionName: string; points: VolumePoint[] };
 	/** Jobs of the shown view: the chain, or the single reaction as one job (steps and flowchart). */
 	root: ChainNode;
+	/** Fuel block type ids: the material flow draws them at the top, like every material list. */
+	fuelTypeIds: number[];
 	settingsSummary: SettingsSummaryData;
 	cycleDays: number;
 	/** Visitor-profile warnings shown by the settings summary (`HUB_UNAVAILABLE`, `COST_INDEX_MISSING`). */
@@ -331,6 +334,9 @@ export async function loadDetail(
 			points: volumePoints
 		},
 		root,
+		fuelTypeIds: Object.values(dataset.types)
+			.filter((t) => isFuelBlock(dataset, t.typeId))
+			.map((t) => t.typeId),
 		settingsSummary: summarizeSettings(profile, calc.hubs),
 		cycleDays: ctx.settings.cycleDays,
 		profileWarnings: [...calc.warnings, ...result.warnings.filter((w) => PROFILE_WARNINGS.has(w))],

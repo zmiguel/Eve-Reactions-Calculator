@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { planReactions, suggestFillPlan, type PlanInput } from '@reactions/engine';
+	import { isFuelBlock, planReactions, suggestFillPlan, type PlanInput } from '@reactions/engine';
 	import { onMount } from 'svelte';
 	import { replaceState } from '$app/navigation';
 	import { page } from '$app/state';
@@ -117,6 +117,13 @@
 		Object.fromEntries(data.dataset.reactions.map((r) => [r.blueprintTypeId, r.formulaName]))
 	);
 	const missing = $derived(plan.missingPrices.map((id) => data.dataset.types[id]?.name ?? `Type ${id}`));
+	const fuelTypeIds = $derived(
+		new Set(
+			Object.values(data.dataset.types)
+				.filter((t) => isFuelBlock(data.dataset, t.typeId))
+				.map((t) => t.typeId)
+		)
+	);
 
 	// Slot calculator (local only).
 	let characters = $state(1);
@@ -490,6 +497,7 @@
 				{purchaseVolumes}
 				inputMarket={inputMarket(data)}
 				profileWarnings={data.profileWarnings}
+				{fuelTypeIds}
 			/>
 		{:else}
 			<div

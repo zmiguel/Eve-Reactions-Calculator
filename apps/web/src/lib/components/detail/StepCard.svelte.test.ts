@@ -81,7 +81,9 @@ describe('StepCard', () => {
 		const tic = top.querySelector('tr[data-job="0"]')!;
 		expect(text(tic, '[data-field="slots"]')).toBe('2');
 		expect(text(tic, '[data-field="runs"]')).toBe('122');
-		expect(tic.querySelector('[data-field="runs"]')!.getAttribute('title')).toBe('244 runs in total');
+		expect(tic.querySelector('[data-field="runs"]')!.getAttribute('title')).toBe(
+			'2 slots of 122 runs, 244 runs in total'
+		);
 		expect(text(tic, '[data-field="duration"]')).toBe('6d 22h 53m');
 		expect(text(tic, '[data-field="produced"]')).toBe('24,400');
 

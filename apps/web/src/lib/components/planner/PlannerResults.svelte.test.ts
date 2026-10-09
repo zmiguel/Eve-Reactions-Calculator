@@ -269,6 +269,7 @@ describe('PlannerResults', () => {
 			phases: [step0, ...p.phases],
 			startup: {
 				mode: 'step0' as const,
+				reused: [{ typeId: 16640, name: 'Cobalt', quantity: 12000 }],
 				buy: { initialInvestment: 2_000_000_000, cycles: 2 },
 				step0: {
 					initialInvestment: 1_900_000_000,
@@ -285,18 +286,20 @@ describe('PlannerResults', () => {
 		const route = container.querySelector(
 			`[data-unrefined-routes] [data-unrefined-route="${alloy.blueprintTypeId}"]`
 		)!;
-		expect(text(route.querySelector('[data-route-head]'))).toBe(
+		// Raw text: the words must be separated in the DOM itself, not only after whitespace collapsing.
+		// Byproducts are left to the material flow.
+		expect(route.textContent).toBe(
 			'Crystallite Alloy → replaced by Unrefined Crystallite Alloy · runs once in step 0'
 		);
-		const byproduct = route.querySelector('[data-route-byproduct]')!;
-		expect(text(byproduct.firstElementChild)).toBe('Reprocessed Cobalt: 30,000 per cycle');
-		expect(text(byproduct.querySelector('[data-route-use]'))).toBe(
-			'→ 12,000 replace purchases in Carbon Polymers (from cycle 1)'
-		);
-		expect(text(byproduct.querySelector('[data-route-sold]'))).toBe('→ 18,000 sold');
-		expect(text(container.querySelector('[data-startup-choice]'))).toBe(
-			'Step 0 runs Unrefined Crystallite Alloy once so cycle 1 uses its reprocessed 12,000 Cobalt instead of buying it: initial investment 1.90B instead of 2.00B, one cycle longer. Step 0 also leaves 24,600 Crystallite Alloy in stock.'
-		);
+		const note = container.querySelector('[data-startup-choice]')!;
+		expect(text(note.querySelector('[data-startup-title]'))).toBe('Step 0, once before cycle 1');
+		expect([...note.querySelectorAll('li')].map((li) => text(li))).toEqual([
+			'Unrefined Crystallite Alloy runs one extra time before cycle 1, so cycle 1 already has 12,000 Cobalt from reprocessing instead of buying it.',
+			'Initial investment 1.90B instead of 2.00B, but one more cycle.',
+			'Step 0 also leaves 24,600 Crystallite Alloy in stock.',
+			'From cycle 1, every unrefined reaction runs each cycle, like the other reactions.',
+			'From the cycle after their first run, their reprocessing byproducts replace purchases: 12,000 Cobalt per cycle. Until then, the start-up buys these.'
+		]);
 		expect([...container.querySelectorAll('[data-phase]')].map((ph) => text(ph))[0]).toBe(
 			'Step 0 1 slot · once'
 		);

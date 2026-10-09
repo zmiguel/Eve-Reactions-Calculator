@@ -1,23 +1,31 @@
 <script lang="ts">
-	import type { ChainNode } from '@reactions/engine';
 	import { formatNumber } from '$lib/format';
 	import { typeIconUrl } from '$lib/site';
-	import { layoutChainFlow, type FlowNode, type FlowNodeKind } from './flow';
+	import type { FlowLayout, FlowNode, FlowNodeKind } from './flow';
 
 	interface Props {
-		/** Job tree: the chain, or the single reaction as one job. */
-		root: ChainNode;
+		layout: FlowLayout;
+		/** Accessible title, e.g. "Material flow for Titanium Carbide". */
+		title: string;
+		/** A reaction's chain (reaction page) or a whole plan's steady cycle (planner): sets the wording. */
+		scope: 'chain' | 'plan';
 	}
 
-	let { root }: Props = $props();
+	let { layout, title, scope }: Props = $props();
 	const uid = $props.id();
-	const layout = $derived(layoutChainFlow(root));
 	const names = $derived(Object.fromEntries(layout.nodes.map((n) => [n.id, n.name])));
 	const boughtCount = $derived(layout.nodes.filter((n) => n.kind === 'bought').length);
 	const jobCount = $derived(
 		layout.nodes.filter((n) => n.kind === 'intermediate' || n.kind === 'final').length
 	);
+	const finals = $derived(
+		layout.nodes
+			.filter((n) => n.kind === 'final')
+			.map((n) => n.name)
+			.join(', ')
+	);
 	const hasByproducts = $derived(layout.nodes.some((n) => n.kind === 'byproduct'));
+	const made = $derived(scope === 'plan' ? 'Made in the plan' : 'Produced in the chain');
 
 	const boxClass: Record<FlowNodeKind, string> = {
 		bought: 'fill-gray-50 stroke-gray-400 dark:fill-gray-800 dark:stroke-gray-500',
@@ -28,18 +36,24 @@
 	const LINE = 15;
 	const QTY_LINE = 14;
 	const detail = (n: FlowNode) => {
-		if (n.kind === 'bought') return `${formatNumber(n.quantity)} bought`;
-		if (n.kind === 'byproduct') return `${formatNumber(n.quantity)} from last cycle`;
+		if (n.reused !== null) {
+			const bought = n.quantity - n.reused;
+			if (n.reused === 0) return `${formatNumber(n.quantity)} bought`;
+			if (bought === 0) return `${formatNumber(n.reused)} reused`;
+			return `${formatNumber(bought)} bought · ${formatNumber(n.reused)} reused`;
+		}
 		const slots = n.slots && n.slots > 1 ? ` in ${n.slots} slots` : '';
 		return n.reprocessedInto
 			? `${formatNumber(n.runs)} runs${slots}, reprocessed`
 			: `${formatNumber(n.quantity)} · ${formatNumber(n.runs)} runs${slots}`;
 	};
 	const role = (n: FlowNode) => {
-		if (n.kind === 'final') return ' (final product)';
-		if (n.kind === 'byproduct') return " (the previous cycle's reprocessing, used instead of buying it)";
-		if (n.reprocessedInto) return ` into ${n.reprocessedInto} (produced in the chain)`;
-		if (n.kind === 'intermediate') return ' (produced in the chain)';
+		const where = scope === 'plan' ? 'made in the plan' : 'produced in the chain';
+		if (n.kind === 'final') return scope === 'plan' ? ' (target product)' : ' (final product)';
+		if (n.reused !== null && n.reused > 0)
+			return " (partly or fully the previous cycle's reprocessing byproducts, used instead of buying them)";
+		if (n.reprocessedInto) return ` into ${n.reprocessedInto} (${where})`;
+		if (n.kind === 'intermediate') return ` (${where})`;
 		return n.unpriced ? ' (no market price)' : '';
 	};
 	const textTop = (n: FlowNode) => n.y + (n.height - (n.lines.length * LINE + QTY_LINE)) / 2;
@@ -56,9 +70,12 @@
 			class="block max-w-none"
 			font-family="inherit"
 		>
-			<title id="{uid}-title">Material flow for {root.name}</title>
+			<title id="{uid}-title">{title}</title>
 			<desc id="{uid}-desc">
-				{boughtCount} bought materials feed {jobCount} reaction jobs ending in {root.name}.
+				{boughtCount} bought materials feed {jobCount} reaction jobs ending in {finals}.{layout.backEdges
+					.length > 0
+					? ` ${layout.backEdges.length} reprocessing byproducts go back to replace purchases in the next cycle.`
+					: ''}
 			</desc>
 			<defs>
 				<marker
@@ -71,6 +88,17 @@
 					orient="auto-start-reverse"
 				>
 					<path d="M0 0 L8 4 L0 8 z" class="fill-gray-400 dark:fill-gray-500" />
+				</marker>
+				<marker
+					id="{uid}-back"
+					viewBox="0 0 8 8"
+					refX="7"
+					refY="4"
+					markerWidth="7"
+					markerHeight="7"
+					orient="auto-start-reverse"
+				>
+					<path d="M0 0 L8 4 L0 8 z" class="fill-emerald-500 dark:fill-emerald-400" />
 				</marker>
 			</defs>
 			{#each layout.edges as edge (edge.id)}
@@ -92,6 +120,32 @@
 						paint-order="stroke"
 						class="fill-gray-700 stroke-white tabular-nums dark:fill-gray-200 dark:stroke-gray-700"
 						data-edge-label>{formatNumber(edge.quantity)}</text
+					>
+				</g>
+			{/each}
+			{#each layout.backEdges as edge (edge.id)}
+				<g data-flow-back-edge={edge.id} data-from={edge.from} data-to={edge.to}>
+					<title
+						>{`${formatNumber(edge.quantity)} ${edge.material} from reprocessing ${names[edge.from]}, used next cycle instead of buying it`}</title
+					>
+					<path
+						d={edge.path}
+						fill="none"
+						stroke-width="1.5"
+						stroke-dasharray="5 3"
+						stroke-linejoin="round"
+						marker-end="url(#{uid}-back)"
+						class="stroke-emerald-500 dark:stroke-emerald-400"
+					/>
+					<text
+						x={edge.labelX}
+						y={edge.labelY}
+						text-anchor="end"
+						font-size="11"
+						stroke-width="3"
+						paint-order="stroke"
+						class="fill-emerald-700 stroke-white tabular-nums dark:fill-emerald-300 dark:stroke-gray-700"
+						data-edge-label>{formatNumber(edge.quantity)} {edge.material} reused next cycle</text
 					>
 				</g>
 			{/each}
@@ -151,19 +205,35 @@
 				<span
 					class="h-3 w-5 rounded-sm border border-dashed border-emerald-500 bg-emerald-50 dark:bg-gray-800"
 				></span>
-				Reprocessing byproduct from last cycle
+				Covered in full by last cycle's reprocessing
 			</span>
 		{/if}
 		{#if layout.columns > 2}
 			<span class="flex items-center gap-1.5">
 				<span class="bg-primary-50 border-primary-500 dark:bg-primary-900 h-3 w-5 rounded-sm border"></span>
-				Produced in the chain
+				{made}
 			</span>
 		{/if}
 		<span class="flex items-center gap-1.5">
 			<span class="bg-primary-100 border-primary-600 dark:bg-primary-800 h-3 w-5 rounded-sm border-2"></span>
-			Final product
+			{scope === 'plan' ? 'Target product' : 'Final product'}
 		</span>
-		<span>Edge labels: quantity each job consumes.</span>
+		{#if layout.backEdges.length > 0}
+			<span class="flex items-center gap-1.5">
+				<svg width="20" height="6" aria-hidden="true"
+					><line
+						x1="0"
+						y1="3"
+						x2="20"
+						y2="3"
+						stroke-width="1.5"
+						stroke-dasharray="5 3"
+						class="stroke-emerald-500 dark:stroke-emerald-400"
+					/></svg
+				>
+				Reprocessing byproduct reused next cycle
+			</span>
+		{/if}
+		<span>Edge labels: quantity each job consumes{scope === 'plan' ? ' per cycle' : ''}.</span>
 	</figcaption>
 </figure>

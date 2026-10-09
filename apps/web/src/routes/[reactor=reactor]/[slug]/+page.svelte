@@ -1,6 +1,7 @@
 <script lang="ts">
 	import InfoNote from '$lib/components/InfoNote.svelte';
-	import ChainFlow from '$lib/components/detail/ChainFlow.svelte';
+	import FlowDiagram from '$lib/components/detail/FlowDiagram.svelte';
+	import { layoutChainFlow } from '$lib/components/detail/flow';
 	import CostSummary from '$lib/components/detail/CostSummary.svelte';
 	import MetricsCards from '$lib/components/detail/MetricsCards.svelte';
 	import PriceTimingCard from '$lib/components/detail/PriceTimingCard.svelte';
@@ -13,7 +14,7 @@
 	import { productionSteps, replacedReactions } from '$lib/components/detail/steps';
 	import SettingsSummary from '$lib/components/listing/SettingsSummary.svelte';
 	import { formatIsk, formatPct } from '$lib/format';
-	import { multibuyText } from '$lib/multibuy';
+	import { lineItemsMultibuy } from '$lib/multibuy';
 	import Seo from '$lib/seo/Seo.svelte';
 	import { SLOT_ALLOCATION_OPTIONS } from '$lib/settings/fields';
 	import { REACTOR_LABEL, SITE_URL, typeIconUrl } from '$lib/site';
@@ -237,7 +238,11 @@
 
 		<section class="space-y-2" aria-labelledby="flow-title">
 			<h2 id="flow-title" class={h2}>Material flow</h2>
-			<ChainFlow root={data.root} />
+			<FlowDiagram
+				layout={layoutChainFlow(data.root, new Set(data.fuelTypeIds))}
+				title="Material flow for {data.root.name}"
+				scope="chain"
+			/>
 		</section>
 
 		{#if result.allocation}
@@ -257,7 +262,7 @@
 								: `${steps.length} steps: each step's jobs run side by side and feed the next step.`}
 					</p>
 				</div>
-				<MultibuyButton text={multibuyText(data.root)} />
+				<MultibuyButton text={lineItemsMultibuy(result.inputs)} />
 			</div>
 			{#each steps as step (step.number)}
 				<StepCard

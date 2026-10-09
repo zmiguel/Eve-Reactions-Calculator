@@ -281,5 +281,5 @@ export const TIC_ALLOCATION: ChainAllocation = {
 		}
 	],
 	initialInvestment: 1_234_000_000,
-	startup: { mode: 'buy', buy: { initialInvestment: 1_234_000_000, cycles: 2 }, step0: null }
+	startup: { mode: 'buy', reused: [], buy: { initialInvestment: 1_234_000_000, cycles: 2 }, step0: null }
 };
