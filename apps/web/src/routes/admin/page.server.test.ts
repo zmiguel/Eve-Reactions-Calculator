@@ -37,6 +37,11 @@ function updaterStub() {
 			status: 'ok',
 			summary: 'not modified'
 		})),
+		triggerAffiliations: vi.fn(async (): Promise<InlineRunResult> => ({
+			runId: `affiliations-manual-${NOW}`,
+			status: 'ok',
+			summary: '3 of 3 characters updated (2 corporations, 1 alliances)'
+		})),
 		publishMarketSnapshot: vi.fn(async () => ({ snapshotAt: NOW, hubIds: ['jita'] })),
 		workflowStatus: vi.fn(
 			async (runs: { kind: string; runId: string }[]): Promise<Record<string, WorkflowStatus>> =>
@@ -122,7 +127,8 @@ describe('/admin', () => {
 			sde: ['sde-1'],
 			daily: [],
 			history: [],
-			market_snapshot: []
+			market_snapshot: [],
+			affiliations: []
 		});
 		expect(data.jobs[0]!.runs[0]).toEqual({
 			runId: 'prices-2',
@@ -271,6 +277,12 @@ describe('/admin', () => {
 		});
 		await actions.cost_indices(event(env, admin, '/admin?/cost_indices'));
 		await actions.market_snapshot(event(env, admin, '/admin?/market_snapshot'));
+		expect(await actions.affiliations(event(env, admin, '/admin?/affiliations'))).toEqual({
+			notice: {
+				ok: true,
+				text: `Affiliations run affiliations-manual-${NOW} finished: 3 of 3 characters updated (2 corporations, 1 alliances).`
+			}
+		});
 		expect(UPDATER.triggerPriceRefresh).toHaveBeenCalledTimes(1);
 		expect(UPDATER.triggerSdeSync.mock.calls).toEqual([[false], [true]]);
 		expect(UPDATER.triggerDaily).toHaveBeenCalledWith('2026-10-06');

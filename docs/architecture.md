@@ -91,7 +91,7 @@ Drizzle schemas: `packages/db/src/schema/core.ts` and `history.ts`. Migrations: 
 | `latest_prices`                                          | Current buy/sell, 5 % averages, volumes and source (`esi`, `esi_structure`, `fuzzwork`) per hub and type                                                       |
 | `adjusted_prices`, `cost_indices`                        | ESI adjusted prices and system cost indices                                                                                                                    |
 | `market_stats`                                           | Per region and type: 30-day and 7-day average daily volume, 5-day and 30-day average price                                                                     |
-| `users`, `user_sessions`, `characters`                   | Accounts, sessions (hashed tokens), characters with scopes and encrypted refresh tokens                                                                        |
+| `users`, `user_sessions`, `characters`                   | Accounts, sessions (hashed tokens), characters with scopes, encrypted refresh tokens and their corporation and alliance (daily cron step)                      |
 | `structure_links`                                        | Which account linked which structure through which character, and whether sharing was requested                                                                |
 | `job_runs`                                               | One row per job run: kind, status (`running`, `ok`, `partial`, `failed`), detail JSON, and for workflows the step in progress (`progress_json`, `progress_at`) |
 | `http_cache`                                             | ETag and expiry of conditional ESI/SDE requests                                                                                                                |
@@ -136,6 +136,7 @@ Each step runs isolated and logs one line `[scheduled] <step>: <outcome>`. Job r
 3. `prices`: settles stale `running` price runs, then starts `reactions-price-refresh` instance `prices-<slot>` when the latest run started at least 30 minutes ago (`PRICE_REFRESH_MINUTES`). A failed run does not hold back the next one.
 4. `sde-check`: once per hour (minutes 0 to 9) a conditional GET of the SDE `latest.jsonl`; a newer build starts `reactions-sde-sync` instance `sde-<build>`.
 5. `daily`: from 11:20 UTC, once the first SDE import exists, starts `reactions-daily` instance `daily-<today>` once per day (before the first import it logs `skipped (no SDE imported yet)`).
+6. `affiliations`: once a day (the tick in 12:20 to 12:29 UTC, after downtime), the corporation and alliance of every character of an account seen in the last 30 days (`AFFILIATION_ACTIVE_DAYS`): public ESI `POST /characters/affiliation` and `POST /universe/names`, up to 100 ids per request (`ESI_BULK_CHUNK`), written to `characters` in one statement. Characters in a chunk ESI refuses keep their previous values; a name ESI does not resolve keeps the stored one while the id is unchanged. A new character has no corporation until the next daily run.
 
 ### PriceRefreshWorkflow
 
@@ -195,6 +196,12 @@ Planner share links (`/planner?s=<code>`) carry the plan plus the sharer's setti
 `ALL_ESI_SCOPES` (all six scopes) is the scope list to enable on the EVE developer applications. Refresh tokens are stored encrypted with AES-GCM (`TOKEN_ENCRYPTION_KEY`, shared by both workers because both refresh and rotate them). Production and the preview log in with different SSO applications (`EVE_SSO_CLIENT_ID`); every deployment also holds the other application (`EVE_SSO_EXTRA_CLIENT_ID`/`EVE_SSO_EXTRA_CLIENT_SECRET`). A feature grant stores the issuing application in `characters.sso_client_id` (core migration 0005; NULL = the deployment's own application), and every refresh (web `getAccessToken`, updater structure step) uses that application's credentials (`ssoCredentialsFor` in `@reactions/eve`); a token from an application the deployment has no credentials for is marked invalid with `SSO_APP_UNKNOWN`, without a request.
 
 Admins are the accounts holding a character listed in `ADMIN_CHARACTER_IDS`; `/admin` answers 404 to everyone else. Admin rights follow the character id, so a transferred character keeps them until the list is changed.
+
+### Analytics identity
+
+Logged-in visitors are identified in Rybbit (`apps/web/src/lib/analytics.ts`, called from the root layout): user id = `users.user_id`, traits built by `analyticsIdentity()` (`apps/web/src/lib/server/analytics.ts`) from the session (the same two queries load `AccountFacts`: account creation time, features granted to any character, the main character's corporation and alliance) and the settings: `username`/`name` (main character = the account's first character), `main_character_id`, `corporation`, `alliance`, `is_admin`, `characters`, `account_created`, `features`, `structure`, `security`, `input_hub`, `output_hub` (`structure` for a structure market, never its id), `per_reactor`, `slots`, `unrefined`, `custom_settings`; per-reactor values that differ are sent as `mixed`. The security band is the only extra lookup (memoised per isolate). The browser sends one identify per login or trait change (`localStorage.rc_analytics_identity`) and clears the id on logout. Custom events: `multibuy_copy` (`items`), `share_link_copy` (`kind`: settings, planner), `planner_autofill` (`scope`), `planner_add_target` (`data-rybbit-event` attributes).
+
+Traits are never `null`: Rybbit drops the whole trait update when any value is `null` while still answering `{"success":true}` (checked on ry.zm.gl, 2026-10-09). A corporation not looked up yet is sent as `unknown` (alliance `unknown` too), a character without an alliance as `none`.
 
 ## Structure markets
 

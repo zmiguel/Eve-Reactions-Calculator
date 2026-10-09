@@ -60,6 +60,12 @@ export interface EsiClientOptions {
 
 export interface EsiClient {
 	get<T = unknown>(path: string, options?: EsiGetOptions): Promise<EsiResponse<T>>;
+	/** POST with a JSON body (bulk lookups such as `/characters/affiliation`); same retries as `get`. */
+	post<T = unknown>(
+		path: string,
+		body: unknown,
+		options?: Omit<EsiGetOptions, 'etag'>
+	): Promise<EsiResponse<T>>;
 	readonly guard: EsiGuard;
 	now(): number;
 }
@@ -154,7 +160,12 @@ export function createEsiClient(options: EsiClientOptions): EsiClient {
 	const baseUrl = options.baseUrl ?? ESI_BASE_URL;
 	const guard = new EsiGuard();
 
-	async function get<T>(path: string, opts: EsiGetOptions = {}): Promise<EsiResponse<T>> {
+	async function request<T>(
+		method: 'GET' | 'POST',
+		path: string,
+		opts: EsiGetOptions,
+		body?: unknown
+	): Promise<EsiResponse<T>> {
 		const attempts = Math.max(1, opts.attempts ?? defaultAttempts);
 		const headers: Record<string, string> = {
 			'User-Agent': options.userAgent,
@@ -163,12 +174,15 @@ export function createEsiClient(options: EsiClientOptions): EsiClient {
 		};
 		if (opts.etag) headers['If-None-Match'] = opts.etag;
 		if (opts.accessToken) headers.Authorization = `Bearer ${opts.accessToken}`;
+		if (method === 'POST') headers['Content-Type'] = 'application/json';
+		const init: RequestInit = { method, headers };
+		if (method === 'POST') init.body = JSON.stringify(body);
 		const url = baseUrl + path;
 
 		for (let attempt = 1; ; attempt++) {
 			let response: Response;
 			try {
-				response = await fetchFn(url, { method: 'GET', headers });
+				response = await fetchFn(url, init);
 			} catch (error) {
 				if (attempt >= attempts) throw error;
 				await sleep(1000);
@@ -194,7 +208,12 @@ export function createEsiClient(options: EsiClientOptions): EsiClient {
 		}
 	}
 
-	return { get, guard, now };
+	return {
+		get: (path, opts = {}) => request('GET', path, opts),
+		post: (path, body, opts = {}) => request('POST', path, opts, body),
+		guard,
+		now
+	};
 }
 
 export type PagedResult<T> =

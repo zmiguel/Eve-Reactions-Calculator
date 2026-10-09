@@ -2,8 +2,12 @@
 	import '../app.css';
 	import Navbar from '$lib/components/Navbar.svelte';
 	import Footer from '$lib/components/Footer.svelte';
+	import { syncAnalyticsIdentity } from '$lib/analytics';
 
 	let { children, data } = $props();
+
+	// Runs after hydration and whenever the session changes (login, logout, account switch).
+	$effect(() => syncAnalyticsIdentity(data.analytics));
 </script>
 
 <!-- Centered Tailwind `container` (1280 px ≥ xl, 1536 px ≥ 2xl) inside 8/32 px gutters, as on d-scan.space. -->

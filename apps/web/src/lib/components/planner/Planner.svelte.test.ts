@@ -3,6 +3,7 @@ import { fireEvent, render, screen, waitFor } from '@testing-library/svelte';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { STORAGE_KEY, decodeShare, emptyState, encodeShare, type PlannerState } from '$lib/planner/state';
 import { plannerData } from '../../../test/planner';
+import { MemoryStorage } from '../../../test/storage';
 import { replaceStateCalls, resetNavigation } from '../../../test/shims/app/navigation';
 import { resetPage, setPage } from '../../../test/shims/app/state';
 import Planner from './Planner.svelte';
@@ -10,16 +11,6 @@ import Planner from './Planner.svelte';
 const CRYSTALLINE_CARBONIDE = 46205;
 const CARBON_POLYMERS = 16659;
 const COBALT = 16640;
-
-class MemoryStorage {
-	items = new Map<string, string>();
-	getItem(key: string) {
-		return this.items.get(key) ?? null;
-	}
-	setItem(key: string, value: string) {
-		this.items.set(key, value);
-	}
-}
 
 afterEach(() => {
 	resetNavigation();

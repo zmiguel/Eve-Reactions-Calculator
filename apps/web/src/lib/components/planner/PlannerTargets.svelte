@@ -202,7 +202,9 @@
 		</p>
 	{/if}
 	<div class="flex flex-wrap items-center gap-2">
-		<button type="button" class={button} onclick={add}>+ Add target</button>
+		<button type="button" class={button} onclick={add} data-rybbit-event="planner_add_target"
+			>+ Add target</button
+		>
 		{@render actions?.()}
 	</div>
 </div>

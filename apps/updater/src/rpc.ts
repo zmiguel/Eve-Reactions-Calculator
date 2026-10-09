@@ -2,6 +2,7 @@ import { WorkerEntrypoint } from 'cloudflare:workers';
 import type { JobRunRow } from '@reactions/db';
 import { fetchSdeLatest } from '@reactions/eve';
 import { refreshAdjustedPrices } from './cron/adjusted-prices.ts';
+import { refreshAffiliations } from './cron/affiliations.ts';
 import { refreshCostIndices } from './cron/cost-indices.ts';
 import { importedSdeBuild } from './cron/sde-check.ts';
 import { isIsoDate } from './dates.ts';
@@ -32,7 +33,7 @@ export interface WorkflowState {
  */
 async function runInline(
 	method: string,
-	kind: 'cost_indices' | 'adjusted_prices',
+	kind: 'cost_indices' | 'adjusted_prices' | 'affiliations',
 	run: (now: number) => Promise<string>
 ): Promise<InlineRunResult> {
 	const now = Date.now();
@@ -109,6 +110,13 @@ export class UpdaterRpc extends WorkerEntrypoint<Env> {
 	 */
 	async triggerCostIndices(): Promise<InlineRunResult> {
 		return runInline('triggerCostIndices', 'cost_indices', (now) => refreshCostIndices(this.env, now, true));
+	}
+
+	/** Looks up the corporations and alliances now, outside the daily schedule, as run `affiliations-manual-<now ms>`. */
+	async triggerAffiliations(): Promise<InlineRunResult> {
+		return runInline('triggerAffiliations', 'affiliations', (now) =>
+			refreshAffiliations(this.env, now, now, true)
+		);
 	}
 
 	/**

@@ -1,4 +1,5 @@
 import { refreshAdjustedPrices } from './cron/adjusted-prices.ts';
+import { refreshAffiliations } from './cron/affiliations.ts';
 import { refreshCostIndices } from './cron/cost-indices.ts';
 import { startDaily } from './cron/daily.ts';
 import { startPriceRefresh } from './cron/prices.ts';
@@ -17,7 +18,8 @@ export async function scheduled(controller: ScheduledController, env: Env): Prom
 		['cost-indices', () => refreshCostIndices(env, Date.now())],
 		['prices', () => startPriceRefresh(env, at)],
 		['sde-check', () => checkSdeUpdate(env, at, Date.now())],
-		['daily', () => startDaily(env, at)]
+		['daily', () => startDaily(env, at)],
+		['affiliations', () => refreshAffiliations(env, at, Date.now())]
 	];
 	for (const [name, run] of steps) {
 		try {

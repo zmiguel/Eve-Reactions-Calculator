@@ -1,5 +1,5 @@
 import { getCoreDb, jobRuns } from '@reactions/db';
-import type { JobRunRow } from '@reactions/db';
+import type { JobKind, JobRunRow } from '@reactions/db';
 import { eq, sql } from 'drizzle-orm';
 
 /** Longest log summary of a job or step result. */
@@ -12,8 +12,6 @@ export function summarize(value: unknown): string {
 	return text.length > SUMMARY_CHARS ? `${text.slice(0, SUMMARY_CHARS)}…` : text;
 }
 
-export type JobKind =
-	'prices' | 'daily' | 'sde' | 'cost_indices' | 'adjusted_prices' | 'history' | 'market_snapshot';
 export type JobStatus = 'running' | 'ok' | 'partial' | 'failed';
 
 /**

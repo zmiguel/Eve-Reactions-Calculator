@@ -43,6 +43,13 @@
       "when": 1791465372192,
       "tag": "0005_character_sso_client",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "6",
+      "when": 1791543514747,
+      "tag": "0006_character_affiliation",
+      "breakpoints": true
     }
   ]
 }

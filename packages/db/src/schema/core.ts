@@ -180,7 +180,13 @@ export const characters = sqliteTable('characters', {
 	tokenStatus: text('token_status').notNull().default('none'),
 	lastRefreshedAt: integer('last_refreshed_at'),
 	lastError: text('last_error'),
-	createdAt: integer('created_at').notNull()
+	createdAt: integer('created_at').notNull(),
+	/** Corporation and alliance from ESI `/characters/affiliation` + `/universe/names` (updater, daily). */
+	corporationId: integer('corporation_id'),
+	corporationName: text('corporation_name'),
+	allianceId: integer('alliance_id'),
+	allianceName: text('alliance_name'),
+	affiliationUpdatedAt: integer('affiliation_updated_at')
 });
 
 export const structureLinks = sqliteTable(

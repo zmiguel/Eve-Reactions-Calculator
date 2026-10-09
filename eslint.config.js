@@ -7,8 +7,7 @@ import ts from 'typescript-eslint';
 export default ts.config(
 	{
 		ignores: [
-			'EVE-Reactions-Calculator/',
-			'sde/',
+			'references/',
 			'**/node_modules/',
 			'**/.svelte-kit/',
 			'**/.wrangler/',

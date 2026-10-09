@@ -35,10 +35,12 @@ export const handle: Handle = async ({ event, resolve }) => {
 	if (event.url.pathname.startsWith('/api/')) {
 		// The API (v2 and the removed v1) is anonymous: no session lookup, no settings cookie, no cookie writes.
 		event.locals.user = null;
+		event.locals.account = null;
 		event.locals.settings = DEFAULT_SETTINGS;
 	} else {
 		const session = env ? await loadSession(env, event.cookies) : null;
 		event.locals.user = session?.user ?? null;
+		event.locals.account = session?.account ?? null;
 		event.locals.settings = await resolveSettings(env, event.cookies, session);
 	}
 

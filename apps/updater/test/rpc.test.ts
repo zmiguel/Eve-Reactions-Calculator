@@ -192,6 +192,39 @@ describe('UpdaterRpc', () => {
 		expect(JSON.parse(row!.detail_json).error).toContain('400');
 	});
 
+	it('triggerAffiliations runs the lookup outside the daily schedule and records the run', async () => {
+		await env.DB.batch([
+			env.DB.prepare("INSERT INTO users (user_id, created_at, last_seen_at) VALUES ('u1', 1, ?)").bind(
+				Date.now()
+			),
+			env.DB.prepare(
+				"INSERT INTO characters (character_id, user_id, name, owner_hash, created_at) VALUES (95339706, 'u1', 'Pilot', 'h', 1)"
+			)
+		]);
+		installFetch((url, call) =>
+			url.pathname === '/characters/affiliation'
+				? json([{ character_id: 95339706, corporation_id: 98210135 }])
+				: json(
+						(JSON.parse(call.body!) as number[]).map((id) => ({
+							id,
+							name: 'Infinite Point',
+							category: 'corporation'
+						}))
+					)
+		);
+
+		const result = await exports.UpdaterRpc.triggerAffiliations();
+
+		expect(result).toMatchObject({
+			status: 'ok',
+			summary: '1 of 1 characters updated (1 corporations, 0 alliances)'
+		});
+		expect(result.runId).toMatch(/^affiliations-manual-\d+$/);
+		expect((await jobRow(result.runId))?.kind).toBe('affiliations');
+		const character = await env.DB.prepare('SELECT corporation_name FROM characters').first();
+		expect(character).toEqual({ corporation_name: 'Infinite Point' });
+	});
+
 	it('triggerAdjustedPrices records a manual run with or without tracked types', async () => {
 		const prices = [{ type_id: 4312, adjusted_price: 1200.5, average_price: 1300 }];
 		installFetch(() => json(prices, cacheHeaders('"p1"', Date.now() + HOUR)));

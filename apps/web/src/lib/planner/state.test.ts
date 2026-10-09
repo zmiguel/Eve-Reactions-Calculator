@@ -1,5 +1,6 @@
 import { DEFAULT_SETTINGS, Settings, decodeJson, encodeJson } from '@reactions/engine';
 import { describe, expect, it } from 'vitest';
+import { MemoryStorage } from '../../test/storage';
 import {
 	STORAGE_KEY,
 	decodeShare,
@@ -36,16 +37,6 @@ const firstRelease = {
 	stockText: '',
 	formulasText: ''
 };
-
-class MemoryStorage {
-	items = new Map<string, string>();
-	getItem(key: string) {
-		return this.items.get(key) ?? null;
-	}
-	setItem(key: string, value: string) {
-		this.items.set(key, value);
-	}
-}
 
 describe('state schema', () => {
 	it('reads first-release v1 states with the new fields defaulted', () => {

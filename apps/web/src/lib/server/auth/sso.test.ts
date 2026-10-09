@@ -66,7 +66,7 @@ async function callback(opts: Run = {}) {
 			{
 				url,
 				cookies: cookies.asCookies(),
-				locals: { user: opts.user ?? null, settings: DEFAULT_SETTINGS, theme: 'dark' },
+				locals: { user: opts.user ?? null, account: null, settings: DEFAULT_SETTINGS, theme: 'dark' },
 				platform: { env } as never
 			},
 			sso.deps(character, { status: opts.tokenStatus })

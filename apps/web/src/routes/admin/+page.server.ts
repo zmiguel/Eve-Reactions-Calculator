@@ -78,7 +78,7 @@ export const load: PageServerLoad = async (event) => {
 			.orderBy(asc(marketHubs.name))
 	]);
 	// One RPC for the live instance status of every running workflow row loaded (latest or history).
-	const workflowKinds = new Set(JOBS.filter((job) => job.workflow).map((job) => job.kind));
+	const workflowKinds = new Set<string>(JOBS.filter((job) => job.workflow).map((job) => job.kind));
 	const live: Record<string, WorkflowStatus | undefined> = await workflowStatuses(
 		env,
 		runs

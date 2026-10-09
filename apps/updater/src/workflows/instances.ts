@@ -1,5 +1,5 @@
+import type { JobKind } from '@reactions/db';
 import { failJobRun, startJobRun } from '../jobs.ts';
-import type { JobKind } from '../jobs.ts';
 
 /**
  * Creates a workflow instance. Workflows reject a reused instance id; that is reported as

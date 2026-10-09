@@ -1,12 +1,14 @@
 import type { NavUser } from '$lib/components/AccountMenu.svelte';
 import { defaultTabsOf } from '$lib/components/listing/links';
+import { analyticsIdentity } from '$lib/server/analytics';
 import type { LayoutServerLoad } from './$types';
 
 /**
- * Navbar identity: the session's login character (never the user id or other account data), and the
- * visitor's preferred reaction tabs that every reaction link follows.
+ * Navbar identity: the session's login character and admin flag. Analytics identity: the account id
+ * and Rybbit traits (`analyticsIdentity`). Plus the visitor's preferred reaction tabs that every
+ * reaction link follows.
  */
-export const load: LayoutServerLoad = ({ locals }) => {
+export const load: LayoutServerLoad = async ({ locals, platform }) => {
 	const user = locals.user;
 	const character = user?.characters.find((c) => c.characterId === user.characterId) ?? user?.characters[0];
 	const navUser: NavUser | null =
@@ -15,6 +17,7 @@ export const load: LayoutServerLoad = ({ locals }) => {
 			: null;
 	return {
 		user: navUser,
+		analytics: await analyticsIdentity(platform?.env, user, locals.account, locals.settings),
 		defaultTabs: defaultTabsOf(locals.settings)
 	};
 };
