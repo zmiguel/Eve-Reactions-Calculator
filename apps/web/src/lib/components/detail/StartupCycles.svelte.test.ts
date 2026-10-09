@@ -39,6 +39,7 @@ describe('StartupCycles', () => {
 			phases: [step0Phase, ...TIC_ALLOCATION.phases],
 			startup: {
 				mode: 'step0',
+				reused: [{ typeId: 16641, name: 'Chromium', quantity: 5000 }],
 				buy: { initialInvestment: 1_300_000_000, cycles: 2 },
 				step0: {
 					initialInvestment: 1_234_000_000,
@@ -58,8 +59,12 @@ describe('StartupCycles', () => {
 		const note = container.querySelector('[data-startup-choice]')!;
 		expect(note.getAttribute('role')).toBe('note');
 		expect(note.querySelector('svg')).not.toBeNull();
-		expect(text(note)).toBe(
-			'Step 0 runs Titanium Chromide once so cycle 1 uses its reprocessed 5,000 Chromium instead of buying it: initial investment 1.23B instead of 1.30B, one cycle longer.'
-		);
+		expect(text(note.querySelector('[data-startup-title]'))).toBe('Step 0, once before cycle 1');
+		expect([...note.querySelectorAll('li')].map((li) => text(li))).toEqual([
+			'Titanium Chromide runs one extra time before cycle 1, so cycle 1 already has 5,000 Chromium from reprocessing instead of buying it.',
+			'Initial investment 1.23B instead of 1.30B, but one more cycle.',
+			'From cycle 1, every unrefined reaction runs each cycle, like the other reactions.',
+			'From the cycle after their first run, their reprocessing byproducts replace purchases: 5,000 Chromium per cycle. Until then, the start-up buys these.'
+		]);
 	});
 });

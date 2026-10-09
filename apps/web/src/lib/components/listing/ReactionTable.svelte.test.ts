@@ -113,11 +113,11 @@ describe('ReactionTable', () => {
 	it('adds a Slots column for optimal full chains with per-reaction slots in the tooltip', async () => {
 		const slots = {
 			lines: 2,
-			total: 4,
-			levels: [2, 2],
+			total: 5,
+			levels: [2, 3],
 			reactions: [
-				{ name: 'Charlie', slots: 2, runsPerSlot: 122 },
-				{ name: 'Intermediate', slots: 2, runsPerSlot: 120 }
+				{ name: 'Charlie', runsPerSlot: [122, 122] },
+				{ name: 'Intermediate', runsPerSlot: [61, 62, 62] }
 			]
 		};
 		const optimal = [
@@ -130,8 +130,10 @@ describe('ReactionTable', () => {
 			.getAllByTestId('reaction-row')
 			.map((tr) => tr.querySelector('[data-field="slots"]')!);
 		const charlie = cells.find((td) => td.closest('tr')!.textContent!.includes('Charlie'))!;
-		expect(charlie.textContent!.trim()).toBe('2+2');
-		expect(charlie.getAttribute('title')).toBe('2 lines: Charlie 2 × 122 runs, Intermediate 2 × 120 runs');
+		expect(charlie.textContent!.trim()).toBe('2+3');
+		expect(charlie.getAttribute('title')).toBe(
+			'2 lines: Charlie 2 × 122 runs, Intermediate 2 × 62 + 1 × 61 runs'
+		);
 		expect(cells.filter((td) => td !== charlie).map((td) => td.textContent!.trim())).toEqual(['1', '1']);
 
 		await fireEvent.click(screen.getByRole('button', { name: /^Slots/ }));

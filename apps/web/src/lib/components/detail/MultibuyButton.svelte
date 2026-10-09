@@ -1,6 +1,6 @@
 <script lang="ts">
 	interface Props {
-		/** Multibuy text (`Name<TAB>Quantity` lines) from `multibuyText()`. */
+		/** Multibuy text (`Name<TAB>Quantity` lines) from `lineItemsMultibuy()`. */
 		text: string;
 	}
 

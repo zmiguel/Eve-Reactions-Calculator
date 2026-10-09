@@ -1,30 +1,15 @@
-import type { ChainNode, LineItem } from '@reactions/engine';
+import type { LineItem } from '@reactions/engine';
 
 /**
- * EVE Online multibuy text: one `Name<TAB>Quantity` line per name, quantities merged, rounded up to whole
- * units and written without thousands separators; zero quantities dropped; first-seen order.
+ * EVE Online multibuy text for a purchase list (a reaction's inputs, the planner's shopping lists): one
+ * `Name<TAB>Quantity` line per name, quantities merged, rounded up to whole units and written without
+ * thousands separators; zero quantities dropped; list order (fuel blocks first, as the engine orders it).
  */
-function formatMultibuy(entries: Iterable<{ name: string; quantity: number }>): string {
+export function lineItemsMultibuy(items: readonly Pick<LineItem, 'name' | 'quantity'>[]): string {
 	const quantities = new Map<string, number>();
-	for (const { name, quantity } of entries) quantities.set(name, (quantities.get(name) ?? 0) + quantity);
+	for (const { name, quantity } of items) quantities.set(name, (quantities.get(name) ?? 0) + quantity);
 	return [...quantities]
 		.filter(([, quantity]) => quantity > 0)
 		.map(([name, quantity]) => `${name}\t${Math.ceil(quantity)}`)
 		.join('\n');
-}
-
-/** Multibuy text for every material bought by a job tree (the chain, or a single reaction as one job). */
-export function multibuyText(root: ChainNode): string {
-	const bought: { name: string; quantity: number }[] = [];
-	const visit = (node: ChainNode) => {
-		for (const m of node.materials) if (m.source === 'buy') bought.push(m);
-		node.children.forEach(visit);
-	};
-	visit(root);
-	return formatMultibuy(bought);
-}
-
-/** Multibuy text for a purchase list such as the planner's shopping lists. */
-export function lineItemsMultibuy(items: readonly Pick<LineItem, 'name' | 'quantity'>[]): string {
-	return formatMultibuy(items);
 }

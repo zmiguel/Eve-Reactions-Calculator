@@ -445,7 +445,13 @@ export const PLAN_EXAMPLE = {
 			runsPerSlot: [122, 122],
 			firstCycle: 2,
 			runTimeSeconds: 4924.8,
-			jobCost: 21056303.66
+			jobCost: 21056303.66,
+			product: { typeId: 16671, name: 'Titanium Carbide', quantity: 2440000 },
+			materials: [
+				{ typeId: 4312, name: 'Oxygen Fuel Block', quantity: 1192, producer: null },
+				{ typeId: 16654, name: 'Titanium Chromide', quantity: 23816, producer: 46182 },
+				{ typeId: 16658, name: 'Silicon Diborite', quantity: 23816, producer: 46179 }
+			]
 		},
 		{
 			blueprintTypeId: 46179,
@@ -456,7 +462,13 @@ export const PLAN_EXAMPLE = {
 			runsPerSlot: [120],
 			firstCycle: 1,
 			runTimeSeconds: 4924.8,
-			jobCost: 9361668.87
+			jobCost: 9361668.87,
+			product: { typeId: 16658, name: 'Silicon Diborite', quantity: 24000 },
+			materials: [
+				{ typeId: 4312, name: 'Oxygen Fuel Block', quantity: 586, producer: null },
+				{ typeId: 16635, name: 'Evaporite Deposits', quantity: 11712, producer: null },
+				{ typeId: 16636, name: 'Silicates', quantity: 11712, producer: null }
+			]
 		},
 		{
 			blueprintTypeId: 46182,
@@ -467,7 +479,13 @@ export const PLAN_EXAMPLE = {
 			runsPerSlot: [120],
 			firstCycle: 1,
 			runTimeSeconds: 4924.8,
-			jobCost: 5553857.29
+			jobCost: 5553857.29,
+			product: { typeId: 16654, name: 'Titanium Chromide', quantity: 24000 },
+			materials: [
+				{ typeId: 4312, name: 'Oxygen Fuel Block', quantity: 586, producer: null },
+				{ typeId: 16638, name: 'Titanium', quantity: 11712, producer: null },
+				{ typeId: 16641, name: 'Chromium', quantity: 11712, producer: null }
+			]
 		}
 	],
 	slotsUsed: 4,
@@ -493,7 +511,7 @@ export const PLAN_EXAMPLE = {
 			jobCost: 35971829.82
 		}
 	],
-	startup: { mode: 'buy', buy: { initialInvestment: 479332528.63, cycles: 2 }, step0: null },
+	startup: { mode: 'buy', reused: [], buy: { initialInvestment: 479332528.63, cycles: 2 }, step0: null },
 	purchasesPerCycle: [
 		{
 			typeId: 4312,

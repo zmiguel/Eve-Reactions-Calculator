@@ -145,9 +145,9 @@ describe('summarizeResult', () => {
 			total: 4,
 			levels: [2, 2],
 			reactions: [
-				{ name: 'Titanium Carbide', slots: 2, runsPerSlot: 122 },
-				{ name: 'Silicon Diborite', slots: 1, runsPerSlot: 120 },
-				{ name: 'Titanium Chromide', slots: 1, runsPerSlot: 120 }
+				{ name: 'Titanium Carbide', runsPerSlot: [122, 122] },
+				{ name: 'Silicon Diborite', runsPerSlot: [120] },
+				{ name: 'Titanium Chromide', runsPerSlot: [120] }
 			]
 		});
 		expect(summarizeResult(row.single, ctx.dataset).slots).toBeNull();

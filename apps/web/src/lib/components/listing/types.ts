@@ -28,8 +28,8 @@ export interface SlotsSummary {
 	total: number;
 	/** Slots per build level, final product first: `[2, 2]` is shown as `2+2`. */
 	levels: number[];
-	/** Per-reaction slots (tooltip). */
-	reactions: { name: string; slots: number; runsPerSlot: number }[];
+	/** Per-reaction runs of each slot (tooltip). */
+	reactions: { name: string; runsPerSlot: number[] }[];
 }
 
 export interface RowSummary {

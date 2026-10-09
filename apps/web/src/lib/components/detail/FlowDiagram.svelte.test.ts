@@ -1,11 +1,20 @@
+import type { ChainNode } from '@reactions/engine';
 import { render } from '@testing-library/svelte';
 import { describe, expect, it } from 'vitest';
 import { titaniumCarbide, unrefinedChain } from '../../../test/chain';
-import ChainFlow from './ChainFlow.svelte';
+import FlowDiagram from './FlowDiagram.svelte';
+import { layoutChainFlow } from './flow';
 
-describe('ChainFlow', () => {
+const chain = (root: ChainNode) =>
+	render(FlowDiagram, {
+		layout: layoutChainFlow(root),
+		title: `Material flow for ${root.name}`,
+		scope: 'chain'
+	});
+
+describe('FlowDiagram of a chain', () => {
 	it('renders an accessible SVG with bought, intermediate and final nodes', () => {
-		const { container } = render(ChainFlow, { root: titaniumCarbide() });
+		const { container } = chain(titaniumCarbide());
 		const svg = container.querySelector('svg')!;
 		expect(svg.getAttribute('role')).toBe('img');
 		const labelledBy = svg.getAttribute('aria-labelledby')!.split(' ');
@@ -34,7 +43,7 @@ describe('ChainFlow', () => {
 	});
 
 	it('labels every edge with its quantity', () => {
-		const { container } = render(ChainFlow, { root: titaniumCarbide() });
+		const { container } = chain(titaniumCarbide());
 		const edges = [...container.querySelectorAll('[data-flow-edge]')];
 		expect(edges).toHaveLength(9);
 		const intoTop = edges.filter((e) => e.getAttribute('data-to') === 'job:0');
@@ -49,14 +58,14 @@ describe('ChainFlow', () => {
 	});
 
 	it('marks a bought material without a price', () => {
-		const { container } = render(ChainFlow, { root: titaniumCarbide({ titanium: null }) });
+		const { container } = chain(titaniumCarbide({ titanium: null }));
 		const titanium = container.querySelector('[data-flow-node="buy:16638"]')!;
 		expect(titanium.querySelector('[data-node-detail]')!.textContent).toContain('no price');
 		expect(titanium.querySelector('title')!.textContent).toContain('no market price');
 	});
 
 	it('shows an unrefined job as reprocessed, with edges for its material and its byproduct', () => {
-		const { container } = render(ChainFlow, { root: unrefinedChain() });
+		const { container } = chain(unrefinedChain());
 		const job = container.querySelector('[data-flow-node="job:0.1"]')!;
 		expect(job.querySelector('[data-node-detail]')!.textContent).toBe('5 runs, reprocessed');
 		expect(job.querySelector('title')!.textContent).toContain('into Prometium');
@@ -68,16 +77,53 @@ describe('ChainFlow', () => {
 		expect(container.querySelector('figcaption')!.textContent).not.toContain('Reprocessing byproduct');
 	});
 
-	it("shows a steady cycle's byproduct from last cycle as its own source", () => {
+	it("draws a steady cycle's byproduct as a green back edge to the material it replaces", () => {
 		const root = unrefinedChain();
+		root.runsPerSlot = [2];
 		root.children[0].step = 1;
 		root.step = 2;
-		const { container } = render(ChainFlow, { root });
-		const cadmium = container.querySelector('[data-flow-node="byproduct:16643"]')!;
-		expect(cadmium.getAttribute('data-kind')).toBe('byproduct');
-		expect(cadmium.querySelector('[data-node-detail]')!.textContent).toBe('100 from last cycle');
+		const { container } = chain(root);
+		const cadmium = container.querySelector('[data-flow-node="buy:16643"]')!;
+		expect(cadmium.querySelector('[data-node-detail]')!.textContent).toBe('500 bought · 100 reused');
+		const back = container.querySelector('[data-flow-back-edge]')!;
+		expect([back.getAttribute('data-from'), back.getAttribute('data-to')]).toEqual(['job:0.1', 'buy:16643']);
+		expect(back.querySelector('[data-edge-label]')!.textContent).toBe('100 Cadmium reused next cycle');
 		expect(container.querySelector('figcaption')!.textContent).toContain(
-			'Reprocessing byproduct from last cycle'
+			'Reprocessing byproduct reused next cycle'
 		);
+	});
+});
+
+describe('FlowDiagram of a plan', () => {
+	it('labels a back edge as reused next cycle and the bought material with its bought and reused parts', () => {
+		const layout = {
+			...layoutChainFlow(unrefinedChain()),
+			backEdges: [
+				{
+					id: 'job:0.1>buy:16643',
+					from: 'job:0.1',
+					to: 'buy:16643',
+					quantity: 300,
+					material: 'Cadmium',
+					path: 'M0 0 H1',
+					labelX: 1,
+					labelY: 1
+				}
+			]
+		};
+		layout.nodes = layout.nodes.map((n) => (n.id === 'buy:16643' ? { ...n, reused: 300 } : n));
+		const { container } = render(FlowDiagram, { layout, title: 'Material flow of the plan', scope: 'plan' });
+		const back = container.querySelector('[data-flow-back-edge]')!;
+		expect(back.querySelector('[data-edge-label]')!.textContent).toBe('300 Cadmium reused next cycle');
+		expect(back.querySelector('title')!.textContent).toBe(
+			'300 Cadmium from reprocessing Unrefined Prometium, used next cycle instead of buying it'
+		);
+		expect(container.querySelector('[data-flow-node="buy:16643"] [data-node-detail]')!.textContent).toBe(
+			'200 bought · 300 reused'
+		);
+		const caption = container.querySelector('figcaption')!.textContent!;
+		expect(caption).toContain('Reprocessing byproduct reused next cycle');
+		expect(caption).toContain('Target product');
+		expect(caption).toContain('quantity each job consumes per cycle');
 	});
 });

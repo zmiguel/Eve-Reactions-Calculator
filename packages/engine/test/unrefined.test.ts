@@ -555,6 +555,19 @@ describe('unrefined routes in full chains', () => {
 			]
 		});
 		expect(unrefined.totalRuns).toBe(T);
+		// What each job consumes per cycle and who makes it: the reprocessed X comes from the unrefined job,
+		// the D both jobs need is bought, 120 T of it reused from the previous cycle's reprocessing.
+		expect(top.product).toEqual({ typeId: F, name: 'Final', quantity: 200 * T });
+		expect(top.materials).toEqual([
+			{ typeId: X, name: 'Xite', quantity: 100 * T, producer: UNREFINED.blueprintTypeId },
+			{ typeId: D, name: 'D', quantity: 20 * T, producer: null }
+		]);
+		expect(unrefined.product).toEqual({ typeId: U, name: 'Unrefined Xite', quantity: T });
+		expect(unrefined.materials).toEqual([
+			{ typeId: C, name: 'C', quantity: 100 * T, producer: null },
+			{ typeId: D, name: 'D', quantity: 100 * T, producer: null }
+		]);
+		expect(plan.startup.reused).toEqual([{ typeId: D, name: 'D', quantity: 120 * T }]);
 		expect(plan.purchasesPerCycle.map((p) => [p.typeId, p.quantity])).toEqual([[C, 100 * T]]);
 		expect(plan.outputsPerCycle.map((o) => [o.typeId, o.quantity])).toEqual([
 			[F, 200 * T],

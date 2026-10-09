@@ -165,15 +165,42 @@ describe('layoutChainFlow', () => {
 		expect(layout.nodes.find((n) => n.id === 'buy:16643')!.quantity).toBe(500);
 	});
 
-	it("starts a steady cycle's byproduct from last cycle at its own node on the left", () => {
+	it("draws a steady cycle's byproduct as reuse: a back edge from the unrefined job to the material node", () => {
 		const root = unrefinedChain();
+		root.runsPerSlot = [2]; // optimal slots: every job uses the previous cycle's byproducts
 		root.children[0].step = 1;
 		root.step = 2;
 		const layout = layoutChainFlow(root);
 		expectWellFormed(layout);
-		const cadmium = layout.nodes.find((n) => n.id === 'byproduct:16643')!;
-		expect([cadmium.kind, cadmium.column, cadmium.quantity]).toEqual(['byproduct', 0, 100]);
-		expect(layout.edges.filter((e) => e.from === cadmium.id).map((e) => e.to)).toEqual(['job:0.0']);
+		const cadmium = layout.nodes.find((n) => n.id === 'buy:16643')!;
+		// Unrefined Prometium buys 500; Caesarium Cadmide's 100 come from last cycle's reprocessing.
+		expect([cadmium.kind, cadmium.column, cadmium.quantity, cadmium.reused]).toEqual(['bought', 0, 600, 100]);
+		expect(layout.edges.filter((e) => e.from === cadmium.id).map((e) => [e.to, e.quantity])).toEqual([
+			['job:0.0', 100],
+			['job:0.1', 500]
+		]);
+		expect(layout.edges.some((e) => e.from === 'job:0.1' && e.material === 'Cadmium')).toBe(false);
+		expect(layout.backEdges.map((e) => [e.from, e.to, e.material, e.quantity])).toEqual([
+			['job:0.1', 'buy:16643', 'Cadmium', 100]
+		]);
+	});
+
+	it('merges a purchase partly covered by reuse into one edge, and marks a material covered in full', () => {
+		const root = unrefinedChain();
+		root.runsPerSlot = [2];
+		const cadmide = root.children[0];
+		// Caesarium Cadmide uses 100 reused and still buys 30: one edge of 130.
+		cadmide.materials.splice(2, 0, { ...cadmide.materials[0], typeId: 16643, name: 'Cadmium', quantity: 30 });
+		const layout = layoutChainFlow(root);
+		expect(layout.edges.filter((e) => e.from === 'buy:16643').map((e) => [e.to, e.quantity])).toEqual([
+			['job:0.0', 130],
+			['job:0.1', 500]
+		]);
+		// Without any Cadmium purchase left, the node is covered in full by reuse.
+		root.children[1].materials = root.children[1].materials.filter((m) => m.typeId !== 16643);
+		cadmide.materials = cadmide.materials.filter((m) => !(m.typeId === 16643 && m.source === 'buy'));
+		const covered = layoutChainFlow(root).nodes.find((n) => n.id === 'buy:16643')!;
+		expect([covered.kind, covered.quantity, covered.reused]).toEqual(['byproduct', 100, 100]);
 	});
 });
 

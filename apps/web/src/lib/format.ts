@@ -47,6 +47,40 @@ export function formatDuration(seconds: number): string {
 	return parts.length ? parts.join(' ') : '0s';
 }
 
+/** Slots per distinct run count, the most common first (ties: more runs first). */
+function slotRunGroups(runsPerSlot: readonly number[]): { slots: number; runs: number }[] {
+	const counts = new Map<number, number>();
+	for (const runs of runsPerSlot) counts.set(runs, (counts.get(runs) ?? 0) + 1);
+	return [...counts]
+		.map(([runs, slots]) => ({ slots, runs }))
+		.sort((a, b) => b.slots - a.slots || b.runs - a.runs);
+}
+
+/**
+ * Runs per slot of a job split over parallel slots, as `slots × runs` groups, the most common first:
+ * `2 × 122`, `5 × 62 + 3 × 61`.
+ */
+export function formatSlotRuns(runsPerSlot: readonly number[]): string {
+	return slotRunGroups(runsPerSlot)
+		.map((g) => `${formatNumber(g.slots)} × ${formatNumber(g.runs)}`)
+		.join(' + ');
+}
+
+/** A "Runs / slot" cell: `122` when every slot runs the same, otherwise {@link formatSlotRuns}. */
+export function formatRunsPerSlot(runsPerSlot: readonly number[]): string {
+	return new Set(runsPerSlot).size === 1 ? formatNumber(runsPerSlot[0]) : formatSlotRuns(runsPerSlot);
+}
+
+/** Tooltip of a "Runs / slot" cell: `5 slots of 62 runs and 3 slots of 61 runs, 493 runs in total`. */
+export function runsPerSlotTitle(runsPerSlot: readonly number[]): string {
+	const plural = (n: number, word: string) => `${formatNumber(n)} ${word}${n === 1 ? '' : 's'}`;
+	const groups = slotRunGroups(runsPerSlot).map(
+		(g) => `${plural(g.slots, 'slot')} of ${plural(g.runs, 'run')}`
+	);
+	const total = runsPerSlot.reduce((a, b) => a + b, 0);
+	return `${groups.join(' and ')}, ${plural(total, 'run')} in total`;
+}
+
 /** `2026-10-06 12:00 UTC`; `null` → `n/a`. */
 export function formatUtc(ms: number | null | undefined): string {
 	if (ms === null || ms === undefined || !Number.isFinite(ms)) return 'n/a';

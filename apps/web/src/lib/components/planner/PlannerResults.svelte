@@ -2,12 +2,23 @@
 	import type { PlanResult } from '@reactions/engine';
 	import type { InputMarket, ProductVolume } from '$lib/planner/plan';
 	import InfoNote from '$lib/components/InfoNote.svelte';
+	import FlowDiagram from '$lib/components/detail/FlowDiagram.svelte';
+	import { layoutPlanFlow } from '$lib/planner/flow';
 	import LineItemsTable from '$lib/components/detail/LineItemsTable.svelte';
 	import MultibuyButton from '$lib/components/detail/MultibuyButton.svelte';
-	import { formatDuration, formatIsk, formatIskFull, formatNumber, formatPct } from '$lib/format';
+	import {
+		formatDuration,
+		formatIsk,
+		formatIskFull,
+		formatNumber,
+		formatPct,
+		formatRunsPerSlot,
+		runsPerSlotTitle
+	} from '$lib/format';
 	import { lineItemsMultibuy } from '$lib/multibuy';
 	import { typeIconUrl } from '$lib/site';
-	import { phaseTitle, startupSummary, unrefinedRoute } from '$lib/startup';
+	import StartupNote from '$lib/components/StartupNote.svelte';
+	import { phaseTitle } from '$lib/startup';
 
 	interface Props {
 		plan: PlanResult;
@@ -25,6 +36,8 @@
 		purchaseVolumes?: Record<number, ProductVolume>;
 		/** Input and fallback hub shared by every profile; `null` when profiles differ. */
 		inputMarket?: InputMarket | null;
+		/** Fuel block type ids: drawn at the top of the material flow, like every material list. */
+		fuelTypeIds?: ReadonlySet<number>;
 	}
 
 	let {
@@ -36,7 +49,8 @@
 		profileWarnings = [],
 		volumes = {},
 		purchaseVolumes = {},
-		inputMarket = null
+		inputMarket = null,
+		fuelTypeIds = new Set()
 	}: Props = $props();
 
 	const days = $derived(+cycleDays.toFixed(2));
@@ -125,11 +139,17 @@
 
 	const reactionNames = $derived(new Map(plan.reactions.map((r) => [r.blueprintTypeId, r.name])));
 	const phaseScale = $derived(Math.max(totalSlots, plan.slotsUsed, 1));
-	const startupLine = $derived(startupSummary(plan.startup, reactionNames));
+	/** Unrefined jobs replacing regular reactions; their byproducts are drawn in the material flow. */
 	const unrefinedRoutes = $derived(
 		plan.reactions
 			.filter((r) => r.reprocess)
-			.map((r) => ({ id: r.blueprintTypeId, ...unrefinedRoute(r, reactionNames, plan.startup) }))
+			.map((r) => ({
+				id: r.blueprintTypeId,
+				name: r.name,
+				replaces: r.reprocess!.replaces.map((x) => x.regularName),
+				step0:
+					plan.startup.mode === 'step0' && plan.startup.step0!.blueprintTypeIds.includes(r.blueprintTypeId)
+			}))
 	);
 	const usedPct = $derived(Math.min(100, (plan.slotsUsed / Math.max(totalSlots, 1)) * 100));
 
@@ -282,10 +302,12 @@
 							<td class="px-3 py-1 font-medium whitespace-nowrap" data-field="name">{r.name}</td>
 							<td class={td}>{r.depth}</td>
 							<td class={td} data-field="slots">{r.slots}</td>
-							<td class={td}>{[...new Set(r.runsPerSlot)].map((n) => formatNumber(n)).join(' / ')}</td>
+							<td class={td} title={runsPerSlotTitle(r.runsPerSlot)} data-field="runs"
+								>{formatRunsPerSlot(r.runsPerSlot)}</td
+							>
 							<td
 								class={td}
-								title="{formatNumber(r.runsPerSlot[0])} runs × {formatDuration(r.runTimeSeconds)}"
+								title="{formatNumber(Math.max(...r.runsPerSlot))} runs × {formatDuration(r.runTimeSeconds)}"
 							>
 								{formatDuration(Math.max(...r.runsPerSlot) * r.runTimeSeconds)}
 							</td>
@@ -299,53 +321,17 @@
 		{#if unrefinedRoutes.length > 0}
 			<InfoNote name="unrefined-routes">
 				<h3 class="font-semibold">Unrefined routes</h3>
-				<ul class="mt-1 space-y-2">
+				<p class="mt-0.5">
+					These intermediates are made by their Unrefined reaction and reprocessing; the material flow below
+					shows where the reprocessing byproducts go.
+				</p>
+				<ul class="mt-1 space-y-0.5">
 					{#each unrefinedRoutes as route (route.id)}
 						<li data-unrefined-route={route.id}>
-							<div data-route-head>
-								{route.replaces.join(', ')}
-								<span aria-hidden="true">→</span>
-								<span class="sr-only">replaced by</span>
-								<span class="font-medium">{route.name}</span>
-								{#if route.step0}
-									<span class="text-blue-700 dark:text-blue-300">· runs once in step 0</span>
-								{/if}
-							</div>
-							{#if route.byproducts.length > 0}
-								<ul class="mt-0.5 space-y-0.5 pl-4">
-									{#each route.byproducts as b (b.name)}
-										<li data-route-byproduct>
-											<div>
-												Reprocessed <span class="font-medium">{b.name}</span>: {formatNumber(b.quantity)} per cycle
-											</div>
-											<ul class="pl-4">
-												{#if b.used > 0}
-													<li data-route-use>
-														<span aria-hidden="true">→</span>
-														{formatNumber(b.used)} replace purchases in
-														{#if b.sharedFromCycle !== null}
-															{b.usedBy.map((u) => u.name).join(', ')}
-															<span class="text-blue-700 dark:text-blue-300"
-																>(from cycle {b.sharedFromCycle})</span
-															>
-														{:else}
-															{#each b.usedBy as u, i (u.name)}{i > 0 ? ', ' : ''}{u.name}
-																<span class="text-blue-700 dark:text-blue-300"
-																	>(from cycle {u.fromCycle})</span
-																>{/each}
-														{/if}
-													</li>
-												{/if}
-												{#if b.sold > 0}
-													<li data-route-sold>
-														<span aria-hidden="true">→</span>
-														{formatNumber(b.sold)} sold
-													</li>
-												{/if}
-											</ul>
-										</li>
-									{/each}
-								</ul>
+							{route.replaces.join(', ')} <span aria-hidden="true">→</span> replaced by
+							<span class="font-medium">{route.name}</span>
+							{#if route.step0}
+								<span class="text-blue-700 dark:text-blue-300">· runs once in step 0</span>
 							{/if}
 						</li>
 					{/each}
@@ -383,6 +369,24 @@
 		</ol>
 	</section>
 
+	{#if plan.reactions.length > 0}
+		<section class="space-y-2" aria-labelledby="plan-flow" data-plan-flow>
+			<h3 id="plan-flow" class={h3}>Material flow</h3>
+			<p class="text-sm text-gray-600 dark:text-gray-300">
+				One steady cycle: what every reaction consumes and where it comes from.
+				{#if plan.reactions.some((r) => r.reprocess)}
+					Green arrows run from each unrefined reaction back to the raw material its reprocessing also yields;
+					that amount is reused the next cycle instead of bought.
+				{/if}
+			</p>
+			<FlowDiagram
+				layout={layoutPlanFlow(plan, fuelTypeIds)}
+				title="Material flow of the plan"
+				scope="plan"
+			/>
+		</section>
+	{/if}
+
 	<section class="space-y-1">
 		<LineItemsTable
 			title="Shopping list per cycle"
@@ -395,9 +399,7 @@
 
 	<section class="space-y-2" aria-labelledby="plan-startup" data-plan-startup>
 		<h3 id="plan-startup" class={h3}>Start-up purchases, minus stock</h3>
-		{#if startupLine}
-			<InfoNote name="startup-choice">{startupLine}</InfoNote>
-		{/if}
+		<StartupNote startup={plan.startup} names={reactionNames} />
 		{#each plan.phases as phase (phase.cycle)}
 			<div class="space-y-1" data-startup-phase={phase.cycle}>
 				<LineItemsTable

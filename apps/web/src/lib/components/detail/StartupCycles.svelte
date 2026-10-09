@@ -1,9 +1,9 @@
 <script lang="ts">
 	import type { ChainAllocation } from '@reactions/engine';
-	import InfoNote from '$lib/components/InfoNote.svelte';
-	import { formatIsk, formatIskFull, formatNumber } from '$lib/format';
+	import StartupNote from '$lib/components/StartupNote.svelte';
+	import { formatIsk, formatIskFull, formatSlotRuns } from '$lib/format';
 	import { lineItemsMultibuy } from '$lib/multibuy';
-	import { phaseTitle, startupSummary } from '$lib/startup';
+	import { phaseTitle } from '$lib/startup';
 	import LineItemsTable from './LineItemsTable.svelte';
 	import MultibuyButton from './MultibuyButton.svelte';
 
@@ -17,7 +17,6 @@
 	const names = $derived(new Map(a.reactions.map((r) => [r.blueprintTypeId, r.name])));
 	const oneTime = $derived(a.phases.filter((p) => p.label !== 'steady'));
 	const steady = $derived(a.phases.at(-1)!);
-	const summary = $derived(startupSummary(a.startup, names));
 	const cost = (items: { total: number; fees: number; shipping: number; unitPrice: number | null }[]) =>
 		items.some((i) => i.unitPrice === null)
 			? null
@@ -33,9 +32,7 @@
 				cycle runs the production steps below.
 			</p>
 		</div>
-		{#if summary}
-			<InfoNote name="startup-choice">{summary}</InfoNote>
-		{/if}
+		<StartupNote startup={a.startup} {names} />
 		{#each oneTime as phase (phase.cycle)}
 			{@const buy = cost(phase.purchases)}
 			<article
@@ -51,9 +48,7 @@
 					{#each phase.blueprintTypeIds as id, i (id)}
 						{@const r = reactions.get(id)!}
 						{i > 0 ? ', ' : ''}<span class="font-medium text-gray-800 dark:text-gray-200">{r.name}</span>
-						<span class="tabular-nums"
-							>({r.slots} × {[...new Set(r.runsPerSlot)].map((n) => formatNumber(n)).join(' / ')} runs)</span
-						>
+						<span class="tabular-nums">({formatSlotRuns(r.runsPerSlot)} runs)</span>
 					{/each}.
 				</p>
 				<LineItemsTable

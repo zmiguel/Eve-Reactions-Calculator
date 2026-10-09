@@ -1,6 +1,14 @@
 <script lang="ts">
 	import type { ChainAllocation } from '@reactions/engine';
-	import { formatDuration, formatIsk, formatIskFull, formatNumber, formatPct } from '$lib/format';
+	import {
+		formatDuration,
+		formatIsk,
+		formatIskFull,
+		formatNumber,
+		formatPct,
+		formatRunsPerSlot,
+		runsPerSlotTitle
+	} from '$lib/format';
 
 	interface Props {
 		allocation: ChainAllocation;
@@ -74,12 +82,12 @@
 						>
 							<td class="px-3 py-1 font-medium whitespace-nowrap" data-field="name">{r.name}</td>
 							<td class={td} data-field="slots">{formatNumber(r.slots)}</td>
-							<td class={td} data-field="runs"
-								>{[...new Set(r.runsPerSlot)].map((n) => formatNumber(n)).join(' / ')}</td
+							<td class={td} title={runsPerSlotTitle(r.runsPerSlot)} data-field="runs"
+								>{formatRunsPerSlot(r.runsPerSlot)}</td
 							>
 							<td
 								class={td}
-								title="{formatNumber(r.runsPerSlot[0])} runs × {formatDuration(r.runTimeSeconds)}"
+								title="{formatNumber(Math.max(...r.runsPerSlot))} runs × {formatDuration(r.runTimeSeconds)}"
 								data-field="duration">{formatDuration(Math.max(...r.slotDurations))}</td
 							>
 							<td class={td} data-field="firstCycle">{r.firstCycle}</td>
