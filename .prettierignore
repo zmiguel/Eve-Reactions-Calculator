@@ -1,5 +1,4 @@
-EVE-Reactions-Calculator/
-/sde/
+references/
 node_modules/
 .wrangler/
 .svelte-kit/
@@ -11,7 +10,4 @@ package-lock.json
 packages/db/migrations/
 **/worker-configuration.d.ts
 apps/web/static/
-PLAN.md
 *.zip
-*.ods
-prompt.txt

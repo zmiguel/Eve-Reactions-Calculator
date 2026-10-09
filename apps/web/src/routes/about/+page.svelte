@@ -29,6 +29,10 @@
 		{
 			q: 'Does the site use cookies?',
 			a: 'The site sets only functional cookies: your theme choice, your calculator settings once you save them on the Settings page (just the values you changed from the defaults; "Reset to defaults" removes it) and, when you log in, a session cookie plus a short-lived one during the EVE login. Settings you changed on the old version of the site are carried over once into the new settings cookie, and the old cookies are removed.'
+		},
+		{
+			q: 'Does the site use analytics?',
+			a: 'Yes: Rybbit, which the site operator hosts, and Cloudflare Web Analytics. They record page views, errors and page speed, and Rybbit also records sessions to show how pages are used. When you are logged in, Rybbit links your visits on this device, including the ones before you logged in, to your account and shows it under your main character (the first character on the account). Logging out stops that for later visits.'
 		}
 	];
 </script>

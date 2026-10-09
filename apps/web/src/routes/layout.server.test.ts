@@ -6,7 +6,7 @@ const run = (user: App.Locals['user'], settings: Settings = DEFAULT_SETTINGS) =>
 	load({ locals: { user, settings } } as never);
 
 describe('root layout load', () => {
-	it('exposes only the login character and admin flag to the navbar', () => {
+	it('exposes the login character and admin flag to the navbar, the account id and main character to analytics', () => {
 		expect(
 			run({
 				userId: 'secret-user-id',
@@ -19,6 +19,7 @@ describe('root layout load', () => {
 			})
 		).toEqual({
 			user: { characterId: 90000002, name: 'Beta', isAdmin: true },
+			analytics: { userId: 'secret-user-id', username: 'Alpha' },
 			defaultTabs: { view: 'single', output: 'product', unrefined: false }
 		});
 	});
@@ -27,12 +28,13 @@ describe('root layout load', () => {
 		expect(
 			run({ userId: 'u', characterId: 5, characters: [{ characterId: 1, name: 'Alpha' }], isAdmin: false })
 		).toMatchObject({ user: { characterId: 1, name: 'Alpha', isAdmin: false } });
-		expect(run(null)).toMatchObject({ user: null });
+		expect(run(null)).toMatchObject({ user: null, analytics: null });
 	});
 
 	it("passes the visitor's preferred reaction tabs to every page", () => {
 		expect(run(null, Settings.parse({ defaultView: 'chain', defaultOutput: 'reprocessed' }))).toEqual({
 			user: null,
+			analytics: null,
 			defaultTabs: { view: 'chain', output: 'reprocessed', unrefined: false }
 		});
 		expect(
