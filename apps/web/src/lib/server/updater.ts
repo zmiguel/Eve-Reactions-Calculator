@@ -18,6 +18,7 @@ export interface UpdaterApi {
 	triggerHistoryBackfill(): Promise<{ instanceId: string }>;
 	triggerAdjustedPrices(): Promise<InlineRunResult>;
 	triggerCostIndices(): Promise<InlineRunResult>;
+	triggerAffiliations(): Promise<InlineRunResult>;
 	publishMarketSnapshot(): Promise<{ snapshotAt: number; hubIds: string[] }>;
 	workflowStatus(runs: { kind: string; runId: string }[]): Promise<Record<string, WorkflowStatus>>;
 }
@@ -70,6 +71,8 @@ async function callUpdater(
 			return inlineNotice(name, await updater.triggerAdjustedPrices());
 		case 'cost_indices':
 			return inlineNotice(name, await updater.triggerCostIndices());
+		case 'affiliations':
+			return inlineNotice(name, await updater.triggerAffiliations());
 		case 'market_snapshot': {
 			const { hubIds } = await updater.publishMarketSnapshot();
 			return { ok: true, text: `${name} published with ${hubIds.length} public hubs.` };

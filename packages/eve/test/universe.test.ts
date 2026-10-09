@@ -1,9 +1,12 @@
 import { describe, expect, it, vi } from 'vitest';
 import {
+	ESI_BULK_CHUNK,
 	ESI_COMPAT_DATE,
 	EsiError,
 	createEsiClient,
+	fetchAffiliations,
 	fetchConstellationInfo,
+	fetchNames,
 	fetchRegionInfo,
 	fetchSystemInfo
 } from '../src/index.ts';
@@ -78,5 +81,46 @@ describe('universe clients', () => {
 		});
 		expect(calls).toHaveLength(2);
 		await expect(fetchRegionInfo(esi, 10000058)).rejects.toBeInstanceOf(EsiError);
+	});
+
+	it('fetchAffiliations posts JSON id chunks of 100 and maps missing alliances to null', async () => {
+		const ids = Array.from({ length: 205 }, (_, i) => 90000001 + i);
+		const { esi, calls } = esiWith(({ body }) =>
+			json(
+				(JSON.parse(body!) as number[]).map((id) => ({
+					character_id: id,
+					corporation_id: 98000001,
+					...(id % 2 ? { alliance_id: 99000001 } : {})
+				}))
+			)
+		);
+		const { items, failedChunks } = await fetchAffiliations(esi, [...ids, ids[0]]);
+		expect(calls.map((c) => [c.method, c.url, (JSON.parse(c.body!) as number[]).length])).toEqual([
+			['POST', 'https://esi.evetech.net/characters/affiliation', ESI_BULK_CHUNK],
+			['POST', 'https://esi.evetech.net/characters/affiliation', ESI_BULK_CHUNK],
+			['POST', 'https://esi.evetech.net/characters/affiliation', 5]
+		]);
+		expect(calls[0].headers.get('Content-Type')).toBe('application/json');
+		expect(calls[0].headers.get('X-Compatibility-Date')).toBe(ESI_COMPAT_DATE);
+		expect(items).toHaveLength(205);
+		expect(items.slice(0, 2)).toEqual([
+			{ characterId: 90000001, corporationId: 98000001, allianceId: 99000001 },
+			{ characterId: 90000002, corporationId: 98000001, allianceId: null }
+		]);
+		expect(failedChunks).toEqual([]);
+	});
+
+	it('reports a refused chunk and still resolves the others', async () => {
+		const ids = Array.from({ length: 150 }, (_, i) => 1 + i);
+		const { esi } = esiWith(({ body }) => {
+			const chunk = JSON.parse(body!) as number[];
+			return chunk[0] === 1
+				? json({ error: 'Invalid character ID' }, { status: 404 })
+				: json(chunk.map((id) => ({ id, name: `Name ${id}`, category: 'corporation' })));
+		});
+		const { items, failedChunks } = await fetchNames(esi, ids);
+		expect(items.map((i) => i.id)).toEqual(ids.slice(100));
+		expect(items[0]).toEqual({ id: 101, name: 'Name 101', category: 'corporation' });
+		expect(failedChunks).toEqual([{ ids: ids.slice(0, 100), status: 404 }]);
 	});
 });

@@ -1,4 +1,5 @@
 import { characters, getCoreDb, userSessions, users } from '@reactions/db';
+import { GRANTABLE_FEATURES, grantedFeatures, type GrantableFeature } from '@reactions/eve';
 import type { Cookies } from '@sveltejs/kit';
 import { and, asc, eq, gt } from 'drizzle-orm';
 import { SESSION_COOKIE, SESSION_MAX_AGE, deleteCookie, setSessionCookie } from './cookies.ts';
@@ -17,8 +18,19 @@ export interface SessionUser {
 	isAdmin: boolean;
 }
 
+/** Account facts for the analytics identity, read by the same queries as the session. */
+export interface AccountFacts {
+	createdAt: number;
+	/** Features granted to at least one of the account's characters, in registry order. */
+	features: GrantableFeature[];
+	/** Main (first) character's corporation and alliance; null until the updater's daily refresh. */
+	corporation: string | null;
+	alliance: string | null;
+}
+
 export interface LoadedSession {
 	user: SessionUser;
+	account: AccountFacts;
 	settingsJson: string | null;
 }
 
@@ -50,6 +62,7 @@ export async function loadSession(
 			expiresAt: userSessions.expiresAt,
 			characterId: userSessions.characterId,
 			lastSeenAt: users.lastSeenAt,
+			createdAt: users.createdAt,
 			settingsJson: users.settingsJson
 		})
 		.from(userSessions)
@@ -70,17 +83,30 @@ export async function loadSession(
 		await db.update(users).set({ lastSeenAt: now }).where(eq(users.userId, row.userId));
 	}
 	const chars = await db
-		.select({ characterId: characters.characterId, name: characters.name })
+		.select({
+			characterId: characters.characterId,
+			name: characters.name,
+			scopes: characters.scopes,
+			corporation: characters.corporationName,
+			alliance: characters.allianceName
+		})
 		.from(characters)
 		.where(eq(characters.userId, row.userId))
 		.orderBy(asc(characters.createdAt), asc(characters.characterId));
 	const admins = adminCharacterIds(env);
+	const granted = new Set(chars.flatMap((c) => grantedFeatures(c.scopes)));
 	return {
 		user: {
 			userId: row.userId,
 			characterId: row.characterId ?? chars[0]?.characterId ?? null,
-			characters: chars,
+			characters: chars.map((c) => ({ characterId: c.characterId, name: c.name })),
 			isAdmin: chars.some((c) => admins.has(c.characterId))
+		},
+		account: {
+			createdAt: row.createdAt,
+			features: GRANTABLE_FEATURES.filter((f) => granted.has(f)),
+			corporation: chars[0]?.corporation ?? null,
+			alliance: chars[0]?.alliance ?? null
 		},
 		settingsJson: row.settingsJson
 	};

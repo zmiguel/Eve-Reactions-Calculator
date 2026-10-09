@@ -38,6 +38,12 @@ export const PRICE_ARCHIVE_KEY = (snapshotAt: number): string =>
 /** The SDE pointer is checked once per hour, during the first cron tick (minutes 0–9). */
 export const SDE_CHECK_MAX_MINUTE = 9;
 
+/** Character affiliations are refreshed once a day, on the cron tick in 12:20–12:29 UTC (after downtime). */
+export const AFFILIATION_START_MINUTE_UTC = 12 * 60 + 20;
+export const AFFILIATION_END_MINUTE_UTC = 12 * 60 + 29;
+/** Only characters of accounts seen within this many days are looked up. */
+export const AFFILIATION_ACTIVE_DAYS = 30;
+
 export const SDE_ZIP_URL = (build: number): string =>
 	`https://developers.eveonline.com/static-data/tranquility/eve-online-static-data-${build}-jsonl.zip`;
 

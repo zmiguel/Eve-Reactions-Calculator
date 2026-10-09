@@ -417,7 +417,14 @@
 		</form>
 
 		<div class="flex flex-wrap items-center gap-2 border-t border-gray-200 pt-3 dark:border-gray-600">
-			<button type="button" class={button} disabled={!shareUrl} onclick={copyShare}>
+			<button
+				type="button"
+				class={button}
+				disabled={!shareUrl}
+				onclick={copyShare}
+				data-rybbit-event="share_link_copy"
+				data-rybbit-prop-kind="planner"
+			>
 				{shareStatus === 'copied' ? 'Link copied' : 'Share'}
 			</button>
 			<button

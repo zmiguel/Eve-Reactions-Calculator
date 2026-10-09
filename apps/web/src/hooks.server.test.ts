@@ -1,4 +1,5 @@
 import { DEFAULT_SETTINGS, Settings, decodeSettings, encodeSettings } from '@reactions/engine';
+import { STRUCTURE_SCOPES } from '@reactions/eve';
 import type { RequestEvent } from '@sveltejs/kit';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { MAX_FORM_BYTES, handle } from './hooks.server';
@@ -164,6 +165,27 @@ describe('sessions', () => {
 			],
 			isAdmin: true
 		});
+	});
+
+	it('loads the account facts for analytics: creation date, features of any character, main affiliation', async () => {
+		const env = fakeEnv();
+		insertUser(env.DB, { userId: 'u1' }, [
+			{ characterId: 90000001, name: 'Alpha' },
+			{ characterId: 90000002, name: 'Beta' }
+		]);
+		env.DB.sqlite.exec(`
+			UPDATE characters SET corporation_name = 'Reaction Corp', alliance_name = 'Moon Alliance' WHERE character_id = 90000001;
+			UPDATE characters SET corporation_name = 'Alt Corp', scopes = '${STRUCTURE_SCOPES.join(' ')}' WHERE character_id = 90000002;
+		`);
+		const token = await withSession(env, 'u1', NOW + 20 * DAY);
+		const { locals } = await run(new FakeCookies({ rc_session: token }), env);
+		expect(locals.account).toEqual({
+			createdAt: NOW,
+			features: ['structures'],
+			corporation: 'Reaction Corp',
+			alliance: 'Moon Alliance'
+		});
+		expect((await run(new FakeCookies(), env)).locals.account).toBeNull();
 	});
 
 	it('reports the character the session logged in with, falling back to the first once it is removed', async () => {

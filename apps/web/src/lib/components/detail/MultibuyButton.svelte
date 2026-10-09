@@ -33,6 +33,8 @@
 			type="button"
 			class="rounded-md border border-gray-200 bg-white px-3 py-1 font-medium text-gray-700 hover:bg-gray-100 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 dark:hover:bg-gray-600"
 			onclick={copy}
+			data-rybbit-event="multibuy_copy"
+			data-rybbit-prop-items={count}
 		>
 			{status === 'copied' ? 'Copied' : 'Copy multibuy'}
 		</button>

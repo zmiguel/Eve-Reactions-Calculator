@@ -75,6 +75,8 @@
 		{disabled}
 		title="Add lines of the most profitable reactions ({FILL_SCOPES[scope].label}) until no more fit"
 		onclick={onfill}
+		data-rybbit-event="planner_autofill"
+		data-rybbit-prop-scope={scope}
 	>
 		Auto-fill best
 	</button>
