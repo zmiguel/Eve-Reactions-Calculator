@@ -32,7 +32,7 @@
 		},
 		{
 			q: 'Does the site use analytics?',
-			a: 'Yes: Rybbit, which the site operator hosts, and Cloudflare Web Analytics. They record page views, errors and page speed, and Rybbit also records sessions to show how pages are used. When you are logged in, Rybbit links your visits on this device, including the ones before you logged in, to your account and shows it under your main character (the first character on the account). Logging out stops that for later visits.'
+			a: 'Yes: Rybbit, selfhosted, and Cloudflare Web Analytics. They record page views, errors and page speed, and Rybbit also records sessions to show how pages are used.'
 		}
 	];
 </script>
