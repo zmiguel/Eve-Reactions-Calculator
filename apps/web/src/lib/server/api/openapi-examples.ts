@@ -626,6 +626,7 @@ export const PLAN_EXAMPLE = {
 			volume: 1171.2
 		}
 	],
+	unusedStock: [],
 	formulasToBuy: [
 		{ blueprintTypeId: 46204, count: 2, unitPrice: 29270153.28 },
 		{ blueprintTypeId: 46179, count: 1, unitPrice: 18771817.5 },

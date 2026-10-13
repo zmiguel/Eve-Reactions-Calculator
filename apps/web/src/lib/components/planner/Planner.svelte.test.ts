@@ -1,12 +1,28 @@
-import { Settings } from '@reactions/engine';
+import {
+	STOCK_PLAN_MAX_CYCLES,
+	Settings,
+	isFuelBlock,
+	planFromStock,
+	type StockPlan
+} from '@reactions/engine';
+import type * as Engine from '@reactions/engine';
 import { fireEvent, render, screen, waitFor } from '@testing-library/svelte';
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import type { UserInventory } from '$lib/server/inventory';
+import { plannerContext } from '$lib/planner/plan';
 import { STORAGE_KEY, decodeShare, emptyState, encodeShare, type PlannerState } from '$lib/planner/state';
+import type { StockPlanner } from '$lib/planner/stockPlanner';
 import { plannerData } from '../../../test/planner';
 import { MemoryStorage } from '../../../test/storage';
 import { replaceStateCalls, resetNavigation } from '../../../test/shims/app/navigation';
 import { resetPage, setPage } from '../../../test/shims/app/state';
 import Planner from './Planner.svelte';
+
+vi.mock('@reactions/engine', async (importOriginal) => {
+	const engine = await importOriginal<typeof Engine>();
+	return { ...engine, planFromStock: vi.fn(engine.planFromStock) };
+});
+const lastStockInput = () => vi.mocked(planFromStock).mock.lastCall?.[0];
 
 const CRYSTALLINE_CARBONIDE = 46205;
 const CARBON_POLYMERS = 16659;
@@ -51,6 +67,22 @@ const startupQuantity = (c: HTMLElement, typeId: number) =>
 		(acc, row) => acc + Number(text(row.children[1]).replace(/,/g, '')),
 		0
 	);
+
+const inventory = (): UserInventory => ({
+	stock: { [COBALT]: 1000 },
+	formulas: { [CRYSTALLINE_CARBONIDE]: 2 },
+	sources: [
+		{
+			sourceId: 1,
+			ownerName: 'Alpha',
+			kind: 'character',
+			status: 'ok',
+			lastSyncedAt: Date.UTC(2026, 9, 6, 12, 5),
+			dataAsOf: Date.UTC(2026, 9, 6, 12)
+		}
+	],
+	oldestSyncAt: Date.UTC(2026, 9, 6, 12, 5)
+});
 
 describe('Planner', () => {
 	it('loads the stored plan and computes it with the client engine', async () => {
@@ -294,5 +326,241 @@ describe('Planner', () => {
 			expect(container.querySelector('[data-shared-plan]')).toBeNull();
 			unmount();
 		}
+	});
+
+	it('"My inventory" replaces the paste boxes with a summary and plans with the inventory', async () => {
+		const pasted = await setup(stored(stateWith({})));
+		const pastedCobalt = startupQuantity(pasted.container, COBALT);
+		pasted.unmount();
+
+		const storage = stored(stateWith({ stockText: 'Cobalt\t5', formulasText: '' }));
+		const { container } = await setup(storage, null, 150, plannerData({ inventory: inventory() }));
+		expect(screen.getByRole('button', { name: 'My inventory' }).getAttribute('aria-pressed')).toBe('true');
+		expect(screen.queryByRole('textbox', { name: 'Stock' })).toBeNull();
+		expect(screen.queryByRole('textbox', { name: 'Owned formulas' })).toBeNull();
+		const summary = container.querySelector('[data-inventory-summary]')!;
+		expect(text(summary.querySelector('p'))).toBe(
+			'1 material and 2 formulas from Alpha, synced 2026-10-06 12:05 UTC.'
+		);
+		expect(summary.querySelector('a')!.getAttribute('href')).toBe('/account/inventory');
+		expect(startupQuantity(container, COBALT)).toBe(pastedCobalt - 1000);
+		expect(container.querySelector('[data-formula="46205"]')).toBeNull();
+
+		await fireEvent.click(screen.getByRole('button', { name: 'Pasted lists' }));
+		expect(container.querySelector('[data-inventory-summary]')).toBeNull();
+		expect((screen.getByRole('textbox', { name: 'Stock' }) as HTMLTextAreaElement).value).toBe('Cobalt\t5');
+		expect(startupQuantity(container, COBALT)).toBe(pastedCobalt - 5);
+		expect(container.querySelector('[data-formula="46205"]')).not.toBeNull();
+		expect(JSON.parse(storage.getItem(STORAGE_KEY)!).stockSource).toBe('paste');
+	});
+
+	it('notes failed and old syncs of the inventory', async () => {
+		const inv = inventory();
+		inv.sources.push({ ...inv.sources[0], sourceId: 2, ownerName: 'Seed Corp', status: 'error' });
+		inv.oldestSyncAt = Date.now() - 3 * 86_400_000;
+		const { container } = await setup(stored(stateWith({})), null, 150, plannerData({ inventory: inv }));
+		expect(text(container.querySelector('[data-inventory-summary] p'))).toContain('from Alpha, Seed Corp');
+		expect(text(container.querySelector('[data-inventory-error]'))).toBe(
+			'The last sync of Seed Corp failed; the items of the sync before are used.'
+		);
+		expect(container.querySelector('[data-inventory-stale]')).not.toBeNull();
+	});
+
+	it('share links keep the inventory as stock source but never carry the inventory', async () => {
+		const writeText = vi.fn(async (_data: string) => {});
+		Object.defineProperty(navigator, 'clipboard', { value: { writeText }, configurable: true });
+		await setup(stored(stateWith({})), null, 150, plannerData({ inventory: inventory() }));
+		const button = screen.getByRole('button', { name: 'Share' });
+		await waitFor(() => expect((button as HTMLButtonElement).disabled).toBe(false));
+		await fireEvent.click(button);
+		const code = new URL(writeText.mock.calls[0][0]).searchParams.get('s')!;
+		expect((await decodeShare(code))?.state).toEqual(stateWith({ stockSource: 'account' }));
+	});
+
+	it('a shared plan using an inventory falls back to the pasted lists without one', async () => {
+		const code = await encodeShare(stateWith({ stockSource: 'account', stockText: 'Cobalt\t1,000' }));
+		const plain = await setup(new MemoryStorage(), await encodeShare(stateWith({})));
+		const before = startupQuantity(plain.container, COBALT);
+		expect(plain.container.querySelector('[data-inventory-fallback]')).toBeNull();
+		plain.unmount();
+
+		const { container } = await setup(new MemoryStorage(), code);
+		expect(text(container.querySelector('[data-inventory-fallback]'))).toBe(
+			'This plan takes stock and formulas from an account inventory, and you have no synced inventory here: your pasted lists are used instead.'
+		);
+		expect(screen.queryByRole('button', { name: 'My inventory' })).toBeNull();
+		expect((screen.getByRole('textbox', { name: 'Stock' }) as HTMLTextAreaElement).value).toBe(
+			'Cobalt\t1,000'
+		);
+		expect(startupQuantity(container, COBALT)).toBe(before - 1000);
+	});
+});
+
+describe('Planner: Use what I have', () => {
+	const storedState = (storage: MemoryStorage) => JSON.parse(storage.getItem(STORAGE_KEY)!) as PlannerState;
+	beforeEach(() => {
+		vi.mocked(planFromStock).mockClear();
+	});
+
+	it('the mode tabs swap the targets for the stock options and keep the targets', async () => {
+		const storage = stored(stateWith({}));
+		const { container } = await setup(storage);
+		const targetsTab = screen.getByRole('button', { name: 'Plan targets' });
+		expect(targetsTab.getAttribute('aria-pressed')).toBe('true');
+		expect(screen.getByRole('heading', { name: 'Targets' })).not.toBeNull();
+
+		await fireEvent.click(screen.getByRole('button', { name: 'Use what I have' }));
+		expect(screen.queryByRole('heading', { name: 'Targets' })).toBeNull();
+		expect(screen.getByRole('checkbox', { name: "Allow formulas I don't own" })).not.toBeNull();
+		expect(screen.getByRole('textbox', { name: 'Stock' })).not.toBeNull();
+		expect(container.querySelector('[data-results]')).toBeNull();
+		expect(text(container.querySelector('[data-stock-status]'))).toBe('Planning…');
+		expect(storedState(storage)).toMatchObject({ mode: 'stock', targets: stateWith({}).targets });
+
+		await fireEvent.click(targetsTab);
+		expect(screen.queryByRole('checkbox', { name: "Allow formulas I don't own" })).toBeNull();
+		expect(slotsUsed(container)).toBe('4 / 150');
+		expect(runReactions(container)).toContain('Crystalline Carbonide');
+	});
+
+	it('plans from the pasted stock with the chosen cycles, search time and formula option', async () => {
+		const storage = stored(
+			stateWith({
+				mode: 'stock',
+				slots: 11,
+				stockText: 'Carbon Polymers\t20,000',
+				formulasText: 'Crystalline Carbonide Reaction Formula\t2'
+			})
+		);
+		await setup(storage, null, 11);
+		await waitFor(() =>
+			expect(lastStockInput()).toMatchObject({
+				totalSlots: 11,
+				stock: { [CARBON_POLYMERS]: 20_000 },
+				ownedFormulas: { [CRYSTALLINE_CARBONIDE]: 2 },
+				maxCycles: undefined,
+				allowUnownedFormulas: false,
+				timeLimitMs: 10_000
+			})
+		);
+		const cycles = screen.getByRole('slider', { name: 'Cycles' }) as HTMLInputElement;
+		expect([cycles.min, cycles.max]).toEqual(['1', String(STOCK_PLAN_MAX_CYCLES)]);
+		// Unset: the slider sits on the engine's default for this stock, marked as the default.
+		await waitFor(() => expect(screen.getByText('(default)')).toBeTruthy());
+
+		await fireEvent.click(screen.getByRole('checkbox', { name: "Allow formulas I don't own" }));
+		await waitFor(() => expect(lastStockInput()?.allowUnownedFormulas).toBe(true));
+		await fireEvent.input(cycles, { target: { value: '2' } });
+		await waitFor(() => expect(lastStockInput()?.maxCycles).toBe(2));
+		const search = screen.getByRole('slider', { name: 'Search time' }) as HTMLInputElement;
+		expect([search.min, search.max]).toEqual(['10', '60']);
+		await fireEvent.input(search, { target: { value: '45' } });
+		await waitFor(() => expect(lastStockInput()?.timeLimitMs).toBe(45_000));
+		expect(storedState(storage)).toMatchObject({
+			allowUnownedFormulas: true,
+			stockCycles: 2,
+			stockSearchSeconds: 45
+		});
+
+		await fireEvent.click(screen.getByRole('checkbox', { name: "Allow formulas I don't own" }));
+		await waitFor(() => expect(lastStockInput()?.allowUnownedFormulas).toBe(false));
+		await fireEvent.click(screen.getByRole('button', { name: 'Use default' }));
+		await waitFor(() => expect(lastStockInput()?.maxCycles).toBeUndefined());
+	});
+
+	it('shows each plan found so far, then the final one', async () => {
+		const runs: { incumbent: (plan: StockPlan) => void; finish: (plan: StockPlan) => void }[] = [];
+		const planStock: StockPlanner = (_input, _signal, onIncumbent) => {
+			const { promise, resolve } = Promise.withResolvers<StockPlan>();
+			runs.push({ incumbent: (plan) => onIncumbent?.(plan), finish: resolve });
+			return promise;
+		};
+		const real = planFromStock({
+			ctx: plannerContext(plannerData(), 7),
+			totalSlots: 11,
+			stock: { [CARBON_POLYMERS]: 20_000, 16655: 20_000 },
+			ownedFormulas: { [CRYSTALLINE_CARBONIDE]: 2 }
+		});
+		const { container } = render(Planner, {
+			props: { data: plannerData(), storage: stored(stateWith({ mode: 'stock' })), planStock }
+		});
+		await waitFor(() => expect(runs).toHaveLength(1));
+		const status = () => text(container.querySelector('[data-stock-status]'));
+		expect(status()).toBe('Planning…');
+		expect(container.querySelector('[data-stock-results]')).toBeNull();
+
+		runs[0].incumbent({ ...real, optimal: false });
+		await waitFor(() => expect(container.querySelector('[data-stock-results]')).not.toBeNull());
+		expect(status()).toBe('Looking for a better plan…');
+		expect(container.querySelector('[data-stock-plan]')!.className).not.toMatch(/opacity-50/);
+		expect(container.querySelector('[data-not-optimal]')).toBeNull();
+
+		runs[0].finish({ ...real, optimal: false });
+		await waitFor(() => expect(status()).toBe(''));
+		expect(container.querySelector('[data-not-optimal]')).not.toBeNull();
+	});
+
+	it('turns pasted intermediates into the owned formula’s product, buying only fuel blocks', async () => {
+		const { container } = await setup(
+			stored(
+				stateWith({
+					mode: 'stock',
+					slots: 11,
+					stockText: 'Carbon Polymers\t20,000\nCrystallite Alloy\t20,000',
+					formulasText: 'Crystalline Carbonide Reaction Formula\t2'
+				})
+			),
+			null,
+			11
+		);
+		await waitFor(() => expect(container.querySelector('[data-stock-results]')).not.toBeNull());
+		const jobs = [...container.querySelectorAll('[data-stock-job]')].map((j) =>
+			j.getAttribute('data-stock-job')
+		);
+		expect(jobs).toContain(String(CRYSTALLINE_CARBONIDE));
+		expect(text(container.querySelector('[data-stock-status]'))).toBe('');
+		const { dataset } = plannerData();
+		const bought = [...container.querySelectorAll('[data-stock-fuel] tr[data-type-id]')].map((row) =>
+			Number(row.getAttribute('data-type-id'))
+		);
+		expect(bought.length).toBeGreaterThan(0);
+		for (const typeId of bought) expect(isFuelBlock(dataset, typeId)).toBe(true);
+		expect(container.querySelector('[data-stock-formulas]')).toBeNull();
+		expect(container.querySelector('[data-results]')).toBeNull();
+
+		// A change keeps the plan on screen, dimmed, until the next one is ready.
+		await fireEvent.input(screen.getByRole('slider', { name: 'Cycles' }), { target: { value: '1' } });
+		const shown = container.querySelector('[data-stock-plan]')!;
+		expect(shown.getAttribute('aria-busy')).toBe('true');
+		expect(shown.querySelector('[data-stock-results]')).not.toBeNull();
+		expect(text(container.querySelector('[data-stock-status]'))).toBe('Planning…');
+		await waitFor(() => expect(shown.getAttribute('aria-busy')).toBe('false'));
+		expect(lastStockInput()?.maxCycles).toBe(1);
+	});
+
+	it('share links carry the mode, cycles, search time and formula option', async () => {
+		const writeText = vi.fn(async (_data: string) => {});
+		Object.defineProperty(navigator, 'clipboard', { value: { writeText }, configurable: true });
+		const state = stateWith({
+			mode: 'stock',
+			allowUnownedFormulas: true,
+			stockCycles: 3,
+			stockSearchSeconds: 30
+		});
+		const sharer = await setup(stored(state));
+		const button = screen.getByRole('button', { name: 'Share' });
+		await waitFor(() => expect((button as HTMLButtonElement).disabled).toBe(false));
+		await fireEvent.click(button);
+		const code = new URL(writeText.mock.calls[0][0]).searchParams.get('s')!;
+		expect((await decodeShare(code))?.state).toEqual(state);
+		sharer.unmount();
+
+		await setup(new MemoryStorage(), code);
+		expect(screen.getByRole('button', { name: 'Use what I have' }).getAttribute('aria-pressed')).toBe('true');
+		expect((screen.getByRole('slider', { name: 'Cycles' }) as HTMLInputElement).value).toBe('3');
+		expect((screen.getByRole('slider', { name: 'Search time' }) as HTMLInputElement).value).toBe('30');
+		expect(
+			(screen.getByRole('checkbox', { name: "Allow formulas I don't own" }) as HTMLInputElement).checked
+		).toBe(true);
 	});
 });

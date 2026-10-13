@@ -4,15 +4,27 @@ import { STRUCTURE_SCOPES } from './market.ts';
  * Feature → ESI scopes. Logging in is scope-less; every other feature is granted per character by
  * re-authenticating that character with the feature's scopes added to the ones it already has.
  *
- * `wallet`, `assets` and `industry` belong to the profit-tracking phase: they are defined so the SSO
- * application can be registered with every scope up front, but no feature uses them yet and the web
- * app does not offer them.
+ * `assets` and `corp_assets` feed the inventory features (personal and corporation assets, plus the
+ * industry jobs that hold installed reaction formulas).
+ * `wallet` and `industry` belong to the profit-tracking phase: they are defined so the SSO application
+ * can be registered with every scope up front, but no feature uses them yet and the web app does not
+ * offer them.
  */
 export const ESI_FEATURES = {
 	login: [],
 	structures: STRUCTURE_SCOPES,
 	wallet: ['esi-wallet.read_character_wallet.v1'],
-	assets: ['esi-assets.read_assets.v1'],
+	assets: [
+		'esi-assets.read_assets.v1',
+		'esi-industry.read_character_jobs.v1',
+		'esi-universe.read_structures.v1'
+	],
+	corp_assets: [
+		'esi-assets.read_corporation_assets.v1',
+		'esi-corporations.read_divisions.v1',
+		'esi-industry.read_corporation_jobs.v1',
+		'esi-universe.read_structures.v1'
+	],
 	industry: ['esi-industry.read_character_jobs.v1']
 } as const satisfies Record<string, readonly string[]>;
 

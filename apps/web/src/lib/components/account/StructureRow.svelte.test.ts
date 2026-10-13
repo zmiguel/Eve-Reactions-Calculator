@@ -1,5 +1,7 @@
 import { fireEvent, render, screen } from '@testing-library/svelte';
+import { ERROR_INTERNAL } from '@reactions/eve/errors';
 import { describe, expect, it } from 'vitest';
+import HubsAdminTable from '../admin/HubsAdminTable.svelte';
 import StructureRow, { type StructureLink } from './StructureRow.svelte';
 
 const NOW = Date.UTC(2026, 9, 6, 12);
@@ -41,13 +43,40 @@ describe('StructureRow', () => {
 	it('shows the last refresh, errors and a denied link', () => {
 		const { container } = renderRow({
 			lastSuccessAt: NOW - 3 * 3_600_000,
-			lastError: 'character 1: HTTP 403',
+			lastError: 'EVE Online did not answer; it will be retried.',
 			accessStatus: 'denied'
 		});
 		const status = container.querySelector('[data-status]')!.textContent!;
 		expect(status).toContain('Prices 3 h ago');
 		expect(status).toContain('Seed Pilot lost access');
-		expect(status).toContain('character 1: HTTP 403');
+		expect(status).toContain('EVE Online did not answer; it will be retried.');
+	});
+
+	it('shows a raw hub error only to admins: the user row gets the generic sentence', () => {
+		const raw = 'character 1001: TypeError: fetch failed';
+		const user = renderRow({ lastError: raw }).container.querySelector('[data-status]')!;
+		expect(user.textContent).toContain(ERROR_INTERNAL);
+		expect(user.innerHTML).not.toContain('1001');
+
+		const admin = render(HubsAdminTable, {
+			hubs: [
+				{
+					hubId: `structure-${base.structureId}`,
+					name: base.name,
+					kind: 'structure',
+					visibility: 'private',
+					shareStatus: 'none',
+					enabled: true,
+					sortOrder: 100,
+					systemName: base.systemName,
+					lastSuccessAt: null,
+					lastError: raw,
+					contributors: [base.characterName]
+				}
+			],
+			now: NOW
+		});
+		expect(admin.container.textContent).toContain(raw);
 	});
 
 	it.each([

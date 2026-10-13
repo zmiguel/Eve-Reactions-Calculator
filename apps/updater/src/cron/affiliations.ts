@@ -8,9 +8,18 @@ import { DAY_MS } from '../dates.ts';
 import { esiClient } from '../http.ts';
 import { failJobRun, finishJobRun, inlineRunId, startJobRun } from '../jobs.ts';
 
+/** One looked-up affiliation: character `id`, corporation `c`/`cn`, alliance `a`/`an` (names `null` = unknown). */
+export interface AffiliationRow {
+	id: number;
+	c: number;
+	cn: string | null;
+	a: number | null;
+	an: string | null;
+}
+
 /**
- * Writes one JSON array of `{ id, c, cn, a, an }` into `characters` in a single statement. A name ESI
- * did not resolve (`null`) keeps the stored name while the id is unchanged.
+ * Writes one JSON array of `AffiliationRow` into `characters` in a single statement. A name ESI did not
+ * resolve (`null`) keeps the stored name while the id is unchanged.
  */
 const UPDATE_SQL = `
 	UPDATE characters SET
@@ -27,6 +36,11 @@ const UPDATE_SQL = `
 		affiliation_updated_at = ?2
 	FROM json_each(?1) AS j
 	WHERE characters.character_id = json_extract(j.value, '$.id')`;
+
+/** Stores looked-up affiliations on `characters` (`affiliation_updated_at` = `now`); shared with inventory sync. */
+export async function writeAffiliations(env: Env, rows: AffiliationRow[], now: number): Promise<void> {
+	if (rows.length > 0) await env.DB.prepare(UPDATE_SQL).bind(JSON.stringify(rows), now).run();
+}
 
 /**
  * Cron step 6: once a day (the tick in 12:20–12:29 UTC), the corporation and alliance of every character
@@ -65,14 +79,14 @@ export async function refreshAffiliations(
 		const names = await fetchNames(client, groupIds);
 		const nameOf = new Map(names.items.map((n) => [n.id, n.name]));
 
-		const rows = affiliations.items.map((a) => ({
+		const rows: AffiliationRow[] = affiliations.items.map((a) => ({
 			id: a.characterId,
 			c: a.corporationId,
 			cn: nameOf.get(a.corporationId) ?? null,
 			a: a.allianceId,
 			an: a.allianceId ? (nameOf.get(a.allianceId) ?? null) : null
 		}));
-		if (rows.length > 0) await env.DB.prepare(UPDATE_SQL).bind(JSON.stringify(rows), now).run();
+		await writeAffiliations(env, rows, now);
 
 		const corporations = new Set(rows.map((r) => r.c)).size;
 		const alliances = new Set(rows.flatMap((r) => (r.a ? [r.a] : []))).size;

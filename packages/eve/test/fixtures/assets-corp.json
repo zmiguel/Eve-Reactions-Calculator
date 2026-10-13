@@ -1,0 +1,74 @@
+[
+	{
+		"item_id": 3001,
+		"type_id": 27,
+		"quantity": 1,
+		"location_id": 60008494,
+		"location_type": "station",
+		"location_flag": "OfficeFolder",
+		"is_singleton": true
+	},
+	{
+		"item_id": 3002,
+		"type_id": 16634,
+		"quantity": 10,
+		"location_id": 3001,
+		"location_type": "item",
+		"location_flag": "CorpSAG1",
+		"is_singleton": false
+	},
+	{
+		"item_id": 3003,
+		"type_id": 16635,
+		"quantity": 20,
+		"location_id": 3001,
+		"location_type": "item",
+		"location_flag": "CorpSAG3",
+		"is_singleton": false
+	},
+	{
+		"item_id": 3004,
+		"type_id": 16636,
+		"quantity": 4,
+		"location_id": 60008494,
+		"location_type": "station",
+		"location_flag": "CorpDeliveries",
+		"is_singleton": false
+	},
+	{
+		"item_id": 4000,
+		"type_id": 35835,
+		"quantity": 1,
+		"location_id": 30000142,
+		"location_type": "solar_system",
+		"location_flag": "AutoFit",
+		"is_singleton": true
+	},
+	{
+		"item_id": 4001,
+		"type_id": 27,
+		"quantity": 1,
+		"location_id": 4000,
+		"location_type": "item",
+		"location_flag": "OfficeFolder",
+		"is_singleton": true
+	},
+	{
+		"item_id": 4002,
+		"type_id": 16634,
+		"quantity": 30,
+		"location_id": 4001,
+		"location_type": "item",
+		"location_flag": "CorpSAG2",
+		"is_singleton": false
+	},
+	{
+		"item_id": 4003,
+		"type_id": 34,
+		"quantity": 500,
+		"location_id": 4001,
+		"location_type": "item",
+		"location_flag": "CorpSAG2",
+		"is_singleton": false
+	}
+]

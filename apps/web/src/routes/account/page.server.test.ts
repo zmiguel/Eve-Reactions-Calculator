@@ -81,7 +81,7 @@ describe('load', () => {
 				lastError: 'boom'
 			}
 		]);
-		expect(data.offeredFeatures).toEqual(['structures']);
+		expect(data.offeredFeatures).toEqual(['structures', 'assets', 'corp_assets']);
 		expect(data.settingsUpdatedAt).toBe(NOW);
 		expect(data.notice).toBeNull();
 	});

@@ -60,6 +60,21 @@ export async function fetchRegionInfo(client: EsiClient, regionId: number): Prom
 	return data ? { regionId, name: data.name } : null;
 }
 
+export interface StationInfo {
+	stationId: number;
+	name: string;
+	systemId: number;
+}
+
+/** `/universe/stations/{id}`. */
+export async function fetchStationInfo(client: EsiClient, stationId: number): Promise<StationInfo | null> {
+	const data = await getPublic<{ name: string; system_id: number }>(
+		client,
+		`/universe/stations/${stationId}`
+	);
+	return data ? { stationId, name: data.name, systemId: data.system_id } : null;
+}
+
 /** Ids per bulk request (`/characters/affiliation`, `/universe/names`; ESI accepts up to 1000). */
 export const ESI_BULK_CHUNK = 100;
 

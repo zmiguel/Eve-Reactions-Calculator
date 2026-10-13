@@ -21,9 +21,21 @@ import {
 } from '@reactions/eve';
 import { and, asc, count, eq, inArray } from 'drizzle-orm';
 import type { CharacterRow } from './auth/accounts.ts';
-import { getAccessToken } from './auth/tokens.ts';
+import { TOKEN_UNAVAILABLE, getAccessToken } from './auth/tokens.ts';
 import { ensureSystem } from './systems.ts';
 import { userAgent } from './user-agent.ts';
+
+/**
+ * Access token for a structure action. Storing the rotated refresh token can still fail after retries
+ * (`getAccessToken` logs it and throws); the user gets the "try again" notice, never the error text.
+ */
+async function structureToken(env: Env, character: CharacterRow, fetch: FetchFn) {
+	try {
+		return await getAccessToken(env, character, fetch);
+	} catch {
+		return { ok: false, message: TOKEN_UNAVAILABLE } as const;
+	}
+}
 
 /** Structure markets one account may link. */
 export const STRUCTURE_LINK_LIMIT = 5;
@@ -202,7 +214,7 @@ export async function searchUserStructures(
 	text: string
 ): Promise<SearchOutcome> {
 	if (!canUseStructures(character)) return { ok: false, message: NEEDS_FEATURE };
-	const token = await getAccessToken(env, character, fetch);
+	const token = await structureToken(env, character, fetch);
 	if (!token.ok) return { ok: false, message: token.message };
 	const client = createEsiClient({ fetch, userAgent: userAgent(env) });
 	let ids: number[];
@@ -272,7 +284,7 @@ export async function addStructureLink(
 		return { ok: false, message: `You can link up to ${STRUCTURE_LINK_LIMIT} markets.` };
 	}
 
-	const token = await getAccessToken(env, character, fetch);
+	const token = await structureToken(env, character, fetch);
 	if (!token.ok) return { ok: false, message: token.message };
 	const client = createEsiClient({ fetch, userAgent: userAgent(env) });
 	let info;

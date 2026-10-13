@@ -39,6 +39,7 @@
 	import type { SubmitFunction } from '@sveltejs/kit';
 	import { enhance } from '$app/forms';
 	import { formatRelative, formatUtc } from '$lib/format';
+	import { userFacingError } from '@reactions/eve/errors';
 
 	interface Props {
 		link: StructureLink;
@@ -82,9 +83,8 @@
 			<span class="block text-red-600 dark:text-red-400">{link.characterName} lost access</span>
 		{/if}
 		{#if link.lastError}
-			<span class="block max-w-xs truncate text-red-600 dark:text-red-400" title={link.lastError}
-				>{link.lastError}</span
-			>
+			{@const error = userFacingError(link.lastError)}
+			<span class="block max-w-xs truncate text-red-600 dark:text-red-400" title={error}>{error}</span>
 		{/if}
 	</td>
 	<td class="px-3 py-2">

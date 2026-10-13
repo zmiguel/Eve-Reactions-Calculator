@@ -8,7 +8,7 @@ export default defineProject({
 			miniflare: {
 				compatibilityDate: '2026-10-06',
 				compatibilityFlags: ['nodejs_compat'],
-				d1Databases: ['DB', 'HISTORY_DB'],
+				d1Databases: ['DB', 'HISTORY_DB', 'MIGRATION_DB'],
 				bindings: {
 					CORE_MIGRATIONS: await readD1Migrations(
 						fileURLToPath(new URL('./migrations/core', import.meta.url))

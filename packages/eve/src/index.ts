@@ -6,3 +6,7 @@ export * from './mirror.ts';
 export * from './sso.ts';
 export * from './crypto.ts';
 export * from './scopes.ts';
+export * from './assets.ts';
+export * from './inventory.ts';
+export * from './industry.ts';
+export * from './errors.ts';

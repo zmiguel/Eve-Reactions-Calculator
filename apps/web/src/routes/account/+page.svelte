@@ -89,7 +89,20 @@
 		</div>
 	</section>
 
-	<div class="grid gap-4 md:grid-cols-2">
+	<div class="grid gap-4 md:grid-cols-3">
+		<section class={card}>
+			<h2 class={heading}>Inventory</h2>
+			<p class="text-gray-700 dark:text-gray-300">
+				Sync the assets of your characters and corporations to see the formulas and materials you already
+				have.
+			</p>
+			<p class="mt-2 text-xs text-gray-600 dark:text-gray-400">
+				<a href="/account/inventory" class="text-primary-700 hover:underline dark:text-primary-400"
+					>Manage inventory</a
+				>
+			</p>
+		</section>
+
 		<section class={card}>
 			<h2 class={heading}>Settings sync</h2>
 			<p class="text-gray-700 dark:text-gray-300">

@@ -1,4 +1,4 @@
-import { Settings, decodeJson, encodeJson, storedSettings } from '@reactions/engine';
+import { STOCK_PLAN_MAX_CYCLES, Settings, decodeJson, encodeJson, storedSettings } from '@reactions/engine';
 import { z } from 'zod';
 import { FILL_SCOPE_IDS } from './plan';
 
@@ -12,6 +12,10 @@ export const MAX_LINES = 1_000;
 /** Largest quantity target (units per cycle). */
 export const MAX_QUANTITY = 1e12;
 export const DEFAULT_MAX_VOLUME_PCT = 10;
+/** "Use what I have" search time (seconds): the default and the range the visitor may pick from. */
+export const DEFAULT_STOCK_SEARCH_SECONDS = 10;
+export const MIN_STOCK_SEARCH_SECONDS = 10;
+export const MAX_STOCK_SEARCH_SECONDS = 60;
 
 // Fields added after the first release are optional or defaulted, so older v1 states still parse.
 const PlannerStateSchema = z.object({
@@ -39,7 +43,20 @@ const PlannerStateSchema = z.object({
 	/** Auto-fill keeps each product's sales per day within this % of its region's daily volume. */
 	maxVolumePct: z.number().min(1).max(100).default(DEFAULT_MAX_VOLUME_PCT),
 	/** Reactions auto-fill may pick. */
-	fillScope: z.enum(FILL_SCOPE_IDS).default('all')
+	fillScope: z.enum(FILL_SCOPE_IDS).default('all'),
+	/**
+	 * Where stock and owned formulas come from: the pasted lists or the account's synced inventory.
+	 * Absent = the inventory when the visitor has one. Share links keep it, never the inventory itself.
+	 */
+	stockSource: z.enum(['paste', 'account']).optional(),
+	/** Planner mode: plan towards targets, or put the stock to use. Absent = targets. */
+	mode: z.enum(['targets', 'stock']).optional(),
+	/** "Use what I have" may buy formulas the visitor does not own. Absent = off. */
+	allowUnownedFormulas: z.boolean().optional(),
+	/** "Use what I have" cycles to plan; absent = the engine's default. */
+	stockCycles: z.number().int().min(1).max(STOCK_PLAN_MAX_CYCLES).optional(),
+	/** "Use what I have" search time in whole seconds; absent = {@link DEFAULT_STOCK_SEARCH_SECONDS}. */
+	stockSearchSeconds: z.number().int().min(MIN_STOCK_SEARCH_SECONDS).max(MAX_STOCK_SEARCH_SECONDS).optional()
 });
 
 export type PlannerState = z.infer<typeof PlannerStateSchema>;

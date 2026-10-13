@@ -9,7 +9,7 @@ import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import type { Dataset, Reaction } from '@reactions/engine';
-import { STRUCTURE_SCOPES, encryptToken, formatScopes } from '@reactions/eve';
+import { ESI_FEATURES, STRUCTURE_SCOPES, encryptToken, formatScopes } from '@reactions/eve';
 import { parseSdeZip, type SdeDataset } from '@reactions/sde';
 
 const ROOT = fileURLToPath(new URL('..', import.meta.url));
@@ -73,6 +73,55 @@ export const SEED_STRUCTURE_HUBS = [
 		characterId: 90000002
 	}
 ] as const;
+
+const JITA_STATION = {
+	locationId: 60003760,
+	name: 'Jita IV - Moon 4 - Caldari Navy Assembly Plant',
+	systemId: 30000142
+};
+
+/**
+ * Inventory of the seed pilot: a personal source (Jita 4-4 hangar and the Seed Market hangar, both
+ * selected, plus a formula in an industry job at Seed Market, unselected) and a corporation source
+ * with two named divisions, one selected. Items by type name.
+ */
+export const SEED_INVENTORY = {
+	userId: 'seed-user',
+	characterId: 90000001,
+	corporation: { corporationId: 98000001, name: 'Seed Corp', divisions: { 1: 'Moon goo', 2: 'Fuel' } },
+	personal: [
+		{
+			...JITA_STATION,
+			kind: 'station',
+			// One steady cycle of 2 Titanium Carbide lines (23,816 of each intermediate), so the planner's
+			// "My inventory" starts the final jobs in cycle 1; Silicon Diborite is at Seed Market. The raw
+			// materials cover two cycles of Titanium Chromide and Silicon Diborite, so "Use what I have" with
+			// "Allow formulas I don't own" can buy those formulas and use them.
+			items: { 'Titanium Chromide': 24000, 'Oxygen Fuel Block': 2000, Titanium: 80000, Chromium: 80000 }
+		},
+		{
+			locationId: SEED_STRUCTURE_HUBS[0].structureId,
+			name: SEED_STRUCTURE_HUBS[0].name,
+			systemId: SEED_STRUCTURE_HUBS[0].systemId,
+			kind: 'structure',
+			items: {
+				'Silicon Diborite': 24000,
+				Silicates: 80000,
+				'Evaporite Deposits': 80000,
+				'Titanium Carbide Reaction Formula': 2
+			}
+		}
+	],
+	/** Formulas installed in reaction jobs (bucket `jobs`) at Seed Market; not selected. */
+	personalJobs: {
+		locationId: SEED_STRUCTURE_HUBS[0].structureId,
+		items: { 'Titanium Carbide Reaction Formula': 1 }
+	},
+	corpDivisions: [
+		{ bucket: 'div1', selected: true, items: { Cobalt: 20000, Cadmium: 15000 } },
+		{ bucket: 'div2', selected: false, items: { 'Oxygen Fuel Block': 1000 } }
+	]
+} as const;
 
 /** Hub whose prices omit ~5 % of types so "n/a" rows can be exercised locally. */
 const SPARSE_HUB = 'rens';
@@ -203,6 +252,94 @@ export interface SeedOutput {
 const SEED_ACCOUNT_IDS = `SELECT user_id FROM users WHERE user_id IN (${SEED_USERS.map((u) => q(u.userId)).join(', ')})
 	UNION SELECT user_id FROM characters WHERE character_id IN (${SEED_USERS.map((u) => u.characterId).join(', ')})`;
 
+/** SQL inserting {@link SEED_INVENTORY}; source ids come from subqueries (they autoincrement). */
+function inventorySql(sde: SdeDataset, now: number): string[] {
+	const inv = SEED_INVENTORY;
+	const typeId = (name: string) => {
+		const t = sde.types.find((x) => x.name === name);
+		if (!t) throw new Error(`seed inventory: no type named ${name}`);
+		return t.typeId;
+	};
+	const source = (kind: string, ownerId: number) =>
+		`(SELECT source_id FROM inventory_sources WHERE user_id = ${q(inv.userId)} AND kind = ${q(kind)} AND owner_id = ${ownerId})`;
+	const personal = source('character', inv.characterId);
+	const corp = source('corporation', inv.corporation.corporationId);
+	const pilot = SEED_USERS.find((u) => u.characterId === inv.characterId)!;
+	const items = (src: string, locationId: number, bucket: string, list: Record<string, number>) =>
+		Object.entries(list).map(
+			([name, qty]) =>
+				`INSERT INTO inventory_items (source_id, location_id, bucket, type_id, quantity) VALUES (${src}, ${locationId}, ${q(bucket)}, ${typeId(name)}, ${qty});`
+		);
+	const location = (src: string, l: { locationId: number; kind: string; name: string; systemId: number }) =>
+		`INSERT INTO inventory_locations (source_id, location_id, kind, name, system_id) VALUES (${src}, ${l.locationId}, ${q(l.kind)}, ${q(l.name)}, ${l.systemId});`;
+	const select = (src: string, locationId: number, bucket: string) =>
+		`INSERT INTO inventory_selection (source_id, location_id, bucket) VALUES (${src}, ${locationId}, ${q(bucket)});`;
+	const sourceRow = (
+		kind: string,
+		ownerId: number,
+		ownerName: string,
+		divisions: string | null,
+		lists: Record<string, number>[]
+	) => [
+		inv.userId,
+		inv.characterId,
+		kind,
+		ownerId,
+		ownerName,
+		divisions,
+		'ok',
+		now,
+		now,
+		now,
+		lists.reduce((a, l) => a + Object.keys(l).length, 0),
+		now
+	];
+	return [
+		...insert(
+			'inventory_sources',
+			[
+				'user_id',
+				'character_id',
+				'kind',
+				'owner_id',
+				'owner_name',
+				'division_names_json',
+				'status',
+				'last_attempt_at',
+				'last_synced_at',
+				'data_as_of',
+				'item_count',
+				'created_at'
+			],
+			[
+				sourceRow('character', inv.characterId, pilot.name, null, [
+					...inv.personal.map((l) => l.items),
+					inv.personalJobs.items
+				]),
+				sourceRow(
+					'corporation',
+					inv.corporation.corporationId,
+					inv.corporation.name,
+					JSON.stringify(inv.corporation.divisions),
+					inv.corpDivisions.map((d) => d.items)
+				)
+			]
+		),
+		`INSERT INTO inventory_source_readers (source_id, character_id, created_at) VALUES (${corp}, ${inv.characterId}, ${now});`,
+		...inv.personal.flatMap((l) => [
+			location(personal, l),
+			...items(personal, l.locationId, 'hangar', l.items),
+			select(personal, l.locationId, 'hangar')
+		]),
+		...items(personal, inv.personalJobs.locationId, 'jobs', inv.personalJobs.items),
+		location(corp, { ...JITA_STATION, kind: 'station' }),
+		...inv.corpDivisions.flatMap((d) => [
+			...items(corp, JITA_STATION.locationId, d.bucket, d.items),
+			...(d.selected ? [select(corp, JITA_STATION.locationId, d.bucket)] : [])
+		])
+	];
+}
+
 /**
  * Pure: SQL for both databases and the KV values. `now` fixes every timestamp and history date;
  * `refreshTokenEnc` is the seed pilots' encrypted dummy refresh token.
@@ -232,9 +369,14 @@ export function buildSeedSql(
 		'DELETE FROM job_runs;',
 		// Seed accounts are replaced on every run; orphans are removed explicitly in case cascades are off.
 		`DELETE FROM users WHERE user_id IN (${SEED_ACCOUNT_IDS});`,
+		'DELETE FROM inventory_sources WHERE user_id NOT IN (SELECT user_id FROM users);',
+		'DELETE FROM inventory_locations WHERE source_id NOT IN (SELECT source_id FROM inventory_sources);',
+		'DELETE FROM inventory_items WHERE source_id NOT IN (SELECT source_id FROM inventory_sources);',
+		'DELETE FROM inventory_selection WHERE source_id NOT IN (SELECT source_id FROM inventory_sources);',
 		'DELETE FROM structure_links WHERE user_id NOT IN (SELECT user_id FROM users);',
 		'DELETE FROM user_sessions WHERE user_id NOT IN (SELECT user_id FROM users);',
 		'DELETE FROM characters WHERE user_id NOT IN (SELECT user_id FROM users);',
+		'DELETE FROM inventory_source_readers WHERE source_id NOT IN (SELECT source_id FROM inventory_sources) OR character_id NOT IN (SELECT character_id FROM characters);',
 		// Seed structure hubs and hubs without links go; NPC hubs get their migration state back.
 		`DELETE FROM market_hubs WHERE kind = 'structure' AND (hub_id IN (${SEED_STRUCTURE_HUBS.map((h) => q(`structure-${h.structureId}`)).join(', ')}) OR location_id NOT IN (SELECT structure_id FROM structure_links));`,
 		`UPDATE market_hubs SET enabled = 1, visibility = 'public', share_status = 'none', last_error = NULL, sort_order = CASE hub_id ${SEED_HUBS.map((h, i) => `WHEN ${q(h.hubId)} THEN ${i + 1}`).join(' ')} END WHERE kind <> 'structure';`
@@ -408,6 +550,8 @@ export function buildSeedSql(
 				'refresh_token_enc',
 				'token_status',
 				'last_refreshed_at',
+				'corporation_id',
+				'corporation_name',
 				'created_at'
 			],
 			SEED_USERS.map((u) => [
@@ -415,10 +559,17 @@ export function buildSeedSql(
 				u.userId,
 				u.name,
 				`seed-${u.characterId}`,
-				formatScopes(STRUCTURE_SCOPES),
+				formatScopes(
+					u.characterId === SEED_INVENTORY.characterId
+						? [...STRUCTURE_SCOPES, ...ESI_FEATURES.assets, ...ESI_FEATURES.corp_assets]
+						: STRUCTURE_SCOPES
+				),
 				refreshTokenEnc,
 				'ok',
 				now,
+				// The seed pilot is in Seed Corp (its corporation source), as the daily affiliations job would record.
+				u.characterId === SEED_INVENTORY.characterId ? SEED_INVENTORY.corporation.corporationId : null,
+				u.characterId === SEED_INVENTORY.characterId ? SEED_INVENTORY.corporation.name : null,
 				now
 			])
 		),
@@ -468,6 +619,7 @@ export function buildSeedSql(
 			])
 		)
 	);
+	core.push(...inventorySql(sde, now));
 
 	// History rows are generated in SQL (recursive CTEs) to keep the seed file small. The jitter term is an
 	// integer hash of (step, type) so every run produces the same values.

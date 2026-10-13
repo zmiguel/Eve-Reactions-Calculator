@@ -78,6 +78,8 @@ npx wrangler kv namespace create reactions-cache
 npx wrangler r2 bucket create reactions-archive
 ```
 
+Add the lifecycle rule that deletes inventory sync staging objects left by failed runs after 1 day: `npx wrangler r2 bucket lifecycle add reactions-archive inventory-staging inventory-staging/ --expire-days 1`.
+
 Optional: `--location weur` (or another hint) on `d1 create` places the primary database near you.
 
 Note the printed ids:
@@ -141,9 +143,12 @@ Login and the structure-market feature need EVE SSO applications: one for produc
 3. Callback URL:
    - production application: `https://reactions.coalition.space/auth/callback`
    - preview application: `https://preview.reactions.coalition.space/auth/callback` (before the cutover `https://preview-reactions-web.zmiguel.workers.dev/auth/callback`; change `previews.vars.EVE_SSO_CALLBACK_URL` with it)
-4. Scopes: all of `ALL_ESI_SCOPES` (`packages/eve/src/scopes.ts`). Login itself asks for none; the structure feature uses three; the other three are registered for a later feature:
+4. Scopes: all nine of `ALL_ESI_SCOPES` (`packages/eve/src/scopes.ts`). Login itself asks for none; the structure feature uses three; the "Personal assets" and "Corporation assets" features (inventory sync) use the asset, division and industry job scopes plus `esi-universe.read_structures.v1`; the wallet scope is registered for a later feature. The account page offers the asset features, and EVE SSO rejects a scope the application does not list, so add `esi-assets.read_corporation_assets.v1`, `esi-corporations.read_divisions.v1` and `esi-industry.read_corporation_jobs.v1` to both applications before deploying a web version that offers them:
    - `esi-assets.read_assets.v1`
+   - `esi-assets.read_corporation_assets.v1`
+   - `esi-corporations.read_divisions.v1`
    - `esi-industry.read_character_jobs.v1`
+   - `esi-industry.read_corporation_jobs.v1`
    - `esi-markets.structure_markets.v1`
    - `esi-search.search_structures.v1`
    - `esi-universe.read_structures.v1`
@@ -498,6 +503,17 @@ Deploy only the worker that changed. When a change touches `UpdaterRpc` (`apps/u
    ```
 
 3. Deploy the workers.
+
+Migrations must be additive (new tables, nullable or defaulted columns): the live production code keeps running on the same database between the migration and its own deploy. Removing or renaming something takes two releases (stop using it, then drop it).
+
+### 3.1.0 (inventory) release order
+
+1. Add `esi-assets.read_corporation_assets.v1`, `esi-corporations.read_divisions.v1` and `esi-industry.read_corporation_jobs.v1` to both EVE SSO applications (production and preview). Without them "Enable Corporation assets" fails at EVE's login page.
+2. Core migrations 0007 to 0009 (`npx wrangler d1 migrations apply reactions-core --remote`, as above).
+3. R2 lifecycle rule for sync staging: `npx wrangler r2 bucket lifecycle add reactions-archive inventory-staging inventory-staging/ --expire-days 1`.
+4. Deploy the updater (new workflow `reactions-inventory-sync`, cron step `inventory`, RPCs `triggerInventorySync` and `triggerInventoryPass`).
+5. Build and deploy the web preview; check it with real characters (grant both asset features, add a personal and a corporation inventory, sync, pick places, planner "My inventory" and "Use what I have").
+6. Deploy the web production.
 
 ### Rotating secrets
 

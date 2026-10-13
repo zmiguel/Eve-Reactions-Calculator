@@ -56,6 +56,9 @@ describe('/account', () => {
 			'Last saved 2026-10-06 12:00 UTC'
 		);
 		expect(screen.getByRole('link', { name: 'Edit settings' }).getAttribute('href')).toBe('/settings');
+		expect(screen.getByRole('link', { name: 'Manage inventory' }).getAttribute('href')).toBe(
+			'/account/inventory'
+		);
 		const del = container.querySelector('form[action="?/deleteAccount"]')!;
 		expect(del.closest('details')).not.toBeNull();
 		expect(del.getAttribute('method')).toBe('POST');

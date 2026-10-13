@@ -11,7 +11,8 @@ import { inputUnitPrice, outputUnitPrice } from './formulas.ts';
 import type { Settings } from './settings.ts';
 import type { Dataset, Reaction, Tier } from './types.ts';
 
-const UNREFINED_TIERS: readonly Tier[] = ['unrefined', 'unrefined_mineral'];
+/** Tiers of the unrefined reactions (Unrefined and Prismaticite), whose product is reprocessed. */
+export const UNREFINED_TIERS: readonly Tier[] = ['unrefined', 'unrefined_mineral'];
 
 /** Most substitutable types of one chain whose combinations {@link chooseUnrefined} evaluates. */
 export const MAX_UNREFINED_CANDIDATES = 6;

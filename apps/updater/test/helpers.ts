@@ -110,6 +110,11 @@ const RESET_SQL = [
 	"UPDATE market_hubs SET enabled = 1, visibility = 'public', last_success_at = NULL, last_error = NULL",
 	'DELETE FROM market_stats',
 	'DELETE FROM structure_links',
+	'DELETE FROM inventory_source_readers',
+	'DELETE FROM inventory_selection',
+	'DELETE FROM inventory_items',
+	'DELETE FROM inventory_locations',
+	'DELETE FROM inventory_sources',
 	'DELETE FROM characters',
 	'DELETE FROM users'
 ];
@@ -201,6 +206,18 @@ export async function mockedDailyWorkflow(): Promise<WorkflowIntrospector> {
 		await m.mockStepResult({ name: 'rollup-indices' }, { adjusted: 0, costIndices: 0 });
 		await m.mockStepResult({ name: 'archive-verify' }, { objects: 0, bytes: 0 });
 		await m.mockStepResult({ name: 'retention' }, { dates: 0, deleted: 0 });
+	});
+	return introspector;
+}
+
+/**
+ * `INVENTORY_SYNC` instances complete at once without touching their source: a mocked `prepare` ends
+ * them as `busy`, so a claimed source stays `running`.
+ */
+export async function mockedInventoryWorkflow(): Promise<WorkflowIntrospector> {
+	const introspector = await introspectWorkflow(env.INVENTORY_SYNC);
+	await introspector.modifyAll(async (m) => {
+		await m.mockStepResult({ name: 'prepare' }, { ok: false, status: 'busy', message: 'mocked' });
 	});
 	return introspector;
 }

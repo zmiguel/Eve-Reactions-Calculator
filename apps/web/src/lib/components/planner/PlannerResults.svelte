@@ -1,5 +1,5 @@
 <script lang="ts">
-	import type { PlanResult } from '@reactions/engine';
+	import type { Dataset, PlanResult } from '@reactions/engine';
 	import type { InputMarket, ProductVolume } from '$lib/planner/plan';
 	import InfoNote from '$lib/components/InfoNote.svelte';
 	import FlowDiagram from '$lib/components/detail/FlowDiagram.svelte';
@@ -16,12 +16,16 @@
 		runsPerSlotTitle
 	} from '$lib/format';
 	import { lineItemsMultibuy } from '$lib/multibuy';
-	import { typeIconUrl } from '$lib/site';
+	import { blueprintIconUrl, typeIconUrl } from '$lib/site';
 	import StartupNote from '$lib/components/StartupNote.svelte';
 	import { phaseTitle } from '$lib/startup';
+	import { PLAN_WARNING_TEXT } from '$lib/planner/warnings';
+	import GroupedItemsTable from './GroupedItemsTable.svelte';
 
 	interface Props {
 		plan: PlanResult;
+		/** Item roles (fuel, raw, intermediate, product) group the stock not used. */
+		dataset: Dataset;
 		totalSlots: number;
 		cycleDays: number;
 		/** Blueprint type id → formula name. */
@@ -42,6 +46,7 @@
 
 	let {
 		plan,
+		dataset,
 		totalSlots,
 		cycleDays,
 		formulaNames,
@@ -57,17 +62,6 @@
 
 	/** Selling or buying more than this share of the region's average daily volume is flagged. */
 	const VOLUME_WARNING_PCT = 20;
-
-	const WARNING_TEXT: Record<string, string> = {
-		MAX_RUNS_PER_JOB:
-			'A formula in this plan allows fewer runs per job than your cycle could fit (Molecular-Forged: 100), so its jobs end early.',
-		SKILL_TOO_LOW: 'Your Reactions skill is below the level a formula in this plan requires.',
-		COST_INDEX_MISSING: 'No reaction cost index is known for your system; job costs assume 0%.',
-		MISSING_ADJUSTED_PRICE: 'Some inputs have no adjusted price, so job costs are underestimated.',
-		HUB_UNAVAILABLE:
-			'A market hub in your settings is not available to you; Jita 4-4 prices are used instead.',
-		CYCLE_SHORTER_THAN_RUN: 'Your cycle is shorter than one run; one run per cycle is assumed.'
-	};
 
 	const t = $derived(plan.totals);
 	const warnings = $derived.by(() => {
@@ -89,7 +83,7 @@
 				text:
 					code === 'INPUT_VOLUME_SHORT'
 						? `Initial purchases need more of some inputs than ${inputName} lists; the rest is priced at ${fallbackName}.`
-						: (WARNING_TEXT[code] ?? code)
+						: (PLAN_WARNING_TEXT[code] ?? code)
 			});
 		}
 		for (const p of shortItems) {
@@ -328,7 +322,7 @@
 				<ul class="mt-1 space-y-0.5">
 					{#each unrefinedRoutes as route (route.id)}
 						<li data-unrefined-route={route.id}>
-							{route.replaces.join(', ')} <span aria-hidden="true">→</span> replaced by
+							{route.replaces.join(', ')} <span role="img" aria-label="replaced by">→</span>
 							<span class="font-medium">{route.name}</span>
 							{#if route.step0}
 								<span class="text-blue-700 dark:text-blue-300">· runs once in step 0</span>
@@ -515,9 +509,19 @@
 					<tbody>
 						{#each plan.formulasToBuy as f (f.blueprintTypeId)}
 							<tr class={row} data-formula={f.blueprintTypeId}>
-								<td class="px-3 py-1 whitespace-nowrap"
-									>{formulaNames[f.blueprintTypeId] ?? f.blueprintTypeId}</td
-								>
+								<td class="px-3 py-1">
+									<span class="flex items-center gap-2 whitespace-nowrap">
+										<img
+											src={blueprintIconUrl(f.blueprintTypeId)}
+											alt=""
+											width="20"
+											height="20"
+											loading="lazy"
+											class="h-5 w-5 rounded"
+										/>
+										{formulaNames[f.blueprintTypeId] ?? f.blueprintTypeId}
+									</span>
+								</td>
 								<td class={td}>{f.count}</td>
 								<td class={td} title={formatIskFull(f.unitPrice)}>{formatIsk(f.unitPrice)}</td>
 								<td class={td} title={formatIskFull(f.unitPrice === null ? null : f.unitPrice * f.count)}>
@@ -596,5 +600,15 @@
 
 	{#if plan.surplusPerCycle.length > 0}
 		<LineItemsTable title="Surplus per cycle" items={plan.surplusPerCycle} costs={false} volume={false} />
+	{/if}
+
+	{#if plan.unusedStock.length > 0}
+		<GroupedItemsTable
+			id="plan-unused-stock"
+			title="Stock not used"
+			items={plan.unusedStock}
+			{dataset}
+			marker="unused-stock"
+		/>
 	{/if}
 </div>

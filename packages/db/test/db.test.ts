@@ -1,3 +1,4 @@
+import { applyD1Migrations } from 'cloudflare:test';
 import { env } from 'cloudflare:workers';
 import { asc, eq, sql } from 'drizzle-orm';
 import { beforeEach, describe, expect, it } from 'vitest';
@@ -6,6 +7,11 @@ import {
 	chunkRows,
 	getCoreDb,
 	getHistoryDb,
+	inventoryItems,
+	inventoryLocations,
+	inventorySelection,
+	inventorySourceReaders,
+	inventorySources,
 	latestPrices,
 	marketHubs,
 	priceSnapshots,
@@ -32,6 +38,11 @@ describe('migrations', () => {
 			'characters',
 			'cost_indices',
 			'http_cache',
+			'inventory_items',
+			'inventory_locations',
+			'inventory_selection',
+			'inventory_source_readers',
+			'inventory_sources',
 			'job_runs',
 			'latest_prices',
 			'market_hubs',
@@ -85,6 +96,41 @@ describe('migrations', () => {
 			"SELECT type, \"notnull\", dflt_value FROM pragma_table_info('characters') WHERE name = 'sso_client_id'"
 		).all();
 		expect(results).toEqual([{ type: 'TEXT', notnull: 0, dflt_value: null }]);
+	});
+
+	it('gives inventory_sources a nullable data_expires_at (0008)', async () => {
+		const { results } = await env.DB.prepare(
+			"SELECT type, \"notnull\", dflt_value FROM pragma_table_info('inventory_sources') WHERE name = 'data_expires_at'"
+		).all();
+		expect(results).toEqual([{ type: 'INTEGER', notnull: 0, dflt_value: null }]);
+	});
+
+	it('backfills each corporation source with its own reader when 0009 applies on 0008', async () => {
+		const db = env.MIGRATION_DB;
+		const before = env.CORE_MIGRATIONS.filter((m) => m.name < '0009');
+		const after = env.CORE_MIGRATIONS.filter((m) => m.name >= '0009');
+		expect(after.map((m) => m.name)).toEqual(['0009_inventory_source_readers.sql']);
+		await applyD1Migrations(db, before);
+		await db.batch([
+			db.prepare("INSERT INTO users (user_id, created_at, last_seen_at) VALUES ('a', 1, 1), ('b', 1, 1)"),
+			db.prepare(
+				"INSERT INTO characters (character_id, user_id, name, owner_hash, created_at) VALUES (1, 'a', 'A1', 'x', 1), (2, 'a', 'A2', 'x', 1), (3, 'b', 'B1', 'x', 1)"
+			),
+			db.prepare(
+				`INSERT INTO inventory_sources (source_id, user_id, character_id, kind, owner_id, owner_name, created_at) VALUES
+				(10, 'a', 1, 'character', 1, 'A1', 5),
+				(11, 'a', 2, 'corporation', 98000001, 'Corp', 6),
+				(12, 'b', 3, 'corporation', 98000001, 'Corp', 7)`
+			)
+		]);
+		await applyD1Migrations(db, after);
+		const { results } = await db
+			.prepare('SELECT source_id, character_id, created_at FROM inventory_source_readers ORDER BY source_id')
+			.all();
+		expect(results).toEqual([
+			{ source_id: 11, character_id: 2, created_at: 6 },
+			{ source_id: 12, character_id: 3, created_at: 7 }
+		]);
 	});
 });
 
@@ -241,5 +287,114 @@ describe('accounts', () => {
 				.values({ userId: 'u1', structureId: 1044752365771, characterId: 90000001, createdAt: 2 })
 		).rejects.toThrow();
 		expect(await db.select().from(structureLinks)).toHaveLength(1);
+	});
+});
+
+describe('inventory', () => {
+	beforeEach(async () => {
+		const db = core();
+		await db.delete(users).where(eq(users.userId, 'u1'));
+		await db.insert(users).values({ userId: 'u1', createdAt: 1, lastSeenAt: 1 });
+		await db
+			.insert(characters)
+			.values({ characterId: 90000001, userId: 'u1', name: 'Pilot', ownerHash: 'x', createdAt: 1 });
+		const [source] = await db
+			.insert(inventorySources)
+			.values({
+				userId: 'u1',
+				characterId: 90000001,
+				kind: 'character',
+				ownerId: 90000001,
+				ownerName: 'Pilot',
+				createdAt: 1
+			})
+			.returning();
+		await db
+			.insert(inventoryLocations)
+			.values({ sourceId: source.sourceId, locationId: 60003760, kind: 'station' });
+		await db.insert(inventoryItems).values({
+			sourceId: source.sourceId,
+			locationId: 60003760,
+			bucket: 'hangar',
+			typeId: 4246,
+			quantity: 5
+		});
+		await db
+			.insert(inventorySelection)
+			.values({ sourceId: source.sourceId, locationId: 60003760, bucket: 'hangar' });
+	});
+
+	const expectEmpty = async () => {
+		const db = core();
+		expect(await db.select().from(inventorySources)).toEqual([]);
+		expect(await db.select().from(inventoryLocations)).toEqual([]);
+		expect(await db.select().from(inventoryItems)).toEqual([]);
+		expect(await db.select().from(inventorySelection)).toEqual([]);
+	};
+
+	it('defaults a new source to pending with no items', async () => {
+		const [source] = await core().select().from(inventorySources);
+		expect(source).toMatchObject({ status: 'pending', itemCount: 0, lastSyncedAt: null });
+	});
+
+	it('cascades user deletion to sources, locations, items and selections', async () => {
+		await core().delete(users).where(eq(users.userId, 'u1'));
+		await expectEmpty();
+	});
+
+	it('cascades deletion of the reading character', async () => {
+		await core().delete(characters).where(eq(characters.characterId, 90000001));
+		await expectEmpty();
+	});
+
+	it('removes the pool rows of a deleted character and of a deleted source', async () => {
+		const db = core();
+		await db
+			.insert(characters)
+			.values({ characterId: 90000002, userId: 'u1', name: 'Alt', ownerHash: 'y', createdAt: 1 });
+		const [corp] = await db
+			.insert(inventorySources)
+			.values({
+				userId: 'u1',
+				characterId: 90000001,
+				kind: 'corporation',
+				ownerId: 98000001,
+				ownerName: 'Corp',
+				createdAt: 2
+			})
+			.returning();
+		await db.insert(inventorySourceReaders).values([
+			{ sourceId: corp.sourceId, characterId: 90000001, createdAt: 2 },
+			{ sourceId: corp.sourceId, characterId: 90000002, createdAt: 3 }
+		]);
+		await db.delete(characters).where(eq(characters.characterId, 90000002));
+		expect(await db.select().from(inventorySourceReaders)).toEqual([
+			{ sourceId: corp.sourceId, characterId: 90000001, createdAt: 2 }
+		]);
+		await db.delete(inventorySources).where(eq(inventorySources.sourceId, corp.sourceId));
+		expect(await db.select().from(inventorySourceReaders)).toEqual([]);
+	});
+
+	it('rejects a duplicate source for the same account, kind and owner', async () => {
+		const db = core();
+		await expect(
+			db.insert(inventorySources).values({
+				userId: 'u1',
+				characterId: 90000001,
+				kind: 'character',
+				ownerId: 90000001,
+				ownerName: 'Pilot',
+				createdAt: 2
+			})
+		).rejects.toThrow();
+		await db.insert(inventorySources).values({
+			userId: 'u1',
+			characterId: 90000001,
+			kind: 'corporation',
+			ownerId: 90000001,
+			ownerName: 'Corp',
+			createdAt: 2
+		});
+		expect(await db.select().from(inventorySources)).toHaveLength(2);
 	});
 });

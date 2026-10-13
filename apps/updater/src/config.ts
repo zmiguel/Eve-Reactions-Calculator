@@ -44,6 +44,28 @@ export const AFFILIATION_END_MINUTE_UTC = 12 * 60 + 29;
 /** Only characters of accounts seen within this many days are looked up. */
 export const AFFILIATION_ACTIVE_DAYS = 30;
 
+/** The daily inventory pass runs on every tick from 12:00 UTC (after downtime). */
+export const INVENTORY_DAILY_MINUTE_UTC = 12 * 60;
+/** Daily inventory syncs started per cron tick (the rest wait for the next ticks). */
+export const INVENTORY_SYNCS_PER_TICK = 20;
+/** ESI asset pages fetched per workflow step. */
+export const INVENTORY_PAGES_PER_STEP = 10;
+/** Sources with more asset pages (1000 rows each) are not synced (`error`, "too many assets"). */
+export const INVENTORY_MAX_PAGES = 500;
+/** A `running` sync older than this no longer blocks a new one; it is marked `error` instead. */
+export const INVENTORY_RUN_STALE_MINUTES = 15;
+
+/** R2 prefix of the asset pages staged by one inventory sync instance (deleted by its `write` step). */
+export const INVENTORY_STAGING_PREFIX = (instanceId: string): string => `inventory-staging/${instanceId}/`;
+
+/** R2 key of asset page `page` staged by inventory sync instance `instanceId`. */
+export const INVENTORY_STAGING_KEY = (instanceId: string, page: number): string =>
+	`${INVENTORY_STAGING_PREFIX(instanceId)}${page}.json`;
+
+/** R2 key of industry job page `page` staged by inventory sync instance `instanceId`. */
+export const INVENTORY_JOBS_KEY = (instanceId: string, page: number): string =>
+	`${INVENTORY_STAGING_PREFIX(instanceId)}jobs-${page}.json`;
+
 export const SDE_ZIP_URL = (build: number): string =>
 	`https://developers.eveonline.com/static-data/tranquility/eve-online-static-data-${build}-jsonl.zip`;
 

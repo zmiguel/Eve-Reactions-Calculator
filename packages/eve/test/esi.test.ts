@@ -74,7 +74,8 @@ describe('createEsiClient', () => {
 					'X-Pages': '4',
 					'X-Ratelimit-Remaining': '11800',
 					'X-Ratelimit-Limit': '12000/15m',
-					'X-ESI-Error-Limit-Remain': '100'
+					'X-ESI-Error-Limit-Remain': '100',
+					'Last-Modified': 'Tue, 06 Oct 2026 12:55:00 GMT'
 				}
 			})
 		);
@@ -87,7 +88,8 @@ describe('createEsiClient', () => {
 			pages: 4,
 			rateLimit: { remaining: 11800, limit: 12000 },
 			errorLimitRemain: 100,
-			retryAfter: null
+			retryAfter: null,
+			lastModified: Date.UTC(2026, 9, 6, 12, 55, 0)
 		});
 		expect(esi.guard.tripped()).toBe(false);
 	});

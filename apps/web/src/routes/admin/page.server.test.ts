@@ -42,6 +42,14 @@ function updaterStub() {
 			status: 'ok',
 			summary: '3 of 3 characters updated (2 corporations, 1 alliances)'
 		})),
+		triggerInventoryPass: vi.fn(async (): Promise<InlineRunResult> => ({
+			runId: `inventory-manual-${NOW}`,
+			status: 'ok',
+			summary: '2 syncs started, 1 busy'
+		})),
+		triggerInventorySync: vi.fn(async (sourceId: number) => ({
+			instanceId: `inventory-${sourceId}-manual-${NOW}`
+		})),
 		publishMarketSnapshot: vi.fn(async () => ({ snapshotAt: NOW, hubIds: ['jita'] })),
 		workflowStatus: vi.fn(
 			async (runs: { kind: string; runId: string }[]): Promise<Record<string, WorkflowStatus>> =>
@@ -128,7 +136,8 @@ describe('/admin', () => {
 			daily: [],
 			history: [],
 			market_snapshot: [],
-			affiliations: []
+			affiliations: [],
+			inventory: []
 		});
 		expect(data.jobs[0]!.runs[0]).toEqual({
 			runId: 'prices-2',
@@ -283,6 +292,12 @@ describe('/admin', () => {
 				text: `Affiliations run affiliations-manual-${NOW} finished: 3 of 3 characters updated (2 corporations, 1 alliances).`
 			}
 		});
+		expect(await actions.inventory(event(env, admin, '/admin?/inventory'))).toEqual({
+			notice: {
+				ok: true,
+				text: `Inventory sync run inventory-manual-${NOW} finished: 2 syncs started, 1 busy.`
+			}
+		});
 		expect(UPDATER.triggerPriceRefresh).toHaveBeenCalledTimes(1);
 		expect(UPDATER.triggerSdeSync.mock.calls).toEqual([[false], [true]]);
 		expect(UPDATER.triggerDaily).toHaveBeenCalledWith('2026-10-06');
@@ -290,6 +305,7 @@ describe('/admin', () => {
 		expect(UPDATER.triggerAdjustedPrices).toHaveBeenCalledTimes(1);
 		expect(UPDATER.triggerCostIndices).toHaveBeenCalledTimes(1);
 		expect(UPDATER.publishMarketSnapshot).toHaveBeenCalledTimes(1);
+		expect(UPDATER.triggerInventoryPass).toHaveBeenCalledTimes(1);
 	});
 
 	it('a failed inline run gives a 503 notice', async () => {

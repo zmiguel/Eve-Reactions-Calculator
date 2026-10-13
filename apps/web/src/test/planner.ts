@@ -37,6 +37,7 @@ export function plannerData(overrides: Partial<PlannerData> = {}): PlannerData {
 		volumes: { 10000002: { 16670: 900_000 } },
 		settingsSummary: null,
 		sharedSettings: null,
+		inventory: null,
 		...overrides
 	};
 }

@@ -67,6 +67,11 @@
 			"name": "reactions-history-backfill",
 			"binding": "HISTORY_BACKFILL",
 			"class_name": "HistoryBackfillWorkflow"
+		},
+		{
+			"name": "reactions-inventory-sync",
+			"binding": "INVENTORY_SYNC",
+			"class_name": "InventorySyncWorkflow"
 		}
 	]
 }

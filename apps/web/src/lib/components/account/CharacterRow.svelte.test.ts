@@ -1,4 +1,5 @@
 import { render, screen } from '@testing-library/svelte';
+import { ERROR_INTERNAL, TOKEN_ERROR_REVOKED } from '@reactions/eve/errors';
 import { describe, expect, it } from 'vitest';
 import CharacterRow, { type AccountCharacter } from './CharacterRow.svelte';
 
@@ -59,15 +60,28 @@ describe('CharacterRow', () => {
 				features: ['structures', 'wallet'],
 				tokenStatus: 'invalid',
 				lastRefreshedAt: Date.UTC(2026, 9, 6, 12),
-				lastError: 'invalid_grant'
+				lastError: TOKEN_ERROR_REVOKED
 			}
 		});
 		const badges = [...container.querySelectorAll('[data-features] span span')].map((b) => b.textContent);
 		expect(badges).toEqual(['Structure markets', 'Wallet']);
 		expect(container.querySelector('[data-token-status="invalid"]')?.textContent).toBe('Token invalid');
 		expect(container.textContent).toContain('2026-10-06 12:00 UTC');
-		expect(container.textContent).toContain('invalid_grant');
+		expect(container.textContent).toContain(TOKEN_ERROR_REVOKED);
 		expect(screen.queryByText('Logged in')).toBeNull();
+	});
+
+	it('shows a generic sentence instead of a raw stored error', () => {
+		const { container } = renderRow({
+			character: {
+				features: ['structures'],
+				tokenStatus: 'ok',
+				lastError:
+					'character 96440041: Error: Failed query: update "characters" set "refresh_token_enc" = ?, "last_refreshed_at" = ?, "last_error" = ? where "characters"."character_id" = ? params: djEuYWJj,1791830022248,,96440041'
+			}
+		});
+		expect(container.textContent).toContain(ERROR_INTERNAL);
+		expect(container.innerHTML).not.toMatch(/Failed query|96440041|params/);
 	});
 
 	it('offers Enable buttons only for offered features the character lacks', () => {

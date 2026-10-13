@@ -1,5 +1,6 @@
 import { createRemoteJWKSet, jwtVerify } from 'jose';
 import type { JWTVerifyGetKey } from 'jose';
+import { TOKEN_ERROR_REVOKED, TOKEN_ERROR_SSO_DOWN, tokenErrorHttp } from './errors.ts';
 import type { FetchFn } from './esi.ts';
 
 export const SSO_AUTHORIZE_URL = 'https://login.eveonline.com/v2/oauth/authorize';
@@ -109,6 +110,19 @@ export function refreshAccessToken(
 	);
 }
 
+/**
+ * The user-facing `characters.last_error` of a failed {@link refreshAccessToken}: `invalid_grant` or a
+ * 401 mean the token can never be used again (`invalid`); a 4xx answer names its status; 5xx, 429,
+ * malformed answers and network errors are EVE not answering.
+ */
+export function tokenRefreshFailure(error: unknown): { invalid: boolean; message: string } {
+	if (error instanceof SsoInvalidGrantError || (error instanceof SsoError && error.status === 401))
+		return { invalid: true, message: TOKEN_ERROR_REVOKED };
+	if (error instanceof SsoError && error.status >= 400 && error.status < 500 && error.status !== 429)
+		return { invalid: false, message: tokenErrorHttp(error.status) };
+	return { invalid: false, message: TOKEN_ERROR_SSO_DOWN };
+}
+
 /** The SSO apps a deployment holds credentials for (worker vars/secrets). */
 export interface SsoAppsEnv {
 	/** The app this deployment logs users in with (its tokens are stored with this client id). */
@@ -119,7 +133,7 @@ export interface SsoAppsEnv {
 	EVE_SSO_EXTRA_CLIENT_SECRET?: string;
 }
 
-/** `last_error` prefix of a token issued by an SSO app this deployment has no credentials for. */
+/** Log prefix of a token issued by an SSO app this deployment has no credentials for. */
 export const SSO_APP_UNKNOWN = 'SSO_APP_UNKNOWN';
 
 export type SsoAppCredentials =

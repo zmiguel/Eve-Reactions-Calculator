@@ -38,6 +38,8 @@ export interface EsiResponse<T = unknown> {
 	errorLimitRemain: number | null;
 	/** `Retry-After` in seconds. */
 	retryAfter: number | null;
+	/** `Last-Modified` header as unix ms. */
+	lastModified: number | null;
 }
 
 export interface EsiGetOptions {
@@ -133,7 +135,11 @@ export function parseRetryAfter(headers: Headers, now: number): number | null {
 }
 
 export function parseExpires(headers: Headers): number | null {
-	const value = headers.get('Expires');
+	return parseDateHeader(headers, 'Expires');
+}
+
+function parseDateHeader(headers: Headers, name: string): number | null {
+	const value = headers.get(name);
 	if (!value) return null;
 	const ms = Date.parse(value);
 	return Number.isNaN(ms) ? null : ms;
@@ -196,7 +202,8 @@ export function createEsiClient(options: EsiClientOptions): EsiClient {
 				pages: parseIntHeader(response.headers, 'X-Pages') ?? 1,
 				rateLimit: parseRateLimit(response.headers),
 				errorLimitRemain: parseIntHeader(response.headers, 'X-ESI-Error-Limit-Remain'),
-				retryAfter: parseRetryAfter(response.headers, now())
+				retryAfter: parseRetryAfter(response.headers, now()),
+				lastModified: parseDateHeader(response.headers, 'Last-Modified')
 			};
 			guard.update(result);
 			const retryable = result.status >= 500 || result.status === 420 || result.status === 429;

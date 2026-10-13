@@ -26,6 +26,22 @@ export function chunkRows<T>(rows: readonly T[], columnsPerRow: number): T[][] {
 	return chunks;
 }
 
+/**
+ * Runs a D1 write, retrying it `retries` more times after `delayMs`, `2 × delayMs`, …; the last error is
+ * rethrown. For writes that must not be lost, e.g. a refresh token EVE has already rotated.
+ */
+export async function retryWrite<T>(write: () => Promise<T>, retries = 2, delayMs = 100): Promise<T> {
+	for (let attempt = 0; ; attempt++) {
+		try {
+			return await write();
+		} catch (error) {
+			if (attempt >= retries) throw error;
+			// `Promise.withResolvers` is not in this package's TypeScript lib.
+			await new Promise((resolve) => setTimeout(resolve, delayMs * 2 ** attempt));
+		}
+	}
+}
+
 /** Batched, chunked INSERT … ON CONFLICT DO UPDATE SET col = excluded.col. */
 export async function upsertMany<TTable extends SQLiteTable>(
 	db: AnyD1Db | CoreDb | HistoryDb,
