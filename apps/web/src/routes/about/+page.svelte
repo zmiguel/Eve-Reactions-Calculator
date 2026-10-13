@@ -115,6 +115,27 @@
 				= profit per cycle ÷ (slots × cycle days).
 			</li>
 			<li>
+				<strong>Planner</strong>: the targets start together and every intermediate runs in the cycle before
+				the job using it, so a chain is steady after one cycle per level. Stock you hold of an intermediate
+				feeds the earliest cycles first: its reaction starts later or runs fewer runs in its first cycle (and
+				so do the reactions feeding it), and the targets can start sooner. The build-up never takes longer
+				than without stock. Stock of a bought material covers the earliest start-up purchases. Stock is valued
+				at market price: it lowers the initial investment (start-up purchases and job costs up to the first
+				steady cycle, plus formulas) but not the profit per cycle. Stock the start-up does not use is listed
+				as not used.
+			</li>
+			<li>
+				<strong>Use what I have</strong> (planner): plans 1 to 12 cycles of reactions (one cycle is one round of
+				jobs of your cycle length; later cycles can use what earlier ones made) that turn the stock you hold into
+				more value, buying nothing but fuel blocks (and formulas, at market price, if you allow formulas you don't
+				own). Items count at their sale value after fees, taxes and output shipping; items without a price count
+				0. It aims for final products: an intermediate it makes and still holds at the end counts only at what went
+				into it, so intermediates are made to feed later jobs. It maximises what you hold at the end minus the ISK
+				spent on fuel, job costs and formulas, then rebuilds every job with exact material quantities. Fuel blocks
+				you hold are used before buying. The search runs in your browser for the search time you choose (10 to 60
+				seconds) and shows the best plan found so far while it looks for a better one.
+			</li>
+			<li>
 				<strong>Reprocessing</strong> of unrefined products uses your reprocessing yield; Prismaticite outputs use
 				the configured roll between the minimum and maximum quantity.
 			</li>

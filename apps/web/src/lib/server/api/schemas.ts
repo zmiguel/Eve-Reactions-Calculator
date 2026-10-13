@@ -189,10 +189,10 @@ export const PlanBody = z.object({
 		.max(1000)
 		.default([])
 		.meta({ description: 'Intermediate type ids to buy instead of building them.' }),
-	stock: z
-		.record(typeIdKey, z.number().min(0))
-		.default({})
-		.meta({ description: 'Materials in stock: type id → quantity.' }),
+	stock: z.record(typeIdKey, z.number().min(0)).default({}).meta({
+		description:
+			"Materials in stock: type id → quantity. Stock of a type the plan builds feeds its consumers' earliest demand (its jobs start later or run fewer runs, so the start-up can be shorter); stock of a bought type covers the earliest start-up purchases. Stock never changes the steady cycle."
+	}),
 	ownedFormulas: z
 		.record(typeIdKey, z.number().int().min(0))
 		.default({})
@@ -686,6 +686,10 @@ export const PlanResultResponse = z
 			})
 		),
 		initialPurchases: z.array(LineItem),
+		unusedStock: z.array(PlanItem).meta({
+			description:
+				'Stock of the types the plan buys or makes that the start-up (up to and including the first steady cycle) does not use; fuel blocks first, then by name.'
+		}),
 		formulasToBuy: z.array(
 			z.object({
 				blueprintTypeId: z.number().int(),

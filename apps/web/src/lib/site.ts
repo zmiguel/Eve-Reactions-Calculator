@@ -33,3 +33,10 @@ export const REACTOR_TIERS: Record<Reactor, { tier: Tier; title: string }[]> = {
 
 export const typeIconUrl = (typeId: number, size = 32) =>
 	`https://images.evetech.net/types/${typeId}/icon?size=${size}`;
+
+/**
+ * Icon of a blueprint type such as a reaction formula: the image server answers 400 to `/icon` for
+ * blueprints and serves them under the `bp` variation.
+ */
+export const blueprintIconUrl = (blueprintTypeId: number, size = 32) =>
+	`https://images.evetech.net/types/${blueprintTypeId}/bp?size=${size}`;

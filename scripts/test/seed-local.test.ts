@@ -9,6 +9,7 @@ import {
 	ESI_HISTORY_DAYS,
 	SEED_HUBS,
 	SEED_REFRESH_TOKEN,
+	SEED_INVENTORY,
 	SEED_STRUCTURE_HUBS,
 	SNAPSHOTS_PER_DAY,
 	SNAPSHOT_DAYS,
@@ -146,7 +147,11 @@ describe('buildSeedSql', () => {
 				token_status: 'ok'
 			}
 		]);
-		expect(pilots[0]!.scopes.split(' ').sort()).toEqual([...STRUCTURE_SCOPES].sort());
+		const features = (scopes: string) =>
+			(['structures', 'assets', 'corp_assets'] as const).map((f) => hasFeature(scopes, f));
+		expect(features(pilots[0]!.scopes)).toEqual([true, true, true]);
+		expect(features(pilots[1]!.scopes)).toEqual([true, false, false]);
+		expect(pilots[1]!.scopes.split(' ').sort()).toEqual([...STRUCTURE_SCOPES].sort());
 		expect(
 			db
 				.prepare(
@@ -205,6 +210,7 @@ describe('buildSeedSql', () => {
 		expect(count(db, 'user_sessions')).toBe(0);
 		expect(count(db, 'structure_links')).toBe(2);
 		expect(count(db, 'market_hubs')).toBe(8);
+		expect(count(db, 'inventory_sources')).toBe(2);
 		expect(db.prepare("SELECT enabled, sort_order FROM market_hubs WHERE hub_id = 'jita'").get()).toEqual({
 			enabled: 1,
 			sort_order: 1
@@ -214,6 +220,110 @@ describe('buildSeedSql', () => {
 				.prepare("SELECT visibility, share_status FROM market_hubs WHERE hub_id = 'structure-1042508032148'")
 				.get()
 		).toEqual({ visibility: 'private', share_status: 'pending' });
+	});
+
+	it('seeds a personal and a corporation inventory with selected places, idempotently', () => {
+		const { core } = buildSeedSql(sde, buildMarketFixture(sde), NOW, TOKEN);
+		const db = database('core', core);
+		const snapshot = () => ({
+			sources: db
+				.prepare(
+					'SELECT user_id, character_id, kind, owner_id, owner_name, division_names_json, status FROM inventory_sources ORDER BY kind'
+				)
+				.all(),
+			locations: db
+				.prepare(
+					'SELECT s.kind AS source, l.location_id, l.kind, l.name, l.system_id FROM inventory_locations l JOIN inventory_sources s USING (source_id) ORDER BY s.kind, l.location_id'
+				)
+				.all(),
+			selected: db
+				.prepare(
+					'SELECT s.kind AS source, x.location_id, x.bucket FROM inventory_selection x JOIN inventory_sources s USING (source_id) ORDER BY s.kind, x.location_id, x.bucket'
+				)
+				.all(),
+			items: db
+				.prepare(
+					`SELECT s.kind AS source, i.location_id, i.bucket, t.name, i.quantity FROM inventory_items i
+					JOIN inventory_sources s USING (source_id) JOIN types t USING (type_id) ORDER BY s.kind, i.location_id, i.bucket, t.name`
+				)
+				.all() as { source: string; bucket: string; name: string; quantity: number }[],
+			readers: db
+				.prepare(
+					'SELECT s.kind AS source, r.character_id FROM inventory_source_readers r JOIN inventory_sources s USING (source_id)'
+				)
+				.all()
+		});
+		const first = snapshot();
+		const structureId = SEED_STRUCTURE_HUBS[0].structureId;
+		expect(first.sources).toEqual([
+			{
+				user_id: 'seed-user',
+				character_id: 90000001,
+				kind: 'character',
+				owner_id: 90000001,
+				owner_name: 'Seed Pilot',
+				division_names_json: null,
+				status: 'ok'
+			},
+			{
+				user_id: 'seed-user',
+				character_id: 90000001,
+				kind: 'corporation',
+				owner_id: SEED_INVENTORY.corporation.corporationId,
+				owner_name: 'Seed Corp',
+				division_names_json: '{"1":"Moon goo","2":"Fuel"}',
+				status: 'ok'
+			}
+		]);
+		expect(first.readers).toEqual([{ source: 'corporation', character_id: 90000001 }]);
+		expect(first.locations).toEqual([
+			{
+				source: 'character',
+				location_id: 60003760,
+				kind: 'station',
+				name: 'Jita IV - Moon 4 - Caldari Navy Assembly Plant',
+				system_id: 30000142
+			},
+			{
+				source: 'character',
+				location_id: structureId,
+				kind: 'structure',
+				name: 'Seed Market',
+				system_id: 30000144
+			},
+			{
+				source: 'corporation',
+				location_id: 60003760,
+				kind: 'station',
+				name: 'Jita IV - Moon 4 - Caldari Navy Assembly Plant',
+				system_id: 30000142
+			}
+		]);
+		expect(first.selected).toEqual([
+			{ source: 'character', location_id: 60003760, bucket: 'hangar' },
+			{ source: 'character', location_id: structureId, bucket: 'hangar' },
+			{ source: 'corporation', location_id: 60003760, bucket: 'div1' }
+		]);
+		const personal = first.items.filter((i) => i.source === 'character').map((i) => i.name);
+		expect(personal).toEqual(
+			expect.arrayContaining([
+				'Titanium Chromide',
+				'Silicon Diborite',
+				'Oxygen Fuel Block',
+				'Titanium',
+				'Titanium Carbide Reaction Formula'
+			])
+		);
+		const formula = 'Titanium Carbide Reaction Formula';
+		expect(first.items.filter((i) => i.name === formula)).toEqual([
+			{ source: 'character', location_id: structureId, bucket: 'hangar', name: formula, quantity: 2 },
+			{ source: 'character', location_id: structureId, bucket: 'jobs', name: formula, quantity: 1 }
+		]);
+		expect(new Set(first.items.filter((i) => i.source === 'corporation').map((i) => i.bucket))).toEqual(
+			new Set(['div1', 'div2'])
+		);
+		db.exec(core);
+		expect(snapshot()).toEqual(first);
 	});
 
 	it('the dev key encrypts and decrypts the dummy refresh token', async () => {

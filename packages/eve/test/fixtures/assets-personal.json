@@ -1,0 +1,237 @@
+[
+	{
+		"item_id": 1001,
+		"type_id": 16634,
+		"quantity": 100,
+		"location_id": 60003760,
+		"location_type": "station",
+		"location_flag": "Hangar",
+		"is_singleton": false
+	},
+	{
+		"item_id": 1002,
+		"type_id": 3467,
+		"quantity": 1,
+		"location_id": 60003760,
+		"location_type": "station",
+		"location_flag": "Hangar",
+		"is_singleton": true
+	},
+	{
+		"item_id": 1003,
+		"type_id": 16635,
+		"quantity": 50,
+		"location_id": 1002,
+		"location_type": "item",
+		"location_flag": "Unlocked",
+		"is_singleton": false
+	},
+	{
+		"item_id": 1004,
+		"type_id": 3467,
+		"quantity": 1,
+		"location_id": 1002,
+		"location_type": "item",
+		"location_flag": "Locked",
+		"is_singleton": true
+	},
+	{
+		"item_id": 1005,
+		"type_id": 16636,
+		"quantity": 5,
+		"location_id": 1004,
+		"location_type": "item",
+		"location_flag": "Unlocked",
+		"is_singleton": false
+	},
+	{
+		"item_id": 1006,
+		"type_id": 587,
+		"quantity": 1,
+		"location_id": 60003760,
+		"location_type": "station",
+		"location_flag": "Hangar",
+		"is_singleton": true
+	},
+	{
+		"item_id": 1007,
+		"type_id": 16634,
+		"quantity": 11,
+		"location_id": 1006,
+		"location_type": "item",
+		"location_flag": "Cargo",
+		"is_singleton": false
+	},
+	{
+		"item_id": 1008,
+		"type_id": 16634,
+		"quantity": 1,
+		"location_id": 1006,
+		"location_type": "item",
+		"location_flag": "HiSlot0",
+		"is_singleton": true
+	},
+	{
+		"item_id": 1009,
+		"type_id": 16634,
+		"quantity": 13,
+		"location_id": 60003760,
+		"location_type": "station",
+		"location_flag": "AssetSafety",
+		"is_singleton": false
+	},
+	{
+		"item_id": 1010,
+		"type_id": 16634,
+		"quantity": 7,
+		"location_id": 60003760,
+		"location_type": "station",
+		"location_flag": "Deliveries",
+		"is_singleton": false
+	},
+	{
+		"item_id": 1012,
+		"type_id": 46166,
+		"quantity": 1,
+		"location_id": 60003760,
+		"location_type": "station",
+		"location_flag": "Hangar",
+		"is_singleton": true,
+		"is_blueprint_copy": false
+	},
+	{
+		"item_id": 1013,
+		"type_id": 46166,
+		"quantity": 2,
+		"location_id": 1002,
+		"location_type": "item",
+		"location_flag": "Unlocked",
+		"is_singleton": false
+	},
+	{
+		"item_id": 1014,
+		"type_id": 34,
+		"quantity": 999,
+		"location_id": 60003760,
+		"location_type": "station",
+		"location_flag": "Hangar",
+		"is_singleton": false
+	},
+	{
+		"item_id": 1011,
+		"type_id": 16635,
+		"quantity": 9,
+		"location_id": 1035000000000,
+		"location_type": "item",
+		"location_flag": "Hangar",
+		"is_singleton": false
+	},
+	{
+		"item_id": 2001,
+		"type_id": 16634,
+		"quantity": 1,
+		"location_id": 2002,
+		"location_type": "item",
+		"location_flag": "Unlocked",
+		"is_singleton": true
+	},
+	{
+		"item_id": 2002,
+		"type_id": 3467,
+		"quantity": 1,
+		"location_id": 2003,
+		"location_type": "item",
+		"location_flag": "Unlocked",
+		"is_singleton": true
+	},
+	{
+		"item_id": 2003,
+		"type_id": 3467,
+		"quantity": 1,
+		"location_id": 2004,
+		"location_type": "item",
+		"location_flag": "Unlocked",
+		"is_singleton": true
+	},
+	{
+		"item_id": 2004,
+		"type_id": 3467,
+		"quantity": 1,
+		"location_id": 2005,
+		"location_type": "item",
+		"location_flag": "Unlocked",
+		"is_singleton": true
+	},
+	{
+		"item_id": 2005,
+		"type_id": 3467,
+		"quantity": 1,
+		"location_id": 2006,
+		"location_type": "item",
+		"location_flag": "Unlocked",
+		"is_singleton": true
+	},
+	{
+		"item_id": 2006,
+		"type_id": 3467,
+		"quantity": 1,
+		"location_id": 2007,
+		"location_type": "item",
+		"location_flag": "Unlocked",
+		"is_singleton": true
+	},
+	{
+		"item_id": 2007,
+		"type_id": 3467,
+		"quantity": 1,
+		"location_id": 2008,
+		"location_type": "item",
+		"location_flag": "Unlocked",
+		"is_singleton": true
+	},
+	{
+		"item_id": 2008,
+		"type_id": 3467,
+		"quantity": 1,
+		"location_id": 2009,
+		"location_type": "item",
+		"location_flag": "Unlocked",
+		"is_singleton": true
+	},
+	{
+		"item_id": 2009,
+		"type_id": 3467,
+		"quantity": 1,
+		"location_id": 2010,
+		"location_type": "item",
+		"location_flag": "Unlocked",
+		"is_singleton": true
+	},
+	{
+		"item_id": 2010,
+		"type_id": 3467,
+		"quantity": 1,
+		"location_id": 2011,
+		"location_type": "item",
+		"location_flag": "Unlocked",
+		"is_singleton": true
+	},
+	{
+		"item_id": 2011,
+		"type_id": 3467,
+		"quantity": 1,
+		"location_id": 2012,
+		"location_type": "item",
+		"location_flag": "Unlocked",
+		"is_singleton": true
+	},
+	{
+		"item_id": 2012,
+		"type_id": 3467,
+		"quantity": 1,
+		"location_id": 2001,
+		"location_type": "item",
+		"location_flag": "Unlocked",
+		"is_singleton": true
+	}
+]

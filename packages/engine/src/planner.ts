@@ -48,6 +48,10 @@ export interface PlanInput {
 	targets: PlanTarget[];
 	/** Product type ids to buy instead of building them in the chain. */
 	buyInsteadOfBuild: number[];
+	/**
+	 * Units held per type id. Stock of a type the plan builds feeds its consumers' earliest demand (its
+	 * jobs start later or run fewer runs); stock of a bought type covers the earliest start-up purchases.
+	 */
 	stock: Record<number, number>;
 	ownedFormulas: Record<number, number>;
 	/** 30-day average daily volume in the output hub's region, per type id. */
@@ -95,6 +99,7 @@ export interface PlanReaction {
 	totalRuns: number;
 	slots: number;
 	runsPerSlot: number[];
+	/** First cycle its jobs run in (1 = first start-up cycle, as `PlanPhase.cycle`). */
 	firstCycle: number;
 	/** Seconds per run with the reaction's own profile. */
 	runTimeSeconds: number;
@@ -120,8 +125,9 @@ export interface PlanPhase {
 	/** 0 = the one-time step 0 of the `step0` start-up; 1 = first start-up cycle. */
 	cycle: number;
 	label: 'step_0' | 'build_up' | 'steady';
+	/** Reactions with jobs in this cycle, in plan order. */
 	blueprintTypeIds: number[];
-	/** Slots busy in this cycle (Σ slots of its reactions). */
+	/** Slots busy in this cycle (Σ jobs of its reactions; fewer runs than in a steady cycle may need fewer). */
 	slots: number;
 	/**
 	 * Purchases of this cycle after the previous cycle's byproducts and the stock; the steady phase lists
@@ -188,6 +194,11 @@ export interface PlanResult {
 	purchasesPerCycle: (LineItem & { dailyVolumeSharePct: number | null })[];
 	/** Purchases of every phase up to and including the first steady cycle, minus stock. */
 	initialPurchases: LineItem[];
+	/**
+	 * Stock of the types the plan buys or makes that the start-up (up to and including the first steady
+	 * cycle) does not use, fuel blocks first, then by name. Steady cycles never count on stock.
+	 */
+	unusedStock: PlanItem[];
 	formulasToBuy: { blueprintTypeId: number; count: number; unitPrice: number | null }[];
 	outputsPerCycle: (LineItem & { dailyVolumeSharePct: number | null })[];
 	surplusPerCycle: LineItem[];
@@ -216,7 +227,16 @@ interface NodeState {
 	targetRuns: number;
 	/** Units of the product sold as target output (lines: all produced; quantity: the requested units). */
 	targetUnits: number;
+	/** Runs making its product for the plan's other jobs. */
+	productRuns: number;
+	/** Runs whose reprocessed product covers the demand for the `fed` types. */
+	reprocessRuns: number;
+	/** Types it builds by reprocessing (an unrefined job replacing their regular reactions). */
+	fed: number[];
 	totalRuns: number;
+	/** Runs one slot fits in a cycle. */
+	capacity: number;
+	materialModifier: number;
 	slots: number;
 	runsPerSlot: number[];
 	runTimeSeconds: number;
@@ -224,13 +244,49 @@ interface NodeState {
 	purchases: Map<number, number>;
 	/** Consumption per cycle in blueprint order; `producer` = the plan node building it. */
 	materials: { typeId: number; quantity: number; producer: number | null }[];
+	/** Quantity per run of each of `materials` (same order), before the material modifier. */
+	baseQuantities: number[];
 	jobCost: JobCostBreakdown;
 	/** Unrefined job feeding the plan: what reprocessing its build runs yields. */
 	reprocessed: { typeId: number; quantity: number; demand: number; byproduct: boolean }[];
 }
 
+/** A node's runs in one cycle: all of them, and those whose product is reprocessed. */
+interface CycleRuns {
+	total: number;
+	reprocess: number;
+}
+
+/** A node's jobs in one cycle. */
+interface CycleJob {
+	node: NodeState;
+	slots: number;
+	/** Bought materials. */
+	purchases: Map<number, number>;
+	/** Materials other jobs of the plan build. */
+	consumes: Map<number, number>;
+	/** Reprocessed units of the types it feeds. */
+	fed: Map<number, number>;
+	/** Reprocessed byproducts (positive quantities). */
+	byproducts: Map<number, number>;
+	jobCost: number;
+}
+
+/** Units of one material jobs of `runsPerSlot` runs each consume. */
+const consumed = (runsPerSlot: number[], baseQuantity: number, mm: number) =>
+	runsPerSlot.reduce((acc, jobRuns) => acc + requiredQuantity(jobRuns, baseQuantity, mm), 0);
+
 const lineCost = (items: LineItem[]) => items.reduce((acc, i) => acc + i.total + i.fees + i.shipping, 0);
 
+/**
+ * Plans the target lines with the reactions building their inputs. Steady cycle: every job runs its
+ * steady runs. Start-up: the targets start together in the first cycle the stock and the jobs before
+ * them can feed; every other job runs just in time, in each cycle the runs its consumers need the next
+ * cycle beyond the stock of its product (earliest demand first), so held intermediates shift starts or
+ * trim first runs, down the chain. The plan is steady from the first cycle in which every job runs its
+ * steady runs, at the latest when it would be without stock. Stock of bought types covers the earliest
+ * start-up purchases; stock never changes the steady cycle (profit per cycle).
+ */
 export function planReactions(input: PlanInput): PlanResult {
 	const { ctx } = input;
 	const { dataset, settings } = ctx;
@@ -320,8 +376,9 @@ export function planReactions(input: PlanInput): PlanResult {
 		const mm = materialModifier(profile, constants);
 		const purchases = new Map<number, number>();
 		const materials: NodeState['materials'] = [];
-		for (const m of fuelFirst(reaction.materials, dataset)) {
-			const need = runsPerSlot.reduce((acc, jobRuns) => acc + requiredQuantity(jobRuns, m.quantity, mm), 0);
+		const inputs = fuelFirst(reaction.materials, dataset);
+		for (const m of inputs) {
+			const need = consumed(runsPerSlot, m.quantity, mm);
 			const producer = builtBy(m.typeId);
 			if (producer && depth.has(producer.blueprintTypeId)) {
 				demand.set(m.typeId, (demand.get(m.typeId) ?? 0) + need);
@@ -355,7 +412,12 @@ export function planReactions(input: PlanInput): PlanResult {
 			depth: d,
 			targetRuns: fromTarget,
 			targetUnits: soldUnits,
+			productRuns,
+			reprocessRuns,
+			fed,
 			totalRuns,
+			capacity,
+			materialModifier: mm,
 			slots,
 			runsPerSlot,
 			runTimeSeconds: runTimeSeconds(reaction, profile, constants),
@@ -366,16 +428,158 @@ export function planReactions(input: PlanInput): PlanResult {
 				(fromTarget * reaction.product.quantity - soldUnits),
 			purchases,
 			materials,
+			baseQuantities: inputs.map((m) => m.quantity),
 			jobCost: jobCost(estimate.value, profile),
 			reprocessed
 		});
 	}
 
 	const maxDepth = nodes.reduce((acc, n) => Math.max(acc, n.depth), 0);
-	const firstCycleOf = (n: NodeState) => maxDepth - n.depth + 1;
-	const steadyCycle = maxDepth + 1;
+	/**
+	 * The steady cycle of the plan without stock (every job starts one cycle before its first consumer, the
+	 * deepest in cycle 1). Stock never makes the start-up longer: from this cycle every job runs its
+	 * steady runs.
+	 */
+	const lastCycle = maxDepth + 1;
 	const byproductsOf = (n: NodeState) => n.reprocessed.filter((o) => o.byproduct && o.quantity > 0);
 	const buys = (n: NodeState, typeId: number) => (n.purchases.get(typeId) ?? 0) > 0;
+
+	const jobCache = new Map<NodeState, Map<string, CycleJob>>();
+	/** `n`'s jobs for `runs`, split into the fewest slots like its steady runs. */
+	const jobAt = (n: NodeState, runs: CycleRuns): CycleJob => {
+		const cached = jobCache.get(n) ?? new Map<string, CycleJob>();
+		jobCache.set(n, cached);
+		const key = `${runs.total}:${runs.reprocess}`;
+		const hit = cached.get(key);
+		if (hit) return hit;
+		const runsPerSlot = splitIntoSlots(runs.total, n.capacity);
+		const purchases = new Map<number, number>();
+		const consumes = new Map<number, number>();
+		n.materials.forEach((m, i) => {
+			const into = m.producer === null ? purchases : consumes;
+			const need = consumed(runsPerSlot, n.baseQuantities[i], n.materialModifier);
+			into.set(m.typeId, (into.get(m.typeId) ?? 0) + need);
+		});
+		const fed = new Map<number, number>();
+		const byproducts = new Map<number, number>();
+		const outputs =
+			runs.reprocess === 0
+				? []
+				: reprocessOutputs(
+						dataset,
+						settings,
+						n.reaction.tier,
+						n.reaction.product.typeId,
+						runs.reprocess * n.reaction.product.quantity
+					)!;
+		for (const o of outputs) {
+			const into = n.fed.includes(o.typeId) ? fed : byproducts;
+			if (o.quantity > 0) into.set(o.typeId, (into.get(o.typeId) ?? 0) + o.quantity);
+		}
+		const job: CycleJob = {
+			node: n,
+			slots: runsPerSlot.length,
+			purchases,
+			consumes,
+			fed,
+			byproducts,
+			jobCost: jobCost(eiv(n.reaction, runs.total, ctx.inputPrices.adjusted).value, n.profile).total
+		};
+		cached.set(key, job);
+		return job;
+	};
+	const steadyJobs = nodes.map((n) => jobAt(n, { total: n.totalRuns, reprocess: n.reprocessRuns }));
+
+	/** Built type id → the nodes consuming it. */
+	const consumersOf = new Map<number, NodeState[]>();
+	for (const n of nodes)
+		for (const m of n.materials) {
+			const list = consumersOf.get(m.typeId) ?? [];
+			if (m.producer !== null && !list.includes(n)) consumersOf.set(m.typeId, [...list, n]);
+		}
+
+	/**
+	 * Runs per node and cycle (index = cycle, 1 to `lastCycle`; 0 unused) with every target running from
+	 * cycle `start`, and the stock of each built type drawn per cycle. Stock of a built type covers its
+	 * consumers' earliest demand; a job runs just in time: in cycle c the runs its consumers need in c + 1
+	 * beyond that stock, capped at its steady runs. Null when cycle 1 needs a built type beyond its stock
+	 * (nothing is built before cycle 1); with `start = lastCycle` the first cycle needs none.
+	 */
+	const scheduleFrom = (start: number) => {
+		const runs = new Map<NodeState, CycleRuns[]>();
+		const drawn = new Map<number, number[]>();
+		// Consumers sit at a lower depth than their producers: their runs are known first.
+		for (const n of nodes) {
+			const product = n.reaction.product;
+			const supplies = n.productRuns > 0 ? [product.typeId, ...n.fed] : n.fed;
+			const left = new Map(supplies.map((typeId) => [typeId, input.stock[typeId] ?? 0]));
+			for (const typeId of supplies) drawn.set(typeId, Array<number>(lastCycle + 1).fill(0));
+			/** Draws stock for the demand of `cycle`; returns what the cycle before must make. */
+			const draw = (typeId: number, cycle: number) => {
+				const demand = consumersOf.get(typeId)!.reduce((acc, v) => {
+					const r = runs.get(v)![cycle];
+					return r.total === 0 ? acc : acc + jobAt(v, r).consumes.get(typeId)!;
+				}, 0);
+				const take = Math.min(demand, left.get(typeId)!);
+				left.set(typeId, left.get(typeId)! - take);
+				drawn.get(typeId)![cycle] = take;
+				return demand - take;
+			};
+			const short = supplies.map((typeId) => draw(typeId, 1)).some((missing) => missing > 0);
+			if (short && start < lastCycle) return null;
+			const perCycle: CycleRuns[] = [{ total: 0, reprocess: 0 }];
+			for (let c = 1; c < lastCycle; c++) {
+				const missing = new Map(supplies.map((typeId) => [typeId, draw(typeId, c + 1)]));
+				const productRuns =
+					n.productRuns === 0
+						? 0
+						: Math.min(n.productRuns, Math.ceil(missing.get(product.typeId)! / product.quantity));
+				const reprocessRuns = Math.min(
+					n.reprocessRuns,
+					Math.max(
+						0,
+						...n.fed.map((typeId) => {
+							const need = missing.get(typeId)!;
+							return need > 0 ? unrefinedRuns(dataset, settings, n.reaction, typeId, need)! : 0;
+						})
+					)
+				);
+				perCycle.push({
+					total: (c >= start ? n.targetRuns : 0) + productRuns + reprocessRuns,
+					reprocess: reprocessRuns
+				});
+			}
+			perCycle.push({ total: n.totalRuns, reprocess: n.reprocessRuns });
+			runs.set(n, perCycle);
+		}
+		return { runs, drawn };
+	};
+	// The targets start together, in the first cycle the stock and the jobs before them can feed them.
+	const schedule = (() => {
+		for (let start = 1; ; start++) {
+			const found = scheduleFrom(start);
+			if (found) return found;
+		}
+	})();
+	/** First cycle in which every job runs its steady runs. */
+	const steadyCycle =
+		Array.from({ length: lastCycle }, (_, i) => i + 1).find((c) =>
+			nodes.every((n) => schedule.runs.get(n)![c].total === n.totalRuns)
+		) ?? lastCycle;
+	const firstCycleOf = (n: NodeState) => schedule.runs.get(n)!.findIndex((r) => r.total > 0);
+	/** The jobs running in `cycle`, in plan order. */
+	const jobsIn = (cycle: number) =>
+		nodes.flatMap((n) => {
+			const r = schedule.runs.get(n)![cycle];
+			return r.total > 0 ? [jobAt(n, r)] : [];
+		});
+	/** Stock left once the built types' draws up to the steady cycle are taken (bought types: all of it). */
+	const stockAfterBuilds = new Map(
+		Object.entries(input.stock).map(([key, qty]): [number, number] => {
+			const draws = schedule.drawn.get(Number(key))?.slice(1, steadyCycle + 1) ?? [];
+			return [Number(key), draws.reduce((acc, d) => acc - d, qty)];
+		})
+	);
 
 	// Purchases are priced with the market settings of the first reaction (in plan order) that buys the type.
 	const pc: PricingContext = { ctx, missing: new Set() };
@@ -393,13 +597,13 @@ export function planReactions(input: PlanInput): PlanResult {
 	 * Quantities one cycle buys: the running jobs' purchases minus what the jobs running the cycle before
 	 * made as byproducts (a cycle's excess is sold, not carried over).
 	 */
-	const cycleNeeds = (running: NodeState[], before: NodeState[]) => {
+	const cycleNeeds = (running: CycleJob[], before: CycleJob[]) => {
 		const made = new Map<number, number>();
-		for (const n of before)
-			for (const o of byproductsOf(n)) made.set(o.typeId, (made.get(o.typeId) ?? 0) + o.quantity);
+		for (const j of before)
+			for (const [typeId, qty] of j.byproducts) made.set(typeId, (made.get(typeId) ?? 0) + qty);
 		const need = new Map<number, number>();
-		for (const n of running)
-			for (const [typeId, qty] of n.purchases) need.set(typeId, (need.get(typeId) ?? 0) + qty);
+		for (const j of running)
+			for (const [typeId, qty] of j.purchases) need.set(typeId, (need.get(typeId) ?? 0) + qty);
 		const bought = new Map<number, number>();
 		const credited = new Map<number, number>();
 		for (const [typeId, qty] of need) {
@@ -428,29 +632,32 @@ export function planReactions(input: PlanInput): PlanResult {
 	const formulaCost = formulasToBuy.reduce((acc, f) => acc + f.count * (f.unitPrice ?? 0), 0);
 
 	// Steady cycle: every job runs in it and in the cycle before.
-	const steadyNeeds = cycleNeeds(nodes, nodes);
+	const steadyNeeds = cycleNeeds(steadyJobs, steadyJobs);
 	const byproductSold = new Map<number, number>();
 	for (const [typeId, made] of steadyNeeds.made) {
 		const used = steadyNeeds.credited.get(typeId) ?? 0;
 		if (made > used) byproductSold.set(typeId, made - used);
 	}
 
-	// Step 0 candidates: unrefined jobs of the first cycle whose byproducts another first-cycle job buys.
-	const firstJobs = nodes.filter((n) => firstCycleOf(n) === 1);
-	const feeders = firstJobs.filter((u) =>
-		byproductsOf(u).some((o) => firstJobs.some((v) => v !== u && buys(v, o.typeId)))
+	// Step 0 candidates: unrefined jobs of the first cycle that use no built material and whose byproducts
+	// another first-cycle job buys. Step 0 runs their first-cycle runs.
+	const firstJobs = jobsIn(1);
+	const feeders = firstJobs.filter(
+		(u) =>
+			u.consumes.size === 0 &&
+			[...u.byproducts.keys()].some((typeId) => firstJobs.some((v) => v !== u && v.purchases.has(typeId)))
 	);
 
 	interface StartupCycle {
 		cycle: number;
-		running: NodeState[];
+		running: CycleJob[];
 		bought: Map<number, number>;
 		credited: Map<number, number>;
 		made: Map<number, number>;
 	}
 	interface PricedStartup {
 		/** Jobs of step 0 (none: buy for the first cycle). */
-		jobs: NodeState[];
+		jobs: CycleJob[];
 		cycles: StartupCycle[];
 		/** Priced purchases per cycle (same order as `cycles`). */
 		purchases: LineItem[][];
@@ -462,17 +669,19 @@ export function planReactions(input: PlanInput): PlanResult {
 		priced: boolean;
 		short: boolean;
 		missing: Set<number>;
+		/** Stock left after the start-up. */
+		stockLeft: Map<number, number>;
 	}
-	const startupCycles = (step0: NodeState[]): StartupCycle[] => {
+	const startupCycles = (step0: CycleJob[]) => {
 		const cycles: StartupCycle[] = [];
-		let before: NodeState[] = [];
+		let before: CycleJob[] = [];
 		for (let cycle = step0.length > 0 ? 0 : 1; cycle <= steadyCycle; cycle++) {
-			const running = cycle === 0 ? step0 : nodes.filter((n) => firstCycleOf(n) <= cycle);
+			const running = cycle === 0 ? step0 : jobsIn(cycle);
 			cycles.push({ cycle, running, ...cycleNeeds(running, before) });
 			before = running;
 		}
-		// Stock covers the earliest purchases first.
-		const stockLeft = new Map(Object.entries(input.stock).map(([typeId, qty]) => [Number(typeId), qty]));
+		// Stock of bought types covers the earliest purchases first.
+		const stockLeft = new Map(stockAfterBuilds);
 		for (const c of cycles)
 			for (const [typeId, qty] of c.bought) {
 				const take = Math.min(qty, stockLeft.get(typeId) ?? 0);
@@ -481,12 +690,12 @@ export function planReactions(input: PlanInput): PlanResult {
 				if (qty > take) c.bought.set(typeId, qty - take);
 				else c.bought.delete(typeId);
 			}
-		return cycles;
+		return { cycles, stockLeft };
 	};
 
 	/** Prices a start-up's purchases together (input market depth shared, like one plan's purchases). */
-	const priceStartup = (jobs: NodeState[]): PricedStartup => {
-		const cycles = startupCycles(jobs);
+	const priceStartup = (jobs: CycleJob[]): PricedStartup => {
+		const { cycles, stockLeft } = startupCycles(jobs);
 		const local: PricingContext = { ctx, missing: new Set() };
 		const entries = typeOrder.flatMap((typeId) =>
 			cycles.flatMap((c) =>
@@ -511,7 +720,7 @@ export function planReactions(input: PlanInput): PlanResult {
 			total.addItem(item);
 		}
 		const initialPurchases = sourcing.annotate(total.list());
-		const jobCosts = cycles.map((c) => c.running.reduce((acc, n) => acc + n.jobCost.total, 0));
+		const jobCosts = cycles.map((c) => c.running.reduce((acc, j) => acc + j.jobCost, 0));
 		return {
 			jobs,
 			cycles,
@@ -521,7 +730,8 @@ export function planReactions(input: PlanInput): PlanResult {
 			investment: lineCost(initialPurchases) + jobCosts.reduce((a, b) => a + b, 0),
 			priced: initialPurchases.every((i) => i.unitPrice !== null),
 			short: sourcing.short,
-			missing: local.missing
+			missing: local.missing,
+			stockLeft
 		};
 	};
 	const buyFirst = priceStartup([]);
@@ -540,13 +750,13 @@ export function planReactions(input: PlanInput): PlanResult {
 		step0 && step0.priced && buyFirst.priced && step0.investment < buyFirst.investment ? step0 : buyFirst;
 	const investmentOf = (o: PricedStartup) => (o.priced ? o.investment + formulaCost : null);
 	for (const typeId of chosen.missing) pc.missing.add(typeId);
-	const prerun = new Set(chosen === step0 ? step0.jobs : []);
+	const prerun = new Set(chosen === step0 ? step0.jobs.map((j) => j.node) : []);
 
 	const phases: PlanPhase[] = chosen.cycles.map((c, i) => ({
 		cycle: c.cycle,
 		label: c.cycle === 0 ? 'step_0' : c.cycle === steadyCycle ? 'steady' : 'build_up',
-		blueprintTypeIds: c.running.map((n) => n.reaction.blueprintTypeId),
-		slots: c.running.reduce((acc, n) => acc + n.slots, 0),
+		blueprintTypeIds: c.running.map((j) => j.node.reaction.blueprintTypeId),
+		slots: c.running.reduce((acc, j) => acc + j.slots, 0),
 		purchases: chosen.purchases[i],
 		jobCost: chosen.jobCosts[i]
 	}));
@@ -555,6 +765,20 @@ export function planReactions(input: PlanInput): PlanResult {
 		[...entries]
 			.filter(([, q]) => q > 0)
 			.map(([typeId, quantity]) => ({ typeId, name: typeName(typeId), quantity }));
+	/** Types the plan buys or makes. */
+	const planTypes = new Set(
+		nodes.flatMap((n) => [
+			n.reaction.product.typeId,
+			...n.materials.map((m) => m.typeId),
+			...n.reprocessed.map((o) => o.typeId)
+		])
+	);
+	const unusedStock = fuelFirst(
+		items([...chosen.stockLeft].filter(([typeId]) => planTypes.has(typeId))).sort((a, b) =>
+			a.name.localeCompare(b.name)
+		),
+		dataset
+	);
 	const startup: PlanStartup = {
 		mode: chosen === step0 ? 'step0' : 'buy',
 		reused: items(
@@ -564,13 +788,11 @@ export function planReactions(input: PlanInput): PlanResult {
 		step0: step0 && {
 			initialInvestment: investmentOf(step0),
 			cycles: step0.cycles.length,
-			blueprintTypeIds: step0.jobs.map((n) => n.reaction.blueprintTypeId),
+			blueprintTypeIds: step0.jobs.map((j) => j.node.reaction.blueprintTypeId),
 			saves: items(step0.cycles[1].credited),
 			stock: items(
 				[
-					...step0.jobs.flatMap((n) =>
-						n.reprocessed.filter((o) => !o.byproduct).map((o): [number, number] => [o.typeId, o.quantity])
-					),
+					...step0.jobs.flatMap((j) => [...j.fed]),
 					// `made` of cycle 1 = the byproducts of the cycle before it, step 0.
 					...[...step0.cycles[1].made].map(([typeId, made]): [number, number] => [
 						typeId,
@@ -710,6 +932,7 @@ export function planReactions(input: PlanInput): PlanResult {
 		startup,
 		purchasesPerCycle,
 		initialPurchases: chosen.initialPurchases,
+		unusedStock,
 		formulasToBuy,
 		outputsPerCycle,
 		surplusPerCycle: surplus.list(),

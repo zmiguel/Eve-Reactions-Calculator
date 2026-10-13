@@ -1,6 +1,15 @@
 <script lang="ts">
-	import { isFuelBlock, planReactions, suggestFillPlan, type PlanInput } from '@reactions/engine';
-	import { onMount } from 'svelte';
+	import {
+		STOCK_PLAN_DEFAULT_MAX_CYCLES,
+		STOCK_PLAN_MAX_CYCLES,
+		isFuelBlock,
+		planReactions,
+		suggestFillPlan,
+		type PlanInput,
+		type StockPlan,
+		type StockPlanInput
+	} from '@reactions/engine';
+	import { onMount, untrack } from 'svelte';
 	import { replaceState } from '$app/navigation';
 	import { page } from '$app/state';
 	import SettingsSummary from '$lib/components/listing/SettingsSummary.svelte';
@@ -21,6 +30,9 @@
 	} from '$lib/planner/plan';
 	import { reactionSlots, MAX_SKILL_LEVEL } from '$lib/planner/slots';
 	import {
+		DEFAULT_STOCK_SEARCH_SECONDS,
+		MAX_STOCK_SEARCH_SECONDS,
+		MIN_STOCK_SEARCH_SECONDS,
 		MAX_SLOTS,
 		decodeShare,
 		emptyState,
@@ -29,9 +41,12 @@
 		saveState,
 		type PlannerState
 	} from '$lib/planner/state';
+	import { planOnThread, workerStockPlanner, type StockPlanner } from '$lib/planner/stockPlanner';
 	import AutoFillButton from './AutoFillButton.svelte';
 	import PlannerPaste from './PlannerPaste.svelte';
+	import PlannerInventory from './PlannerInventory.svelte';
 	import PlannerResults from './PlannerResults.svelte';
+	import StockPlanResults from './StockPlanResults.svelte';
 	import PlannerTargets from './PlannerTargets.svelte';
 
 	interface Props {
@@ -40,9 +55,11 @@
 		share?: string | null;
 		/** Persistence (default `localStorage`); test seam. */
 		storage?: Pick<Storage, 'getItem' | 'setItem'>;
+		/** Runs "Use what I have" plans (default: a Web Worker, else this thread); test seam. */
+		planStock?: StockPlanner;
 	}
 
-	let { data, share = null, storage }: Props = $props();
+	let { data, share = null, storage, planStock }: Props = $props();
 
 	let setup = $state<PlannerState>(emptyState());
 	let ready = $state(false);
@@ -99,6 +116,11 @@
 	const formulaIndex = $derived(formulaNameIndex(data.dataset));
 	const stock = $derived(parsePaste(setup.stockText, typeIndex));
 	const owned = $derived(parsePaste(setup.formulasText, formulaIndex));
+	// No choice stored: the account's inventory when there is one. A plan set to the inventory opened
+	// without one (a share link, another browser) falls back to the pasted lists.
+	const stockSource = $derived(setup.stockSource ?? (data.inventory ? 'account' : 'paste'));
+	const inventory = $derived(stockSource === 'account' ? data.inventory : null);
+	const inventoryMissing = $derived(stockSource === 'account' && !data.inventory);
 	const volumes = $derived(productVolumes(data));
 	const purchaseVolumes = $derived(inputVolumes(data));
 	const input: PlanInput = $derived({
@@ -106,8 +128,8 @@
 		totalSlots: setup.slots,
 		targets: setup.targets,
 		buyInsteadOfBuild: setup.buy,
-		stock: stock.quantities,
-		ownedFormulas: owned.quantities,
+		stock: inventory ? inventory.stock : stock.quantities,
+		ownedFormulas: inventory ? inventory.formulas : owned.quantities,
 		dailyVolumes: dailyVolumes(volumes),
 		inputDailyVolumes: hubDailyVolumes(data)
 	});
@@ -117,6 +139,87 @@
 		Object.fromEntries(data.dataset.reactions.map((r) => [r.blueprintTypeId, r.formulaName]))
 	);
 	const missing = $derived(plan.missingPrices.map((id) => data.dataset.types[id]?.name ?? `Type ${id}`));
+	const mode = $derived(setup.mode ?? 'targets');
+	const stockSearchSeconds = $derived(setup.stockSearchSeconds ?? DEFAULT_STOCK_SEARCH_SECONDS);
+	const stockInput: StockPlanInput | null = $derived(
+		mode === 'stock'
+			? {
+					ctx,
+					totalSlots: setup.slots,
+					stock: inventory ? inventory.stock : stock.quantities,
+					ownedFormulas: inventory ? inventory.formulas : owned.quantities,
+					maxCycles: setup.stockCycles,
+					allowUnownedFormulas: setup.allowUnownedFormulas ?? false,
+					// Past it, the best plan found so far is the result (not proven optimal).
+					timeLimitMs: stockSearchSeconds * 1000
+				}
+			: null
+	);
+
+	// "Use what I have" plans in a Web Worker (the search runs for seconds); without one (server render,
+	// tests) on this thread.
+	let stockPlanner: StockPlanner = planOnThread;
+	onMount(() => {
+		if (planStock) {
+			stockPlanner = planStock;
+			return;
+		}
+		if (typeof Worker === 'undefined') return;
+		const worker = workerStockPlanner();
+		stockPlanner = worker.plan;
+		return worker.dispose;
+	});
+	/** Plan shown: the latest run's best so far or result, else the previous run's (dimmed). */
+	let stockPlan = $state<StockPlan | null>(null);
+	/** A run is pending or searching. */
+	let planning = $state(false);
+	/** `stockPlan` belongs to the run in progress (a plan found so far). */
+	let incumbentShown = $state(false);
+	let stockFailed = $state(false);
+	/** Input changes wait this long before planning, so typing does not start a run per keystroke. */
+	const STOCK_DEBOUNCE_MS = 250;
+	$effect(() => {
+		// Plain data (no state proxies), so it clones into the worker as is.
+		const input = ready ? stockInput : null;
+		if (!input) {
+			planning = false;
+			return;
+		}
+		planning = true;
+		incumbentShown = false;
+		// Only the latest request counts: a change aborts the run in flight (terminating its worker).
+		const controller = new AbortController();
+		const timer = setTimeout(
+			() =>
+				stockPlanner(input, controller.signal, (incumbent) => {
+					if (controller.signal.aborted) return;
+					stockPlan = incumbent;
+					incumbentShown = true;
+				}).then(
+					(result) => {
+						if (controller.signal.aborted) return;
+						stockPlan = result;
+						stockFailed = false;
+						planning = false;
+					},
+					() => {
+						if (controller.signal.aborted) return;
+						stockFailed = true;
+						planning = false;
+					}
+				),
+			untrack(() => stockPlan) ? STOCK_DEBOUNCE_MS : 0
+		);
+		return () => {
+			clearTimeout(timer);
+			controller.abort();
+		};
+	});
+	const stockJobs = $derived(stockPlan?.cycles.some((c) => c.jobs.length > 0) ?? false);
+	/** Cycles slider position: the chosen count, else the engine's default for this stock (the last plan's). */
+	const stockCyclesShown = $derived(
+		setup.stockCycles ?? stockPlan?.maxCycles ?? STOCK_PLAN_DEFAULT_MAX_CYCLES
+	);
 	const fuelTypeIds = $derived(
 		new Set(
 			Object.values(data.dataset.types)
@@ -171,9 +274,13 @@
 	$effect(() => {
 		const json = JSON.stringify(setup); // reads (and tracks) every field
 		const settings = data.settings;
+		// The source in use (not the inventory itself), so a recipient without one sees the fallback note.
+		const source = stockSource;
 		if (!ready) return;
 		let stale = false;
-		encodeShare(JSON.parse(json), settings).then((code) => {
+		const shared: PlannerState = JSON.parse(json);
+		if (source === 'account') shared.stockSource = source;
+		encodeShare(shared, settings).then((code) => {
 			if (!stale) shareUrl = `${window.location.origin}/planner?s=${code}`;
 		});
 		return () => (stale = true);
@@ -228,6 +335,24 @@
 		class="space-y-3 rounded-lg bg-white p-3 text-sm lg:sticky lg:top-20 lg:max-h-[calc(100vh-6rem)] lg:overflow-y-auto dark:bg-gray-700"
 		aria-label="Plan inputs"
 	>
+		<span
+			class="flex overflow-hidden rounded-md border border-gray-200 text-sm font-medium dark:border-gray-600"
+			role="group"
+			aria-label="Planner mode"
+		>
+			<button
+				type="button"
+				class="flex-1 px-2 py-1 {segment(mode === 'targets')}"
+				aria-pressed={mode === 'targets'}
+				onclick={() => (setup.mode = 'targets')}>Plan targets</button
+			>
+			<button
+				type="button"
+				class="flex-1 border-l border-gray-200 px-2 py-1 dark:border-gray-600 {segment(mode === 'stock')}"
+				aria-pressed={mode === 'stock'}
+				onclick={() => (setup.mode = 'stock')}>Use what I have</button
+			>
+		</span>
 		<div class="grid grid-cols-2 gap-3">
 			<div>
 				<label for="planner-slots" class={label}>Slots</label>
@@ -302,91 +427,201 @@
 			</button>
 		</fieldset>
 
-		<div>
-			<h2 class={label}>Targets</h2>
-			<PlannerTargets
-				bind:targets={setup.targets}
-				reactions={data.dataset.reactions}
-				footprint={(t) => targetFootprint(input, t)}
-			>
-				{#snippet actions()}
-					<AutoFillButton
-						bind:scope={setup.fillScope}
-						disabled={plan.slotsRemaining === 0}
-						onfill={autoFill}
-					/>
-				{/snippet}
-			</PlannerTargets>
-			<div
-				class="mt-1.5 flex flex-wrap items-center gap-x-1.5 gap-y-0.5 text-xs text-gray-600 dark:text-gray-300"
-			>
-				<label for="planner-max-volume">Auto-fill: max share of daily volume</label>
-				<input
-					id="planner-max-volume"
-					aria-describedby="planner-max-volume-hint"
-					type="number"
-					min="1"
-					max="100"
-					step="any"
-					class="{fieldSm} w-14"
-					value={setup.maxVolumePct}
-					onchange={(e) => setMaxVolume(e.currentTarget)}
-				/>
-				<span>%</span>
-				<span class="basis-full text-gray-500 dark:text-gray-400" id="planner-max-volume-hint">
-					Per product, sold per day vs the region's 30-day average; products without volume data get one line.
-				</span>
-			</div>
-		</div>
-
-		{#if buildBuy.length > 0}
-			<div>
-				<h2 class={label}>Intermediates</h2>
-				<ul class="divide-y divide-gray-200 dark:divide-gray-600" aria-label="Build or buy intermediates">
-					{#each buildBuy as item (item.typeId)}
-						<li class="flex items-center justify-between gap-2 py-0.5" data-build-buy={item.typeId}>
-							<span class="truncate">{item.name}</span>
-							<span
-								class="inline-flex shrink-0 overflow-hidden rounded-md border border-gray-200 text-xs font-medium dark:border-gray-600"
+		{#if mode === 'stock'}
+			<div class="space-y-2" data-stock-options>
+				<div class="space-y-1">
+					<div class="flex items-center justify-between gap-2">
+						<label for="planner-stock-cycles" class={caption}>Cycles</label>
+						<span class="flex items-center gap-2 text-xs text-gray-600 dark:text-gray-300">
+							<output
+								for="planner-stock-cycles"
+								class="font-medium text-gray-900 tabular-nums dark:text-gray-100">{stockCyclesShown}</output
 							>
+							{#if setup.stockCycles === undefined}
+								<span>(default)</span>
+							{:else}
 								<button
 									type="button"
-									class="px-2 py-0.5 {segment(!item.buy)}"
-									aria-pressed={!item.buy}
-									aria-label="Build {item.name}"
-									onclick={() => toggleBuy(item.typeId, false)}>Build</button
+									class="text-primary-700 dark:text-primary-400 hover:underline"
+									onclick={() => (setup.stockCycles = undefined)}>Use default</button
 								>
-								<button
-									type="button"
-									class="border-l border-gray-200 px-2 py-0.5 dark:border-gray-600 {segment(item.buy)}"
-									aria-pressed={item.buy}
-									aria-label="Buy {item.name}"
-									onclick={() => toggleBuy(item.typeId, true)}>Buy</button
-								>
-							</span>
-						</li>
-					{/each}
-				</ul>
+							{/if}
+						</span>
+					</div>
+					<input
+						id="planner-stock-cycles"
+						type="range"
+						min="1"
+						max={STOCK_PLAN_MAX_CYCLES}
+						step="1"
+						value={stockCyclesShown}
+						oninput={(e) => (setup.stockCycles = Number(e.currentTarget.value))}
+						class="accent-primary-600 w-full"
+					/>
+				</div>
+				<p class="-mt-1 text-xs text-gray-500 dark:text-gray-400">
+					One cycle is one round of reaction jobs of your cycle length; later cycles can use what earlier ones
+					made.
+				</p>
+				<div class="space-y-1">
+					<div class="flex items-center justify-between gap-2">
+						<label for="planner-stock-search" class={caption}>Search time</label>
+						<output
+							for="planner-stock-search"
+							class="text-xs font-medium text-gray-900 tabular-nums dark:text-gray-100"
+							>{stockSearchSeconds} s</output
+						>
+					</div>
+					<input
+						id="planner-stock-search"
+						type="range"
+						min={MIN_STOCK_SEARCH_SECONDS}
+						max={MAX_STOCK_SEARCH_SECONDS}
+						step="5"
+						value={stockSearchSeconds}
+						oninput={(e) => (setup.stockSearchSeconds = Number(e.currentTarget.value))}
+						class="accent-primary-600 w-full"
+					/>
+				</div>
+				<p class="-mt-1 text-xs text-gray-500 dark:text-gray-400">
+					Runs in your browser; the best plan found so far is shown while it searches.
+				</p>
+				<label class="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-200">
+					<input
+						type="checkbox"
+						class="text-primary-600 focus:ring-primary-500 h-4 w-4 rounded border-gray-300 dark:border-gray-600 dark:bg-gray-800"
+						checked={setup.allowUnownedFormulas ?? false}
+						onchange={(e) => (setup.allowUnownedFormulas = e.currentTarget.checked)}
+					/>
+					Allow formulas I don't own
+				</label>
+				<p class="text-xs text-gray-500 dark:text-gray-400">
+					Puts your stock to use over the chosen cycles; only fuel blocks are bought{setup.allowUnownedFormulas
+						? ', plus the formulas the plan needs'
+						: ', and reactions need an owned formula'}.
+				</p>
 			</div>
+		{:else}
+			<div>
+				<h2 class={label}>Targets</h2>
+				<PlannerTargets
+					bind:targets={setup.targets}
+					reactions={data.dataset.reactions}
+					footprint={(t) => targetFootprint(input, t)}
+				>
+					{#snippet actions()}
+						<AutoFillButton
+							bind:scope={setup.fillScope}
+							disabled={plan.slotsRemaining === 0}
+							onfill={autoFill}
+						/>
+					{/snippet}
+				</PlannerTargets>
+				<div
+					class="mt-1.5 flex flex-wrap items-center gap-x-1.5 gap-y-0.5 text-xs text-gray-600 dark:text-gray-300"
+				>
+					<label for="planner-max-volume">Auto-fill: max share of daily volume</label>
+					<input
+						id="planner-max-volume"
+						aria-describedby="planner-max-volume-hint"
+						type="number"
+						min="1"
+						max="100"
+						step="any"
+						class="{fieldSm} w-14"
+						value={setup.maxVolumePct}
+						onchange={(e) => setMaxVolume(e.currentTarget)}
+					/>
+					<span>%</span>
+					<span class="basis-full text-gray-500 dark:text-gray-400" id="planner-max-volume-hint">
+						Per product, sold per day vs the region's 30-day average; products without volume data get one
+						line.
+					</span>
+				</div>
+			</div>
+
+			{#if buildBuy.length > 0}
+				<div>
+					<h2 class={label}>Intermediates</h2>
+					<ul class="divide-y divide-gray-200 dark:divide-gray-600" aria-label="Build or buy intermediates">
+						{#each buildBuy as item (item.typeId)}
+							<li class="flex items-center justify-between gap-2 py-0.5" data-build-buy={item.typeId}>
+								<span class="truncate">{item.name}</span>
+								<span
+									class="inline-flex shrink-0 overflow-hidden rounded-md border border-gray-200 text-xs font-medium dark:border-gray-600"
+								>
+									<button
+										type="button"
+										class="px-2 py-0.5 {segment(!item.buy)}"
+										aria-pressed={!item.buy}
+										aria-label="Build {item.name}"
+										onclick={() => toggleBuy(item.typeId, false)}>Build</button
+									>
+									<button
+										type="button"
+										class="border-l border-gray-200 px-2 py-0.5 dark:border-gray-600 {segment(item.buy)}"
+										aria-pressed={item.buy}
+										aria-label="Buy {item.name}"
+										onclick={() => toggleBuy(item.typeId, true)}>Buy</button
+									>
+								</span>
+							</li>
+						{/each}
+					</ul>
+				</div>
+			{/if}
 		{/if}
 
 		<div class="space-y-2">
-			<PlannerPaste
-				label="Stock"
-				noun="item"
-				hint="Paste from your EVE inventory (Name, tab, quantity per line); stock reduces the initial purchases."
-				placeholder={STOCK_EXAMPLE}
-				bind:text={setup.stockText}
-				result={stock}
-			/>
-			<PlannerPaste
-				label="Owned formulas"
-				noun="formula"
-				hint="Paste formula names with counts; owned formulas are not bought."
-				placeholder={FORMULAS_EXAMPLE}
-				bind:text={setup.formulasText}
-				result={owned}
-			/>
+			{#if data.inventory}
+				<div class="flex flex-wrap items-center justify-between gap-2">
+					<h2 class={caption} id="planner-stock-source">Stock and formulas from</h2>
+					<span
+						class="inline-flex shrink-0 overflow-hidden rounded-md border border-gray-200 text-xs font-medium dark:border-gray-600"
+						role="group"
+						aria-labelledby="planner-stock-source"
+					>
+						<button
+							type="button"
+							class="px-2 py-0.5 {segment(stockSource === 'account')}"
+							aria-pressed={stockSource === 'account'}
+							onclick={() => (setup.stockSource = 'account')}>My inventory</button
+						>
+						<button
+							type="button"
+							class="border-l border-gray-200 px-2 py-0.5 dark:border-gray-600 {segment(
+								stockSource === 'paste'
+							)}"
+							aria-pressed={stockSource === 'paste'}
+							onclick={() => (setup.stockSource = 'paste')}>Pasted lists</button
+						>
+					</span>
+				</div>
+			{/if}
+			{#if inventory}
+				<PlannerInventory {inventory} />
+			{:else}
+				<PlannerPaste
+					label="Stock"
+					noun="item"
+					hint="Paste from your EVE inventory (Name, tab, quantity per line); {mode === 'stock'
+						? 'the plan puts this stock to use'
+						: 'stock reduces the initial purchases'}."
+					placeholder={STOCK_EXAMPLE}
+					bind:text={setup.stockText}
+					result={stock}
+				/>
+				<PlannerPaste
+					label="Owned formulas"
+					noun="formula"
+					hint="Paste formula names with counts; {mode === 'stock'
+						? 'each owned formula runs one slot per cycle'
+						: 'owned formulas are not bought'}."
+					placeholder={FORMULAS_EXAMPLE}
+					bind:text={setup.formulasText}
+					result={owned}
+				/>
+			{/if}
 		</div>
 
 		<form method="GET" action="/planner" class="space-y-1" data-sveltekit-noscroll data-sveltekit-keepfocus>
@@ -437,7 +672,14 @@
 			<button
 				type="button"
 				class={button}
-				onclick={() => (setup = { ...emptyState(), slots: setup.slots, cycleDays: setup.cycleDays })}
+				onclick={() =>
+					(setup = {
+						...emptyState(),
+						slots: setup.slots,
+						cycleDays: setup.cycleDays,
+						stockSource: setup.stockSource,
+						mode: setup.mode
+					})}
 			>
 				Clear
 			</button>
@@ -476,19 +718,74 @@
 				<a href={withShare(null)} class="font-medium underline" data-sveltekit-reload>Open my saved plan</a>
 			</InfoNote>
 		{/if}
+		{#if inventoryMissing}
+			<InfoNote name="inventory-fallback">
+				This plan takes stock and formulas from an account inventory, and you have no synced inventory here:
+				your pasted lists are used instead.
+			</InfoNote>
+		{/if}
 		{#if data.settingsSummary}
 			<SettingsSummary
 				settings={data.settingsSummary}
-				warnings={plan.reactions.length > 0 ? [] : data.profileWarnings}
+				warnings={(mode === 'stock' ? stockJobs : plan.reactions.length > 0) ? [] : data.profileWarnings}
 			/>
 		{:else}
 			<a href="/settings" class="text-primary-700 dark:text-primary-400 text-sm hover:underline"
 				>Per-reactor settings in use · Edit settings</a
 			>
 		{/if}
-		{#if plan.reactions.length > 0}
+		{#if mode === 'stock'}
+			<p
+				class="text-sm font-medium text-gray-700 empty:hidden dark:text-gray-200"
+				role="status"
+				aria-live="polite"
+				data-stock-status
+			>
+				{#if planning && incumbentShown}Looking for a better plan…{:else if planning || (!stockPlan && !stockFailed)}Planning…{:else if stockFailed}Planning
+					failed: change an input to try again.{/if}
+			</p>
+			{#if stockPlan}
+				<div
+					class="transition-opacity {planning && !incumbentShown ? 'opacity-50' : ''}"
+					aria-busy={planning}
+					data-stock-plan
+				>
+					{#if stockJobs}
+						<StockPlanResults
+							plan={stockPlan}
+							final={!planning}
+							dataset={data.dataset}
+							totalSlots={setup.slots}
+							allowUnownedFormulas={setup.allowUnownedFormulas ?? false}
+							inputMarket={inputMarket(data)}
+							profileWarnings={data.profileWarnings}
+						/>
+					{:else}
+						<div
+							class="space-y-2 rounded-lg bg-white p-4 text-sm text-gray-600 dark:bg-gray-700 dark:text-gray-300"
+							data-empty
+						>
+							<p class="font-medium text-gray-800 dark:text-gray-200">
+								{formatNumber(setup.slots)} slots, {cycleDays}-day cycle: no reaction can run on this stock.
+							</p>
+							<ul class="list-disc space-y-1 ps-5">
+								<li>Paste your stock and owned formulas, or use My inventory when you are logged in.</li>
+								<li>
+									A reaction runs when your stock or earlier cycles hold its inputs (fuel blocks are bought)
+									and you own its formula{setup.allowUnownedFormulas ? ' or it can be bought' : ''}.
+								</li>
+								{#if !setup.allowUnownedFormulas}
+									<li>Allow formulas I don't own to also use reactions whose formula you would buy.</li>
+								{/if}
+							</ul>
+						</div>
+					{/if}
+				</div>
+			{/if}
+		{:else if plan.reactions.length > 0}
 			<PlannerResults
 				{plan}
+				dataset={data.dataset}
 				totalSlots={setup.slots}
 				{cycleDays}
 				{formulaNames}

@@ -1,0 +1,1 @@
+ALTER TABLE `inventory_sources` ADD `data_expires_at` integer;

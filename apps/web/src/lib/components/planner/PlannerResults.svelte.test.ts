@@ -10,6 +10,7 @@ const formulaNames = {
 	46205: 'Crystalline Carbonide Reaction Formula',
 	46167: 'Carbon Polymers Reaction Formula'
 };
+const dataset = makeCtx().dataset;
 
 function plan(overrides: Partial<PlanInput> = {}) {
 	return planReactions({
@@ -27,7 +28,7 @@ function plan(overrides: Partial<PlanInput> = {}) {
 function setup(overrides: Partial<PlanInput> = {}, extra: Record<string, unknown> = {}) {
 	const p = plan(overrides);
 	return render(PlannerResults, {
-		props: { plan: p, totalSlots: overrides.totalSlots ?? 150, cycleDays: 7, formulaNames, ...extra }
+		props: { plan: p, dataset, totalSlots: overrides.totalSlots ?? 150, cycleDays: 7, formulaNames, ...extra }
 	});
 }
 
@@ -120,7 +121,7 @@ describe('PlannerResults', () => {
 		// 3.5-day cycle: 63 runs per line → 2 × 63 × 10,000 = 1,260,000 per cycle = 360,000 per day.
 		const p = plan({ ctx: makeCtx({ settings: { cycleDays: 3.5 } }), dailyVolumes: { 16670: 3_600_000 } });
 		const { container } = render(PlannerResults, {
-			props: { plan: p, totalSlots: 150, cycleDays: 3.5, formulaNames }
+			props: { plan: p, dataset, totalSlots: 150, cycleDays: 3.5, formulaNames }
 		});
 		const cell = (field: string) =>
 			text(container.querySelector(`[data-output="16670"] [data-field="${field}"]`));
@@ -228,8 +229,11 @@ describe('PlannerResults', () => {
 		).toEqual(['Cycle 1, start-up', 'Cycle 2, first steady cycle']);
 		expect(container.querySelector('[data-startup-choice]')).toBeNull();
 		expect(container.querySelector('[data-unrefined-routes]')).toBeNull();
-		expect(text(container.querySelector('[data-formula="46205"] td'))).toBe(
-			'Crystalline Carbonide Reaction Formula'
+		const formula = container.querySelector('[data-formula="46205"] td')!;
+		expect(text(formula)).toBe('Crystalline Carbonide Reaction Formula');
+		// Formulas are blueprints: the image server only serves them under `bp`.
+		expect(formula.querySelector('img')?.getAttribute('src')).toBe(
+			'https://images.evetech.net/types/46205/bp?size=32'
 		);
 	});
 
@@ -281,16 +285,16 @@ describe('PlannerResults', () => {
 			}
 		};
 		const { container } = render(PlannerResults, {
-			props: { plan: withRoutes, totalSlots: 150, cycleDays: 7, formulaNames }
+			props: { plan: withRoutes, dataset, totalSlots: 150, cycleDays: 7, formulaNames }
 		});
 		const route = container.querySelector(
 			`[data-unrefined-routes] [data-unrefined-route="${alloy.blueprintTypeId}"]`
 		)!;
-		// Raw text: the words must be separated in the DOM itself, not only after whitespace collapsing.
+		// Raw text (what a copy gives): words separated in the DOM itself, only the arrow between them.
 		// Byproducts are left to the material flow.
-		expect(route.textContent).toBe(
-			'Crystallite Alloy → replaced by Unrefined Crystallite Alloy · runs once in step 0'
-		);
+		expect(route.textContent).toBe('Crystallite Alloy → Unrefined Crystallite Alloy · runs once in step 0');
+		// Screen readers hear the arrow as "replaced by".
+		expect(screen.getByRole('img', { name: 'replaced by' }).textContent).toBe('→');
 		const note = container.querySelector('[data-startup-choice]')!;
 		expect(text(note.querySelector('[data-startup-title]'))).toBe('Step 0, once before cycle 1');
 		expect([...note.querySelectorAll('li')].map((li) => text(li))).toEqual([
@@ -306,5 +310,39 @@ describe('PlannerResults', () => {
 		expect(
 			[...container.querySelectorAll('[data-plan-startup] [data-startup-phase] h4')].map((h) => text(h))
 		).toEqual(['Step 0, once before cycle 1', 'Cycle 1, start-up', 'Cycle 2, first steady cycle']);
+	});
+
+	it('lists the stock the plan does not use by role, only when there is some', () => {
+		expect(setup().container.querySelector('[data-unused-stock]')).toBeNull();
+		const withUnused = {
+			...plan(),
+			unusedStock: [
+				{ typeId: 4312, name: 'Oxygen Fuel Block', quantity: 40 },
+				{ typeId: 16670, name: 'Crystalline Carbonide', quantity: 12_500 },
+				{ typeId: 16659, name: 'Carbon Polymers', quantity: 300 },
+				{ typeId: 16640, name: 'Cobalt', quantity: 7 }
+			]
+		};
+		const { container } = render(PlannerResults, {
+			props: { plan: withUnused, dataset, totalSlots: 150, cycleDays: 7, formulaNames }
+		});
+		const section = container.querySelector('[data-unused-stock]')!;
+		expect(text(section.querySelector('h3'))).toBe('Stock not used');
+		expect([...section.querySelectorAll('tbody')].map((g) => text(g.querySelector('th')))).toEqual([
+			'Fuel blocks',
+			'Raw materials',
+			'Intermediates',
+			'Products'
+		]);
+		expect(
+			[...section.querySelectorAll('tbody tr[data-type-id]')].map((r) =>
+				[...r.children].map((td) => text(td))
+			)
+		).toEqual([
+			['Oxygen Fuel Block', '40'],
+			['Cobalt', '7'],
+			['Carbon Polymers', '300'],
+			['Crystalline Carbonide', '12,500']
+		]);
 	});
 });

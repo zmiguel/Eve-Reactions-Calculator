@@ -65,9 +65,10 @@ describe('POST /api/v2/plan', () => {
 			dailyVolumes: { 16670: 3_588_569 }
 		});
 		expect(body).toEqual(JSON.parse(JSON.stringify(expected)));
-		expect(PlanResultResponse.parse(body).outputsPerCycle.some((o) => o.dailyVolumeSharePct !== null)).toBe(
-			true
-		);
+		const result = PlanResultResponse.parse(body);
+		expect(result.outputsPerCycle.some((o) => o.dailyVolumeSharePct !== null)).toBe(true);
+		// Stock of a target product: the plan sells what it makes and leaves the stock unused.
+		expect(result.unusedStock).toEqual([{ typeId: 16663, name: 'Caesarium Cadmide', quantity: 500 }]);
 	});
 
 	it('plans a quantity target: 35,280,000 Crystalline Carbonide = 3528 runs', async () => {

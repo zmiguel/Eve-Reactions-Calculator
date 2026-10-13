@@ -47,9 +47,48 @@ export async function deleteAccount(env: Env, userId: string): Promise<void> {
 	await releaseStructureHubs(env, structureIds);
 }
 
+/** Pool members of source `inventory_sources` row other than `?2`, all of account `?1`. */
+const OTHER_POOL_MEMBERS = `
+	FROM inventory_source_readers r
+	JOIN characters c ON c.character_id = r.character_id
+	WHERE r.source_id = inventory_sources.source_id AND r.character_id <> ?2 AND c.user_id = ?1`;
+
 /**
- * Deletes a character (its structure links cascade). An account left without characters can no longer
- * be logged into, so it is deleted too (`accountDeleted`).
+ * Corporation sources of account `?1` preferring character `?2` (only source `?3` unless NULL) move to
+ * another member of their reader pool: a working token first, then a known membership of the
+ * corporation (unknown before another corporation), then the order they were added. A source without
+ * another pool member keeps `?2`.
+ */
+const HAND_OVER_SQL = `
+	UPDATE inventory_sources SET character_id = (
+		SELECT r.character_id ${OTHER_POOL_MEMBERS}
+		ORDER BY c.token_status = 'ok' DESC,
+			CASE WHEN c.corporation_id = inventory_sources.owner_id THEN 0 WHEN c.corporation_id IS NULL THEN 1 ELSE 2 END,
+			r.created_at, r.character_id
+		LIMIT 1
+	)
+	WHERE user_id = ?1 AND character_id = ?2 AND kind = 'corporation' AND (?3 IS NULL OR source_id = ?3)
+		AND EXISTS (SELECT 1 ${OTHER_POOL_MEMBERS})`;
+
+/**
+ * Hands the corporation sources character `characterId` of account `userId` prefers (only `sourceId`
+ * when given) to another member of their reader pool (`HAND_OVER_SQL`); never to a character outside
+ * the pool or of another account.
+ */
+export function handOverPreferredReader(
+	env: Env,
+	userId: string,
+	characterId: number,
+	sourceId: number | null = null
+): D1PreparedStatement {
+	return env.DB.prepare(HAND_OVER_SQL).bind(userId, characterId, sourceId);
+}
+
+/**
+ * Deletes a character (its structure links, pool memberships and personal inventory cascade; corporation
+ * inventories it prefers move to another member of their reader pool first, `handOverPreferredReader`,
+ * and cascade away without one). An account left without characters can no longer be logged into, so it
+ * is deleted too (`accountDeleted`).
  */
 export async function removeCharacter(
 	env: Env,
@@ -59,7 +98,10 @@ export async function removeCharacter(
 	if (!character) return null;
 	const db = getCoreDb(env.DB);
 	const structureIds = await linkedStructureIds(env, eq(structureLinks.characterId, characterId));
-	await db.delete(characters).where(eq(characters.characterId, characterId));
+	await env.DB.batch([
+		handOverPreferredReader(env, character.userId, characterId),
+		env.DB.prepare('DELETE FROM characters WHERE character_id = ?').bind(characterId)
+	]);
 	const [remaining] = await db
 		.select({ characterId: characters.characterId })
 		.from(characters)

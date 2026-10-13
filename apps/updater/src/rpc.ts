@@ -4,9 +4,11 @@ import { fetchSdeLatest } from '@reactions/eve';
 import { refreshAdjustedPrices } from './cron/adjusted-prices.ts';
 import { refreshAffiliations } from './cron/affiliations.ts';
 import { refreshCostIndices } from './cron/cost-indices.ts';
+import { startInventoryPass } from './cron/inventory.ts';
 import { importedSdeBuild } from './cron/sde-check.ts';
 import { isIsoDate } from './dates.ts';
 import { httpFetch, userAgent } from './http.ts';
+import { startInventorySync } from './inventory.ts';
 import { errorMessage, failJobRun, finishJobRun, inlineRunId, latestJobRuns, startJobRun } from './jobs.ts';
 import { publishMarketSnapshot } from './market-snapshot.ts';
 import { createWorkflowInstance, startWorkflowRun } from './workflows/instances.ts';
@@ -33,7 +35,7 @@ export interface WorkflowState {
  */
 async function runInline(
 	method: string,
-	kind: 'cost_indices' | 'adjusted_prices' | 'affiliations',
+	kind: 'cost_indices' | 'adjusted_prices' | 'affiliations' | 'inventory',
 	run: (now: number) => Promise<string>
 ): Promise<InlineRunResult> {
 	const now = Date.now();
@@ -116,6 +118,41 @@ export class UpdaterRpc extends WorkerEntrypoint<Env> {
 	async triggerAffiliations(): Promise<InlineRunResult> {
 		return runInline('triggerAffiliations', 'affiliations', (now) =>
 			refreshAffiliations(this.env, now, now, true)
+		);
+	}
+
+	/**
+	 * Syncs one inventory source now as instance `inventory-<sourceId>-manual-<now ms>`; `{ busy: true }`
+	 * while another sync of the source is running (started less than `INVENTORY_RUN_STALE_MINUTES` ago),
+	 * `{ notBefore }` (unix ms) while the ESI data of its last sync has not expired (nothing started).
+	 */
+	async triggerInventorySync(
+		sourceId: number
+	): Promise<{ instanceId: string } | { busy: true } | { notBefore: number }> {
+		const now = Date.now();
+		const id = `inventory-${sourceId}-manual-${now}`;
+		const outcome = await startInventorySync(this.env, sourceId, id, 'manual', now);
+		const logged =
+			typeof outcome === 'object'
+				? `not before ${new Date(outcome.notBefore).toISOString()}`
+				: outcome === 'busy'
+					? 'busy'
+					: `${outcome} ${id}`;
+		console.log(`[rpc] triggerInventorySync(${sourceId}): ${logged}`);
+		if (typeof outcome === 'object') return outcome;
+		if (outcome === 'busy') return { busy: true };
+		if (outcome === 'missing') throw new RangeError(`inventory source ${sourceId} does not exist`);
+		return { instanceId: id };
+	}
+
+	/**
+	 * Runs the daily inventory pass now as run `inventory-manual-<now ms>`: ignores the 12:00 UTC gate and
+	 * the attempts of today, still skips `running`/`denied` sources and inactive users and starts at most
+	 * `INVENTORY_SYNCS_PER_TICK` syncs (`inventory-<sourceId>-manual-<now ms>`).
+	 */
+	async triggerInventoryPass(): Promise<InlineRunResult> {
+		return runInline('triggerInventoryPass', 'inventory', (now) =>
+			startInventoryPass(this.env, now, now, true)
 		);
 	}
 

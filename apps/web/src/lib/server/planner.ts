@@ -6,6 +6,7 @@ import { decodeShare, encodeShare } from '$lib/planner/state';
 import { loadCalc } from './context.ts';
 import { clampDays } from './detail.ts';
 import { summarizeSettings } from './listing.ts';
+import { getUserInventory } from './inventory.ts';
 import { getPriceBookNear } from './prices.ts';
 import { normalizeSettings } from './settingsForm.ts';
 
@@ -116,7 +117,10 @@ export async function sharedPlanSettings(
 	return { settings, notice: { planCode, importCode } };
 }
 
-/** `/planner` data: dataset, lean price books, resolved profiles, settings, hubs and market volumes. */
+/**
+ * `/planner` data: dataset, lean price books, resolved profiles, settings, hubs, market volumes and, for
+ * a logged-in account with a usable inventory source, its synced inventory.
+ */
 export async function loadPlanner(
 	env: Env | undefined,
 	locals: Locals,
@@ -131,7 +135,7 @@ export async function loadPlanner(
 	const types = trackedTypes(dataset);
 	const inputsDaysAgo = parseInputsDaysAgo(url);
 	const regionIds = [...new Set(hubs.map((h) => h.regionId))];
-	const [inputBook, volumes, regionRows] = await Promise.all([
+	const [inputBook, volumes, regionRows, inventory] = await Promise.all([
 		inputsDaysAgo > 0
 			? getPriceBookNear(env, now - inputsDaysAgo * DAY_MS, hubs, dataset, calc.market.adjusted)
 			: null,
@@ -141,7 +145,8 @@ export async function loadPlanner(
 					.select({ regionId: regions.regionId, name: regions.name })
 					.from(regions)
 					.where(inArray(regions.regionId, regionIds))
-			: []
+			: [],
+		locals.user ? getUserInventory(env, locals.user.userId) : null
 	]);
 	const regionName = new Map(regionRows.map((r) => [r.regionId, r.name]));
 	return {
@@ -163,6 +168,7 @@ export async function loadPlanner(
 		})),
 		volumes,
 		settingsSummary: ctx.settings.mode === 'shared' ? summarizeSettings(ctx.profiles.composite, hubs) : null,
-		sharedSettings: shared?.notice ?? null
+		sharedSettings: shared?.notice ?? null,
+		inventory: inventory && inventory.sources.length > 0 ? inventory : null
 	};
 }

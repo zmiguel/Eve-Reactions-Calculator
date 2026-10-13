@@ -54,9 +54,12 @@ Without one, use `/auth/dev-login` (below) and leave the SSO values empty; `/aut
 
 1. Open <https://developers.eveonline.com/applications> and create an application of type "Authentication & API Access".
 2. Callback URL: `http://localhost:5173/auth/callback`.
-3. Scopes: every scope of `ALL_ESI_SCOPES` in `packages/eve/src/scopes.ts`:
+3. Scopes: every scope of `ALL_ESI_SCOPES` in `packages/eve/src/scopes.ts` (nine; "Personal assets" and "Corporation assets" on `/account` need the asset, division and industry job scopes, so an older dev app must add `esi-assets.read_corporation_assets.v1`, `esi-corporations.read_divisions.v1` and `esi-industry.read_corporation_jobs.v1`):
    - `esi-assets.read_assets.v1`
+   - `esi-assets.read_corporation_assets.v1`
+   - `esi-corporations.read_divisions.v1`
    - `esi-industry.read_character_jobs.v1`
+   - `esi-industry.read_corporation_jobs.v1`
    - `esi-markets.structure_markets.v1`
    - `esi-search.search_structures.v1`
    - `esi-universe.read_structures.v1`

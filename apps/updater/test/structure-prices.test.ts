@@ -2,7 +2,13 @@ import { introspectWorkflowInstance } from 'cloudflare:test';
 import { env } from 'cloudflare:workers';
 import { MARKET_KV_KEY } from '@reactions/db';
 import type { MarketSnapshot } from '@reactions/db';
-import { STRUCTURE_SCOPES, decryptToken, encryptToken } from '@reactions/eve';
+import {
+	STRUCTURE_SCOPES,
+	TOKEN_ERROR_APP_RETIRED,
+	TOKEN_ERROR_REVOKED,
+	decryptToken,
+	encryptToken
+} from '@reactions/eve';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { planPriceRefresh, refreshStructureHub } from '../src/workflows/price-refresh.ts';
 import { fuzzwork, installFetch, json, order, resetState, seedTrackedReaction } from './helpers.ts';
@@ -156,7 +162,7 @@ describe('PriceRefreshWorkflow structure step', () => {
 		expect(marketCalls(calls)).toEqual(['Bearer at-2']);
 		const revoked = await character(1001);
 		expect(revoked?.token_status).toBe('invalid');
-		expect(revoked?.last_error).toMatch(/invalid_grant|Invalid refresh token/);
+		expect(revoked?.last_error).toBe(TOKEN_ERROR_REVOKED);
 		const used = await character(1002);
 		expect(used?.token_status).toBe('ok');
 		expect(used?.last_refreshed_at).toBeGreaterThan(100);
@@ -265,7 +271,7 @@ describe('PriceRefreshWorkflow structure step', () => {
 		expect(ssoCalls(calls)).toEqual(['rt-2']);
 		const unknown = await character(1001);
 		expect(unknown?.token_status).toBe('invalid');
-		expect(unknown?.last_error).toMatch(/^character 1001: SSO_APP_UNKNOWN: .*retired-app/);
+		expect(unknown?.last_error).toBe(TOKEN_ERROR_APP_RETIRED);
 	});
 
 	it('falls back to Fuzzwork for a public hub when every candidate fails', async () => {
@@ -285,7 +291,9 @@ describe('PriceRefreshWorkflow structure step', () => {
 		expect(prices).toHaveLength(5);
 		expect(prices.every((p) => p.source === 'fuzzwork' && p.buy_max === 50 && p.sell_min === 60)).toBe(true);
 		const hub = await hubState();
-		expect(hub?.last_error).toMatch(/character 1001: .*character 1002: /);
+		expect(hub?.last_error).toBe(
+			`character 1001: ${TOKEN_ERROR_REVOKED}; character 1002: ${TOKEN_ERROR_REVOKED}`
+		);
 		expect(hub?.last_success_at).toBeNull();
 	});
 

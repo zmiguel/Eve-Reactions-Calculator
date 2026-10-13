@@ -2,29 +2,20 @@ import { WorkflowEntrypoint } from 'cloudflare:workers';
 import type { WorkflowEvent, WorkflowStep } from 'cloudflare:workers';
 import { characters, getCoreDb, marketHubs, structureLinks, trackedTypeIds } from '@reactions/db';
 import type { MarketHubRow } from '@reactions/db';
-import {
-	aggregateOrders,
-	decryptToken,
-	encryptToken,
-	fetchRegionOrders,
-	fetchStructureOrders,
-	hasFeature,
-	refreshAccessToken,
-	SsoError,
-	SsoInvalidGrantError,
-	ssoCredentialsFor
-} from '@reactions/eve';
+import { aggregateOrders, fetchRegionOrders, fetchStructureOrders, hasFeature } from '@reactions/eve';
 import type { MarketOrder, OrderFilter } from '@reactions/eve';
 import { and, asc, desc, eq, inArray, sql } from 'drizzle-orm';
 import { DAY_MS } from '../dates.ts';
 import { ESI_CONCURRENCY, PRICE_ARCHIVE_KEY, PRIVATE_HUB_ACTIVE_DAYS, STEP_CONFIG } from '../config.ts';
-import { esiClient, httpFetch, userAgent } from '../http.ts';
+import { esiClient, userAgent } from '../http.ts';
 import { errorMessage, failJobRun, finishJobRun, startJobRun } from '../jobs.ts';
 import { publishMarketSnapshot } from '../market-snapshot.ts';
 import { forEachConcurrent } from '../pool.ts';
 import { StepTracker } from '../progress.ts';
 import { fuzzworkRows, writePrices } from '../prices.ts';
 import type { PriceCounts, PriceRow, PriceSource } from '../prices.ts';
+import { refreshCharacterToken } from '../tokens.ts';
+import type { StoredToken } from '../tokens.ts';
 
 export type PriceRefreshParams = Record<string, never>;
 
@@ -139,73 +130,23 @@ export async function refreshRegion(
 	};
 }
 
-interface Candidate {
+interface Candidate extends StoredToken {
 	userId: string;
-	characterId: number;
-	refreshTokenEnc: string | null;
-	/** Client id of the SSO app that issued the token; `null` = the primary app. */
-	ssoClientId: string | null;
 }
 
 type Attempt = { ok: true; orders: MarketOrder[] } | { ok: false; reason: string };
 
 /**
- * Refreshes the candidate's token with the SSO app that issued it (storing the rotated one) and reads
- * the structure market. A token of an app without configured credentials is marked invalid
- * (`SSO_APP_UNKNOWN`).
+ * Refreshes the candidate's token (`refreshCharacterToken`: the issuing SSO app, rotated token stored,
+ * revoked or unusable tokens marked invalid) and reads the structure market.
  */
 async function tryCandidate(env: Env, hub: MarketHubRow, candidate: Candidate): Promise<Attempt> {
 	const db = getCoreDb(env.DB);
-	const byCharacter = eq(characters.characterId, candidate.characterId);
 	const label = `character ${candidate.characterId}`;
-	let refreshToken: string;
+	const token = await refreshCharacterToken(env, candidate);
+	if (!token.ok) return { ok: false, reason: `${label}: ${token.message}` };
 	try {
-		if (candidate.refreshTokenEnc === null) throw new Error('no stored refresh token');
-		refreshToken = await decryptToken(candidate.refreshTokenEnc, env.TOKEN_ENCRYPTION_KEY);
-	} catch (error) {
-		const reason = `${label}: ${errorMessage(error)}`;
-		await db.update(characters).set({ tokenStatus: 'invalid', lastError: reason }).where(byCharacter);
-		return { ok: false, reason };
-	}
-	const app = ssoCredentialsFor(env, candidate.ssoClientId);
-	if (!app.ok) {
-		const reason = `${label}: ${app.message}`;
-		await db
-			.update(characters)
-			.set(app.kind === 'unknown' ? { tokenStatus: 'invalid', lastError: reason } : { lastError: reason })
-			.where(byCharacter);
-		return { ok: false, reason };
-	}
-	let accessToken: string;
-	try {
-		const token = await refreshAccessToken({
-			fetch: httpFetch,
-			userAgent: userAgent(env),
-			clientId: app.clientId,
-			clientSecret: app.clientSecret,
-			refreshToken
-		});
-		accessToken = token.accessToken;
-		await db
-			.update(characters)
-			.set({
-				refreshTokenEnc: await encryptToken(token.refreshToken || refreshToken, env.TOKEN_ENCRYPTION_KEY),
-				lastRefreshedAt: Date.now(),
-				lastError: null
-			})
-			.where(byCharacter);
-	} catch (error) {
-		const reason = `${label}: ${errorMessage(error)}`;
-		const invalid =
-			error instanceof SsoInvalidGrantError || (error instanceof SsoError && error.status === 401);
-		await db
-			.update(characters)
-			.set(invalid ? { tokenStatus: 'invalid', lastError: reason } : { lastError: reason })
-			.where(byCharacter);
-		return { ok: false, reason };
-	}
-	try {
-		const result = await fetchStructureOrders(esiClient(env), hub.locationId, accessToken);
+		const result = await fetchStructureOrders(esiClient(env), hub.locationId, token.accessToken);
 		if (result.ok) return { ok: true, orders: result.items };
 		if (result.status === 403)
 			await db

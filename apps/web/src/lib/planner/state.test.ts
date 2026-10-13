@@ -1,4 +1,4 @@
-import { DEFAULT_SETTINGS, Settings, decodeJson, encodeJson } from '@reactions/engine';
+import { DEFAULT_SETTINGS, STOCK_PLAN_MAX_CYCLES, Settings, decodeJson, encodeJson } from '@reactions/engine';
 import { describe, expect, it } from 'vitest';
 import { MemoryStorage } from '../../test/storage';
 import {
@@ -53,6 +53,43 @@ describe('state schema', () => {
 		expect(
 			parseState({ ...sample, targets: [{ blueprintTypeId: 46205, lines: 1, quantity: 0 }] })
 		).toBeNull();
+	});
+
+	it('keeps the stock source in states and share codes; states without one stay valid', async () => {
+		for (const stockSource of ['paste', 'account'] as const) {
+			const state = { ...sample, stockSource };
+			expect(parseState(state)).toEqual(state);
+			expect((await decodeShare(await encodeShare(state)))?.state).toEqual(state);
+		}
+		expect(parseState(sample)).not.toHaveProperty('stockSource');
+		expect(parseState({ ...sample, stockSource: 'esi' })).toBeNull();
+	});
+
+	it('keeps the stock mode fields in states and share codes; states without them stay valid', async () => {
+		const state = {
+			...sample,
+			mode: 'stock' as const,
+			allowUnownedFormulas: true,
+			stockCycles: 3,
+			stockSearchSeconds: 45
+		};
+		expect(parseState(state)).toEqual(state);
+		expect((await decodeShare(await encodeShare(state)))?.state).toEqual(state);
+		const storage = new MemoryStorage();
+		saveState(storage, state);
+		expect(loadState(storage)).toEqual(state);
+
+		const old = parseState(firstRelease)!;
+		for (const field of ['mode', 'allowUnownedFormulas', 'stockCycles', 'stockSearchSeconds'])
+			expect(old).not.toHaveProperty(field);
+		expect(parseState({ ...sample, mode: 'inventory' })).toBeNull();
+		expect(parseState({ ...sample, stockCycles: 0 })).toBeNull();
+		expect(parseState({ ...sample, stockCycles: STOCK_PLAN_MAX_CYCLES + 1 })).toBeNull();
+		expect(parseState({ ...sample, stockCycles: 1.5 })).toBeNull();
+		for (const stockSearchSeconds of [9, 61, 12.5])
+			expect(parseState({ ...sample, stockSearchSeconds })).toBeNull();
+		for (const stockSearchSeconds of [10, 60])
+			expect(parseState({ ...sample, stockSearchSeconds })?.stockSearchSeconds).toBe(stockSearchSeconds);
 	});
 });
 

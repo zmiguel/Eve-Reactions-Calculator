@@ -52,7 +52,8 @@ const WORKFLOWS = [
 	{ binding: 'PRICE_REFRESH', name: 'reactions-price-refresh', class_name: 'PriceRefreshWorkflow' },
 	{ binding: 'DAILY', name: 'reactions-daily', class_name: 'DailyWorkflow' },
 	{ binding: 'SDE_SYNC', name: 'reactions-sde-sync', class_name: 'SdeSyncWorkflow' },
-	{ binding: 'HISTORY_BACKFILL', name: 'reactions-history-backfill', class_name: 'HistoryBackfillWorkflow' }
+	{ binding: 'HISTORY_BACKFILL', name: 'reactions-history-backfill', class_name: 'HistoryBackfillWorkflow' },
+	{ binding: 'INVENTORY_SYNC', name: 'reactions-inventory-sync', class_name: 'InventorySyncWorkflow' }
 ];
 
 const d1 = (config: Pick<WranglerConfig, 'd1_databases'>, binding: string) =>

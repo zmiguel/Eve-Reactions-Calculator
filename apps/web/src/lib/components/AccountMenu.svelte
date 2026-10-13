@@ -72,6 +72,9 @@
 				<li>
 					<a href="/account/structures" class={item} onclick={() => close(false)}>Structure markets</a>
 				</li>
+				<li>
+					<a href="/account/inventory" class={item} onclick={() => close(false)}>Inventory</a>
+				</li>
 				{#if user.isAdmin}
 					<li><a href="/admin" class={item} onclick={() => close(false)}>Admin</a></li>
 				{/if}

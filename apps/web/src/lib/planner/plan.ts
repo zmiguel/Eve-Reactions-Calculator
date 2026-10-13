@@ -14,6 +14,7 @@ import {
 	type Tier
 } from '@reactions/engine';
 import type { SettingsSummaryData } from '$lib/components/listing/types';
+import type { UserInventory } from '$lib/server/inventory';
 
 export interface PlannerHub {
 	hubId: string;
@@ -50,6 +51,8 @@ export interface PlannerData {
 	 * `importCode` opens them in the `/settings?import=` preview.
 	 */
 	sharedSettings: { planCode: string; importCode: string } | null;
+	/** The account's synced inventory; `null` for anonymous visitors and accounts without a usable source. */
+	inventory: UserInventory | null;
 }
 
 export interface PlannerUnavailable {

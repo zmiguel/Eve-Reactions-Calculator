@@ -16,7 +16,8 @@ export type UpdaterAction =
 	| 'daily'
 	| 'history'
 	| 'market_snapshot'
-	| 'affiliations';
+	| 'affiliations'
+	| 'inventory';
 
 export interface JobAction {
 	action: UpdaterAction;
@@ -92,6 +93,13 @@ const DEFINITIONS = {
 			'Corporation and alliance of the characters of accounts seen in the last 30 days (ESI bulk lookups, 100 per request), used for the analytics traits. Daily at 12:20 UTC.',
 		workflow: false,
 		actions: [{ action: 'affiliations', label: 'Fetch now', notice: 'Affiliations' }]
+	},
+	inventory: {
+		label: 'Inventory sync',
+		description:
+			'Syncs the asset sources (personal and corporation assets) of accounts seen in the last 30 days, up to 20 per tick, once a day from 12:00 UTC. Each source runs as its own workflow; this row records the passes. "Sync now" starts a pass at once, ignoring the daily schedule.',
+		workflow: false,
+		actions: [{ action: 'inventory', label: 'Sync now', notice: 'Inventory sync' }]
 	}
 } satisfies Record<JobKind, Omit<JobDefinition, 'kind'>>;
 

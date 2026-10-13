@@ -21,15 +21,28 @@ describe('scope registry', () => {
 		expect(ESI_FEATURES.login).toEqual([]);
 		expect(ESI_FEATURES.structures).toEqual(STRUCTURE_SCOPES);
 		expect(ESI_FEATURES.wallet).toEqual([WALLET]);
-		expect(ESI_FEATURES.assets).toEqual(['esi-assets.read_assets.v1']);
+		expect(ESI_FEATURES.assets).toEqual([
+			'esi-assets.read_assets.v1',
+			'esi-industry.read_character_jobs.v1',
+			'esi-universe.read_structures.v1'
+		]);
+		expect(ESI_FEATURES.corp_assets).toEqual([
+			'esi-assets.read_corporation_assets.v1',
+			'esi-corporations.read_divisions.v1',
+			'esi-industry.read_corporation_jobs.v1',
+			'esi-universe.read_structures.v1'
+		]);
 		expect(ESI_FEATURES.industry).toEqual(['esi-industry.read_character_jobs.v1']);
-		expect(GRANTABLE_FEATURES).toEqual(['structures', 'wallet', 'assets', 'industry']);
+		expect(GRANTABLE_FEATURES).toEqual(['structures', 'wallet', 'assets', 'corp_assets', 'industry']);
 	});
 
 	it('lists every scope once for the SSO application', () => {
 		expect(ALL_ESI_SCOPES).toEqual([
 			'esi-assets.read_assets.v1',
+			'esi-assets.read_corporation_assets.v1',
+			'esi-corporations.read_divisions.v1',
 			'esi-industry.read_character_jobs.v1',
+			'esi-industry.read_corporation_jobs.v1',
 			'esi-markets.structure_markets.v1',
 			'esi-search.search_structures.v1',
 			'esi-universe.read_structures.v1',
@@ -63,6 +76,28 @@ describe('scope helpers', () => {
 		expect(hasFeature([WALLET], 'wallet')).toBe(true);
 		expect(grantedFeatures([...STRUCTURE_SCOPES, WALLET].join(' '))).toEqual(['structures', 'wallet']);
 		expect(grantedFeatures(null)).toEqual([]);
+		expect(hasFeature(['esi-assets.read_assets.v1', 'esi-universe.read_structures.v1'], 'assets')).toBe(
+			false
+		);
+		expect(
+			hasFeature(
+				[
+					'esi-assets.read_assets.v1',
+					'esi-industry.read_character_jobs.v1',
+					'esi-universe.read_structures.v1'
+				],
+				'assets'
+			)
+		).toBe(true);
+		const corpScopes = [
+			'esi-assets.read_corporation_assets.v1',
+			'esi-corporations.read_divisions.v1',
+			'esi-industry.read_corporation_jobs.v1',
+			'esi-universe.read_structures.v1'
+		];
+		expect(hasFeature(corpScopes.slice(0, 3), 'corp_assets')).toBe(false);
+		expect(hasFeature(corpScopes, 'corp_assets')).toBe(true);
+		expect(hasFeature(corpScopes, 'assets')).toBe(false);
 	});
 
 	it('unions the requested feature with the scopes the character already has', () => {
@@ -75,6 +110,14 @@ describe('scope helpers', () => {
 			[...STRUCTURE_SCOPES, WALLET].sort()
 		);
 		expect(scopesForFeature('login', WALLET)).toEqual([WALLET]);
+		expect(scopesForFeature('corp_assets', STRUCTURE_SCOPES)).toEqual(
+			[
+				...STRUCTURE_SCOPES,
+				'esi-assets.read_corporation_assets.v1',
+				'esi-corporations.read_divisions.v1',
+				'esi-industry.read_corporation_jobs.v1'
+			].sort()
+		);
 	});
 
 	it('reports the scopes a new grant would drop', () => {

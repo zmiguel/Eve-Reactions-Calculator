@@ -19,6 +19,15 @@ export interface UpdaterApi {
 	triggerAdjustedPrices(): Promise<InlineRunResult>;
 	triggerCostIndices(): Promise<InlineRunResult>;
 	triggerAffiliations(): Promise<InlineRunResult>;
+	/** One inventory pass now, ignoring the daily schedule (run `inventory-manual-<ms>`). */
+	triggerInventoryPass(): Promise<InlineRunResult>;
+	/**
+	 * Syncs one inventory source now; `busy` while a sync of it is still running, `notBefore` (unix ms)
+	 * while the ESI data of its last sync has not expired (nothing started).
+	 */
+	triggerInventorySync(
+		sourceId: number
+	): Promise<{ instanceId: string } | { busy: true } | { notBefore: number }>;
 	publishMarketSnapshot(): Promise<{ snapshotAt: number; hubIds: string[] }>;
 	workflowStatus(runs: { kind: string; runId: string }[]): Promise<Record<string, WorkflowStatus>>;
 }
@@ -73,6 +82,8 @@ async function callUpdater(
 			return inlineNotice(name, await updater.triggerCostIndices());
 		case 'affiliations':
 			return inlineNotice(name, await updater.triggerAffiliations());
+		case 'inventory':
+			return inlineNotice(name, await updater.triggerInventoryPass());
 		case 'market_snapshot': {
 			const { hubIds } = await updater.publishMarketSnapshot();
 			return { ok: true, text: `${name} published with ${hubIds.length} public hubs.` };

@@ -151,6 +151,12 @@ describe('purchases and investment', () => {
 		expect(stocked.purchasesPerCycle).toEqual(base.purchasesPerCycle);
 		expect(stocked.totals.recurringInvestment).toBe(base.totals.recurringInvestment);
 		expect(stocked.totals.initialInvestment).toBeLessThan(base.totals.initialInvestment);
+		// Stock of bought types changes no schedule; Cadmium beyond the 2 × ⌈62 × 100 × 0.9736⌉ = 12,074 the
+		// two start-up cycles of Crystallite Alloy buy is unused, all the Cobalt is used.
+		const schedule = (plan: PlanResult) => plan.phases.map((p) => [p.cycle, p.label, p.blueprintTypeIds]);
+		expect(schedule(stocked)).toEqual(schedule(base));
+		expect(stocked.unusedStock).toEqual([{ typeId: 16643, name: 'Cadmium', quantity: 1e9 - 12_074 }]);
+		expect(base.unusedStock).toEqual([]);
 	});
 
 	it('profit per cycle = output net − recurring investment', () => {
@@ -187,6 +193,147 @@ describe('purchases and investment', () => {
 			input({ targets: [{ blueprintTypeId: 46205, lines: 1 }], dailyVolumes: { 16670: 900_000 } })
 		);
 		expect(plan.outputsPerCycle[0].dailyVolumeSharePct).toBeCloseTo((1_260_000 / 7 / 900_000) * 100, 8);
+	});
+});
+
+describe('stock of built types feeds the earliest cycles', () => {
+	// Titanium Carbide, 2 lines. Every reaction here fits ⌊7 × 86,400 ÷ 4,769.28⌋ = 126 runs per slot and
+	// cycle, so the final reaction runs 2 jobs of 126. Each job needs ⌈126 × 100 × 0.9736⌉ = 12,268 Titanium
+	// Chromide and Silicon Diborite (T2 rig in nullsec: 1 − 0.024 × 1.1 = 0.9736), 24,536 of each per cycle,
+	// made by ⌈24,536 ÷ 200⌉ = 123 runs of each intermediate reaction (one slot each).
+	const TIC = 46204;
+	const SIDI = 46179;
+	const TICR = 46182;
+	const perCycle = 24_536;
+	const carbide = (stock: Record<number, number>) =>
+		planReactions(input({ targets: [{ blueprintTypeId: TIC, lines: 2 }], stock }));
+	const base = carbide({});
+	const schedule = (plan: PlanResult) =>
+		plan.phases.map((p) => [p.cycle, p.label, p.blueprintTypeIds, p.slots]);
+	const bought = (plan: PlanResult, cycle: number) =>
+		plan.phases.find((p) => p.cycle === cycle)!.purchases.map((p) => [p.typeId, p.quantity]);
+	const cost = (items: { total: number; fees: number; shipping: number }[]) =>
+		items.reduce((a, i) => a + i.total + i.fees + i.shipping, 0);
+	/** Stock is valued at market value: the steady cycle never changes. */
+	const expectSameSteady = (plan: PlanResult) => {
+		expect(plan.purchasesPerCycle).toEqual(base.purchasesPerCycle);
+		expect(plan.outputsPerCycle).toEqual(base.outputsPerCycle);
+		expect(plan.totals.profitPerCycle).toBe(base.totals.profitPerCycle);
+	};
+
+	it('without stock: the intermediates run in cycle 1, the final jobs from cycle 2', () => {
+		expect(reaction(base, TIC).materials.find((m) => m.typeId === 16654)!.quantity).toBe(perCycle);
+		expect(reaction(base, TICR)).toMatchObject({ totalRuns: 123, slots: 1, firstCycle: 1 });
+		expect(schedule(base)).toEqual([
+			[1, 'build_up', [SIDI, TICR], 2],
+			[2, 'steady', [TIC, SIDI, TICR], 4]
+		]);
+	});
+
+	it('one steady cycle of both intermediates: steady from cycle 1, buying one cycle', () => {
+		// Cycle 1: the final jobs use the stock while the intermediates run their 123 runs for cycle 2.
+		const plan = carbide({ 16654: perCycle, 16658: perCycle });
+		expect(plan.reactions.map((r) => [r.blueprintTypeId, r.firstCycle])).toEqual([
+			[TIC, 1],
+			[SIDI, 1],
+			[TICR, 1]
+		]);
+		expect(schedule(plan)).toEqual([[1, 'steady', [TIC, SIDI, TICR], 4]]);
+		const quantities = (items: { typeId: number; quantity: number }[]) =>
+			items.map((i) => [i.typeId, i.quantity]);
+		expect(quantities(plan.initialPurchases)).toEqual(quantities(plan.purchasesPerCycle));
+		expect(plan.totals.initialInvestment).toBeCloseTo(
+			cost(plan.purchasesPerCycle) + plan.totals.jobCostPerCycle + plan.totals.formulaCost,
+			4
+		);
+		expect(plan.startup.buy.cycles).toBe(1);
+		expect(plan.unusedStock).toEqual([]);
+		expect(plan.totals.initialInvestment).toBeLessThan(base.totals.initialInvestment);
+		expectSameSteady(plan);
+	});
+
+	it('two cycles of stock: the intermediates start in cycle 2, cycle 1 buys nothing for them', () => {
+		// The stock covers the final jobs' cycles 1 and 2: the intermediates first run in cycle 2, for cycle 3.
+		const plan = carbide({ 16654: 2 * perCycle, 16658: 2 * perCycle });
+		expect(schedule(plan)).toEqual([
+			[1, 'build_up', [TIC], 2],
+			[2, 'steady', [TIC, SIDI, TICR], 4]
+		]);
+		expect([reaction(plan, SIDI).firstCycle, reaction(plan, TICR).firstCycle]).toEqual([2, 2]);
+		// Only the final jobs' Oxygen Fuel Blocks: 2 × ⌈126 × 5 × 0.9736⌉ = 1,228.
+		expect(bought(plan, 1)).toEqual([[4312, 1228]]);
+		expect(plan.unusedStock).toEqual([]);
+		expectSameSteady(plan);
+	});
+
+	it('half a cycle of stock: the final jobs start in cycle 2, the intermediates’ first runs halve', () => {
+		// 12,268 of each cannot feed cycle 1 (24,536), so the final jobs start in cycle 2. The stock covers
+		// half of cycle 2: cycle 1 makes the other 12,268 in ⌈12,268 ÷ 200⌉ = 62 runs instead of 123.
+		const plan = carbide({ 16654: perCycle / 2, 16658: perCycle / 2 });
+		expect(reaction(plan, TIC).firstCycle).toBe(2);
+		expect(schedule(plan)).toEqual([
+			[1, 'build_up', [SIDI, TICR], 2],
+			[2, 'steady', [TIC, SIDI, TICR], 4]
+		]);
+		// 123 runs buy ⌈123 × 100 × 0.9736⌉ = 11,976 of each moon material and ⌈123 × 5 × 0.9736⌉ = 599
+		// fuel blocks per reaction; 62 runs buy ⌈62 × 100 × 0.9736⌉ = 6,037 and ⌈62 × 5 × 0.9736⌉ = 302.
+		expect(bought(base, 1)).toEqual([
+			[4312, 2 * 599],
+			[16635, 11_976],
+			[16636, 11_976],
+			[16638, 11_976],
+			[16641, 11_976]
+		]);
+		expect(bought(plan, 1)).toEqual([
+			[4312, 2 * 302],
+			[16635, 6037],
+			[16636, 6037],
+			[16638, 6037],
+			[16641, 6037]
+		]);
+		// Job cost grows linearly with runs.
+		expect(plan.phases[0].jobCost).toBeCloseTo((base.phases[0].jobCost * 62) / 123, 6);
+		expect(plan.unusedStock).toEqual([]);
+		expectSameSteady(plan);
+	});
+
+	it('never takes longer than without stock: stock beyond the start-up is unused', () => {
+		// Three cycles of stock: the final jobs use two (cycles 1 and 2), then the plan is steady like
+		// without stock; the third cycle is left over.
+		const plan = carbide({ 16654: 3 * perCycle, 16658: 3 * perCycle });
+		expect(schedule(plan)).toEqual(schedule(carbide({ 16654: 2 * perCycle, 16658: 2 * perCycle })));
+		expect(plan.unusedStock).toEqual([
+			{ typeId: 16658, name: 'Silicon Diborite', quantity: perCycle },
+			{ typeId: 16654, name: 'Titanium Chromide', quantity: perCycle }
+		]);
+	});
+
+	it('stock of a target product is unused; stock the plan never touches is not listed', () => {
+		const plan = carbide({ 16671: 50_000, 16670: 7 });
+		expect(plan.phases).toEqual(base.phases);
+		expect(plan.totals.initialInvestment).toBe(base.totals.initialInvestment);
+		expect(plan.unusedStock).toEqual([{ typeId: 16671, name: 'Titanium Carbide', quantity: 50_000 }]);
+	});
+
+	it('Strong booster: stock of the middle level shortens the build-up by one cycle', () => {
+		// 126 runs of Pure Strong Blue Pill Booster need ⌈126 × 12 × 0.9736⌉ = 1,473 Pure Improved Blue Pill
+		// Booster per cycle. With one cycle of it the strong jobs start in cycle 2; the Improved jobs first
+		// run in cycle 2 (for cycle 3) and the Standard jobs in cycle 1 (Mindflood for the strong jobs,
+		// Blue Pill and Crash for the Improved ones).
+		const booster = (stock: Record<number, number>) =>
+			planReactions(input({ targets: [{ blueprintTypeId: 46235, lines: 1 }], stock }));
+		const before = booster({});
+		const plan = booster({ 25241: 1473 });
+		expect(reaction(before, 46235).materials.find((m) => m.typeId === 25241)!.quantity).toBe(1473);
+		expect(before.phases.map((p) => p.label)).toEqual(['build_up', 'build_up', 'steady']);
+		expect(plan.phases.map((p) => [p.cycle, p.label, [...p.blueprintTypeIds].sort()])).toEqual([
+			[1, 'build_up', [46225, 46230, 46231]],
+			[2, 'steady', [46225, 46230, 46231, 46235, 46251]]
+		]);
+		expect([reaction(plan, 46235).firstCycle, reaction(plan, 46251).firstCycle]).toEqual([2, 2]);
+		expect(plan.unusedStock).toEqual([]);
+		expect(plan.totals.profitPerCycle).toBe(before.totals.profitPerCycle);
+		expect(plan.totals.initialInvestment).toBeLessThan(before.totals.initialInvestment);
 	});
 });
 

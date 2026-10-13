@@ -17,6 +17,7 @@
 	import { enhance } from '$app/forms';
 	import { FEATURE_LABELS } from '$lib/account/features';
 	import { formatUtc } from '$lib/format';
+	import { userFacingError } from '@reactions/eve/errors';
 	import { portraitUrl } from '../AccountMenu.svelte';
 
 	interface Props {
@@ -83,9 +84,8 @@
 		<td class="px-3 py-2 text-xs text-gray-600 dark:text-gray-400">
 			{character.lastRefreshedAt ? formatUtc(character.lastRefreshedAt) : 'n/a'}
 			{#if character.lastError}
-				<span class="block text-red-600 dark:text-red-400" title={character.lastError}
-					>{character.lastError}</span
-				>
+				{@const error = userFacingError(character.lastError)}
+				<span class="block text-red-600 dark:text-red-400" title={error}>{error}</span>
 			{/if}
 		</td>
 	{/if}

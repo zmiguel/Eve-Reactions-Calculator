@@ -75,7 +75,7 @@ describe('Navbar', () => {
 		expect(menu.open).toBe(false);
 	});
 
-	it('logged in: portrait and name with Account, Structure markets, Add character and a POST log-out form; no Admin', () => {
+	it('logged in: portrait and name with Account, Structure markets, Inventory, Add character and a POST log-out form; no Admin', () => {
 		const { container } = render(Navbar, { user: { characterId: 90000001, name: 'Oxed G', isAdmin: false } });
 		const summary = container.querySelector('details[data-account-menu] summary')!;
 		expect(summary.getAttribute('aria-label')).toBe('Account menu for Oxed G');
@@ -87,6 +87,7 @@ describe('Navbar', () => {
 		expect(screen.getByRole('link', { name: 'Structure markets' }).getAttribute('href')).toBe(
 			'/account/structures'
 		);
+		expect(screen.getByRole('link', { name: 'Inventory' }).getAttribute('href')).toBe('/account/inventory');
 		expect(screen.getByRole('link', { name: 'Add character' }).getAttribute('href')).toBe(
 			'/auth/login?purpose=add_character&returnTo=%2Faccount'
 		);

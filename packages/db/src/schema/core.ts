@@ -1,5 +1,5 @@
 import { sql } from 'drizzle-orm';
-import { index, integer, primaryKey, real, sqliteTable, text } from 'drizzle-orm/sqlite-core';
+import { index, integer, primaryKey, real, sqliteTable, text, uniqueIndex } from 'drizzle-orm/sqlite-core';
 
 export const sdeState = sqliteTable('sde_state', {
 	id: integer('id').primaryKey(),
@@ -234,6 +234,101 @@ export const httpCache = sqliteTable('http_cache', {
 	updatedAt: integer('updated_at').notNull()
 });
 
+export const inventorySources = sqliteTable(
+	'inventory_sources',
+	{
+		sourceId: integer('source_id').primaryKey({ autoIncrement: true }),
+		userId: text('user_id')
+			.notNull()
+			.references(() => users.userId, { onDelete: 'cascade' }),
+		/**
+		 * The preferred reading character: the one whose token last read the assets. Corporation sources
+		 * also list it in `inventory_source_readers`, the readers the user added (updater `prepare`).
+		 */
+		characterId: integer('character_id')
+			.notNull()
+			.references(() => characters.characterId, { onDelete: 'cascade' }),
+		/** 'character' | 'corporation' */
+		kind: text('kind').notNull(),
+		/** Character or corporation id. */
+		ownerId: integer('owner_id').notNull(),
+		ownerName: text('owner_name').notNull(),
+		/** `{"1":"Moon goo",...}`: corporation hangar divisions with a non-default name. */
+		divisionNamesJson: text('division_names_json'),
+		/** 'pending' | 'running' | 'ok' | 'error' | 'denied' */
+		status: text('status').notNull().default('pending'),
+		runId: text('run_id'),
+		syncStartedAt: integer('sync_started_at'),
+		lastAttemptAt: integer('last_attempt_at'),
+		lastSyncedAt: integer('last_synced_at'),
+		/** ESI `Last-Modified` of the assets (unix ms). */
+		dataAsOf: integer('data_as_of'),
+		/** ESI `Expires` of asset page 1 (unix ms): no sync starts before it (ESI caching rules). */
+		dataExpiresAt: integer('data_expires_at'),
+		lastError: text('last_error'),
+		itemCount: integer('item_count').notNull().default(0),
+		createdAt: integer('created_at').notNull()
+	},
+	(t) => [uniqueIndex('inventory_sources_user_kind_owner_idx').on(t.userId, t.kind, t.ownerId)]
+);
+
+/** Corporation sources: the characters the user added as readers ("<Corporation> via <Character>"). */
+export const inventorySourceReaders = sqliteTable(
+	'inventory_source_readers',
+	{
+		sourceId: integer('source_id')
+			.notNull()
+			.references(() => inventorySources.sourceId, { onDelete: 'cascade' }),
+		characterId: integer('character_id')
+			.notNull()
+			.references(() => characters.characterId, { onDelete: 'cascade' }),
+		createdAt: integer('created_at').notNull()
+	},
+	(t) => [primaryKey({ columns: [t.sourceId, t.characterId] })]
+);
+
+export const inventoryLocations = sqliteTable(
+	'inventory_locations',
+	{
+		sourceId: integer('source_id')
+			.notNull()
+			.references(() => inventorySources.sourceId, { onDelete: 'cascade' }),
+		locationId: integer('location_id').notNull(),
+		/** 'station' | 'structure' | 'unknown' */
+		kind: text('kind').notNull(),
+		name: text('name'),
+		systemId: integer('system_id')
+	},
+	(t) => [primaryKey({ columns: [t.sourceId, t.locationId] })]
+);
+
+export const inventoryItems = sqliteTable(
+	'inventory_items',
+	{
+		sourceId: integer('source_id')
+			.notNull()
+			.references(() => inventorySources.sourceId, { onDelete: 'cascade' }),
+		locationId: integer('location_id').notNull(),
+		/** 'hangar' | 'deliveries' | 'div1'..'div7' */
+		bucket: text('bucket').notNull(),
+		typeId: integer('type_id').notNull(),
+		quantity: integer('quantity').notNull()
+	},
+	(t) => [primaryKey({ columns: [t.sourceId, t.locationId, t.bucket, t.typeId] })]
+);
+
+export const inventorySelection = sqliteTable(
+	'inventory_selection',
+	{
+		sourceId: integer('source_id')
+			.notNull()
+			.references(() => inventorySources.sourceId, { onDelete: 'cascade' }),
+		locationId: integer('location_id').notNull(),
+		bucket: text('bucket').notNull()
+	},
+	(t) => [primaryKey({ columns: [t.sourceId, t.locationId, t.bucket] })]
+);
+
 export type SdeStateRow = typeof sdeState.$inferSelect;
 export type TypeRow = typeof types.$inferSelect;
 export type NewTypeRow = typeof types.$inferInsert;
@@ -256,3 +351,9 @@ export type CharacterRow = typeof characters.$inferSelect;
 export type StructureLinkRow = typeof structureLinks.$inferSelect;
 export type JobRunRow = typeof jobRuns.$inferSelect;
 export type HttpCacheRow = typeof httpCache.$inferSelect;
+export type InventorySourceRow = typeof inventorySources.$inferSelect;
+export type NewInventorySourceRow = typeof inventorySources.$inferInsert;
+export type InventorySourceReaderRow = typeof inventorySourceReaders.$inferSelect;
+export type InventoryLocationRow = typeof inventoryLocations.$inferSelect;
+export type InventoryItemRow = typeof inventoryItems.$inferSelect;
+export type InventorySelectionRow = typeof inventorySelection.$inferSelect;
