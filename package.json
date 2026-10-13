@@ -29,7 +29,7 @@
 		"@eslint/js": "^10.0.1",
 		"@resvg/resvg-js": "^2.6.2",
 		"@testing-library/svelte": "^5.4.2",
-		"@types/node": "^26.6.4",
+		"@types/node": "^26.6.5",
 		"@vitest/runner": "^4.1.11",
 		"@vitest/snapshot": "^4.1.11",
 		"eslint": "^10.12.0",
