@@ -1,4 +1,5 @@
 import { REACTORS, isDefaultSettings, type Settings } from '@reactions/engine';
+import { affiliationTraits } from '@reactions/eve';
 import type { AnalyticsIdentity } from '$lib/analytics';
 import { getSystems } from './profiles.ts';
 import type { AccountFacts, SessionUser } from './session.ts';
@@ -44,8 +45,7 @@ export async function analyticsIdentity(
 			username: main.name,
 			name: main.name,
 			main_character_id: main.characterId,
-			corporation: account.corporation ?? 'unknown',
-			alliance: account.corporation === null ? 'unknown' : (account.alliance ?? 'none'),
+			...affiliationTraits(account.corporation, account.alliance, account.allianceId),
 			is_admin: user.isAdmin,
 			characters: user.characters.length,
 			account_created: new Date(account.createdAt).toISOString().slice(0, 10),

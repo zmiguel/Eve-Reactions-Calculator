@@ -5,7 +5,11 @@ import type { FakeD1 } from './fakes.ts';
 import { NOW } from './fixtures.ts';
 
 /** Gives a stored character a working token with the scopes of `features`. */
-export function grantInventory(db: FakeD1, characterId: number, features: ('assets' | 'corp_assets')[]) {
+export function grantInventory(
+	db: FakeD1,
+	characterId: number,
+	features: ('assets' | 'corp_assets' | 'tracking' | 'corp_tracking')[]
+) {
 	db.sqlite
 		.prepare(
 			"UPDATE characters SET scopes = ?, refresh_token_enc = 'enc', token_status = 'ok' WHERE character_id = ?"
@@ -26,6 +30,13 @@ export interface SourceFixture {
 	dataAsOf?: number | null;
 	dataExpiresAt?: number | null;
 	createdAt?: number;
+	/** Default on. */
+	inventoryEnabled?: boolean;
+	/** Default off. */
+	trackingEnabled?: boolean;
+	trackingStatus?: string | null;
+	walletDivisions?: number[] | null;
+	walletNames?: Record<string, string>;
 }
 
 /** Inserts a source (`ok`, personal by default; a corporation's reader joins its pool); returns its id. */
@@ -34,8 +45,9 @@ export function insertSource(db: FakeD1, source: SourceFixture): number {
 	const row = db.sqlite
 		.prepare(
 			`INSERT INTO inventory_sources (user_id, character_id, kind, owner_id, owner_name, division_names_json,
-				status, sync_started_at, last_synced_at, data_as_of, data_expires_at, created_at)
-			VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING source_id`
+				status, sync_started_at, last_synced_at, data_as_of, data_expires_at, created_at, inventory_enabled,
+				tracking_enabled, tracking_status, wallet_divisions_json, wallet_names_json)
+			VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING source_id`
 		)
 		.get(
 			source.userId,
@@ -49,10 +61,31 @@ export function insertSource(db: FakeD1, source: SourceFixture): number {
 			source.lastSyncedAt === undefined ? NOW - 3_600_000 : source.lastSyncedAt,
 			source.dataAsOf === undefined ? NOW - 4_000_000 : source.dataAsOf,
 			source.dataExpiresAt ?? null,
-			source.createdAt ?? NOW
+			source.createdAt ?? NOW,
+			source.inventoryEnabled === false ? 0 : 1,
+			source.trackingEnabled ? 1 : 0,
+			source.trackingStatus ?? null,
+			source.walletDivisions ? JSON.stringify(source.walletDivisions) : null,
+			source.walletNames ? JSON.stringify(source.walletNames) : null
 		) as { source_id: number };
 	if (kind === 'corporation') addReader(db, row.source_id, source.characterId, source.createdAt ?? NOW);
 	return row.source_id;
+}
+
+/** Stores a `tracking_streams` row of `sourceId`. */
+export function insertStream(
+	db: FakeD1,
+	userId: string,
+	sourceId: number,
+	stream: string,
+	status: 'pending' | 'ok' | 'error' | 'denied',
+	lastError: string | null = null
+) {
+	db.sqlite
+		.prepare(
+			'INSERT INTO tracking_streams (source_id, stream, user_id, status, last_error) VALUES (?, ?, ?, ?, ?)'
+		)
+		.run(sourceId, stream, userId, status, lastError);
 }
 
 /** Adds `characterId` to the reader pool of corporation source `sourceId`. */

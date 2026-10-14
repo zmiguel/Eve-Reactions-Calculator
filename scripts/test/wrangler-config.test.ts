@@ -201,7 +201,7 @@ describe('web bindings', () => {
 		expect(web.ratelimits).toContainEqual({
 			name: 'ACCOUNT_RATE_LIMITER',
 			namespace_id: '3002',
-			simple: { limit: 10, period: 60 }
+			simple: { limit: 30, period: 60 }
 		});
 	});
 

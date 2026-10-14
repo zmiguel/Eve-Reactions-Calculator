@@ -4,12 +4,13 @@ import { settleStaleInventorySyncs, startInventorySync } from '../inventory.ts';
 import { failJobRun, finishJobRun, inlineRunId, startJobRun } from '../jobs.ts';
 
 /**
- * Sources due for a sync: not `running`/`denied`, user seen after `?1`, last attempt before `?2`
- * (`NULL` = any attempt), least recently attempted first (never attempted before all), at most `?3`.
+ * Sources due for a sync: Inventory switched on, not `running`/`denied`, user seen after `?1`, last
+ * attempt before `?2` (`NULL` = any attempt), least recently attempted first (never attempted before
+ * all), at most `?3`.
  */
 const DUE_SQL = `
 	SELECT s.source_id FROM inventory_sources s JOIN users u ON u.user_id = s.user_id
-	WHERE s.status NOT IN ('running', 'denied') AND u.last_seen_at > ?1
+	WHERE s.inventory_enabled = 1 AND s.status NOT IN ('running', 'denied') AND u.last_seen_at > ?1
 		AND (?2 IS NULL OR s.last_attempt_at IS NULL OR s.last_attempt_at < ?2)
 	ORDER BY s.last_attempt_at, s.source_id
 	LIMIT ?3`;

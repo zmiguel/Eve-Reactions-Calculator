@@ -29,13 +29,17 @@ const SYSTEM_NAMES: Record<number, string> = {
 	30000142: 'Jita'
 };
 
+/** The updater's rebuild RPC: account settings feed the profit tracking ledger. */
+const rebuildLedger = vi.fn(async () => ({ rebuiltAt: NOW, lots: 0, jobs: 0, needsReview: 0 }));
+
 beforeEach(() => {
 	clearDataMemo();
+	rebuildLedger.mockClear();
 	vi.useFakeTimers({ now: NOW, toFake: ['Date'] });
 });
 
 function seeded() {
-	const env = fakeEnv();
+	const env = fakeEnv({ UPDATER: { rebuildLedger } });
 	insertSystems(env.DB);
 	return env;
 }
@@ -149,6 +153,7 @@ describe('save', () => {
 		expect(ctx.env.DB.log.slice(before).filter((sql) => /^\s*(update|insert|delete)/i.test(sql))).toEqual([]);
 		expect(userRow(ctx.env)).toEqual({ settings_json: null, settings_updated_at: null });
 		expect(settingsCookie(ctx.cookies)).toBeDefined();
+		expect(rebuildLedger).not.toHaveBeenCalled();
 	});
 
 	it('logged-in saves write both the cookie and the account (sparse JSON + timestamp)', async () => {
@@ -159,6 +164,7 @@ describe('save', () => {
 		expect(JSON.parse(userRow(env).settings_json!)).toEqual({ v: 1, shared: { reactionsSkill: 4 } });
 		expect(userRow(env).settings_updated_at).toBe(NOW);
 		expect((await decodeSettings(settingsCookie(ctx.cookies)!))?.shared.reactionsSkill).toBe(4);
+		expect(rebuildLedger).toHaveBeenCalledExactlyOnceWith('u1');
 	});
 
 	it('saving the defaults deletes the cookie instead of writing one', async () => {
@@ -404,6 +410,7 @@ describe('reset', () => {
 		await act('reset', { env, cookies, user: userOf('u1') });
 		expect(userRow(env)).toEqual({ settings_json: '{"v":1}', settings_updated_at: NOW });
 		expect(cookies.deleted).toEqual(['rc_settings']);
+		expect(rebuildLedger).toHaveBeenCalledExactlyOnceWith('u1');
 	});
 });
 
@@ -416,6 +423,17 @@ describe('import', () => {
 		form.set('code', await encodeSettings(shared));
 		expect(await act('import', ctx, form)).toEqual({ redirect: '/settings?notice=imported' });
 		expect(await decodeSettings(settingsCookie(ctx.cookies)!)).toEqual(shared);
+		expect(rebuildLedger).not.toHaveBeenCalled();
+	});
+
+	it('recalculates the profit tracking of a logged-in account', async () => {
+		const env = seeded();
+		insertUser(env.DB, { userId: 'u1' });
+		const form = new FormData();
+		form.set('code', await encodeSettings(shared));
+		await act('import', { env, cookies: new FakeCookies(), user: userOf('u1') }, form);
+		expect(JSON.parse(userRow(env).settings_json!)).toMatchObject({ shared: { structure: 'athanor' } });
+		expect(rebuildLedger).toHaveBeenCalledExactlyOnceWith('u1');
 	});
 
 	it('round-trips shipping discounts', async () => {
@@ -440,6 +458,7 @@ describe('import', () => {
 			expect(result.data!.importError).toMatch(/not changed/);
 		}
 		expect(ctx.cookies.set_calls).toEqual([]);
+		expect(rebuildLedger).not.toHaveBeenCalled();
 		expect(settingsCookie(ctx.cookies)).toBe(original);
 	});
 });

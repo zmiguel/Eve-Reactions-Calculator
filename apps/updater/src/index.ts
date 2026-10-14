@@ -6,6 +6,7 @@ export { HistoryBackfillWorkflow } from './workflows/history-backfill.ts';
 export { InventorySyncWorkflow } from './workflows/inventory-sync.ts';
 export { PriceRefreshWorkflow } from './workflows/price-refresh.ts';
 export { SdeSyncWorkflow } from './workflows/sde-sync.ts';
+export { TrackingSyncWorkflow } from './workflows/tracking-sync.ts';
 
 export default {
 	scheduled

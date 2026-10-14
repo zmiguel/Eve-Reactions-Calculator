@@ -1,9 +1,9 @@
 import { getCoreDb, users } from '@reactions/db';
-import { grantedFeatures } from '@reactions/eve';
 import { error, fail, redirect, type RequestEvent } from '@sveltejs/kit';
 import { eq } from 'drizzle-orm';
-import { OFFERED_FEATURES } from '$lib/account/features';
-import { deleteAccount, listCharacters, removeCharacter } from '$lib/server/auth/accounts';
+import { FEATURE_LABELS, OFFERED_FEATURES, parseFeatureList } from '$lib/account/features';
+import { deleteAccount, listCharacters, removeCharacter, type CharacterRow } from '$lib/server/auth/accounts';
+import { heldFeatures } from '$lib/server/auth/feature-change';
 import { SESSION_COOKIE, deleteCookie } from '$lib/server/cookies';
 import type { Actions, PageServerLoad } from './$types';
 
@@ -13,6 +13,23 @@ function requireAccount({ locals, platform }: Pick<RequestEvent, 'locals' | 'pla
 	if (!locals.user) redirect(303, LOGIN_URL);
 	if (!platform) error(503, 'Your account is not available right now.');
 	return { env: platform.env, user: locals.user };
+}
+
+/** The success notice named by the query string (`notice=removed|permissions`), else null. */
+function noticeOf(params: URLSearchParams, rows: readonly CharacterRow[]): string | null {
+	const notice = params.get('notice');
+	if (notice === 'removed') return 'Character removed.';
+	if (notice !== 'permissions') return null;
+	const character = rows.find((c) => c.characterId === Number(params.get('characterId')));
+	if (!character) return null;
+	const changes = [
+		['added', 'Added'],
+		['removed', 'Removed']
+	].flatMap(([param, label]) => {
+		const names = (parseFeatureList([params.get(param) ?? '']) ?? []).map((f) => FEATURE_LABELS[f]);
+		return names.length ? [`${label}: ${names.join(', ')}.`] : [];
+	});
+	return `Permissions updated for ${character.name}. ${changes.length ? changes.join(' ') : 'No changes.'}`;
 }
 
 export const load: PageServerLoad = async (event) => {
@@ -29,7 +46,7 @@ export const load: PageServerLoad = async (event) => {
 			characterId: c.characterId,
 			name: c.name,
 			isLogin: c.characterId === user.characterId,
-			features: grantedFeatures(c.scopes),
+			features: heldFeatures(c.scopes),
 			tokenStatus: c.tokenStatus as 'none' | 'ok' | 'invalid',
 			lastRefreshedAt: c.lastRefreshedAt,
 			lastError: c.lastError
@@ -37,7 +54,7 @@ export const load: PageServerLoad = async (event) => {
 		offeredFeatures: OFFERED_FEATURES,
 		createdAt: account?.createdAt ?? null,
 		settingsUpdatedAt: account?.settingsUpdatedAt ?? null,
-		notice: event.url.searchParams.get('notice') === 'removed' ? 'Character removed.' : null
+		notice: noticeOf(event.url.searchParams, rows)
 	};
 };
 

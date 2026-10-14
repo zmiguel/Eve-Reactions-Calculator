@@ -4,7 +4,7 @@ import { DEFAULT_CONSTANTS, type Tier } from '@reactions/engine';
 import { Zip, ZipPassThrough } from 'fflate';
 import { beforeAll, describe, expect, it } from 'vitest';
 import { parseSdeZip, type SdeDataset } from '../src/index.ts';
-import { fixtureBytes, streamOf } from './helpers.ts';
+import { fixtureBytes, industryFixture, streamOf } from './helpers.ts';
 
 const EXPECTED_TIERS: Record<Tier, number> = {
 	intermediate: 24,
@@ -47,6 +47,39 @@ function expectBuild3421648(sde: SdeDataset) {
 	expect(Object.keys(sde.dataset.reprocess)).toHaveLength(25);
 	expect(sde.warnings).toEqual([]);
 
+	const manufacturing = sde.dataset.manufacturing ?? [];
+	expect(manufacturing).toHaveLength(354);
+	expect(manufacturing.map((m) => m.blueprintTypeId)).toEqual(
+		[...manufacturing.map((m) => m.blueprintTypeId)].sort((a, b) => a - b)
+	);
+	const reactionProducts = new Set(reactions.map((r) => r.product.typeId));
+	for (const m of manufacturing) {
+		expect(m.materials.length).toBeGreaterThan(0);
+		for (const material of m.materials) expect(reactionProducts.has(material.typeId)).toBe(true);
+	}
+	// Fusion Thruster: every material is a reaction product.
+	expect(manufacturing.find((m) => m.blueprintTypeId === 17349)).toEqual({
+		blueprintTypeId: 17349,
+		name: 'Fusion Thruster Blueprint',
+		productTypeId: 11532,
+		productName: 'Fusion Thruster',
+		productQuantity: 1,
+		materials: [
+			{ typeId: 16672, quantity: 13 },
+			{ typeId: 16680, quantity: 3 },
+			{ typeId: 16683, quantity: 1 }
+		]
+	});
+	// Mjolnir Fury Light Missile: only Phenolic Composites is kept (not R.A.M., EM Pulse Generator, …).
+	expect(manufacturing.find((m) => m.blueprintTypeId === 2614)).toMatchObject({
+		blueprintTypeId: 2614,
+		productTypeId: 2613,
+		productQuantity: 5000,
+		materials: [{ typeId: 16680, quantity: 12 }]
+	});
+	// Unpublished blueprint (Cerebral Accelerator) taking a reaction product.
+	expect(manufacturing.some((m) => m.blueprintTypeId === 2839)).toBe(false);
+
 	const band = (name: string) => sde.systems.find((s) => s.name === name)?.securityBand;
 	expect(band('Ignoitton')).toBe('lowsec');
 	expect(band('671-ST')).toBe('nullsec');
@@ -54,6 +87,94 @@ function expectBuild3421648(sde: SdeDataset) {
 	expect(band('Jita')).toBe('highsec');
 	expect(band('Perimeter')).toBe('highsec');
 	expect(band('Tanoo')).toBe('highsec');
+
+	expectIndustry(sde);
+}
+
+/** Industry data of build 3421648 joined with the Hoboleaks fixtures. */
+function expectIndustry(sde: SdeDataset) {
+	const industry = sde.dataset.industry!;
+	expect(industry.filters).toHaveLength(18);
+	expect(industry.rigs).toHaveLength(123);
+	// Engineering complexes, citadels (with the faction Fortizars) and refineries.
+	expect(industry.structures.map((s) => s.typeId)).toEqual([
+		35825, 35826, 35827, 35832, 35833, 35834, 35835, 35836, 40340, 47512, 47513, 47514, 47515, 47516
+	]);
+	const structure = (typeId: number) => industry.structures.find((s) => s.typeId === typeId);
+	expect(structure(35825)).toEqual({
+		typeId: 35825,
+		name: 'Raitaru',
+		groupId: 1404,
+		rigSize: 2,
+		rigSlots: 3,
+		material: { manufacturing: 0.01 }
+	});
+	expect(structure(35827)).toMatchObject({ rigSize: 4, material: { manufacturing: 0.01 } });
+	expect(structure(35835)).toMatchObject({ name: 'Athanor', rigSize: 2, material: {} });
+	expect(structure(35836)).toMatchObject({ name: 'Tatara', rigSize: 3, material: {} });
+	expect(structure(35833)).toMatchObject({ name: 'Fortizar', rigSize: 3, material: {} });
+
+	const rig = (typeId: number) => industry.rigs.find((r) => r.typeId === typeId);
+	expect(rig(37175)).toEqual({
+		typeId: 37175,
+		name: 'Standup L-Set Advanced Component Manufacturing Efficiency II',
+		rigSize: 3,
+		// One kind with its T1 (37174): never fitted together.
+		groupId: 1860,
+		fitsGroupIds: [1404, 1406, 1657],
+		bonuses: [
+			{ activity: 'manufacturing', material: 0.024, filterId: 14 },
+			{ activity: 'manufacturing', material: 0.024, filterId: 15 }
+		],
+		security: { highsec: 1, lowsec: 1.9, nullsec: 2.1, wormhole: 2.1 }
+	});
+	expect(rig(46497)).toMatchObject({
+		name: 'Standup L-Set Reactor Efficiency II',
+		rigSize: 3,
+		groupId: 1939,
+		fitsGroupIds: [1406],
+		bonuses: [
+			{ activity: 'reaction', material: 0.024, filterId: 16 },
+			{ activity: 'reaction', material: 0.024, filterId: 17 },
+			{ activity: 'reaction', material: 0.024, filterId: 18 }
+		],
+		security: { highsec: 1, lowsec: 1, nullsec: 1.1, wormhole: 1.1 }
+	});
+	// Outpost conversion rig: 3 % on every manufacturing product, no security multiplier.
+	expect(rig(48023)).toMatchObject({
+		fitsGroupIds: [1657],
+		bonuses: [{ activity: 'manufacturing', material: 0.03, filterId: null }],
+		security: { highsec: 1, lowsec: 1, nullsec: 1, wormhole: 1 }
+	});
+	// Every rig fits a structure of its size and every structure takes a rig of its size.
+	for (const r of industry.rigs) {
+		expect(
+			industry.structures.some((s) => r.fitsGroupIds.includes(s.groupId) && s.rigSize === r.rigSize),
+			r.name
+		).toBe(true);
+	}
+	for (const s of industry.structures) {
+		expect(
+			industry.rigs.some((r) => r.fitsGroupIds.includes(s.groupId) && r.rigSize === s.rigSize),
+			s.name
+		).toBe(true);
+	}
+
+	// Fusion Thruster (Construction Components) → Components; Titanium Carbide (Composite) and Titanium
+	// Chromide (Intermediate Materials) → Composite Reactions; Methanofullerene → Hybrid Reactions.
+	expect(industry.productFilters[11532]).toEqual([14]);
+	expect(industry.productFilters[16671]).toEqual([18]);
+	expect(industry.productFilters[16654]).toEqual([18]);
+	expect(industry.productFilters[30306]).toEqual([16]);
+	const products = [
+		...sde.dataset.reactions.map((r) => r.product.typeId),
+		...(sde.dataset.manufacturing ?? []).map((m) => m.productTypeId)
+	];
+	expect(
+		Object.keys(industry.productFilters)
+			.map(Number)
+			.sort((a, b) => a - b)
+	).toEqual([...new Set(products)].sort((a, b) => a - b));
 }
 
 describe('parseSdeZip on the sde-mini fixture', () => {
@@ -61,7 +182,8 @@ describe('parseSdeZip on the sde-mini fixture', () => {
 	const entries: [string, boolean][] = [];
 	beforeAll(async () => {
 		sde = await parseSdeZip(streamOf(fixtureBytes()), {
-			onEntry: (name, started) => entries.push([name, started])
+			onEntry: (name, started) => entries.push([name, started]),
+			industry: industryFixture()
 		});
 	});
 
@@ -180,7 +302,8 @@ describe.skipIf(!SDE_DIR)('parseSdeZip on the full local SDE (SDE_DIR)', () => {
 		const sde = await parseSdeZip(zipDirectoryStream(SDE_DIR as string), {
 			onEntry: (name, isStarted) => {
 				if (isStarted) started.push(name);
-			}
+			},
+			industry: industryFixture()
 		});
 		expectBuild3421648(sde);
 		expect(started).not.toContain('races.jsonl');

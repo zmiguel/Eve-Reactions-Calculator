@@ -28,8 +28,27 @@ export interface UpdaterApi {
 	triggerInventorySync(
 		sourceId: number
 	): Promise<{ instanceId: string } | { busy: true } | { notBefore: number }>;
+	/** One profit tracking pass now (run `tracking-manual-<ms>`). */
+	triggerTrackingPass(): Promise<InlineRunResult>;
+	/**
+	 * Syncs one tracking connection now; `busy` while a sync of it is still running, `notBefore` (unix ms)
+	 * while every stream's ESI data is still fresh (nothing started).
+	 */
+	triggerTrackingSync(
+		sourceId: number
+	): Promise<{ instanceId: string } | { busy: true } | { notBefore: number }>;
+	/** Rebuilds the user's ledger now; `{ error: 'unavailable' }` when it failed (the ledger is marked dirty). */
+	rebuildLedger(userId: string): Promise<LedgerRebuildSummary | { error: 'unavailable' }>;
 	publishMarketSnapshot(): Promise<{ snapshotAt: number; hubIds: string[] }>;
 	workflowStatus(runs: { kind: string; runId: string }[]): Promise<Record<string, WorkflowStatus>>;
+}
+
+/** Result of a ledger rebuild (`rebuildLedger` in `apps/updater/src/ledger.ts`). */
+export interface LedgerRebuildSummary {
+	rebuiltAt: number;
+	lots: number;
+	jobs: number;
+	needsReview: number;
 }
 
 /** Live Cloudflare Workflows instance status of a run (`queued`, `running`, `errored`, `complete`, ...). */
@@ -84,6 +103,8 @@ async function callUpdater(
 			return inlineNotice(name, await updater.triggerAffiliations());
 		case 'inventory':
 			return inlineNotice(name, await updater.triggerInventoryPass());
+		case 'tracking':
+			return inlineNotice(name, await updater.triggerTrackingPass());
 		case 'market_snapshot': {
 			const { hubIds } = await updater.publishMarketSnapshot();
 			return { ok: true, text: `${name} published with ${hubIds.length} public hubs.` };

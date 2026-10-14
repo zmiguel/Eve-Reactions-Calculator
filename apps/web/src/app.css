@@ -36,8 +36,53 @@
 		 * Undefined, those fall back to the inherited text colour or transparent.
 		 */
 		--color-brand: var(--color-primary-600);
+		/*
+		 * Theme tokens `flowbite/plugin`'s ApexCharts styles use (with `!important`), at Flowbite's default
+		 * theme values: text, headings, borders and the tooltip background. Undefined, they make the donut
+		 * centre label black and the tooltip background transparent.
+		 */
+		--color-body: var(--color-gray-600);
+		--color-heading: var(--color-gray-900);
+		--color-default: var(--color-gray-200);
+		--color-light: var(--color-gray-100);
+		--color-neutral-secondary-medium: var(--color-gray-50);
+		--color-neutral-tertiary-medium: var(--color-gray-100);
 	}
 	:root.dark {
 		color-scheme: dark;
+		--color-body: var(--color-gray-400);
+		--color-heading: var(--color-white);
+		--color-default: var(--color-gray-800);
+		--color-light: var(--color-gray-800);
+		--color-neutral-secondary-medium: var(--color-gray-800);
+		--color-neutral-tertiary-medium: var(--color-gray-700);
+	}
+	/*
+	 * Chart tooltips get a 1px border so they stand out from the card. `flowbite/plugin` sets
+	 * `border: 0 !important` in the utilities layer; an `!important` declaration in an earlier layer wins.
+	 */
+	.apexcharts-canvas .apexcharts-tooltip {
+		border: 1px solid var(--color-gray-200) !important;
+	}
+	.dark .apexcharts-canvas .apexcharts-tooltip {
+		border-color: var(--color-gray-600) !important;
+	}
+	/*
+	 * `flowbite/plugin` pads tooltip rows on the left, right and bottom only (rows under a title in line and
+	 * bar charts). Donut tooltips have no title: even padding all round.
+	 */
+	.apexcharts-canvas:has(.apexcharts-pie) .apexcharts-tooltip-series-group.apexcharts-active {
+		padding: 0.5rem 0.75rem !important;
+	}
+	/*
+	 * Tooltips wrap instead of growing wider than a phone screen (`containTooltips` in `$lib/charts` keeps
+	 * them on screen). ApexCharts' own unlayered styles set `white-space: nowrap`.
+	 */
+	.apexcharts-canvas .apexcharts-tooltip {
+		max-width: min(20rem, calc(100vw - 1rem)) !important;
+		white-space: normal !important;
+	}
+	.apexcharts-canvas .apexcharts-tooltip-text {
+		min-width: 0;
 	}
 }

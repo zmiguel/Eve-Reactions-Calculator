@@ -188,7 +188,7 @@ describe('StockPlanResults', () => {
 	it('shows value added and profit per slot and day', () => {
 		const { container } = setup();
 		expect(container.querySelector('[data-metric="Value added"] dd')!.getAttribute('title')).toBe(
-			'26,525,000 ISK'
+			'26,525,000.00 ISK'
 		);
 		const perSlotDay = container.querySelector('[data-metric="Profit / slot / day"]')!;
 		expect(text(perSlotDay.querySelector('dd'))).toBe('757.86K');

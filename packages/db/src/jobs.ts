@@ -11,7 +11,8 @@ export const JOB_KINDS = [
 	'history',
 	'market_snapshot',
 	'affiliations',
-	'inventory'
+	'inventory',
+	'tracking'
 ] as const;
 
 export type JobKind = (typeof JOB_KINDS)[number];

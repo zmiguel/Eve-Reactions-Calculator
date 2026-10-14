@@ -20,6 +20,7 @@ import {
 	fetchCorporationIndustryJobs,
 	fetchStationInfo,
 	fetchStructureInfo,
+	fittedStructures,
 	hasFeature,
 	jobsInventory,
 	resolveInventory,
@@ -167,6 +168,28 @@ const FINISH_SQL = `
 		) THEN ?8 ELSE character_id END,
 		data_expires_at = ?9
 	WHERE source_id = ?1 AND run_id = ?2`;
+
+/**
+ * Structures in the corporation's assets (`?1` = user, `?2` = `[[id, typeId, systemId, rigsJson], …]`,
+ * `?3` = now): their fitted rigs replace the stored ones; type and system fill a row that has none (a
+ * new row is a `structure` the tracking sync names on its next lookup).
+ */
+const RIGS_SQL = `
+	INSERT INTO tracked_facilities (user_id, facility_id, kind, type_id, system_id, rigs_json, rigs_read_at)
+	SELECT ?1, json_extract(value, '$[0]'), 'structure', json_extract(value, '$[1]'), json_extract(value, '$[2]'),
+		json_extract(value, '$[3]'), ?3
+	FROM json_each(?2) WHERE true
+	ON CONFLICT (user_id, facility_id) DO UPDATE SET rigs_json = excluded.rigs_json,
+		rigs_read_at = excluded.rigs_read_at, type_id = COALESCE(tracked_facilities.type_id, excluded.type_id),
+		system_id = COALESCE(tracked_facilities.system_id, excluded.system_id)`;
+
+/** The ledger of user `?1` needs a rebuild when one of its jobs ran in a structure of `?2` (JSON ids). */
+const FACILITIES_DIRTY_SQL = `
+	INSERT INTO ledger_state (user_id, dirty) SELECT ?1, 1
+	WHERE EXISTS (
+		SELECT 1 FROM tracked_jobs WHERE user_id = ?1 AND facility_id IN (SELECT value FROM json_each(?2))
+	)
+	ON CONFLICT (user_id) DO UPDATE SET dirty = 1`;
 
 const READER_COLUMNS = {
 	characterId: characters.characterId,
@@ -332,14 +355,18 @@ async function readStaged<T>(env: Env, pages: number, key: (page: number) => str
 
 /**
  * The staged assets (`resolveInventory`) plus the formulas held in the staged industry jobs
- * (`jobsInventory`, bucket `jobs`), as one inventory sorted by location, bucket, type.
+ * (`jobsInventory`, bucket `jobs`), as one inventory of the dataset's relevant types sorted by
+ * location, bucket, type.
  */
-async function resolveStaged(env: Env, runId: string, staged: InventoryStaged): Promise<ResolvedInventory> {
-	const relevant = await relevantTypeIds(env);
-	const assets = resolveInventory(
-		await readStaged<AssetRow>(env, staged.pages, (p) => INVENTORY_STAGING_KEY(runId, p)),
-		relevant
-	);
+async function resolveStaged(
+	env: Env,
+	runId: string,
+	staged: InventoryStaged,
+	dataset: Dataset,
+	rows: readonly AssetRow[]
+): Promise<ResolvedInventory> {
+	const relevant = inventoryTypeIds(dataset);
+	const assets = resolveInventory(rows, relevant);
 	const jobs = jobsInventory(
 		await readStaged<IndustryJobRow>(env, staged.jobPages, (p) => INVENTORY_JOBS_KEY(runId, p)),
 		relevant
@@ -374,11 +401,16 @@ async function deleteStaging(env: Env, runId: string): Promise<void> {
 	if (listed.objects.length > 0) await env.ARCHIVE.delete(listed.objects.map((o) => o.key));
 }
 
-/** Types worth storing: `inventoryTypeIds` of the published dataset (KV `dataset:v1`). */
-async function relevantTypeIds(env: Env): Promise<ReadonlySet<number>> {
+/** The published dataset (KV `dataset:v1`); throws when none is published yet. */
+async function publishedDataset(env: Env): Promise<Dataset> {
 	const dataset = await env.CACHE.get<Dataset>(DATASET_KV_KEY, 'json');
 	if (!dataset) throw new Error(`no SDE dataset published yet (KV ${DATASET_KV_KEY})`);
-	return inventoryTypeIds(dataset);
+	return dataset;
+}
+
+/** Types worth storing: `inventoryTypeIds` of the published dataset (KV `dataset:v1`). */
+export async function relevantTypeIds(env: Env): Promise<ReadonlySet<number>> {
+	return inventoryTypeIds(await publishedDataset(env));
 }
 
 /** Asset page 1 read by `reader`; `notes` say why earlier readers were skipped. */
@@ -617,7 +649,8 @@ export async function nameInventoryLocations(
 	staged: InventoryStaged
 ): Promise<InventoryNames> {
 	const source = await ownedSource(env, sourceId, runId);
-	const { locations } = await resolveStaged(env, runId, staged);
+	const assets = await readStaged<AssetRow>(env, staged.pages, (p) => INVENTORY_STAGING_KEY(runId, p));
+	const { locations } = await resolveStaged(env, runId, staged, await publishedDataset(env), assets);
 	const { results } = await env.DB.prepare(
 		'SELECT location_id FROM inventory_locations WHERE source_id = ? AND name IS NOT NULL'
 	)
@@ -647,10 +680,66 @@ export async function nameInventoryLocations(
 }
 
 /**
+ * Rows of `RIGS_SQL` for a corporation's assets: its structures of `industry.structures` with their
+ * fitted rigs of `industry.rigs` (`[]` = none fitted), and only those whose stored rigs, type or system
+ * change as `changed` (the ledger needs a rebuild when a job ran there). Nothing without industry data.
+ */
+async function structureRigRows(
+	env: Env,
+	userId: string,
+	dataset: Dataset,
+	assets: readonly AssetRow[]
+): Promise<{ rows: [number, number | null, number | null, string][]; changed: number[] }> {
+	const { industry } = dataset;
+	if (!industry) return { rows: [], changed: [] };
+	const structures = fittedStructures(
+		assets,
+		new Set(industry.structures.map((s) => s.typeId)),
+		new Set(industry.rigs.map((r) => r.typeId))
+	);
+	if (structures.length === 0) return { rows: [], changed: [] };
+	const { results } = await env.DB.prepare(
+		`SELECT facility_id, type_id, system_id, rigs_json FROM tracked_facilities
+		WHERE user_id = ?1 AND facility_id IN (SELECT value FROM json_each(?2))`
+	)
+		.bind(userId, JSON.stringify(structures.map((s) => s.structureId)))
+		.all<{
+			facility_id: number;
+			type_id: number | null;
+			system_id: number | null;
+			rigs_json: string | null;
+		}>();
+	const stored = new Map(results.map((r) => [r.facility_id, r]));
+	const rows = structures.map(
+		(s) =>
+			[s.structureId, s.typeId, s.systemId, JSON.stringify(s.rigs)] as [
+				number,
+				number | null,
+				number | null,
+				string
+			]
+	);
+	const changed = rows
+		.filter(([id, typeId, systemId, rigsJson]) => {
+			const row = stored.get(id);
+			return (
+				!row ||
+				row.rigs_json !== rigsJson ||
+				(row.type_id === null && typeId !== null) ||
+				(row.system_id === null && systemId !== null)
+			);
+		})
+		.map(([id]) => id);
+	return { rows, changed };
+}
+
+/**
  * Step `write`: resolves the staged assets and jobs and, in one transaction, replaces the source's
  * items, upserts its locations, deletes locations that are gone and unselected (selected ones stay with
  * their selections) and marks the source `ok` (`last_error` = the prepare note, if any) with the reader
  * as its preferred `character_id` and the ESI `Expires` of page 1; then deletes the staged pages.
+ * Corporations: the rigs fitted in the corporation's structures replace the user's stored ones
+ * (`tracked_facilities`), and the ledger is marked dirty when a job facility's rigs changed.
  */
 export async function writeInventory(
 	env: Env,
@@ -660,8 +749,14 @@ export async function writeInventory(
 	names: InventoryNames,
 	now: number
 ): Promise<InventoryWritten> {
-	await ownedSource(env, sourceId, runId);
-	const resolved = await resolveStaged(env, runId, prepared);
+	const source = await ownedSource(env, sourceId, runId);
+	const dataset = await publishedDataset(env);
+	const assets = await readStaged<AssetRow>(env, prepared.pages, (p) => INVENTORY_STAGING_KEY(runId, p));
+	const resolved = await resolveStaged(env, runId, prepared, dataset, assets);
+	const rigs =
+		source.kind === 'corporation'
+			? await structureRigRows(env, source.userId, dataset, assets)
+			: { rows: [], changed: [] };
 	const looked = new Map(names.locations.map((l) => [l.locationId, l]));
 	const locationRows = resolved.locations.map(({ locationId, kind }) => {
 		const found = looked.get(locationId);
@@ -687,7 +782,13 @@ export async function writeInventory(
 			prepared.note,
 			prepared.readerId,
 			prepared.expiresAt
-		)
+		),
+		...(rigs.rows.length > 0
+			? [env.DB.prepare(RIGS_SQL).bind(source.userId, JSON.stringify(rigs.rows), now)]
+			: []),
+		...(rigs.changed.length > 0
+			? [env.DB.prepare(FACILITIES_DIRTY_SQL).bind(source.userId, JSON.stringify(rigs.changed))]
+			: [])
 	]);
 	await deleteStaging(env, runId);
 	return {

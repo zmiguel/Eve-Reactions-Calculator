@@ -71,18 +71,23 @@ describe('GET /auth/login', () => {
 		expect(await flowOf(cookies, location)).toEqual({
 			purpose: 'login',
 			feature: null,
+			features: null,
 			characterId: null,
 			returnTo: '/composite'
 		});
 	});
 
-	it.each(['//evil.example', 'https://evil.example/x', '/\\evil.example'])(
-		'returnTo=%s (open redirect attempt) → /account',
-		async (returnTo) => {
-			const { cookies, location } = await call(login, `/auth/login?returnTo=${encodeURIComponent(returnTo)}`);
-			expect((await flowOf(cookies, location))?.returnTo).toBe('/account');
-		}
-	);
+	it.each([
+		'//evil.example',
+		'https://evil.example/x',
+		'/\\evil.example',
+		'/.//evil.example',
+		'/..//evil.example',
+		'/%2e//evil.example'
+	])('returnTo=%s (open redirect attempt) → /account', async (returnTo) => {
+		const { cookies, location } = await call(login, `/auth/login?returnTo=${encodeURIComponent(returnTo)}`);
+		expect((await flowOf(cookies, location))?.returnTo).toBe('/account');
+	});
 
 	it('purpose=add_character asks for no scopes and needs a session', async () => {
 		const user = sessionUser('u1', [{ characterId: 90000001, name: 'Alpha' }]);
@@ -110,6 +115,7 @@ describe('GET /auth/login', () => {
 		expect(await flowOf(cookies, location)).toEqual({
 			purpose: 'feature',
 			feature: 'structures',
+			features: null,
 			characterId: 90000001,
 			returnTo: '/account'
 		});
@@ -146,12 +152,25 @@ describe('GET /auth/login', () => {
 		expect((await call(login, '/auth/login?purpose=admin')).status).toBe(400);
 		expect((await call(login, '/auth/login?purpose=feature&feature=login', { user })).status).toBe(400);
 		expect((await call(login, '/auth/login?purpose=feature&feature=nope', { user })).status).toBe(400);
-		// Registry features no page uses yet cannot be granted.
-		expect((await call(login, '/auth/login?purpose=feature&feature=wallet', { user })).status).toBe(400);
 		expect(
 			(await call(login, '/auth/login?purpose=feature&feature=structures&characterId=90000002', { user }))
 				.status
 		).toBe(400);
+	});
+
+	describe('purpose=features (only from the permissions form POST)', () => {
+		const user = sessionUser('u1', [{ characterId: 90000001, name: 'Alpha' }]);
+
+		it.each([
+			['/auth/login?purpose=features&characterId=90000001&features=', '/account/permissions/90000001'],
+			['/auth/login?purpose=features&characterId=90000002&features=assets', '/account/permissions/90000002'],
+			['/auth/login?purpose=features&features=assets', '/account'],
+			['/auth/login?purpose=features&characterId=-1', '/account']
+		])('a link %s starts nothing and goes to %s', async (path, target) => {
+			const result = await call(login, path, { user });
+			expect([result.status, result.location]).toEqual([303, target]);
+			expect(result.cookies.jar.has('rc_oauth')).toBe(false);
+		});
 	});
 
 	it('503 when SSO is not configured', async () => {
@@ -228,6 +247,24 @@ describe('GET /auth/dev-login', () => {
 		await call(devLogin, '/auth/dev-login?characterId=90000001', { env });
 		expect(env.DB.rows('SELECT user_id, owner_hash FROM characters')).toEqual([
 			{ user_id: 'u1', owner_hash: 'hash-90000001' }
+		]);
+	});
+
+	it('keeps the stored name without `name`, takes a given `name`, and names a new character', async () => {
+		const env = ssoEnv({ DEV_LOGIN: '1' });
+		insertUser(env.DB, { userId: 'u1' }, [{ characterId: 90000001, name: 'Oxed G' }]);
+		const names = () => env.DB.rows('SELECT character_id, name FROM characters ORDER BY character_id');
+
+		await call(devLogin, '/auth/dev-login?characterId=90000001', { env });
+		expect(names()).toEqual([{ character_id: 90000001, name: 'Oxed G' }]);
+
+		await call(devLogin, '/auth/dev-login?characterId=90000001&name=Renamed', { env });
+		expect(names()).toEqual([{ character_id: 90000001, name: 'Renamed' }]);
+
+		await call(devLogin, '/auth/dev-login?characterId=90000002', { env });
+		expect(names()).toEqual([
+			{ character_id: 90000001, name: 'Renamed' },
+			{ character_id: 90000002, name: 'Dev Pilot 90000002' }
 		]);
 	});
 

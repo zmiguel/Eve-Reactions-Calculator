@@ -2,10 +2,12 @@ import { describe, expect, it } from 'vitest';
 import {
 	formatDuration,
 	formatIsk,
+	formatIskAxis,
 	formatIskFull,
 	formatNumber,
 	formatPct,
 	formatRelative,
+	formatSpan,
 	formatUtc
 } from './format';
 
@@ -25,9 +27,24 @@ describe('formatIsk', () => {
 		expect(formatIsk(value)).toBe(expected);
 	});
 
-	it('full value for titles', () => {
+	it('full value for titles, always with 2 decimals', () => {
 		expect(formatIskFull(1234567.891)).toBe('1,234,567.89 ISK');
+		expect(formatIskFull(6_150_000)).toBe('6,150,000.00 ISK');
+		expect(formatIskFull(-511747.2)).toBe('-511,747.20 ISK');
 		expect(formatIskFull(null)).toBe('n/a');
+	});
+
+	it.each([
+		[0, '0'],
+		[800, '800'],
+		[1000, '1K'],
+		[1500, '1.5K'],
+		[800_000, '800K'],
+		[1_250_000, '1.25M'],
+		[-2_000_000_000, '-2B'],
+		[12.5, '12.5']
+	])('axis label %s → %s', (value, expected) => {
+		expect(formatIskAxis(value)).toBe(expected);
 	});
 });
 
@@ -72,5 +89,20 @@ describe('formatRelative', () => {
 		[null, 'n/a']
 	])('%s → %s', (ms, expected) => {
 		expect(formatRelative(ms, now)).toBe(expected);
+	});
+});
+
+describe('formatSpan', () => {
+	const MIN = 60_000;
+	it.each([
+		[(28 * 60 + 5) * MIN, '1d 4h'],
+		[2 * 1440 * MIN, '2d'],
+		[(5 * 60 + 12) * MIN, '5h 12m'],
+		[3 * 60 * MIN, '3h'],
+		[12 * MIN + 30_000, '12m'],
+		[20_000, 'under 1m'],
+		[-1, 'n/a']
+	])('%s → %s', (ms, expected) => {
+		expect(formatSpan(ms)).toBe(expected);
 	});
 });

@@ -71,6 +71,20 @@
       "when": 1791822218702,
       "tag": "0009_inventory_source_readers",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "6",
+      "when": 1791888151262,
+      "tag": "0010_tracking",
+      "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "6",
+      "when": 1791964907508,
+      "tag": "0011_tracking_manufacturing",
+      "breakpoints": true
     }
   ]
 }

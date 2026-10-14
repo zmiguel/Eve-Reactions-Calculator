@@ -16,3 +16,8 @@ TOKEN_ENCRYPTION_KEY=cmVhY3Rpb25zLWRldi10b2tlbi1rZXktMzItYnl0ZXM=
 # USER_AGENT_CONTACT: your contact, e.g. mail:you@example.com; eve:Character Name; discord:name
 USER_AGENT_URL=
 USER_AGENT_CONTACT=
+# Optional: Janice API key (requested on Janice's Discord); without it contract appraisal links are not read.
+JANICE_API_KEY=
+# Rybbit site id: wrangler.jsonc sets the production site ("1"); keep it empty here so local accounts never
+# reach the production Rybbit (affiliation changes are then not sent).
+RYBBIT_SITE_ID=

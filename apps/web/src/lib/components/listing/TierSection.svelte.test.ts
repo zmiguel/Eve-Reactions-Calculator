@@ -44,15 +44,15 @@ describe('TierSection', () => {
 		const buy = screen.getByRole('tab', { name: 'Buy inputs' });
 		const chain = screen.getByRole('tab', { name: 'Full chain' });
 		expect(buy.getAttribute('aria-selected')).toBe('true');
-		expect(screen.getByTitle('1,230,000 ISK').textContent).toBe('1.23M');
-		expect(screen.queryByTitle('4,560,000 ISK')).toBeNull();
+		expect(screen.getByTitle('1,230,000.00 ISK').textContent).toBe('1.23M');
+		expect(screen.queryByTitle('4,560,000.00 ISK')).toBeNull();
 		expect(screen.getByRole('link').getAttribute('href')).toBe('/composite/titanium-carbide');
 
 		await fireEvent.click(chain);
 		expect(chain.getAttribute('aria-selected')).toBe('true');
 		expect(buy.getAttribute('aria-selected')).toBe('false');
-		expect(screen.getByTitle('4,560,000 ISK').textContent).toBe('4.56M');
-		expect(screen.queryByTitle('1,230,000 ISK')).toBeNull();
+		expect(screen.getByTitle('4,560,000.00 ISK').textContent).toBe('4.56M');
+		expect(screen.queryByTitle('1,230,000.00 ISK')).toBeNull();
 		expect(screen.getByRole('link').getAttribute('href')).toBe('/composite/titanium-carbide?view=chain');
 	});
 
@@ -65,7 +65,7 @@ describe('TierSection', () => {
 		});
 		const chain = screen.getByRole('tab', { name: 'Full chain' });
 		expect(chain.getAttribute('aria-selected')).toBe('true');
-		expect(screen.getByTitle('4,560,000 ISK')).toBeTruthy();
+		expect(screen.getByTitle('4,560,000.00 ISK')).toBeTruthy();
 		const href = (name: string) =>
 			screen
 				.getAllByRole('link')
@@ -98,11 +98,11 @@ describe('TierSection', () => {
 			defaults: { view: 'single', output: 'product', unrefined: true }
 		});
 		expect(screen.getByRole('tab', { name: 'Using unrefined' }).getAttribute('aria-selected')).toBe('true');
-		expect(screen.getByTitle('2,380,000 ISK')).toBeTruthy();
+		expect(screen.getByTitle('2,380,000.00 ISK')).toBeTruthy();
 		expect(screen.getByRole('link').getAttribute('href')).toBe('/composite/fermionic-condensates');
 
 		await fireEvent.click(screen.getByRole('tab', { name: 'Full chain' }));
-		expect(screen.getByTitle('-4,810,000 ISK')).toBeTruthy();
+		expect(screen.getByTitle('-4,810,000.00 ISK')).toBeTruthy();
 		expect(screen.getByRole('link').getAttribute('href')).toBe('/composite/fermionic-condensates?view=chain');
 	});
 
@@ -143,7 +143,7 @@ describe('TierSection', () => {
 			defaults: { view: 'single', output: 'reprocessed', unrefined: false }
 		});
 		expect(screen.getByRole('tab', { name: 'Reprocess' }).getAttribute('aria-selected')).toBe('true');
-		expect(screen.getByTitle('7,890,000 ISK')).toBeTruthy();
+		expect(screen.getByTitle('7,890,000.00 ISK')).toBeTruthy();
 		expect(screen.getByRole('link').getAttribute('href')).toBe('/composite/unrefined-hexite');
 
 		await fireEvent.click(screen.getByRole('tab', { name: 'Sell unrefined' }));
@@ -156,7 +156,7 @@ describe('TierSection', () => {
 			reactor: 'composite'
 		});
 		expect(screen.queryByRole('tablist')).toBeNull();
-		expect(screen.getByTitle('1,230,000 ISK')).toBeTruthy();
+		expect(screen.getByTitle('1,230,000.00 ISK')).toBeTruthy();
 	});
 
 	it('counts the reactions in the heading and per tab', () => {
@@ -187,8 +187,8 @@ describe('TierSection', () => {
 		const tab = screen.getByRole('tab', { name: /Using unrefined/ });
 		expect(tab.textContent?.replace(/\s+/g, ' ').trim()).toBe('Using unrefined 1');
 		await fireEvent.click(tab);
-		expect(screen.getByTitle('7,770,000 ISK')).toBeTruthy();
-		expect(screen.getByTitle('4,560,000 ISK')).toBeTruthy();
+		expect(screen.getByTitle('7,770,000.00 ISK')).toBeTruthy();
+		expect(screen.getByTitle('4,560,000.00 ISK')).toBeTruthy();
 		const hrefs = screen.getAllByRole('link').map((a) => a.getAttribute('href'));
 		expect(hrefs).toEqual(
 			expect.arrayContaining([

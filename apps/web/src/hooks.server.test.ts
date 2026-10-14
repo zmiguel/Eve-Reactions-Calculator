@@ -174,7 +174,7 @@ describe('sessions', () => {
 			{ characterId: 90000002, name: 'Beta' }
 		]);
 		env.DB.sqlite.exec(`
-			UPDATE characters SET corporation_name = 'Reaction Corp', alliance_name = 'Moon Alliance' WHERE character_id = 90000001;
+			UPDATE characters SET corporation_name = 'Reaction Corp', alliance_id = 99000001, alliance_name = 'Moon Alliance' WHERE character_id = 90000001;
 			UPDATE characters SET corporation_name = 'Alt Corp', scopes = '${STRUCTURE_SCOPES.join(' ')}' WHERE character_id = 90000002;
 		`);
 		const token = await withSession(env, 'u1', NOW + 20 * DAY);
@@ -183,7 +183,8 @@ describe('sessions', () => {
 			createdAt: NOW,
 			features: ['structures'],
 			corporation: 'Reaction Corp',
-			alliance: 'Moon Alliance'
+			alliance: 'Moon Alliance',
+			allianceId: 99000001
 		});
 		expect((await run(new FakeCookies(), env)).locals.account).toBeNull();
 	});

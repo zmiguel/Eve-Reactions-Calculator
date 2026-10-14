@@ -16,12 +16,12 @@
 
 {#if summary.empty === 'no_sources'}
 	<p class="text-gray-500 dark:text-gray-400" data-empty="no_sources">
-		No inventory yet. Add the assets of a character or corporation above; once synced, choose the places to
-		use and their items show up here.
+		No inventory yet. Switch Inventory on for a connection on Connections; once synced, choose the places to
+		use above and their items show up here.
 	</p>
 {:else if summary.empty === 'no_selection'}
 	<p class="text-gray-500 dark:text-gray-400" data-empty="no_selection">
-		Nothing in the selected places. Tick the hangars to use under each source and press Save.
+		Nothing in the selected places. Tick the hangars to use under each connection and press Save.
 	</p>
 {:else}
 	<div class="space-y-4">
@@ -86,6 +86,9 @@
 								<th class="px-3 py-2">Item</th>
 								<th class="px-3 py-2 text-right">Quantity</th>
 								<th class="px-3 py-2 text-right">Value</th>
+								{#if summary.showPaid}
+									<th class="px-3 py-2 text-right">Paid</th>
+								{/if}
 							</tr>
 						</thead>
 						<tbody>
@@ -112,6 +115,24 @@
 										title={formatIskFull(item.value)}
 										data-value>{formatIsk(item.value)}</td
 									>
+									{#if summary.showPaid}
+										<td class="px-3 py-2 text-right tabular-nums" data-paid>
+											{#if item.paid}
+												<a
+													href="/profits/ledger/{item.typeId}"
+													class="text-primary-700 hover:underline dark:text-primary-400"
+													title={formatIskFull(item.paid.unitCost)}>{formatIsk(item.paid.unitCost)}</a
+												>
+												{#if item.paid.covered < item.quantity}
+													<span class="block text-xs text-gray-500 dark:text-gray-400" data-paid-covered
+														>for {formatNumber(item.paid.covered)}, rest unknown</span
+													>
+												{/if}
+											{:else}
+												<span class="text-gray-500 dark:text-gray-400">unknown</span>
+											{/if}
+										</td>
+									{/if}
 								</tr>
 							{/each}
 						</tbody>
@@ -125,6 +146,10 @@
 				<span class="text-xs text-gray-500 dark:text-gray-400">
 					Values are what the items sell for at the market used by the reaction that makes them, or else the
 					first reaction that uses them, after fees, tax and shipping. n/a means no price.
+					{#if summary.showPaid}
+						Paid is the average unit cost of what your profit tracking ledger still holds, oldest units used
+						first.
+					{/if}
 				</span>
 				<span class="font-semibold text-gray-800 dark:text-gray-200" title={formatIskFull(summary.totalValue)}
 					>Total value <span class="tabular-nums" data-total>{formatIsk(summary.totalValue)}</span></span

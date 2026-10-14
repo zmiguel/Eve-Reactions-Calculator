@@ -1,11 +1,19 @@
 import { Unzip, UnzipInflate } from 'fflate';
 import { normalize } from './normalize.ts';
-import { DOGMA_TYPE_IDS, type SdeFile } from './constants.ts';
+import {
+	DOGMA_TYPE_IDS,
+	RIG_SIZE_ATTRIBUTE_ID,
+	UPGRADE_SLOTS_LEFT_ATTRIBUTE_ID,
+	type SdeFile
+} from './constants.ts';
 import type {
+	IndustrySources,
+	RawDogmaEffect,
 	RawSde,
 	SdeBlueprintLine,
 	SdeDataset,
 	SdeDogmaAttributeLine,
+	SdeDogmaEffectLine,
 	SdeGroupLine,
 	SdeMetaLine,
 	SdeRegionLine,
@@ -19,6 +27,11 @@ import type {
 export interface ReadSdeOptions {
 	/** Called for every archive entry; `started` is true when the entry is decompressed and parsed. */
 	onEntry?: (name: string, started: boolean) => void;
+	/**
+	 * Game client industry data (`readIndustrySources`): its types' dogma is read and the dataset gets
+	 * `industry`. Without it the dataset has no industry data.
+	 */
+	industry?: IndustrySources;
 }
 
 /** Matches the leading `_key` so filtered files can skip `JSON.parse` for unwanted lines. */
@@ -31,8 +44,16 @@ export function englishText(value: SdeText | undefined): string {
 }
 
 /* JSON.parse results are typed by the line interfaces in types.ts; missing fields get defaults below. */
-function createHandlers(raw: RawSde): Record<SdeFile, (line: string) => void> {
+function createHandlers(
+	raw: RawSde,
+	industry: IndustrySources | undefined
+): Record<SdeFile, (line: string) => void> {
+	// Full dogma: the constants' types and every type with an industry material bonus.
 	const dogmaIds = new Set(DOGMA_TYPE_IDS);
+	for (const [typeId, activities] of industry?.modifierSources ?? []) {
+		if (Object.values(activities).some((sources) => sources.length > 0)) dogmaIds.add(typeId);
+	}
+	const rigSize = new RegExp(`"attributeID"\\s*:\\s*${RIG_SIZE_ATTRIBUTE_ID}\\b`);
 	return {
 		'_sde.jsonl': (line) => {
 			const o: SdeMetaLine = JSON.parse(line);
@@ -41,18 +62,28 @@ function createHandlers(raw: RawSde): Record<SdeFile, (line: string) => void> {
 			raw.releaseDate = o.releaseDate ?? null;
 		},
 		'blueprints.jsonl': (line) => {
-			if (!line.includes('"reaction"')) return;
+			if (!line.includes('"reaction"') && !line.includes('"manufacturing"')) return;
 			const o: SdeBlueprintLine = JSON.parse(line);
+			const blueprintTypeId = o.blueprintTypeID ?? o._key;
 			const r = o.activities?.reaction;
-			if (!r) return;
-			raw.blueprints.push({
-				blueprintTypeId: o.blueprintTypeID ?? o._key,
-				maxProductionLimit: o.maxProductionLimit ?? 0,
-				time: r.time ?? 0,
-				materials: (r.materials ?? []).map((m) => ({ typeId: m.typeID, quantity: m.quantity })),
-				products: (r.products ?? []).map((m) => ({ typeId: m.typeID, quantity: m.quantity })),
-				skills: (r.skills ?? []).map((s) => ({ typeId: s.typeID, level: s.level }))
-			});
+			if (r) {
+				raw.blueprints.push({
+					blueprintTypeId,
+					maxProductionLimit: o.maxProductionLimit ?? 0,
+					time: r.time ?? 0,
+					materials: (r.materials ?? []).map((m) => ({ typeId: m.typeID, quantity: m.quantity })),
+					products: (r.products ?? []).map((m) => ({ typeId: m.typeID, quantity: m.quantity })),
+					skills: (r.skills ?? []).map((s) => ({ typeId: s.typeID, level: s.level }))
+				});
+			}
+			const m = o.activities?.manufacturing;
+			if (m) {
+				raw.manufacturing.push({
+					blueprintTypeId,
+					materials: (m.materials ?? []).map((x) => ({ typeId: x.typeID, quantity: x.quantity })),
+					products: (m.products ?? []).map((x) => ({ typeId: x.typeID, quantity: x.quantity }))
+				});
+			}
 		},
 		'types.jsonl': (line) => {
 			const o: SdeTypeLine = JSON.parse(line);
@@ -87,17 +118,48 @@ function createHandlers(raw: RawSde): Record<SdeFile, (line: string) => void> {
 		},
 		'typeDogma.jsonl': (line) => {
 			const key = KEY_PREFIX.exec(line);
-			if (key && !dogmaIds.has(Number(key[1]))) return;
+			if (key && !dogmaIds.has(Number(key[1])) && !rigSize.test(line)) return;
 			const o: SdeTypeDogmaLine = JSON.parse(line);
-			if (!dogmaIds.has(o._key)) return;
+			const attributes = (o.dogmaAttributes ?? []).map((a) => ({
+				attributeId: a.attributeID,
+				value: a.value
+			}));
+			if (dogmaIds.has(o._key)) {
+				raw.typeDogma.push({
+					typeId: o._key,
+					attributes,
+					effectIds: (o.dogmaEffects ?? []).map((e) => e.effectID)
+				});
+				return;
+			}
+			// Any other type with a rig size (a structure, a rig or a ship): rig size and slots only.
+			if (!attributes.some((a) => a.attributeId === RIG_SIZE_ATTRIBUTE_ID)) return;
 			raw.typeDogma.push({
 				typeId: o._key,
-				attributes: (o.dogmaAttributes ?? []).map((a) => ({ attributeId: a.attributeID, value: a.value }))
+				attributes: attributes.filter(
+					(a) => a.attributeId === RIG_SIZE_ATTRIBUTE_ID || a.attributeId === UPGRADE_SLOTS_LEFT_ATTRIBUTE_ID
+				),
+				effectIds: []
 			});
 		},
 		'dogmaAttributes.jsonl': (line) => {
 			const o: SdeDogmaAttributeLine = JSON.parse(line);
 			raw.dogmaAttributes.push({ attributeId: o._key, name: o.name ?? '' });
+		},
+		'dogmaEffects.jsonl': (line) => {
+			if (!line.includes('"structureID"')) return;
+			const o: SdeDogmaEffectLine = JSON.parse(line);
+			const structureModifiers: RawDogmaEffect['structureModifiers'] = [];
+			for (const m of o.modifierInfo ?? []) {
+				if (m.domain !== 'structureID' || m.func !== 'ItemModifier') continue;
+				if (m.modifiedAttributeID === undefined || m.modifyingAttributeID === undefined) continue;
+				structureModifiers.push({
+					modifiedAttributeId: m.modifiedAttributeID,
+					modifyingAttributeId: m.modifyingAttributeID,
+					operation: m.operation ?? 0
+				});
+			}
+			if (structureModifiers.length > 0) raw.dogmaEffects.push({ effectId: o._key, structureModifiers });
 		},
 		'mapSolarSystems.jsonl': (line) => {
 			const o: SdeSolarSystemLine = JSON.parse(line);
@@ -169,16 +231,18 @@ export async function readSdeZip(
 		build: null,
 		releaseDate: null,
 		blueprints: [],
+		manufacturing: [],
 		types: [],
 		groups: [],
 		typeMaterials: [],
 		typeDogma: [],
 		dogmaAttributes: [],
+		dogmaEffects: [],
 		systems: [],
 		regions: [],
 		files: []
 	};
-	const handlers = createHandlers(raw);
+	const handlers = createHandlers(raw, opts.industry);
 	let failure: unknown = null;
 	let hasFailed = false;
 	const fail = (error: unknown) => {
@@ -237,10 +301,10 @@ export async function readSdeZip(
 	return raw;
 }
 
-/** Streams an SDE JSONL zip and returns the normalized dataset. */
+/** Streams an SDE JSONL zip and returns the normalized dataset (with `industry` when `opts.industry` is given). */
 export async function parseSdeZip(
 	body: ReadableStream<Uint8Array>,
 	opts: ReadSdeOptions = {}
 ): Promise<SdeDataset> {
-	return normalize(await readSdeZip(body, opts));
+	return normalize(await readSdeZip(body, opts), opts.industry);
 }

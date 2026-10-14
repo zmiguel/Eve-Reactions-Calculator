@@ -228,6 +228,21 @@ describe('cron step 7: inventory', () => {
 		expect(await jobRuns()).toMatchObject([{ detail: { started: 1, skipped: 1, busy: 0 } }]);
 	});
 
+	it('never picks or claims a connection whose Inventory switch is off', async () => {
+		await seedUser('u1', NOW);
+		await seedSource(1, 'u1', { lastAttemptAt: NOON - DAY });
+		await seedSource(2, 'u1', { lastAttemptAt: NOON - DAY });
+		await env.DB.prepare('UPDATE inventory_sources SET inventory_enabled = 0 WHERE source_id = 2').run();
+		const { testEnv, created } = fakeWorkflow();
+
+		expect(await startInventoryPass(testEnv, AT, NOW)).toBe('started 1 of 1 due sources (0 skipped, 0 busy)');
+		expect(created).toEqual([`inventory-1-${DATE}`]);
+
+		const rpc = new UpdaterRpc(createExecutionContext(), env);
+		await expect(rpc.triggerInventorySync(2)).rejects.toThrow(RangeError);
+		expect(await source(2)).toMatchObject({ status: 'ok', run_id: null, last_attempt_at: NOON - DAY });
+	});
+
 	it('a manual pass ignores the 12:00 UTC gate and today’s attempts, still skipping running, denied and inactive', async () => {
 		await seedMixedSources();
 		const { testEnv, created } = fakeWorkflow();

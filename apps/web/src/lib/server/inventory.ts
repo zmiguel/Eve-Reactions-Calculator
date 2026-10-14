@@ -10,17 +10,11 @@ import {
 	type InventorySourceRow
 } from '@reactions/db';
 import { inventoryRole, stockUnitValue, type CalcContext, type Dataset } from '@reactions/engine';
-import {
-	createEsiClient,
-	fetchAffiliations,
-	fetchNames,
-	hasFeature,
-	type FetchFn,
-	type InventoryBucket
-} from '@reactions/eve';
+import { hasFeature, type FetchFn, type InventoryBucket } from '@reactions/eve';
 import { and, asc, count, eq, inArray, isNull, lte, or } from 'drizzle-orm';
 import { formatUtc } from '$lib/format';
 import type {
+	ConnectionFeature,
 	InventoryAddGroup,
 	InventoryAddOption,
 	InventoryAllowLink,
@@ -30,25 +24,28 @@ import type {
 	InventoryPageData,
 	InventoryPlaceView,
 	InventoryRole,
+	InventorySourcePlacesView,
 	InventorySourceStatus,
-	InventorySourceView,
 	InventorySummaryView
 } from '$lib/inventory/types';
 import type { CharacterRow } from './auth/accounts.ts';
-import { handOverPreferredReader, listCharacters } from './auth/accounts.ts';
+import { handOverPreferredReader } from './auth/accounts.ts';
+import { lookUpAffiliations } from './affiliations.ts';
 import { getDataset } from './data.ts';
 import type { UpdaterApi, UpdaterNotice } from './updater.ts';
-import { userAgent } from './user-agent.ts';
 
-/** Inventory sources one account may add. */
+/** Connections one account may add. */
 export const INVENTORY_SOURCE_LIMIT = 10;
 /** A `running` sync older than this did not finish (the updater's `INVENTORY_RUN_STALE_MINUTES`). */
 export const INVENTORY_RUN_STALE_MINUTES = 15;
+/** A `running` tracking sync older than this did not finish (the updater's `TRACKING_RUN_STALE_MINUTES`). */
+export const TRACKING_RUN_STALE_MINUTES = 15;
 /** `last_error` of a sync that stayed `running` too long (the updater's `STALE_SYNC_ERROR`). */
 export const STALE_SYNC_ERROR = 'sync did not finish';
 
 export type InventorySourceKind = 'character' | 'corporation';
-export type InventoryFeature = InventoryAllowLink['feature'];
+/** A connection's two switches. */
+export type ConnectionSwitch = 'inventory' | 'tracking';
 
 /** Buckets in display order. */
 export const INVENTORY_BUCKETS: readonly InventoryBucket[] = [
@@ -68,38 +65,49 @@ export function isInventoryBucket(value: string): value is InventoryBucket {
 	return (INVENTORY_BUCKETS as readonly string[]).includes(value);
 }
 
-const FEATURE_OF: Record<InventorySourceKind, InventoryFeature> = {
-	character: 'assets',
-	corporation: 'corp_assets'
+/** The feature a switch needs, per connection kind. */
+export const SWITCH_FEATURES: Record<ConnectionSwitch, Record<InventorySourceKind, ConnectionFeature>> = {
+	inventory: { character: 'assets', corporation: 'corp_assets' },
+	tracking: { character: 'tracking', corporation: 'corp_tracking' }
 };
 
-/** A character can read the assets of `kind`: a working token with the feature's scopes. */
-export function canReadInventory(
+/** A character can use `feature`: a working token with the feature's scopes. */
+export function canRead(
+	character: Pick<CharacterRow, 'scopes' | 'tokenStatus'>,
+	feature: ConnectionFeature
+): boolean {
+	return character.tokenStatus === 'ok' && hasFeature(character.scopes, feature);
+}
+
+/** A character can read a connection of `kind` with at least one of its switches. */
+function canConnect(
 	character: Pick<CharacterRow, 'scopes' | 'tokenStatus'>,
 	kind: InventorySourceKind
 ): boolean {
-	return character.tokenStatus === 'ok' && hasFeature(character.scopes, FEATURE_OF[kind]);
+	return (
+		canRead(character, SWITCH_FEATURES.inventory[kind]) || canRead(character, SWITCH_FEATURES.tracking[kind])
+	);
 }
 
-/** "Allow" link granting `feature` to `character`, back to `/account/inventory`. */
-export function inventoryAllowLink(
+/** "Allow" link granting `feature` to `character`, back to `/account/connections`. */
+export function connectionAllowLink(
 	character: Pick<CharacterRow, 'characterId' | 'name'>,
-	feature: InventoryFeature
+	feature: ConnectionFeature
 ): InventoryAllowLink {
 	return {
 		characterId: character.characterId,
 		characterName: character.name,
 		feature,
-		href: `/auth/login?purpose=feature&feature=${feature}&characterId=${character.characterId}&returnTo=%2Faccount%2Finventory`
+		href: `/auth/login?purpose=feature&feature=${feature}&characterId=${character.characterId}&returnTo=%2Faccount%2Fconnections`
 	};
 }
 
 export type InventorySourceListing = InventorySourceRow & { characterName: string };
 
 /**
- * The account's inventory sources (oldest first) with the name of the character reading them. A sync
- * `running` for more than `INVENTORY_RUN_STALE_MINUTES` is marked `error` ("sync did not finish") first,
- * the rule the updater applies.
+ * The account's connections (oldest first) with the name of the character reading them. An inventory
+ * or tracking sync `running` for more than `INVENTORY_RUN_STALE_MINUTES` / `TRACKING_RUN_STALE_MINUTES`
+ * is marked `error` ("sync did not finish") first, the rule the updater applies.
  */
 export async function listSources(
 	env: Env,
@@ -113,10 +121,11 @@ export async function listSources(
 		.innerJoin(characters, eq(characters.characterId, inventorySources.characterId))
 		.where(eq(inventorySources.userId, userId))
 		.orderBy(asc(inventorySources.createdAt), asc(inventorySources.sourceId));
+	const sources = rows.map((r) => r.source);
 	const staleBefore = now - INVENTORY_RUN_STALE_MINUTES * 60_000;
-	const stale = rows
-		.map((r) => r.source)
-		.filter((s) => s.status === 'running' && (s.syncStartedAt === null || s.syncStartedAt <= staleBefore));
+	const stale = sources.filter(
+		(s) => s.status === 'running' && (s.syncStartedAt === null || s.syncStartedAt <= staleBefore)
+	);
 	if (stale.length > 0) {
 		await db
 			.update(inventorySources)
@@ -132,6 +141,33 @@ export async function listSources(
 				)
 			);
 		for (const source of stale) Object.assign(source, { status: 'error', lastError: STALE_SYNC_ERROR });
+	}
+	const trackingStaleBefore = now - TRACKING_RUN_STALE_MINUTES * 60_000;
+	const staleTracking = sources.filter(
+		(s) =>
+			s.trackingStatus === 'running' &&
+			(s.trackingStartedAt === null || s.trackingStartedAt <= trackingStaleBefore)
+	);
+	if (staleTracking.length > 0) {
+		await db
+			.update(inventorySources)
+			.set({ trackingStatus: 'error', trackingLastError: STALE_SYNC_ERROR })
+			.where(
+				and(
+					inArray(
+						inventorySources.sourceId,
+						staleTracking.map((s) => s.sourceId)
+					),
+					eq(inventorySources.trackingStatus, 'running'),
+					or(
+						isNull(inventorySources.trackingStartedAt),
+						lte(inventorySources.trackingStartedAt, trackingStaleBefore)
+					)
+				)
+			);
+		for (const source of staleTracking) {
+			Object.assign(source, { trackingStatus: 'error', trackingLastError: STALE_SYNC_ERROR });
+		}
 	}
 	return rows.map((r) => ({ ...r.source, characterName: r.characterName }));
 }
@@ -158,52 +194,24 @@ const hasCorporation = (
 	c.corporationId !== null && Boolean(c.corporationName);
 
 /**
- * `rows` with the corporation (and alliance) of those with Corporation assets but no corporation name
- * filled in by one public ESI bulk lookup (`/characters/affiliation` + `/universe/names`), stored on
- * `characters` like the updater's affiliations job. Characters ESI does not answer for (all of them
- * when ESI fails) stay without a corporation.
+ * `rows` with the corporation (and alliance) of those that can read a corporation connection but have
+ * no corporation name filled in by {@link lookUpAffiliations} (stored on `characters`). Characters ESI
+ * does not answer for (all of them when ESI fails) stay without a corporation.
  */
-async function resolveCorporations(
+export async function resolveCorporations(
 	env: Env,
 	fetch: FetchFn,
 	rows: readonly CharacterRow[],
 	now: number
 ): Promise<CharacterRow[]> {
-	const missing = rows.filter((c) => canReadInventory(c, 'corporation') && !hasCorporation(c));
+	const missing = rows.filter((c) => canConnect(c, 'corporation') && !hasCorporation(c));
 	if (missing.length === 0) return [...rows];
-	const found = new Map<number, Partial<CharacterRow>>();
-	try {
-		const client = createEsiClient({ fetch, userAgent: userAgent(env) });
-		const affiliations = (
-			await fetchAffiliations(
-				client,
-				missing.map((c) => c.characterId)
-			)
-		).items;
-		const ids = affiliations.flatMap((a) =>
-			a.allianceId === null ? [a.corporationId] : [a.corporationId, a.allianceId]
-		);
-		const names = new Map(
-			ids.length === 0 ? [] : (await fetchNames(client, ids)).items.map((n) => [n.id, n.name])
-		);
-		for (const a of affiliations) {
-			const corporationName = names.get(a.corporationId);
-			if (!corporationName) continue;
-			found.set(a.characterId, {
-				corporationId: a.corporationId,
-				corporationName,
-				allianceId: a.allianceId,
-				allianceName: a.allianceId === null ? null : (names.get(a.allianceId) ?? null),
-				affiliationUpdatedAt: now
-			});
-		}
-	} catch {
-		return [...rows];
-	}
-	const db = getCoreDb(env.DB);
-	for (const [characterId, affiliation] of found) {
-		await db.update(characters).set(affiliation).where(eq(characters.characterId, characterId));
-	}
+	const found = await lookUpAffiliations(
+		env,
+		fetch,
+		missing.map((c) => c.characterId),
+		now
+	);
 	return rows.map((c) => ({ ...c, ...found.get(c.characterId) }));
 }
 
@@ -219,17 +227,27 @@ const JOIN_POOL_SQL = `
 	ON CONFLICT DO NOTHING`;
 
 export type AddSourceOutcome =
-	| { ok: true; joined?: undefined; sourceId: number; ownerName: string; label: string }
-	/** The corporation is already a source: the character joined its reader pool (no sync started). */
+	| {
+			ok: true;
+			joined?: undefined;
+			sourceId: number;
+			ownerName: string;
+			/** The switches the new connection starts with: each one whose feature the reader has. */
+			inventory: boolean;
+			tracking: boolean;
+	  }
+	/** The corporation is already a connection: the character joined its reader pool (no sync started). */
 	| { ok: true; joined: true; message: string }
 	| { ok: false; joined?: undefined; message: string; allow?: InventoryAllowLink };
 
 /**
- * Adds the personal (`character`) or corporation assets read by `character` as a `pending` source.
- * Needs the matching feature and stays within `INVENTORY_SOURCE_LIMIT`; a personal owner already on
- * the account is refused. A corporation comes from the character's affiliation columns, else from
- * public ESI; the new source's reader pool starts with `character`. A corporation the account already
- * has (only this account's sources count) gets `character` added to its pool instead.
+ * Adds the character (`character`) or the corporation of `character` as a connection: Inventory on when
+ * the character has the (corporation) assets feature, Profit tracking on when it has the (corporation)
+ * tracking feature, each sync `pending`; at least one of them is needed. Stays within
+ * `INVENTORY_SOURCE_LIMIT`; a personal owner already on the account is refused. A corporation comes from
+ * the character's affiliation columns, else from public ESI; the new connection's reader pool starts
+ * with `character`. A corporation the account already has (only this account's connections count) gets
+ * `character` added to its pool instead.
  */
 export async function addSource(
 	env: Env,
@@ -240,14 +258,16 @@ export async function addSource(
 	now = Date.now()
 ): Promise<AddSourceOutcome> {
 	if (character.userId !== userId) return { ok: false, message: 'Pick one of your characters.' };
-	if (!canReadInventory(character, kind)) {
+	const inventory = canRead(character, SWITCH_FEATURES.inventory[kind]);
+	const tracking = canRead(character, SWITCH_FEATURES.tracking[kind]);
+	if (!inventory && !tracking) {
 		return {
 			ok: false,
 			message:
 				kind === 'character'
-					? `Allow personal assets for ${character.name} first.`
-					: `Allow corporation assets for ${character.name} first.`,
-			allow: inventoryAllowLink(character, FEATURE_OF[kind])
+					? `Allow personal assets or profit tracking for ${character.name} first.`
+					: `Allow corporation assets or corporation profit tracking for ${character.name} first.`,
+			allow: connectionAllowLink(character, SWITCH_FEATURES.inventory[kind])
 		};
 	}
 	const db = getCoreDb(env.DB);
@@ -275,23 +295,21 @@ export async function addSource(
 			.from(inventorySources)
 			.where(eq(inventorySources.userId, userId));
 		if (sources >= INVENTORY_SOURCE_LIMIT) {
-			return { ok: false, message: `You can add up to ${INVENTORY_SOURCE_LIMIT} inventories.` };
+			return { ok: false, message: `You can add up to ${INVENTORY_SOURCE_LIMIT} connections.` };
 		}
 	}
 
 	const insert = env.DB.prepare(
-		`INSERT INTO inventory_sources (user_id, character_id, kind, owner_id, owner_name, status, created_at)
-		VALUES (?1, ?2, ?3, ?4, ?5, 'pending', ?6) ON CONFLICT DO NOTHING RETURNING source_id`
-	).bind(userId, character.characterId, kind, owner.id, owner.name, now);
+		`INSERT INTO inventory_sources (user_id, character_id, kind, owner_id, owner_name, status, created_at,
+			inventory_enabled, tracking_enabled, tracking_status)
+		VALUES (?1, ?2, ?3, ?4, ?5, 'pending', ?6, ?7, ?8, CASE WHEN ?8 = 1 THEN 'pending' END)
+		ON CONFLICT DO NOTHING RETURNING source_id`
+	).bind(userId, character.characterId, kind, owner.id, owner.name, now, Number(inventory), Number(tracking));
+	const switches = { ownerName: owner.name, inventory, tracking };
 	if (kind === 'character') {
-		const added = await insert.first<{ source_id: number }>();
-		if (!added) return { ok: false, message: 'This inventory is already on your list.' };
-		return {
-			ok: true,
-			sourceId: added.source_id,
-			ownerName: owner.name,
-			label: `${owner.name}: personal assets`
-		};
+		const row = await insert.first<{ source_id: number }>();
+		if (!row) return { ok: false, message: 'This connection is already on your list.' };
+		return { ok: true, sourceId: row.source_id, ...switches };
 	}
 	// The source (unless the account has it already) and its pool row in one transaction.
 	const join = env.DB.prepare(JOIN_POOL_SQL).bind(userId, owner.id, character.characterId, now);
@@ -299,8 +317,8 @@ export async function addSource(
 	if (existing) pooled = (await join.run()).meta.changes;
 	else {
 		const [inserted, joined] = await env.DB.batch([insert, join]);
-		const added = inserted?.results[0] as { source_id: number } | undefined;
-		if (added) return { ok: true, sourceId: added.source_id, ownerName: owner.name, label: owner.name };
+		const row = inserted?.results[0] as { source_id: number } | undefined;
+		if (row) return { ok: true, sourceId: row.source_id, ...switches };
 		pooled = joined?.meta.changes ?? 0;
 	}
 	if (pooled > 0) {
@@ -329,7 +347,7 @@ export async function removeReader(
 ): Promise<RemoveReaderOutcome> {
 	const source = await getSource(env, userId, sourceId);
 	if (!source || source.kind !== 'corporation') {
-		return { ok: false, status: 404, message: 'That inventory is not on your list.' };
+		return { ok: false, status: 404, message: 'That connection is not on your list.' };
 	}
 	const pool = await poolsOf(env, userId, [sourceId]);
 	const reader = pool.find((r) => r.characterId === characterId);
@@ -339,7 +357,7 @@ export async function removeReader(
 		return {
 			ok: false,
 			status: 400,
-			message: `${reader.name} is the only character reading ${source.ownerName}. Remove the inventory instead.`
+			message: `${reader.name} is the only character reading ${source.ownerName}. Remove the connection instead.`
 		};
 	}
 	// Hand-over and delete in one transaction; the delete keeps the last member and the preferred reader.
@@ -359,14 +377,14 @@ export async function removeReader(
 	return { ok: true, message: `${reader.name} no longer reads ${source.ownerName}.` };
 }
 
-interface PoolMember {
+export interface PoolMember {
 	sourceId: number;
 	characterId: number;
 	name: string;
 }
 
 /** Reader pools of the account's sources `sourceIds` (only its own characters), in the order added. */
-function poolsOf(env: Env, userId: string, sourceIds: number[]): Promise<PoolMember[]> {
+export function poolsOf(env: Env, userId: string, sourceIds: number[]): Promise<PoolMember[]> {
 	return getCoreDb(env.DB)
 		.select({
 			sourceId: inventorySourceReaders.sourceId,
@@ -469,7 +487,7 @@ export interface UserInventory {
 	stock: Record<number, number>;
 	/** Reaction blueprint type id → count. */
 	formulas: Record<number, number>;
-	/** The `ok`/`error` sources the sums come from. */
+	/** The `ok`/`error` connections with Inventory on the sums come from. */
 	sources: UserInventorySource[];
 	/** Oldest `last_synced_at` of those sources; null when none has synced. */
 	oldestSyncAt: number | null;
@@ -477,11 +495,16 @@ export interface UserInventory {
 
 /**
  * What the account has in its selected places: the items of the selected (source, location, bucket)
- * of its `ok` and `error` sources, summed per type and split into formulas (reaction blueprints) and stock.
+ * of its `ok` and `error` connections with Inventory on, summed per type and split into formulas
+ * (reaction blueprints) and stock.
  */
 export async function getUserInventory(env: Env, userId: string): Promise<UserInventory> {
 	const db = getCoreDb(env.DB);
-	const usable = and(eq(inventorySources.userId, userId), inArray(inventorySources.status, USABLE_STATUSES));
+	const usable = and(
+		eq(inventorySources.userId, userId),
+		eq(inventorySources.inventoryEnabled, true),
+		inArray(inventorySources.status, USABLE_STATUSES)
+	);
 	const [dataset, sources, items] = await Promise.all([
 		getDataset(env),
 		db
@@ -534,7 +557,7 @@ export interface SyncRequest {
 	notice: UpdaterNotice;
 }
 
-const SYNC_UNAVAILABLE = 'The sync could not be started right now. Try again later.';
+export const SYNC_UNAVAILABLE = 'The sync could not be started right now. Try again later.';
 
 /** `14:05 UTC` (the date too when it is not `now`'s UTC day). */
 function utcTime(ms: number, now: number): string {
@@ -542,25 +565,35 @@ function utcTime(ms: number, now: number): string {
 	return text.slice(0, 10) === formatUtc(now).slice(0, 10) ? text.slice(11) : text;
 }
 
+/** "ESI has no newer data for <owner> before <time> UTC." (`utcTime`). */
+export function notBeforeNotice(ownerName: string, until: number, now: number): SyncRequest {
+	return {
+		started: false,
+		notice: { ok: false, text: `ESI has no newer data for ${ownerName} before ${utcTime(until, now)}.` }
+	};
+}
+
 /**
- * Asks the updater to sync `source` now (`UPDATER.triggerInventorySync`). Before its `dataExpiresAt`
- * (ESI `Expires` of the last sync) ESI has nothing newer and must not be asked again: a notice, without
- * calling the updater (the updater refuses too, `notBefore`). A sync already running, a missing binding
- * or an updater that does not answer become notices instead of a 500.
+ * Asks the updater to sync the inventory of `source` now (`UPDATER.triggerInventorySync`). A connection
+ * with Inventory off is refused with a notice. Before its `dataExpiresAt` (ESI `Expires` of the last
+ * sync) ESI has nothing newer and must not be asked again: a notice, without calling the updater (the
+ * updater refuses too, `notBefore`). A sync already running, a missing binding or an updater that does
+ * not answer become notices instead of a 500.
  */
 export async function requestInventorySync(
 	env: Env,
-	source: Pick<InventorySourceRow, 'sourceId' | 'ownerName' | 'dataExpiresAt'>,
+	source: Pick<InventorySourceRow, 'sourceId' | 'ownerName' | 'dataExpiresAt' | 'inventoryEnabled'>,
 	now = Date.now()
 ): Promise<SyncRequest> {
-	const notBefore = (until: number): SyncRequest => ({
-		started: false,
-		notice: {
-			ok: false,
-			text: `ESI has no newer data for ${source.ownerName} before ${utcTime(until, now)}.`
-		}
-	});
-	if (source.dataExpiresAt !== null && source.dataExpiresAt > now) return notBefore(source.dataExpiresAt);
+	if (!source.inventoryEnabled) {
+		return {
+			started: false,
+			notice: { ok: false, text: `Inventory is off for ${source.ownerName}. Switch it on first.` }
+		};
+	}
+	if (source.dataExpiresAt !== null && source.dataExpiresAt > now) {
+		return notBeforeNotice(source.ownerName, source.dataExpiresAt, now);
+	}
 	// `wrangler types` declares the binding as an untyped `Service`; its RPC surface is `UpdaterApi`.
 	const updater = env.UPDATER as unknown as UpdaterApi | undefined;
 	if (!updater) {
@@ -572,7 +605,7 @@ export async function requestInventorySync(
 		if ('busy' in result) {
 			return { started: false, notice: { ok: false, text: 'A sync of this inventory is already running.' } };
 		}
-		if ('notBefore' in result) return notBefore(result.notBefore);
+		if ('notBefore' in result) return notBeforeNotice(source.ownerName, result.notBefore, now);
 		return { started: true, notice: { ok: true, text: 'Sync started.' } };
 	} catch (e) {
 		console.error('UPDATER.triggerInventorySync failed', e);
@@ -589,7 +622,8 @@ export function bucketLabel(bucket: InventoryBucket, divisionNames: Record<strin
 	return divisionNames[division] ?? `Division ${division}`;
 }
 
-function parseDivisionNames(json: string | null): Record<string, string> {
+/** `{"1":"Moon goo"}` division names (hangar `division_names_json` or wallet `wallet_names_json`); bad JSON → {}. */
+export function parseDivisionNames(json: string | null): Record<string, string> {
 	if (!json) return {};
 	try {
 		const parsed: unknown = JSON.parse(json);
@@ -673,6 +707,9 @@ function sourcePlaces(
 
 const MATERIAL_ROLES: readonly InventoryRole[] = ['fuel', 'raw', 'intermediate', 'product'];
 
+/** Per type: the remaining quantity and its total cost over the user's ledger lots (profit tracking). */
+type PaidByType = ReadonlyMap<number, { remaining: number; cost: number }>;
+
 /** "What you have": the selected items of `ok`/`error` sources, formulas and materials by role. */
 function summarize(
 	sources: readonly InventorySourceListing[],
@@ -680,7 +717,8 @@ function summarize(
 	items: readonly StoredItem[],
 	selected: ReadonlySet<string>,
 	ctx: CalcContext | null,
-	dataset: Dataset | null
+	dataset: Dataset | null,
+	paidByType: PaidByType | null = null
 ): InventorySummaryView {
 	const materials: Record<InventoryRole, InventoryMaterialView[]> = {
 		fuel: [],
@@ -688,7 +726,8 @@ function summarize(
 		intermediate: [],
 		product: []
 	};
-	if (sources.length === 0) return { formulas: [], materials, totalValue: 0, empty: 'no_sources' };
+	const showPaid = paidByType !== null;
+	if (sources.length === 0) return { formulas: [], materials, totalValue: 0, showPaid, empty: 'no_sources' };
 
 	const usable = new Set(sources.filter((s) => USABLE_STATUSES.includes(s.status)).map((s) => s.sourceId));
 	const placeLabel = (item: StoredItem) => {
@@ -727,21 +766,27 @@ function summarize(
 		const unitValue = ctx ? stockUnitValue(ctx, typeId) : null;
 		const value = unitValue === null ? null : unitValue * quantity;
 		if (value !== null) totalValue += value;
-		materials[role].push({ typeId, name: typeName(typeId), quantity, unitValue, value });
+		const lots = paidByType?.get(typeId);
+		const paid =
+			lots && lots.remaining > 0
+				? { unitCost: lots.cost / lots.remaining, covered: Math.min(lots.remaining, quantity) }
+				: null;
+		materials[role].push({ typeId, name: typeName(typeId), quantity, unitValue, value, paid });
 	}
 	for (const role of MATERIAL_ROLES) materials[role].sort((a, b) => a.name.localeCompare(b.name));
 	const empty = formulas.length === 0 && MATERIAL_ROLES.every((r) => materials[r].length === 0);
-	return { formulas, materials, totalValue, empty: empty ? 'no_selection' : null };
+	return { formulas, materials, totalValue, showPaid, empty: empty ? 'no_selection' : null };
 }
 
 /**
- * "Add inventory" groups. Personal assets: characters with the feature whose assets are not a source
- * yet. Corporation assets: "<Corporation> via <Character>" for every character with the feature that is
- * not in the pool of the account's source for its corporation (choosing it joins that pool, or adds the
- * corporation); a character whose corporation could not be looked up is listed disabled. With `full`
- * (source limit reached) only pool joins are offered.
+ * "Add a connection" groups. Characters: those with Personal assets or Profit tracking that are not a
+ * connection yet. Corporations: "<Corporation> via <Character>" for every character with Corporation
+ * assets or Corporation profit tracking that is not in the pool of the account's connection for its
+ * corporation (choosing it joins that pool, or adds the corporation); a character whose corporation
+ * could not be looked up is listed disabled. With `full` (connection limit reached) only pool joins are
+ * offered.
  */
-function addGroups(
+export function connectionAddGroups(
 	rows: readonly CharacterRow[],
 	sources: readonly InventorySourceListing[],
 	pools: readonly PoolMember[],
@@ -756,10 +801,10 @@ function addGroups(
 	const corporationOptions: InventoryAddOption[] = [];
 	const unknown: InventoryAddOption[] = [];
 	for (const c of rows) {
-		if (!full && canReadInventory(c, 'character') && !personal.has(c.characterId)) {
-			personalOptions.push({ value: `character:${c.characterId}`, label: `${c.name}: personal assets` });
+		if (!full && canConnect(c, 'character') && !personal.has(c.characterId)) {
+			personalOptions.push({ value: `character:${c.characterId}`, label: c.name });
 		}
-		if (!canReadInventory(c, 'corporation')) continue;
+		if (!canConnect(c, 'corporation')) continue;
 		const value = `corporation:${c.characterId}`;
 		if (!hasCorporation(c)) {
 			unknown.push({ value, label: `${c.name} (corporation unknown)`, disabled: true });
@@ -771,36 +816,28 @@ function addGroups(
 	}
 	corporationOptions.push(...unknown);
 	const groups: InventoryAddGroup[] = [];
-	if (personalOptions.length > 0) groups.push({ label: 'Personal assets', options: personalOptions });
-	if (corporationOptions.length > 0)
-		groups.push({ label: 'Corporation assets', options: corporationOptions });
+	if (personalOptions.length > 0) groups.push({ label: 'Characters', options: personalOptions });
+	if (corporationOptions.length > 0) groups.push({ label: 'Corporations', options: corporationOptions });
 	return groups;
 }
 
 /**
- * `/account/inventory` page data: sources (stale runs settled) with their places and reader pools, the
- * add options (characters with Corporation assets but no known corporation are looked up on public ESI
- * first, `resolveCorporations`) and Allow links, and "What you have" valued with `stockUnitValue`
- * (`ctx` null: names and quantities only).
+ * `/account/inventory` page data: each connection with Inventory on (stale runs settled) with its
+ * places, and "What you have" valued with `stockUnitValue` (`ctx` null: names and quantities only).
  */
 export async function inventoryPage(
 	env: Env,
-	fetch: FetchFn,
 	userId: string,
 	ctx: CalcContext | null,
 	now = Date.now()
 ): Promise<InventoryPageData> {
 	const db = getCoreDb(env.DB);
-	const [characterRows, sources, dataset] = await Promise.all([
-		listCharacters(env, userId),
+	const [listed, dataset] = await Promise.all([
 		listSources(env, userId, now),
 		ctx ? ctx.dataset : getDataset(env)
 	]);
-	const corporationSourceIds = sources.filter((s) => s.kind === 'corporation').map((s) => s.sourceId);
-	const [rows, pools] = await Promise.all([
-		resolveCorporations(env, fetch, characterRows, now),
-		corporationSourceIds.length === 0 ? [] : poolsOf(env, userId, corporationSourceIds)
-	]);
+	const sources = listed.filter((s) => s.inventoryEnabled);
+	const enabled = and(eq(inventorySources.userId, userId), eq(inventorySources.inventoryEnabled, true));
 	const [locationRows, itemRows, selectionRows] =
 		sources.length === 0
 			? [[], [], []]
@@ -816,7 +853,7 @@ export async function inventoryPage(
 						.from(inventoryLocations)
 						.innerJoin(inventorySources, eq(inventorySources.sourceId, inventoryLocations.sourceId))
 						.leftJoin(systems, eq(systems.systemId, inventoryLocations.systemId))
-						.where(eq(inventorySources.userId, userId)),
+						.where(enabled),
 					db
 						.select({
 							sourceId: inventoryItems.sourceId,
@@ -827,7 +864,7 @@ export async function inventoryPage(
 						})
 						.from(inventoryItems)
 						.innerJoin(inventorySources, eq(inventorySources.sourceId, inventoryItems.sourceId))
-						.where(eq(inventorySources.userId, userId)),
+						.where(enabled),
 					db
 						.select({
 							sourceId: inventorySelection.sourceId,
@@ -836,7 +873,7 @@ export async function inventoryPage(
 						})
 						.from(inventorySelection)
 						.innerJoin(inventorySources, eq(inventorySources.sourceId, inventorySelection.sourceId))
-						.where(eq(inventorySources.userId, userId))
+						.where(enabled)
 				]);
 	const items = itemRows.filter((i): i is StoredItem => isInventoryBucket(i.bucket));
 	const selected = new Set(selectionRows.map((s) => `${s.sourceId}:${placeKey(s)}`));
@@ -854,35 +891,31 @@ export async function inventoryPage(
 			)
 		])
 	);
-	const views: InventorySourceView[] = sources.map((s) => ({
+	const views: InventorySourcePlacesView[] = sources.map((s) => ({
 		sourceId: s.sourceId,
 		kind: s.kind as InventorySourceKind,
 		ownerName: s.ownerName,
-		characterId: s.characterId,
 		characterName: s.characterName,
-		otherReaders: pools
-			.filter((p) => p.sourceId === s.sourceId && p.characterId !== s.characterId)
-			.map((p) => ({ characterId: p.characterId, name: p.name })),
 		status: s.status as InventorySourceStatus,
-		lastError: s.lastError,
 		lastSyncedAt: s.lastSyncedAt,
-		dataAsOf: s.dataAsOf,
 		places: places.get(s.sourceId) ?? []
 	}));
 
-	const allowLinks: InventoryAllowLink[] = [];
-	for (const c of rows) {
-		for (const kind of ['character', 'corporation'] as const) {
-			if (!canReadInventory(c, kind)) allowLinks.push(inventoryAllowLink(c, FEATURE_OF[kind]));
-		}
-	}
+	// Profit tracking: remaining FIFO lots per type (the rebuild only keeps tracking-on connections).
+	const { results: lotRows } = await env.DB.prepare(
+		`SELECT type_id, SUM(remaining) AS remaining, SUM(remaining * unit_cost) AS cost
+		FROM ledger_lots WHERE user_id = ? GROUP BY type_id`
+	)
+		.bind(userId)
+		.all<{ type_id: number; remaining: number; cost: number }>();
+	const paidByType: PaidByType | null =
+		lotRows.length === 0
+			? null
+			: new Map(lotRows.map((r) => [r.type_id, { remaining: r.remaining, cost: r.cost }]));
 
 	return {
 		sources: views,
-		addGroups: addGroups(rows, sources, pools, sources.length >= INVENTORY_SOURCE_LIMIT),
-		allowLinks,
-		limit: INVENTORY_SOURCE_LIMIT,
-		summary: summarize(sources, places, items, selected, ctx, dataset),
+		summary: summarize(sources, places, items, selected, ctx, dataset, paidByType),
 		refreshing: sources.some((s) => s.status === 'running' || s.status === 'pending')
 	};
 }

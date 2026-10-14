@@ -15,7 +15,16 @@ describe('Navbar', () => {
 	it('links Home and every main section', () => {
 		const { container } = render(Navbar);
 		const hrefs = [...container.querySelectorAll('a')].map((a) => a.getAttribute('href'));
-		for (const href of ['/', '/composite', '/biochemical', '/hybrid', '/planner', '/settings', '/api']) {
+		for (const href of [
+			'/',
+			'/composite',
+			'/biochemical',
+			'/hybrid',
+			'/planner',
+			'/profits',
+			'/settings',
+			'/api'
+		]) {
 			expect(hrefs).toContain(href);
 		}
 		expect(screen.getByRole('link', { name: 'Home' }).getAttribute('href')).toBe('/');
@@ -27,7 +36,8 @@ describe('Navbar', () => {
 		['/', 'Home'],
 		['/composite', 'Composite'],
 		['/biochemical/pure-synth-blue-pill-booster', 'Biochemical'],
-		['/api', 'API']
+		['/api', 'API'],
+		['/profits/jobs/123', 'Profits']
 	])('marks the link of %s as current', (path, label) => {
 		setPage({ url: path });
 		render(Navbar);
@@ -61,6 +71,7 @@ describe('Navbar', () => {
 		expect(link.hasAttribute('data-sveltekit-reload')).toBe(true);
 		expect(menu.textContent?.trim()).toBe('Log in');
 		expect(screen.queryByRole('link', { name: 'Account' })).toBeNull();
+		expect(container.querySelector('details[data-tracker-menu]')).toBeNull();
 	});
 
 	it('closes the menu on Escape and on outside clicks', async () => {
@@ -75,7 +86,7 @@ describe('Navbar', () => {
 		expect(menu.open).toBe(false);
 	});
 
-	it('logged in: portrait and name with Account, Structure markets, Inventory, Add character and a POST log-out form; no Admin', () => {
+	it('logged in: portrait and name with the account pages, Add character and a POST log-out form; no Admin', () => {
 		const { container } = render(Navbar, { user: { characterId: 90000001, name: 'Oxed G', isAdmin: false } });
 		const summary = container.querySelector('details[data-account-menu] summary')!;
 		expect(summary.getAttribute('aria-label')).toBe('Account menu for Oxed G');
@@ -83,14 +94,19 @@ describe('Navbar', () => {
 			'https://images.evetech.net/characters/90000001/portrait?size=32'
 		);
 		expect(summary.textContent).toContain('Oxed G');
-		expect(screen.getByRole('link', { name: 'Account' }).getAttribute('href')).toBe('/account');
-		expect(screen.getByRole('link', { name: 'Structure markets' }).getAttribute('href')).toBe(
-			'/account/structures'
-		);
-		expect(screen.getByRole('link', { name: 'Inventory' }).getAttribute('href')).toBe('/account/inventory');
-		expect(screen.getByRole('link', { name: 'Add character' }).getAttribute('href')).toBe(
-			'/auth/login?purpose=add_character&returnTo=%2Faccount'
-		);
+		expect(
+			[...container.querySelectorAll('details[data-account-menu] ul a')].map((a) => [
+				a.textContent?.trim(),
+				a.getAttribute('href')
+			])
+		).toEqual([
+			['Account', '/account'],
+			['Connections', '/account/connections'],
+			['Inventory', '/account/inventory'],
+			['Profit tracking', '/account/tracking'],
+			['Structure markets', '/account/structures'],
+			['Add character', '/auth/login?purpose=add_character&returnTo=%2Faccount']
+		]);
 		expect(screen.queryByRole('link', { name: 'Admin' })).toBeNull();
 		const logout = screen.getByRole('button', { name: 'Log out' }).closest('form')!;
 		expect([logout.getAttribute('method'), logout.getAttribute('action')]).toEqual(['POST', '/auth/logout']);
@@ -100,5 +116,11 @@ describe('Navbar', () => {
 	it('shows Admin only for admins', () => {
 		render(Navbar, { user: { characterId: 90000001, name: 'Oxed G', isAdmin: true } });
 		expect(screen.getByRole('link', { name: 'Admin' }).getAttribute('href')).toBe('/admin');
+	});
+
+	it('links Profits right after Planner, also for anonymous visitors', () => {
+		const { container } = render(Navbar);
+		const labels = [...container.querySelectorAll('nav ul a')].map((a) => a.textContent?.trim());
+		expect(labels.indexOf('Profits')).toBe(labels.indexOf('Planner') + 1);
 	});
 });

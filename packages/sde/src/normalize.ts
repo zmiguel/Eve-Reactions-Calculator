@@ -1,5 +1,13 @@
 import { DEFAULT_CONSTANTS } from '@reactions/engine';
-import type { Reaction, ReactionConstants, Reactor, ReprocessEntry, Tier, TypeInfo } from '@reactions/engine';
+import type {
+	ManufacturingBlueprint,
+	Reaction,
+	ReactionConstants,
+	Reactor,
+	ReprocessEntry,
+	Tier,
+	TypeInfo
+} from '@reactions/engine';
 import {
 	ATHANOR_TYPE_ID,
 	L_SET_RIG_T1_TYPE_ID,
@@ -10,7 +18,9 @@ import {
 	TATARA_TYPE_ID,
 	WORMHOLE_REGION_ID_MIN
 } from './constants.ts';
+import { buildIndustryData } from './industry.ts';
 import type {
+	IndustrySources,
 	RawGroup,
 	RawSde,
 	RawType,
@@ -121,8 +131,11 @@ function readConstants(raw: RawSde, warnings: string[]): ReactionConstants {
 	};
 }
 
-/** Turns the raw SDE projections into the engine dataset plus reference tables. */
-export function normalize(raw: RawSde): SdeDataset {
+/**
+ * Turns the raw SDE projections into the engine dataset plus reference tables; with the game client
+ * industry data (`readIndustrySources`) the dataset also gets `industry`.
+ */
+export function normalize(raw: RawSde, industry?: IndustrySources): SdeDataset {
 	if (raw.build === null) throw new Error('SDE metadata (_sde.jsonl buildNumber) missing');
 	const warnings: string[] = SDE_FILES.filter((file) => !raw.files.includes(file)).map(
 		(file) => `MISSING_FILE:${file}`
@@ -199,6 +212,34 @@ export function normalize(raw: RawSde): SdeDataset {
 		};
 	}
 
+	// Published manufacturing blueprints that take a reaction product, with only those materials.
+	const reactionProducts = new Set(reactions.map((r) => r.product.typeId));
+	const manufacturing: ManufacturingBlueprint[] = [];
+	for (const bp of [...raw.manufacturing].sort((a, b) => a.blueprintTypeId - b.blueprintTypeId)) {
+		const materials = bp.materials.filter((m) => reactionProducts.has(m.typeId));
+		if (materials.length === 0) continue;
+		const blueprint = typesById.get(bp.blueprintTypeId);
+		if (!blueprint) {
+			warnings.push(`MISSING_TYPE:${bp.blueprintTypeId}`);
+			continue;
+		}
+		if (!blueprint.published) continue;
+		const product = bp.products[0];
+		if (!product) {
+			warnings.push(`NO_PRODUCT:${bp.blueprintTypeId}`);
+			continue;
+		}
+		manufacturing.push({
+			blueprintTypeId: bp.blueprintTypeId,
+			name: blueprint.name,
+			productTypeId: product.typeId,
+			// Names only: these types stay out of `types`, so no price is fetched for them.
+			productName: typesById.get(product.typeId)?.name ?? `Type ${product.typeId}`,
+			productQuantity: product.quantity,
+			materials: materials.map((m) => ({ typeId: m.typeId, quantity: m.quantity }))
+		});
+	}
+
 	const trackedIds = new Set<number>();
 	for (const r of reactions) {
 		trackedIds.add(r.blueprintTypeId);
@@ -248,6 +289,15 @@ export function normalize(raw: RawSde): SdeDataset {
 		.sort((a, b) => a.regionId - b.regionId)
 		.map((r) => ({ regionId: r.regionId, name: r.name }));
 
+	const constants = readConstants(raw, warnings);
+	const industryData =
+		industry &&
+		buildIndustryData(
+			raw,
+			industry,
+			[...reactions.map((r) => r.product.typeId), ...manufacturing.map((m) => m.productTypeId)],
+			warnings
+		);
 	return {
 		build: raw.build,
 		releaseDate: raw.releaseDate ?? '',
@@ -256,7 +306,9 @@ export function normalize(raw: RawSde): SdeDataset {
 			reactions,
 			types: datasetTypes,
 			reprocess,
-			constants: readConstants(raw, warnings)
+			constants,
+			manufacturing,
+			...(industryData ? { industry: industryData } : {})
 		},
 		types,
 		regions,

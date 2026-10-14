@@ -32,7 +32,7 @@
 		},
 		{
 			q: 'Does the site use analytics?',
-			a: 'Yes: Rybbit, selfhosted, and Cloudflare Web Analytics. They record page views, errors and page speed, and Rybbit also records sessions to show how pages are used.'
+			a: 'Yes: Rybbit, selfhosted, and Cloudflare Web Analytics. They record page views, errors and page speed.'
 		}
 	];
 </script>
@@ -138,6 +138,56 @@
 			<li>
 				<strong>Reprocessing</strong> of unrefined products uses your reprocessing yield; Prismaticite outputs use
 				the configured roll between the minimum and maximum quantity.
+			</li>
+		</ul>
+	</section>
+
+	<section class="space-y-2 rounded-lg bg-white p-4 text-sm leading-relaxed sm:text-base dark:bg-gray-700">
+		<h2 class="text-lg font-semibold text-gray-800 sm:text-xl dark:text-gray-200">Profit tracking</h2>
+		<p>
+			When you switch on Profit tracking for a character or corporation, the site reads its industry jobs,
+			wallet, market orders, contracts and blueprints from EVE and works out what your reactions really
+			earned. This data is only visible in your account.
+		</p>
+		<ul class="list-disc space-y-1 pl-5">
+			<li>
+				<strong>Oldest first.</strong> Everything you buy or make becomes a batch. A job uses the oldest batches
+				first, and so does a sale. What a unit cost you is the price of its batch, plus the job cost for what your
+				jobs made.
+			</li>
+			<li>
+				<strong>Sales</strong> count after sales tax and broker fees, read from your wallet journal. When the journal
+				does not show them, your calculator settings are used and the sale is marked "estimated".
+			</li>
+			<li>
+				<strong>Contracts</strong> with one kind of item give it the contract price. A contract with several kinds
+				of items is split by the Janice appraisal linked in its title, or else by the contract price rule of your
+				profit tracking settings, and is flagged for a check when its total looks off.
+			</li>
+			<li>
+				<strong>Inputs without a purchase</strong> (for example bought before tracking started) count at their buy
+				value when the job started, marked as an estimate, until you add the purchase or correct the price.
+			</li>
+			<li>
+				<strong>Manufacturing:</strong> reaction products used by your manufacturing jobs count either at their
+				buy value on the day the job started or at what they cost you (no profit, no loss), as you choose.
+			</li>
+			<li>
+				<strong>Material use</strong> follows the structure each job ran in, its rigs (a structure fits one rig
+				of each kind) and, for manufacturing, the blueprint's material efficiency. EVE tells most of this; you fill
+				in the rest on the profit tracking settings page. A reaction job whose structure or rigs are not known uses
+				the ME rig of your reactor settings.
+			</li>
+			<li>
+				<strong>Your changes:</strong> you can correct any price and add purchases EVE does not know about. Both
+				are kept through later syncs, and the results are recalculated.
+			</li>
+			<li>
+				<strong>Where prices come from:</strong> a buy value on a given day is the daily average of the market hub
+				of your contract price rule, or else the average of its region that day, or else the hub's current price.
+				Expected profit values the output you still hold at today's prices with your calculator settings. On the
+				page of a running job it is an estimate: the output the job will make at today's value, less its inputs
+				and job cost.
 			</li>
 		</ul>
 	</section>

@@ -1,9 +1,16 @@
 import { DEFAULT_SETTINGS, Settings, decodeSettings, encodeSettings } from '@reactions/engine';
-import { STRUCTURE_SCOPES, decryptToken } from '@reactions/eve';
+import {
+	ESI_FEATURES,
+	STRUCTURE_SCOPES,
+	decryptToken,
+	formatScopes,
+	type GrantableFeature
+} from '@reactions/eve';
 import { isHttpError, isRedirect } from '@sveltejs/kit';
-import { beforeAll, describe, expect, it } from 'vitest';
-import { FakeCookies, type FakeEnv } from '../../../test/fakes';
+import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
+import { FakeCookies, asEnv, type FakeEnv } from '../../../test/fakes';
 import { NOW, insertStructureHub, insertUser, linkStructure } from '../../../test/fixtures';
+import { addReader, insertSource, poolOf } from '../../../test/inventory';
 import {
 	CLIENT_ID,
 	SESSION_SECRET,
@@ -11,11 +18,13 @@ import {
 	fakeSso,
 	sessionUser,
 	ssoEnv,
+	type FakeEsi,
 	type FakeSso,
 	type TokenCharacter
 } from '../../../test/sso';
+import { LOGIN_AFFILIATION_TIMEOUT_MS } from '../affiliations';
 import { sha256Hex } from '../crypto';
-import type { SessionUser } from '../session';
+import { loadSession, type SessionUser } from '../session';
 import { signOauthState, type LoginFlow } from './oauth';
 import { handleCallback } from './sso';
 
@@ -38,6 +47,7 @@ interface Run {
 	state?: string;
 	exp?: number;
 	tokenStatus?: number;
+	esi?: FakeEsi;
 }
 
 async function callback(opts: Run = {}) {
@@ -46,6 +56,7 @@ async function callback(opts: Run = {}) {
 	const flow: LoginFlow = {
 		purpose: 'login',
 		feature: null,
+		features: null,
 		characterId: null,
 		returnTo: '/account',
 		...opts.flow
@@ -69,7 +80,7 @@ async function callback(opts: Run = {}) {
 				locals: { user: opts.user ?? null, account: null, settings: DEFAULT_SETTINGS, theme: 'dark' },
 				platform: { env } as never
 			},
-			sso.deps(character, { status: opts.tokenStatus })
+			sso.deps(character, { status: opts.tokenStatus, esi: opts.esi })
 		);
 		throw new Error('handleCallback returned');
 	} catch (e) {
@@ -261,6 +272,165 @@ describe('purpose=add_character', () => {
 	});
 });
 
+describe('affiliations at login', () => {
+	/** ESI knowing the corporation of every character and the alliance of 90000001's. */
+	const esi: FakeEsi = (path, ids) => {
+		if (path === '/characters/affiliation') {
+			return Response.json(
+				ids.map((id) =>
+					id === 90000001
+						? { character_id: id, corporation_id: 98000001, alliance_id: 99000001 }
+						: { character_id: id, corporation_id: 98000002 }
+				)
+			);
+		}
+		const names: Record<number, string> = {
+			98000001: 'Moon Corp',
+			98000002: 'Solo Corp',
+			99000001: 'Moon Alliance'
+		};
+		return Response.json(ids.map((id) => ({ id, name: names[id], category: 'corporation' })));
+	};
+	const affiliations = (env: FakeEnv) =>
+		env.DB.rows(
+			'SELECT character_id, corporation_name, alliance_name, affiliation_updated_at FROM characters ORDER BY character_id'
+		);
+
+	it('a new user’s first session already has the corporation and alliance', async () => {
+		const { env, cookies, location } = await callback({ esi });
+		expect(location).toBe('/account');
+		expect(affiliations(env)).toEqual([
+			{
+				character_id: 90000001,
+				corporation_name: 'Moon Corp',
+				alliance_name: 'Moon Alliance',
+				affiliation_updated_at: NOW
+			}
+		]);
+		const session = await loadSession(asEnv(env), cookies.asCookies(), NOW);
+		expect(session?.account).toMatchObject({ corporation: 'Moon Corp', alliance: 'Moon Alliance' });
+	});
+
+	it('looks up only the account’s characters never looked up, in one call', async () => {
+		const env = ssoEnv();
+		insertUser(env.DB, { userId: 'u1' }, [
+			{ characterId: 90000001, name: 'Alpha' },
+			{ characterId: 90000003, name: 'Gamma' }
+		]);
+		insertUser(env.DB, { userId: 'u2' }, [{ characterId: 90000004, name: 'Delta' }]);
+		env.DB.sqlite.exec(
+			`UPDATE characters SET corporation_name = 'Old Corp', affiliation_updated_at = 5 WHERE character_id = 90000001`
+		);
+		const esiRequests = sso.esiRequests.length;
+		const { location } = await callback({
+			env,
+			esi,
+			user: sessionUser('u1', [{ characterId: 90000001, name: 'Alpha' }]),
+			flow: { purpose: 'add_character' },
+			character: { characterId: 90000002, name: 'Beta' }
+		});
+		expect(location).toBe('/account');
+		expect(sso.esiRequests.slice(esiRequests)).toEqual([
+			'/characters/affiliation [90000002,90000003]',
+			'/universe/names [98000002]'
+		]);
+		expect(affiliations(env)).toEqual([
+			{
+				character_id: 90000001,
+				corporation_name: 'Old Corp',
+				alliance_name: null,
+				affiliation_updated_at: 5
+			},
+			{
+				character_id: 90000002,
+				corporation_name: 'Solo Corp',
+				alliance_name: null,
+				affiliation_updated_at: NOW
+			},
+			{
+				character_id: 90000003,
+				corporation_name: 'Solo Corp',
+				alliance_name: null,
+				affiliation_updated_at: NOW
+			},
+			{ character_id: 90000004, corporation_name: null, alliance_name: null, affiliation_updated_at: null }
+		]);
+	});
+
+	it('asks ESI nothing when every character was looked up', async () => {
+		const env = ssoEnv();
+		insertUser(env.DB, { userId: 'u1' }, [{ characterId: 90000001, name: 'Alpha' }]);
+		env.DB.sqlite.exec(`UPDATE characters SET affiliation_updated_at = 5`);
+		const esiRequests = sso.esiRequests.length;
+		const { location } = await callback({ env, esi });
+		expect(location).toBe('/account');
+		expect(sso.esiRequests.length).toBe(esiRequests);
+	});
+
+	it.each([
+		['ESI down', () => new Response('down', { status: 503 })],
+		['a network failure', () => Promise.reject(new TypeError('fetch failed'))]
+	])('%s still logs in and leaves the affiliation to the daily job', async (_label, failing) => {
+		const esiRequests = sso.esiRequests.length;
+		const { env, cookies, location } = await callback({ esi: failing });
+		expect(location).toBe('/account');
+		// One attempt only: a login does not wait for retries.
+		expect(sso.esiRequests.length - esiRequests).toBe(1);
+		expect(affiliations(env)).toEqual([
+			{ character_id: 90000001, corporation_name: null, alliance_name: null, affiliation_updated_at: null }
+		]);
+		const session = await loadSession(asEnv(env), cookies.asCookies(), NOW);
+		expect(session?.account).toMatchObject({ corporation: null, alliance: null });
+	});
+
+	describe('bounded and failure-proof', () => {
+		afterEach(() => vi.restoreAllMocks());
+
+		it.each([
+			['the lookup of the characters', /"affiliation_updated_at" is null/i],
+			['storing the affiliations', /^update "characters" set "corporation_id"/i]
+		])('a database failure in %s still logs in', async (_label, failingSql) => {
+			const env = ssoEnv();
+			const prepare = env.DB.prepare.bind(env.DB);
+			let failed = 0;
+			vi.spyOn(env.DB, 'prepare').mockImplementation((sql: string) => {
+				if (failingSql.test(sql)) {
+					failed++;
+					throw new Error('D1_ERROR');
+				}
+				return prepare(sql);
+			});
+			const { cookies, location } = await callback({ env, esi });
+			expect(failed).toBeGreaterThan(0);
+			expect(location).toBe('/account');
+			const session = await loadSession(asEnv(env), cookies.asCookies(), NOW);
+			expect(session?.user.characterId).toBe(90000001);
+		});
+
+		it('a hanging ESI is abandoned after the login timeout', async () => {
+			const timeout = AbortSignal.timeout.bind(AbortSignal);
+			const timeouts: number[] = [];
+			// The real 3 s, shortened so the test does not wait for it.
+			vi.spyOn(AbortSignal, 'timeout').mockImplementation((ms) => {
+				timeouts.push(ms);
+				return timeout(10);
+			});
+			const hanging: FakeEsi = (_path, _ids, signal) => {
+				const { promise, reject } = Promise.withResolvers<Response>();
+				signal?.addEventListener('abort', () => reject(signal.reason));
+				return promise;
+			};
+			const { env, location } = await callback({ esi: hanging });
+			expect(location).toBe('/account');
+			expect(timeouts).toEqual([LOGIN_AFFILIATION_TIMEOUT_MS]);
+			expect(LOGIN_AFFILIATION_TIMEOUT_MS).toBe(3000);
+			expect(affiliations(env)).toEqual([
+				{ character_id: 90000001, corporation_name: null, alliance_name: null, affiliation_updated_at: null }
+			]);
+		});
+	});
+});
+
 describe('purpose=feature', () => {
 	const alpha = sessionUser('u1', [
 		{ characterId: 90000001, name: 'Alpha' },
@@ -305,7 +475,7 @@ describe('purpose=feature', () => {
 			character: { characterId: 90000002, name: 'Beta', scopes: [...STRUCTURE_SCOPES] }
 		});
 		expect(status).toBe(400);
-		expect(message).toContain('You logged in as Beta but were upgrading Alpha');
+		expect(message).toContain('You logged in as Beta but were changing the permissions of Alpha');
 		expect(charRows(env)).toEqual(before);
 	});
 
@@ -334,5 +504,249 @@ describe('purpose=feature', () => {
 			character: { characterId: 90000003, name: 'Gamma', scopes: [...STRUCTURE_SCOPES] }
 		});
 		expect(status).toBe(409);
+	});
+});
+
+describe('purpose=features', () => {
+	const alpha = sessionUser('u1', [
+		{ characterId: 90000001, name: 'Alpha' },
+		{ characterId: 90000002, name: 'Beta' }
+	]);
+	const scopesOf = (features: GrantableFeature[]) => features.flatMap((f) => [...ESI_FEATURES[f]]);
+	function account() {
+		const env = ssoEnv();
+		insertUser(env.DB, { userId: 'u1' }, [
+			{ characterId: 90000001, name: 'Alpha' },
+			{ characterId: 90000002, name: 'Beta' }
+		]);
+		insertUser(env.DB, { userId: 'u2' }, [{ characterId: 90000003, name: 'Gamma' }]);
+		return env;
+	}
+	const grant = (env: FakeEnv, characterId: number, features: GrantableFeature[]) =>
+		env.DB.sqlite
+			.prepare(
+				"UPDATE characters SET scopes = ?, refresh_token_enc = 'enc', token_status = 'ok' WHERE character_id = ?"
+			)
+			.run(formatScopes(scopesOf(features)), characterId);
+	const relogin = (env: FakeEnv, features: GrantableFeature[], characterId = 90000001) =>
+		callback({
+			env,
+			user: alpha,
+			flow: { purpose: 'features', features, characterId, returnTo: '/account' },
+			character: {
+				characterId,
+				name: characterId === 90000001 ? 'Alpha' : 'Beta',
+				scopes: scopesOf(features)
+			}
+		});
+	const switches = (env: FakeEnv, sourceId: number) =>
+		env.DB.rows<{ inventory_enabled: number; tracking_enabled: number; character_id: number }>(
+			'SELECT inventory_enabled, tracking_enabled, character_id FROM inventory_sources WHERE source_id = ?',
+			sourceId
+		)[0];
+	const dirty = (env: FakeEnv, userId: string) =>
+		env.DB.rows<{ dirty: number }>('SELECT dirty FROM ledger_state WHERE user_id = ?', userId)[0]?.dirty ??
+		null;
+
+	it('stores fewer scopes than before and returns with the permissions notice', async () => {
+		const env = account();
+		grant(env, 90000001, ['structures', 'tracking']);
+		const { location } = await relogin(env, ['tracking']);
+		expect(location).toBe('/account?notice=permissions&characterId=90000001&added=&removed=structures');
+		const row = charRows(env)[0];
+		expect(row).toMatchObject({ scopes: formatScopes(scopesOf(['tracking'])), token_status: 'ok' });
+		expect(await decryptToken(row.refresh_token_enc!, TOKEN_KEY)).toBe('refresh-token-1');
+	});
+
+	it('an empty set stores no scopes and no token', async () => {
+		const env = account();
+		grant(env, 90000001, ['assets']);
+		const { location } = await relogin(env, []);
+		expect(location).toBe('/account?notice=permissions&characterId=90000001&added=&removed=assets');
+		expect(charRows(env)[0]).toMatchObject({
+			scopes: '',
+			refresh_token_enc: null,
+			sso_client_id: null,
+			token_status: 'none'
+		});
+	});
+
+	it('lists added features in the notice', async () => {
+		const env = account();
+		const { location } = await relogin(env, ['assets', 'corp_assets']);
+		expect(location).toBe(
+			'/account?notice=permissions&characterId=90000001&added=assets%2Ccorp_assets&removed='
+		);
+	});
+
+	it('a returnTo whose dot segments collapse to another host returns to /account', async () => {
+		const env = account();
+		for (const returnTo of [
+			'/.//evil.example',
+			'/..//evil.example',
+			'/%2e//evil.example',
+			'/.\\/evil.example'
+		]) {
+			const { location } = await callback({
+				env,
+				user: alpha,
+				flow: { purpose: 'features', features: [], characterId: 90000001, returnTo },
+				character: { characterId: 90000001, name: 'Alpha' }
+			});
+			expect(location, returnTo).toBe('/account?notice=permissions&characterId=90000001&added=&removed=');
+		}
+	});
+
+	it('another character than expected, not on the session: the error names no id', async () => {
+		const env = account();
+		const { status, message } = await callback({
+			env,
+			user: alpha,
+			flow: { purpose: 'features', features: [], characterId: 90000003 },
+			character: { characterId: 90000002, name: 'Beta' }
+		});
+		expect(status).toBe(400);
+		expect(message).toContain('You logged in as Beta but were changing the permissions of another character');
+		expect(message).not.toMatch(/\d/);
+	});
+
+	it('only the expected character of the session account, data unchanged otherwise', async () => {
+		const env = account();
+		grant(env, 90000001, ['assets']);
+		const before = charRows(env);
+		const wrong = await callback({
+			env,
+			user: alpha,
+			flow: { purpose: 'features', features: [], characterId: 90000001 },
+			character: { characterId: 90000002, name: 'Beta' }
+		});
+		expect(wrong.status).toBe(400);
+		const foreign = await callback({
+			env,
+			user: alpha,
+			flow: { purpose: 'features', features: [], characterId: 90000003 },
+			character: { characterId: 90000003, name: 'Gamma' }
+		});
+		expect(foreign.status).toBe(409);
+		const unknown = await callback({
+			env,
+			user: alpha,
+			flow: { purpose: 'features', features: [], characterId: 90000009 },
+			character: { characterId: 90000009, name: 'Delta' }
+		});
+		expect(unknown.status).toBe(400);
+		expect(charRows(env)).toEqual(before);
+	});
+
+	it('removed assets and tracking switch the personal connection off and rebuild the ledger', async () => {
+		const env = account();
+		grant(env, 90000001, ['assets', 'tracking']);
+		grant(env, 90000003, ['assets', 'tracking']);
+		const mine = insertSource(env.DB, { userId: 'u1', characterId: 90000001, trackingEnabled: true });
+		const theirs = insertSource(env.DB, { userId: 'u2', characterId: 90000003, trackingEnabled: true });
+		await relogin(env, ['tracking']);
+		expect(switches(env, mine)).toMatchObject({ inventory_enabled: 0, tracking_enabled: 1 });
+		expect(dirty(env, 'u1')).toBeNull();
+		await relogin(env, []);
+		expect(switches(env, mine)).toMatchObject({ inventory_enabled: 0, tracking_enabled: 0 });
+		expect(dirty(env, 'u1')).toBe(1);
+		expect(switches(env, theirs)).toMatchObject({ inventory_enabled: 1, tracking_enabled: 1 });
+		expect(dirty(env, 'u2')).toBeNull();
+	});
+
+	it('corporation switches stay on while another pool member can read them', async () => {
+		const env = account();
+		grant(env, 90000001, ['corp_assets', 'corp_tracking']);
+		grant(env, 90000002, ['corp_assets']);
+		const corp = insertSource(env.DB, {
+			userId: 'u1',
+			characterId: 90000001,
+			kind: 'corporation',
+			ownerId: 98000001,
+			trackingEnabled: true
+		});
+		addReader(env.DB, corp, 90000002, NOW + 1);
+		await relogin(env, ['corp_assets']);
+		// Beta cannot read tracking: it goes off; inventory stays on; Alpha keeps a corporation feature.
+		expect(switches(env, corp)).toMatchObject({
+			inventory_enabled: 1,
+			tracking_enabled: 0,
+			character_id: 90000001
+		});
+		expect(poolOf(env.DB, corp)).toEqual([90000001, 90000002]);
+		expect(dirty(env, 'u1')).toBe(1);
+	});
+
+	it('without either corporation feature the character leaves the pool, handing over the preferred reader', async () => {
+		const env = account();
+		grant(env, 90000001, ['corp_assets']);
+		grant(env, 90000002, ['corp_assets']);
+		const corp = insertSource(env.DB, {
+			userId: 'u1',
+			characterId: 90000001,
+			kind: 'corporation',
+			ownerId: 98000001
+		});
+		addReader(env.DB, corp, 90000002, NOW + 1);
+		await relogin(env, ['assets']);
+		expect(poolOf(env.DB, corp)).toEqual([90000002]);
+		expect(switches(env, corp)).toMatchObject({ inventory_enabled: 1, character_id: 90000002 });
+	});
+
+	it('the only pool member stays and both switches go off; the connection is kept', async () => {
+		const env = account();
+		grant(env, 90000001, ['corp_assets', 'corp_tracking']);
+		grant(env, 90000003, ['corp_assets', 'corp_tracking']);
+		const corp = insertSource(env.DB, {
+			userId: 'u1',
+			characterId: 90000001,
+			kind: 'corporation',
+			ownerId: 98000001,
+			trackingEnabled: true
+		});
+		const theirs = insertSource(env.DB, {
+			userId: 'u2',
+			characterId: 90000003,
+			kind: 'corporation',
+			ownerId: 98000001,
+			trackingEnabled: true
+		});
+		await relogin(env, []);
+		expect(poolOf(env.DB, corp)).toEqual([90000001]);
+		expect(switches(env, corp)).toMatchObject({ inventory_enabled: 0, tracking_enabled: 0 });
+		expect(switches(env, theirs)).toMatchObject({ inventory_enabled: 1, tracking_enabled: 1 });
+	});
+
+	it('removed structures drops the character’s structure links and cleans up their hubs', async () => {
+		const env = account();
+		grant(env, 90000001, ['structures']);
+		grant(env, 90000002, ['structures']);
+		insertStructureHub(env.DB, { structureId: 1001, name: 'Alpha Market' });
+		insertStructureHub(env.DB, { structureId: 1002, name: 'Beta Market' });
+		linkStructure(env.DB, 'u1', 1001, 90000001);
+		linkStructure(env.DB, 'u1', 1002, 90000002);
+		await relogin(env, []);
+		expect(
+			env.DB.rows<{ structure_id: number }>('SELECT structure_id FROM structure_links').map(
+				(r) => r.structure_id
+			)
+		).toEqual([1002]);
+		expect(
+			env.DB.rows<{ hub_id: string }>("SELECT hub_id FROM market_hubs WHERE kind = 'structure'").map(
+				(r) => r.hub_id
+			)
+		).toEqual(['structure-1002']);
+	});
+
+	it('a grant from before a feature gained a scope still counts as held', async () => {
+		const env = account();
+		// Personal assets without its structures scope: the exclusive assets scope marks it as held.
+		env.DB.sqlite.exec(
+			"UPDATE characters SET scopes = 'esi-assets.read_assets.v1', token_status = 'ok' WHERE character_id = 90000001"
+		);
+		const mine = insertSource(env.DB, { userId: 'u1', characterId: 90000001 });
+		const { location } = await relogin(env, []);
+		expect(location).toContain('removed=assets');
+		expect(switches(env, mine)).toMatchObject({ inventory_enabled: 0 });
 	});
 });

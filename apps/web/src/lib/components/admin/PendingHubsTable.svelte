@@ -14,7 +14,7 @@
 </script>
 
 {#if hubs.length}
-	<div class="overflow-x-auto">
+	<div class="relative overflow-x-auto">
 		<table
 			class="w-full overflow-hidden rounded-lg border border-gray-200 bg-white text-left text-sm dark:border-gray-700 dark:bg-gray-800"
 		>

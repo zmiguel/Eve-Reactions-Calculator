@@ -223,9 +223,10 @@ export function createEsiClient(options: EsiClientOptions): EsiClient {
 	};
 }
 
-export type PagedResult<T> =
-	| { ok: true; status: number; items: T[]; expiresAt: number | null }
-	| { ok: false; status: number; retryAfter: number | null };
+/** Non-2XX answer of a client function: returned, never thrown. */
+export type EsiFailure = { ok: false; status: number; retryAfter: number | null };
+
+export type PagedResult<T> = { ok: true; status: number; items: T[]; expiresAt: number | null } | EsiFailure;
 
 /** Fetches page 1, then every remaining `X-Pages` page. A non-2XX first page is returned, later failures throw. */
 export async function fetchAllPages<T>(

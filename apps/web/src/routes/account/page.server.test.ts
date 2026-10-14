@@ -81,9 +81,29 @@ describe('load', () => {
 				lastError: 'boom'
 			}
 		]);
-		expect(data.offeredFeatures).toEqual(['structures', 'assets', 'corp_assets']);
 		expect(data.settingsUpdatedAt).toBe(NOW);
 		expect(data.notice).toBeNull();
+	});
+
+	it.each([
+		['?notice=removed', 'Character removed.'],
+		[
+			'?notice=permissions&characterId=90000002&added=tracking,assets&removed=structures',
+			'Permissions updated for Beta. Added: Personal assets, Profit tracking. Removed: Structure markets.'
+		],
+		[
+			'?notice=permissions&characterId=90000001&added=&removed=',
+			'Permissions updated for Alpha. No changes.'
+		],
+		// Another account's character, or no character: no notice.
+		['?notice=permissions&characterId=90000003&added=assets', null],
+		['?notice=permissions', null],
+		['?notice=other', null]
+	])('notice %s', async (query, notice) => {
+		const { env, cookies, user } = account();
+		insertUser(env.DB, { userId: 'u2' }, [{ characterId: 90000003, name: 'Gamma' }]);
+		const data = (await load(event(env, cookies, user, `/account${query}`))) as PageServerData;
+		expect(data.notice).toBe(notice);
 	});
 });
 

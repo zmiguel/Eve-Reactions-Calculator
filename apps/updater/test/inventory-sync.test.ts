@@ -34,7 +34,32 @@ const DATASET = {
 		}
 	],
 	types: {},
-	reprocess: {}
+	reprocess: {},
+	industry: {
+		filters: [],
+		rigs: [
+			{
+				typeId: 37174,
+				name: 'Component ME rig',
+				rigSize: 3,
+				groupId: 1860,
+				fitsGroupIds: [1404],
+				bonuses: [{ activity: 'manufacturing', material: 0.024, filterId: 14 }],
+				security: { highsec: 1, lowsec: 1.9, nullsec: 2.1, wormhole: 2.1 }
+			}
+		],
+		structures: [
+			{
+				typeId: 35825,
+				name: 'Raitaru',
+				groupId: 1404,
+				rigSize: 2,
+				rigSlots: 3,
+				material: { manufacturing: 0.01 }
+			}
+		],
+		productFilters: {}
+	}
 };
 
 const STATIONS: Record<number, { name: string; system_id: number }> = {
@@ -535,6 +560,77 @@ describe('InventorySyncWorkflow', () => {
 		expect(await items(3)).toEqual([{ location_id: JITA, bucket: 'hangar', type_id: 16663, quantity: 10 }]);
 		// Named locations are not looked up again.
 		expect(pathsOf(calls, /^\/universe\//)).toEqual([]);
+	});
+
+	describe('rigs of corporation structures', () => {
+		const OWNED = 1035000000002;
+		const NULLSEC = 30004604;
+		/** The Raitaru in space with a component ME rig, a rig without a material bonus and a service module. */
+		const fitted = (rigs: boolean) => [
+			asset(OWNED, 35825, 1, NULLSEC, 'AutoFit', 'solar_system'),
+			...(rigs ? [asset(501, 37174, 1, OWNED, 'RigSlot0')] : []),
+			asset(502, 43920, 1, OWNED, 'RigSlot1'),
+			asset(503, 35881, 1, OWNED, 'ServiceSlot0'),
+			asset(103, 4312, 5, AMARR, 'CorpDeliveries', 'station')
+		];
+		const facility = () =>
+			env.DB.prepare(
+				"SELECT kind, type_id, system_id, rigs_json, rigs_read_at FROM tracked_facilities WHERE user_id = 'u1' AND facility_id = ?"
+			)
+				.bind(OWNED)
+				.first<{
+					kind: string;
+					type_id: number;
+					system_id: number;
+					rigs_json: string;
+					rigs_read_at: number;
+				}>();
+		const dirty = async () =>
+			(await env.DB.prepare("SELECT dirty FROM ledger_state WHERE user_id = 'u1'").first<{ dirty: number }>())
+				?.dirty ?? 0;
+
+		it('stores the material rigs of the structures, [] once they are gone, and flags the ledger', async () => {
+			await seedSource(corporation(2));
+			await env.DB.prepare(
+				`INSERT INTO tracked_jobs (user_id, job_id, source_id, installer_id, activity_id, blueprint_type_id, runs,
+					status, facility_id, output_location_id, start_date, end_date)
+				VALUES ('u1', 1, 2, 1001, 1, 12619, 1, 'delivered', ?, ?, 1, 2)`
+			)
+				.bind(OWNED, OWNED)
+				.run();
+			installEve({ pages: { 1: fitted(true) } });
+			await runSync('inventory-2-rigs-1', 2);
+
+			expect(await facility()).toMatchObject({
+				kind: 'structure',
+				type_id: 35825,
+				system_id: NULLSEC,
+				rigs_json: '[37174]',
+				rigs_read_at: expect.any(Number)
+			});
+			expect(await dirty()).toBe(1);
+			// The inventory itself is unchanged by the structure and its fittings.
+			expect(await items(2)).toEqual([
+				{ location_id: AMARR, bucket: 'deliveries', type_id: 4312, quantity: 5 }
+			]);
+
+			await env.DB.prepare("UPDATE ledger_state SET dirty = 0 WHERE user_id = 'u1'").run();
+			installEve({ pages: { 1: fitted(true) } });
+			await runSync('inventory-2-rigs-2', 2);
+			expect(await dirty()).toBe(0);
+
+			installEve({ pages: { 1: fitted(false) } });
+			await runSync('inventory-2-rigs-3', 2);
+			expect(await facility()).toMatchObject({ rigs_json: '[]' });
+			expect(await dirty()).toBe(1);
+		});
+
+		it('reads no rigs from personal assets', async () => {
+			await seedSource(personal(1));
+			installEve({ pages: { 1: fitted(true) } });
+			await runSync('inventory-1-rigs', 1);
+			expect(await facility()).toBeNull();
+		});
 	});
 
 	it('ends a corporation sync as denied on 403 and deletes its items', async () => {

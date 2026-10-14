@@ -90,10 +90,10 @@ describe('ReactionTable', () => {
 	it('formats money with full-value titles, colours signs and renders lazy icons', () => {
 		render(ReactionTable, { rows, reactor: 'composite' });
 		const delta = screen.getAllByTestId('reaction-row')[0];
-		const profit = screen.getByTitle('7,250,000 ISK');
+		const profit = screen.getByTitle('7,250,000.00 ISK');
 		expect(profit.textContent).toBe('7.25M');
 		expect(profit.className).toContain('text-green-600');
-		expect(screen.getByTitle('-1,500,000 ISK').className).toContain('text-red-600');
+		expect(screen.getByTitle('-1,500,000.00 ISK').className).toContain('text-red-600');
 		const img = delta.querySelector('img')!;
 		expect(img.getAttribute('src')).toBe('https://images.evetech.net/types/1004/icon?size=32');
 		expect(img.getAttribute('loading')).toBe('lazy');

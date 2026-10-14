@@ -5,6 +5,7 @@ import { startDaily } from './cron/daily.ts';
 import { startInventoryPass } from './cron/inventory.ts';
 import { startPriceRefresh } from './cron/prices.ts';
 import { checkSdeUpdate } from './cron/sde-check.ts';
+import { startTrackingPass } from './cron/tracking.ts';
 import { errorMessage } from './jobs.ts';
 
 /**
@@ -21,7 +22,8 @@ export async function scheduled(controller: ScheduledController, env: Env): Prom
 		['sde-check', () => checkSdeUpdate(env, at, Date.now())],
 		['daily', () => startDaily(env, at)],
 		['affiliations', () => refreshAffiliations(env, at, Date.now())],
-		['inventory', () => startInventoryPass(env, at, Date.now())]
+		['inventory', () => startInventoryPass(env, at, Date.now())],
+		['tracking', () => startTrackingPass(env, Date.now())]
 	];
 	for (const [name, run] of steps) {
 		try {

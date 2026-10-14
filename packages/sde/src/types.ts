@@ -1,4 +1,4 @@
-import type { Dataset, Material, TypeInfo } from '@reactions/engine';
+import type { Dataset, IndustryActivity, IndustryFilter, Material, TypeInfo } from '@reactions/engine';
 
 /** Localized SDE text (`name`, `description`); only English is used. */
 export type SdeText = string | { en?: string };
@@ -20,6 +20,10 @@ export interface SdeBlueprintLine {
 			materials?: { typeID: number; quantity: number }[];
 			products?: { typeID: number; quantity: number }[];
 			skills?: { typeID: number; level: number }[];
+		};
+		manufacturing?: {
+			materials?: { typeID: number; quantity: number }[];
+			products?: { typeID: number; quantity: number }[];
 		};
 	};
 }
@@ -49,11 +53,23 @@ export interface SdeTypeMaterialsLine {
 export interface SdeTypeDogmaLine {
 	_key: number;
 	dogmaAttributes?: { attributeID: number; value: number }[];
+	dogmaEffects?: { effectID: number }[];
 }
 
 export interface SdeDogmaAttributeLine {
 	_key: number;
 	name?: string;
+}
+
+export interface SdeDogmaEffectLine {
+	_key: number;
+	modifierInfo?: {
+		domain?: string;
+		func?: string;
+		modifiedAttributeID?: number;
+		modifyingAttributeID?: number;
+		operation?: number;
+	}[];
 }
 
 export interface SdeSolarSystemLine {
@@ -77,6 +93,13 @@ export interface RawBlueprint {
 	materials: Material[];
 	products: Material[];
 	skills: { typeId: number; level: number }[];
+}
+
+/** Projection of a `blueprints.jsonl` line that has `activities.manufacturing`. */
+export interface RawManufacturingBlueprint {
+	blueprintTypeId: number;
+	materials: Material[];
+	products: Material[];
 }
 
 /** Projection of a `types.jsonl` line. */
@@ -105,11 +128,18 @@ export interface RawTypeMaterials {
 export interface RawTypeDogma {
 	typeId: number;
 	attributes: { attributeId: number; value: number }[];
+	effectIds: number[];
 }
 
 export interface RawDogmaAttribute {
 	attributeId: number;
 	name: string;
+}
+
+/** A dogma effect with its modifiers of the item's structure (`domain: structureID`, `ItemModifier`). */
+export interface RawDogmaEffect {
+	effectId: number;
+	structureModifiers: { modifiedAttributeId: number; modifyingAttributeId: number; operation: number }[];
 }
 
 export interface RawSystem {
@@ -130,15 +160,39 @@ export interface RawSde {
 	build: number | null;
 	releaseDate: string | null;
 	blueprints: RawBlueprint[];
+	manufacturing: RawManufacturingBlueprint[];
 	types: RawType[];
 	groups: RawGroup[];
 	typeMaterials: RawTypeMaterials[];
 	typeDogma: RawTypeDogma[];
 	dogmaAttributes: RawDogmaAttribute[];
+	/** Effects that modify the structure an item is fitted to (rig bonuses). */
+	dogmaEffects: RawDogmaEffect[];
 	systems: RawSystem[];
 	regions: RawRegion[];
 	/** Wanted file names that were fully read from the archive. */
 	files: string[];
+}
+
+/** A material bonus source of the game client industry data, for one activity. */
+export interface IndustryModifierSource {
+	/** Structure dogma attribute the bonus modifies. */
+	dogmaAttributeId: number;
+	/** Target filter id; null = every product of the activity. */
+	filterId: number | null;
+}
+
+/**
+ * Game client industry data (Hoboleaks `industrymodifiersources.json` and `industrytargetfilters.json`)
+ * reduced to what `normalize` reads.
+ */
+export interface IndustrySources {
+	/**
+	 * Type id → activity it is listed for → its material bonus sources (empty when it only has time or
+	 * cost bonuses for that activity).
+	 */
+	modifierSources: Map<number, Partial<Record<IndustryActivity, IndustryModifierSource[]>>>;
+	filters: IndustryFilter[];
 }
 
 export type SystemSecurityBand = 'highsec' | 'lowsec' | 'nullsec' | 'wormhole';
