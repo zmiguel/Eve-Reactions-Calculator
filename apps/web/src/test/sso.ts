@@ -31,11 +31,19 @@ export interface TokenCharacter {
 	scopes?: string[];
 }
 
+/** Fake public ESI answer for a POST of `ids` to `path` (`/characters/affiliation`, `/universe/names`). */
+export type FakeEsi = (path: string, ids: number[], signal?: AbortSignal) => Response | Promise<Response>;
+
 export interface FakeSso {
-	/** Deps whose token endpoint answers with an access token for `character`. */
-	deps(character: TokenCharacter, opts?: { refreshToken?: string; status?: number }): SsoDeps;
+	/**
+	 * Deps whose token endpoint answers with an access token for `character`; ESI calls go to `esi`
+	 * (default: ESI down, 503).
+	 */
+	deps(character: TokenCharacter, opts?: { refreshToken?: string; status?: number; esi?: FakeEsi }): SsoDeps;
 	/** Token requests made (form bodies). */
 	requests: URLSearchParams[];
+	/** ESI requests made, as `path [ids]`. */
+	esiRequests: string[];
 }
 
 export async function fakeSso(now: number): Promise<FakeSso> {
@@ -43,6 +51,7 @@ export async function fakeSso(now: number): Promise<FakeSso> {
 	const jwk = { ...(await exportJWK(pair.publicKey)), kid: 'JWT-Signature-Key', alg: 'RS256', use: 'sig' };
 	const getKey = createLocalJWKSet({ keys: [jwk] });
 	const requests: URLSearchParams[] = [];
+	const esiRequests: string[] = [];
 	const sign = (c: TokenCharacter) =>
 		new SignJWT({ scp: c.scopes ?? [], name: c.name, owner: c.ownerHash ?? `hash-${c.characterId}` })
 			.setProtectedHeader({ alg: 'RS256', kid: 'JWT-Signature-Key' })
@@ -53,11 +62,20 @@ export async function fakeSso(now: number): Promise<FakeSso> {
 			.sign(pair.privateKey);
 	return {
 		requests,
+		esiRequests,
 		deps(character, opts = {}) {
 			return {
 				getKey,
 				now: () => now,
-				fetch: async (_input, init) => {
+				fetch: async (input, init) => {
+					const url = new URL(String(input));
+					if (url.hostname === 'esi.evetech.net') {
+						const ids = JSON.parse(String(init?.body)) as number[];
+						esiRequests.push(`${url.pathname} [${ids.join(',')}]`);
+						return opts.esi
+							? opts.esi(url.pathname, ids, init?.signal ?? undefined)
+							: new Response('down', { status: 503 });
+					}
 					requests.push(new URLSearchParams(String(init?.body)));
 					if (opts.status && opts.status >= 400) {
 						return new Response(JSON.stringify({ error: 'invalid_grant' }), { status: opts.status });

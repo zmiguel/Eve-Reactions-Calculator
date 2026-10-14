@@ -17,6 +17,8 @@ export default defineProject({
 					TOKEN_ENCRYPTION_KEY: Buffer.alloc(32, 7).toString('base64'),
 					USER_AGENT_URL: 'https://example.test/',
 					USER_AGENT_CONTACT: 'mail:ops@example.test',
+					// wrangler.jsonc sets the production site; tests opt in with their own value (CI has no .dev.vars).
+					RYBBIT_SITE_ID: '',
 					CORE_MIGRATIONS: await readD1Migrations(repoPath('packages/db/migrations/core')),
 					HISTORY_MIGRATIONS: await readD1Migrations(repoPath('packages/db/migrations/history')),
 					// Workers cannot read host files: the SDE fixture travels as a base64 binding.

@@ -12,7 +12,7 @@ import {
 	selection
 } from '../../../test/inventory';
 import { releaseStructureHubs } from '../structures';
-import { deleteAccount, listCharacters, removeCharacter } from './accounts';
+import { deleteAccount, listCharacters, permissionsNoticeLocation, removeCharacter } from './accounts';
 
 vi.mock('../structures', () => ({ releaseStructureHubs: vi.fn(async () => {}) }));
 
@@ -142,4 +142,21 @@ describe('deleteAccount', () => {
 		expect(env.DB.rows('SELECT * FROM user_sessions')).toEqual([]);
 		expect(releaseStructureHubs).toHaveBeenCalledWith(expect.anything(), [1001, 1002]);
 	});
+});
+
+describe('permissionsNoticeLocation', () => {
+	it('adds the notice to a same-site returnTo', () => {
+		expect(permissionsNoticeLocation('/account?x=1', 90000001, ['assets'], ['tracking'])).toBe(
+			'/account?x=1&notice=permissions&characterId=90000001&added=assets&removed=tracking'
+		);
+	});
+
+	it.each(['/.//evil.example', '/..//evil.example', '/%2e//evil.example', '//evil.example'])(
+		'never builds a location on another host from %s',
+		(returnTo) => {
+			expect(permissionsNoticeLocation(returnTo, 90000001, [], ['assets'])).toBe(
+				'/account?notice=permissions&characterId=90000001&added=&removed=assets'
+			);
+		}
+	);
 });

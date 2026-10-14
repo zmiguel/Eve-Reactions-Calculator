@@ -12,7 +12,35 @@ import { execSync, spawn } from 'node:child_process';
 import { readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { DEV_TOKEN_ENCRYPTION_KEY, seedLocal } from './seed-local.ts';
+import {
+	DEV_TOKEN_ENCRYPTION_KEY,
+	SEED_FACILITIES,
+	SEED_INVENTORY,
+	SEED_TRACKING,
+	seedLocal,
+	seedSource
+} from './seed-local.ts';
+
+/** Titanium Carbide Reaction Formula and its product in the SDE fixture. */
+const TITANIUM_CARBIDE_FORMULA = 46204;
+const TITANIUM_CARBIDE = 16671;
+/** Running Titanium Carbide jobs the e2e state adds to the seed's three finished ones. */
+export const E2E_RUNNING_JOBS = 8;
+
+/**
+ * Running reaction jobs of the seed pilot, e2e only: with the seeded finished jobs they fill more than one
+ * page of the Jobs table, so its pager and status filter have something to work on. They have no ledger
+ * result yet, as right after a sync. Not in the shared seed, whose ledger and tests cover the finished jobs.
+ */
+export function e2eRunningJobsSql(now: number): string[] {
+	const source = seedSource('character', SEED_INVENTORY.characterId);
+	const facility = SEED_FACILITIES.refinery.facilityId;
+	return Array.from({ length: E2E_RUNNING_JOBS }, (_, i) => {
+		const start = now - 3_600_000;
+		const end = now + (i + 1) * 3_600_000;
+		return `INSERT INTO tracked_jobs (user_id, job_id, source_id, installer_id, activity_id, blueprint_id, blueprint_type_id, product_type_id, runs, status, cost, facility_id, output_location_id, start_date, end_date) VALUES ('${SEED_INVENTORY.userId}', ${610000101 + i}, ${source}, ${SEED_INVENTORY.characterId}, 9, ${1060000000201 + i}, ${TITANIUM_CARBIDE_FORMULA}, ${TITANIUM_CARBIDE}, ${SEED_TRACKING.runs}, 'active', 3150000, ${facility}, ${facility}, ${start}, ${end});`;
+	});
+}
 
 const ROOT = fileURLToPath(new URL('..', import.meta.url));
 const WEB = join(ROOT, 'apps/web');
@@ -63,7 +91,7 @@ export function wranglerDevArgs(): string[] {
 
 if (import.meta.main) {
 	rmSync(E2E_PERSIST_TO, { recursive: true, force: true });
-	await seedLocal(E2E_PERSIST_TO);
+	await seedLocal(E2E_PERSIST_TO, e2eRunningJobsSql(Date.now()));
 	writeFileSync(join(WEB, E2E_CONFIG), e2eConfig(readFileSync(join(WEB, 'wrangler.jsonc'), 'utf8')));
 	// A stale adapter output can make the Windows build fail with EPERM.
 	rmSync(join(WEB, E2E_OUTPUT), { recursive: true, force: true });

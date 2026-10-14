@@ -10,7 +10,7 @@ describe('site error page', () => {
 		setPage({ url: '/composite/nope', status: 404, error: { message: 'Reaction not found' } });
 		render(ErrorPage);
 		expect(screen.getByRole('heading').textContent?.trim()).toBe('Page not found');
-		expect(screen.getByText('Reaction not found')).toBeTruthy();
+		expect(screen.getByText('Reaction not found').hasAttribute('data-error-message')).toBe(true);
 		expect(document.title).toBe('Page not found | EVE Reactions Calculator');
 		expect(document.head.querySelector('meta[name="robots"]')?.getAttribute('content')).toBe('noindex');
 		expect(screen.getAllByRole('link').map((a) => a.getAttribute('href'))).toEqual([
@@ -18,8 +18,16 @@ describe('site error page', () => {
 			'/composite',
 			'/biochemical',
 			'/hybrid',
-			'/planner'
+			'/planner',
+			'/profits'
 		]);
+	});
+
+	it('shows no message box when the message only repeats the heading', () => {
+		setPage({ url: '/nope', status: 404, error: { message: 'Not Found' } });
+		const { container } = render(ErrorPage);
+		expect(screen.getByRole('heading').textContent?.trim()).toBe('Page not found');
+		expect(container.querySelector('[data-error-message]')).toBeNull();
 	});
 
 	it('distinguishes bad requests from server errors', () => {

@@ -20,7 +20,7 @@ Values you must fill in are written as `<FILL: description>`. Commands use bash 
 | R2 bucket       | `reactions-archive` (`ARCHIVE`)                                                                                                                                                                              | updater config                      |
 | Workflows       | `reactions-price-refresh`, `reactions-daily`, `reactions-sde-sync`, `reactions-history-backfill`                                                                                                             | updater config (created by deploy)  |
 | Service binding | web `UPDATER` to `reactions-updater`, entrypoint `UpdaterRpc` (production and preview both call the production updater)                                                                                      | web config                          |
-| Rate limiters   | `API_RATE_LIMITER` (120 per 60 s per IP) and `ACCOUNT_RATE_LIMITER` (10 per 60 s per account); namespaces `3001`/`3002` in production, `3101`/`3102` in the preview                                          | web config (created by deploy)      |
+| Rate limiters   | `API_RATE_LIMITER` (120 per 60 s per IP) and `ACCOUNT_RATE_LIMITER` (per account: 30 per 60 s in production, 10 in the preview); namespaces `3001`/`3002` in production, `3101`/`3102` in the preview        | web config (created by deploy)      |
 
 **How the preview works.** It is a Cloudflare [Worker Preview](https://developers.cloudflare.com/workers/previews/) of `reactions-web`: the same Worker with the settings of the `previews` block ("Previews Base") in `apps/web/wrangler.jsonc`. Since the cutover it is served on `https://preview.reactions.coalition.space`: the web route `reactions.coalition.space` has `"previews_enabled": true`, so Previews answer on `<preview name>.reactions.coalition.space` (Cloudflare manages the wildcard DNS record and certificate), and `"preview_urls": false` keeps them off `workers.dev`. Before the cutover it was served on `https://preview-reactions-web.zmiguel.workers.dev`, because **a route on `reactions.coalition.space` cannot be deployed while another Worker holds the domain**: deploying one, even with `"enabled": false` and `"previews_enabled": true`, moves the domain to `reactions-web` (on 2026-10-08 this served the empty v3 site on `reactions.coalition.space` for about three minutes, until the domain was reattached to `eve-reactions`). The config gate pins the route through `CUTOVER_DONE`. Cron triggers and Workflows only run in production and a Preview's service binding always calls the production updater, so the updater has no preview: it is deployed to production from the start and fills the production D1/KV with live data. The preview reads the same databases and KV (same ids in `previews`), so what you check on the preview is exactly the data production will serve, and the cutover moves no data. The preview differs in its vars (its own EVE SSO application and callback, `DEPLOY_ENV=preview`, which adds `X-Robots-Tag: noindex, nofollow` on custom domains), its secrets and its rate-limit counters. Logins on the preview create real accounts in the production database.
 
@@ -143,16 +143,23 @@ Login and the structure-market feature need EVE SSO applications: one for produc
 3. Callback URL:
    - production application: `https://reactions.coalition.space/auth/callback`
    - preview application: `https://preview.reactions.coalition.space/auth/callback` (before the cutover `https://preview-reactions-web.zmiguel.workers.dev/auth/callback`; change `previews.vars.EVE_SSO_CALLBACK_URL` with it)
-4. Scopes: all nine of `ALL_ESI_SCOPES` (`packages/eve/src/scopes.ts`). Login itself asks for none; the structure feature uses three; the "Personal assets" and "Corporation assets" features (inventory sync) use the asset, division and industry job scopes plus `esi-universe.read_structures.v1`; the wallet scope is registered for a later feature. The account page offers the asset features, and EVE SSO rejects a scope the application does not list, so add `esi-assets.read_corporation_assets.v1`, `esi-corporations.read_divisions.v1` and `esi-industry.read_corporation_jobs.v1` to both applications before deploying a web version that offers them:
+4. Scopes: all sixteen of `ALL_ESI_SCOPES` (`packages/eve/src/scopes.ts`). Login itself asks for none; the structure feature uses three; the "Personal assets" and "Corporation assets" features (inventory sync) use the asset, division and industry job scopes plus `esi-universe.read_structures.v1`; "Profit tracking" and "Corporation profit tracking" use the wallet, contract, market order, industry job and blueprint scopes (plus divisions and structures; the blueprints give the material efficiency of manufacturing jobs, and a corporation's blueprints need a reader with the Director role). EVE SSO rejects a scope the application does not list, so every scope must be on both applications before deploying a web version that offers the feature using it (profit tracking: `esi-wallet.read_corporation_wallets.v1`, `esi-contracts.read_character_contracts.v1`, `esi-contracts.read_corporation_contracts.v1`, `esi-markets.read_character_orders.v1`, `esi-markets.read_corporation_orders.v1`, `esi-characters.read_blueprints.v1`, `esi-corporations.read_blueprints.v1`):
    - `esi-assets.read_assets.v1`
    - `esi-assets.read_corporation_assets.v1`
+   - `esi-characters.read_blueprints.v1`
+   - `esi-contracts.read_character_contracts.v1`
+   - `esi-contracts.read_corporation_contracts.v1`
+   - `esi-corporations.read_blueprints.v1`
    - `esi-corporations.read_divisions.v1`
    - `esi-industry.read_character_jobs.v1`
    - `esi-industry.read_corporation_jobs.v1`
+   - `esi-markets.read_character_orders.v1`
+   - `esi-markets.read_corporation_orders.v1`
    - `esi-markets.structure_markets.v1`
    - `esi-search.search_structures.v1`
    - `esi-universe.read_structures.v1`
    - `esi-wallet.read_character_wallet.v1`
+   - `esi-wallet.read_corporation_wallets.v1`
 5. Save, then note `<FILL: EVE SSO client id>` and `<FILL: EVE SSO client secret>`.
 
 ## 5. Vars in wrangler.jsonc
@@ -171,17 +178,18 @@ Vars live in the config files (a deploy overwrites vars set in the dashboard). E
 | `USER_AGENT_CONTACT`      | `<FILL: your contact>`, for example `"mail:you@example.com; eve:Character Name; discord:name"` | the same                                                      |
 | `DEPLOY_ENV`              | `production` (committed)                                                                       | `preview` (committed): adds `X-Robots-Tag: noindex, nofollow` |
 
-Every outgoing request (ESI, EVE SSO, SDE, Fuzzwork, the history mirror) sends `User-Agent: EVE-Reactions-Calculator/<version> (+<USER_AGENT_URL>; <USER_AGENT_CONTACT>)`, following the [ESI best practices](https://developers.eveonline.com/docs/services/esi/best-practices/#user-agents). The version is each worker's `package.json` version; empty vars are left out. Whoever deploys fills in their own contact, so CCP and the API operators reach the person running this instance.
+Every outgoing request (ESI, EVE SSO, SDE, Hoboleaks, Fuzzwork, the history mirror) sends `User-Agent: EVE-Reactions-Calculator/<version> (+<USER_AGENT_URL>; <USER_AGENT_CONTACT>)`, following the [ESI best practices](https://developers.eveonline.com/docs/services/esi/best-practices/#user-agents). The version is each worker's `package.json` version; empty vars are left out. Whoever deploys fills in their own contact, so CCP and the API operators reach the person running this instance.
 
 There is no site URL var: canonical, sitemap and OG URLs always use `https://reactions.coalition.space` (`SITE_URL` in `apps/web/src/lib/site.ts`), also on the preview.
 
 `apps/updater/wrangler.jsonc`, `vars`:
 
-| Var                  | Value                                                         |
-| -------------------- | ------------------------------------------------------------- |
-| `EVE_SSO_CLIENT_ID`  | `<FILL: EVE SSO client id>` (the same application as the web) |
-| `USER_AGENT_URL`     | `<FILL>`, the same value as the web                           |
-| `USER_AGENT_CONTACT` | `<FILL>`, the same value as the web                           |
+| Var                  | Value                                                                                                                                                                                                                                                                           |
+| -------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `EVE_SSO_CLIENT_ID`  | `<FILL: EVE SSO client id>` (the same application as the web)                                                                                                                                                                                                                   |
+| `USER_AGENT_URL`     | `<FILL>`, the same value as the web                                                                                                                                                                                                                                             |
+| `USER_AGENT_CONTACT` | `<FILL>`, the same value as the web                                                                                                                                                                                                                                             |
+| `RYBBIT_SITE_ID`     | Rybbit site id, the `data-site-id` of the tracking script in `apps/web/src/app.html` (`"1"`); corporation and alliance changes update the account's Rybbit traits. Empty = nothing is sent; local `.dev.vars` sets it empty so local accounts never reach the production Rybbit |
 
 Never add `DEV_LOGIN` to any config. Both workers also have `observability` with logs (including invocation logs), traces and real-time Issues enabled; nothing to fill.
 
@@ -193,6 +201,7 @@ Never add `DEV_LOGIN` to any config. Both workers also have `observability` with
 | `EVE_SSO_EXTRA_CLIENT_SECRET` | updater, web production, web preview | Secret of the other application: preview app for the updater and web production, production app for the preview            |
 | `SESSION_SECRET`              | web production, web preview          | Standard base64 of at least 32 bytes (HMAC key for the login state cookie)                                                 |
 | `TOKEN_ENCRYPTION_KEY`        | updater, web production, web preview | base64 of exactly 32 bytes (AES-256-GCM key); **the same value everywhere** (shared token store)                           |
+| `JANICE_API_KEY` (optional)   | updater                              | Janice API key (requested on Janice's Discord); without it profit tracking splits contracts without Janice appraisals      |
 
 Generate `SESSION_SECRET` and `TOKEN_ENCRYPTION_KEY` (run twice, one value each):
 
@@ -216,7 +225,7 @@ npx wrangler secret put TOKEN_ENCRYPTION_KEY
 cd ../..
 ```
 
-`secret put` prompts for the value. The deploy registers the cron and the four workflows. The updater has no public URL (`workers_dev: false`, no fetch handler). From now on the cron runs every 10 minutes against the live sources:
+`secret put` prompts for the value. The deploy registers the cron and the six workflows. The updater has no public URL (`workers_dev: false`, no fetch handler). From now on the cron runs every 10 minutes against the live sources:
 
 - the first ticks fetch cost indices and adjusted prices, and may start a price refresh before the SDE exists (it stores nothing useful; step 9 runs another one);
 - at minutes 0 to 9 of the next hour it starts the SDE import `sde-<build>` by itself;
@@ -515,6 +524,17 @@ Migrations must be additive (new tables, nullable or defaulted columns): the liv
 5. Build and deploy the web preview; check it with real characters (grant both asset features, add a personal and a corporation inventory, sync, pick places, planner "My inventory" and "Use what I have").
 6. Deploy the web production.
 
+### Profit tracking (3.2.0) release order
+
+1. Add the seven new scopes `esi-wallet.read_corporation_wallets.v1`, `esi-contracts.read_character_contracts.v1`, `esi-contracts.read_corporation_contracts.v1`, `esi-markets.read_character_orders.v1`, `esi-markets.read_corporation_orders.v1`, `esi-characters.read_blueprints.v1` and `esi-corporations.read_blueprints.v1` to both EVE SSO applications (production and preview). Without them granting Profit tracking fails at EVE's login page.
+2. Core migrations 0010 and 0011 (`npx wrangler d1 migrations apply reactions-core --remote`, as above).
+3. Optional: the Janice API key (from apps/updater): `npx wrangler secret put JANICE_API_KEY`. Without it contracts are split without Janice appraisals.
+4. Deploy the updater (new workflow `reactions-tracking-sync` with the streams `jobs` (reaction jobs and the manufacturing jobs that use reaction products), `transactions`, `journal`, `orders`, `contracts` and `blueprints` (read only while a manufacturing job waits for its blueprint's ME), then the job facility lookups (`facilities` step: structure or station type and system, no new scope: `esi-universe.read_structures.v1` is already part of both tracking features), cron step `tracking`, RPCs `triggerTrackingSync`, `triggerTrackingPass` and `rebuildLedger`; the inventory sync of corporation connections also stores the rigs fitted in the corporation's own structures, with the scopes it already has; affiliation changes update Rybbit traits (var `RYBBIT_SITE_ID`)).
+5. On `/admin`, Affiliations **Fetch now** once, to back-fill the traits of every account seen in the last 30 days in Rybbit (the job row shows `rybbit: { sent, failed }`).
+6. On `/admin`, SDE sync **Re-import (force)**: re-imports the current SDE build, now with the industry bonus data from Hoboleaks (`Dataset.industry` in KV `dataset:v1`). Done when the `sde` job is `ok`. Until then reaction jobs use the account's reactor profile and manufacturing jobs get no structure or rig bonus.
+7. Build and deploy the web preview; check it with real characters: grant Profit tracking to a character and Corporation profit tracking to a character with the corporation roles, through the permissions dialog (pencil icon on `/account`; in light mode too, its save button must be readable); switch Profit tracking on for a personal and a corporation connection on `/account/connections` and press Sync now; open Profits Overview, Jobs and Ledger and an item page; open a running job and check its cost per unit and estimated expected profit; correct a price and undo it; add a purchase on Add purchases; check Missing prices; on `/account/tracking`, pick a structure and its rigs under Facilities, check that a facility in the system of the reactor settings shows the reactor settings' structure and rigs, and save the Manufacturing settings; open a manufacturing job and check its blueprint ME and material bonus; toggle the theme on Profits Overview, an item page and a reaction page and check that the charts and their tooltips recolour without a reload; check "Paid" on `/account/inventory`.
+8. Deploy the web production, then a production smoke test (home, a reaction page, login, `/profits`).
+
 ### Rotating secrets
 
 | Secret                                                  | How                                                                                                                                                                                                                                                                              | Effect                                                                                                                               |
@@ -522,12 +542,13 @@ Migrations must be additive (new tables, nullable or defaulted columns): the liv
 | `SESSION_SECRET`                                        | `npx wrangler secret put SESSION_SECRET` in `apps/web`; preview: `npx wrangler preview secret put SESSION_SECRET --name preview`                                                                                                                                                 | Logins in progress (10-minute state cookie) fail and must be retried; sessions stay valid                                            |
 | `EVE_SSO_CLIENT_SECRET` / `EVE_SSO_EXTRA_CLIENT_SECRET` | Regenerate in the developer application, then set the new value wherever that application appears: `EVE_SSO_CLIENT_SECRET` where it is the own app, `EVE_SSO_EXTRA_CLIENT_SECRET` where it is the other one (both apps, and `preview secret put --name preview` for the preview) | None, once every deployment has the new value                                                                                        |
 | `TOKEN_ENCRYPTION_KEY`                                  | `secret put` with one new value in both apps and the preview                                                                                                                                                                                                                     | All stored refresh tokens become unreadable; characters are marked invalid at next use and users must enable structure markets again |
+| `JANICE_API_KEY`                                        | `npx wrangler secret put JANICE_API_KEY` in `apps/updater`                                                                                                                                                                                                                       | None; appraisals resume at the next contracts sync                                                                                   |
 
 `wrangler secret put` deploys a new version of the worker at once. `preview base-config secret put` only affects Previews created later; `preview secret put --name preview` changes the existing preview.
 
 ### SDE updates
 
-Automatic: the cron checks `latest.jsonl` every hour and imports a newer build. On `/admin`, SDE sync **Check for new build** does the same now; **Re-import (force)** re-imports the current build.
+Automatic: the cron checks `latest.jsonl` every hour and imports a newer build. On `/admin`, SDE sync **Check for new build** does the same now; **Re-import (force)** re-imports the current build. Every import also downloads the industry bonus data from Hoboleaks (`sde.hoboleaks.space`); when a game update changes rigs or structure bonuses without a new SDE build, **Re-import (force)** picks up the new data.
 
 ### Admin list
 

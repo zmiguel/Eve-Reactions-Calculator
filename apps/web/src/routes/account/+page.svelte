@@ -6,12 +6,6 @@
 
 	let { data, form } = $props();
 
-	// Feature/token columns only mean something once a feature can be enabled or one is granted.
-	const showAccess = $derived(
-		data.offeredFeatures.length > 0 ||
-			data.characters.some((c) => c.features.length > 0 || c.tokenStatus !== 'none')
-	);
-
 	const card = 'rounded-lg bg-white p-4 text-sm dark:bg-gray-700';
 	const heading = 'mb-3 text-sm font-semibold tracking-wide text-gray-800 uppercase dark:text-gray-200';
 	const button =
@@ -42,7 +36,7 @@
 
 	{#if data.notice || form?.error}
 		<p
-			role="status"
+			role={form?.error ? 'alert' : 'status'}
 			class="rounded-md border px-3 py-2 text-sm {form?.error
 				? 'border-red-300 bg-red-50 text-red-800 dark:border-red-700 dark:bg-red-900/30 dark:text-red-300'
 				: 'border-green-300 bg-green-50 text-green-800 dark:border-green-700 dark:bg-green-900/30 dark:text-green-300'}"
@@ -60,18 +54,15 @@
 				>Add character</a
 			>
 		</div>
-		<div class="overflow-x-auto">
+		<div class="relative overflow-x-auto">
 			<table
 				class="w-full overflow-hidden rounded-lg border border-gray-200 bg-white text-left text-sm dark:border-gray-700 dark:bg-gray-800"
 			>
 				<thead class="bg-gray-100 text-xs text-gray-700 uppercase dark:bg-gray-900 dark:text-gray-400">
 					<tr>
 						<th class="px-3 py-2">Character</th>
-						{#if showAccess}
-							<th class="px-3 py-2">Features</th>
-							<th class="px-3 py-2">Token</th>
-							<th class="px-3 py-2">Last refresh</th>
-						{/if}
+						<th class="px-3 py-2">Permissions</th>
+						<th class="px-3 py-2">Token</th>
 						<th class="px-3 py-2 text-right"><span class="sr-only">Actions</span></th>
 					</tr>
 				</thead>
@@ -81,7 +72,6 @@
 							{character}
 							offeredFeatures={data.offeredFeatures}
 							onlyCharacter={data.characters.length === 1}
-							{showAccess}
 						/>
 					{/each}
 				</tbody>
@@ -89,20 +79,7 @@
 		</div>
 	</section>
 
-	<div class="grid gap-4 md:grid-cols-3">
-		<section class={card}>
-			<h2 class={heading}>Inventory</h2>
-			<p class="text-gray-700 dark:text-gray-300">
-				Sync the assets of your characters and corporations to see the formulas and materials you already
-				have.
-			</p>
-			<p class="mt-2 text-xs text-gray-600 dark:text-gray-400">
-				<a href="/account/inventory" class="text-primary-700 hover:underline dark:text-primary-400"
-					>Manage inventory</a
-				>
-			</p>
-		</section>
-
+	<div class="grid gap-4 md:grid-cols-2">
 		<section class={card}>
 			<h2 class={heading}>Settings sync</h2>
 			<p class="text-gray-700 dark:text-gray-300">

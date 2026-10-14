@@ -21,6 +21,7 @@
 		"db:generate": "npm run generate -w packages/db",
 		"db:migrate:local": "npm run db:migrate:local -w apps/updater && npm run db:migrate:local -w apps/web",
 		"seed:local": "node scripts/seed-local.ts",
+		"dev:seeded": "node scripts/dev-seeded.ts",
 		"pretest": "npm run prepare -w apps/web"
 	},
 	"devDependencies": {

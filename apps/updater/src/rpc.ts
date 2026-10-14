@@ -5,12 +5,15 @@ import { refreshAdjustedPrices } from './cron/adjusted-prices.ts';
 import { refreshAffiliations } from './cron/affiliations.ts';
 import { refreshCostIndices } from './cron/cost-indices.ts';
 import { startInventoryPass } from './cron/inventory.ts';
+import { startTrackingPass } from './cron/tracking.ts';
 import { importedSdeBuild } from './cron/sde-check.ts';
 import { isIsoDate } from './dates.ts';
 import { httpFetch, userAgent } from './http.ts';
 import { startInventorySync } from './inventory.ts';
 import { errorMessage, failJobRun, finishJobRun, inlineRunId, latestJobRuns, startJobRun } from './jobs.ts';
+import { markLedgerDirty, rebuildLedger } from './ledger.ts';
 import { publishMarketSnapshot } from './market-snapshot.ts';
+import { startTrackingSync } from './tracking.ts';
 import { createWorkflowInstance, startWorkflowRun } from './workflows/instances.ts';
 
 export type TriggerResult = { instanceId: string } | { skipped: true; build: number };
@@ -35,7 +38,7 @@ export interface WorkflowState {
  */
 async function runInline(
 	method: string,
-	kind: 'cost_indices' | 'adjusted_prices' | 'affiliations' | 'inventory',
+	kind: 'cost_indices' | 'adjusted_prices' | 'affiliations' | 'inventory' | 'tracking',
 	run: (now: number) => Promise<string>
 ): Promise<InlineRunResult> {
 	const now = Date.now();
@@ -154,6 +157,53 @@ export class UpdaterRpc extends WorkerEntrypoint<Env> {
 		return runInline('triggerInventoryPass', 'inventory', (now) =>
 			startInventoryPass(this.env, now, now, true)
 		);
+	}
+
+	/**
+	 * Syncs one tracking connection now as instance `tracking-<sourceId>-<now ms>`; `{ busy: true }` while
+	 * another sync of it is running, `{ notBefore }` (unix ms, the earliest stream `expires_at`) while every
+	 * stream is still fresh (nothing started).
+	 */
+	async triggerTrackingSync(
+		sourceId: number
+	): Promise<{ instanceId: string } | { busy: true } | { notBefore: number }> {
+		const now = Date.now();
+		const id = `tracking-${sourceId}-${now}`;
+		const outcome = await startTrackingSync(this.env, sourceId, id, 'manual', now);
+		const logged =
+			typeof outcome === 'object'
+				? `not before ${new Date(outcome.notBefore).toISOString()}`
+				: outcome === 'busy'
+					? 'busy'
+					: `${outcome} ${id}`;
+		console.log(`[rpc] triggerTrackingSync(${sourceId}): ${logged}`);
+		if (typeof outcome === 'object') return outcome;
+		if (outcome === 'busy') return { busy: true };
+		if (outcome === 'missing') throw new RangeError(`tracking connection ${sourceId} does not exist`);
+		return { instanceId: id };
+	}
+
+	/** Runs the tracking pass (cron step 8) now as run `tracking-manual-<now ms>`. */
+	async triggerTrackingPass(): Promise<InlineRunResult> {
+		return runInline('triggerTrackingPass', 'tracking', (now) => startTrackingPass(this.env, now, true));
+	}
+
+	/**
+	 * Rebuilds the user's ledger now (after a correction or a settings change). A failure marks the ledger
+	 * dirty for the next cron tick and answers `{ error: 'unavailable' }` (cause logged).
+	 */
+	async rebuildLedger(
+		userId: string
+	): Promise<
+		{ rebuiltAt: number; lots: number; jobs: number; needsReview: number } | { error: 'unavailable' }
+	> {
+		try {
+			return await rebuildLedger(this.env, userId, Date.now());
+		} catch (error) {
+			console.error(`[rpc] rebuildLedger: ${errorMessage(error)}`);
+			await markLedgerDirty(this.env, userId);
+			return { error: 'unavailable' };
+		}
 	}
 
 	/**

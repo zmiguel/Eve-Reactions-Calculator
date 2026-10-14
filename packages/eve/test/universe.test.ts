@@ -8,7 +8,8 @@ import {
 	fetchConstellationInfo,
 	fetchNames,
 	fetchRegionInfo,
-	fetchSystemInfo
+	fetchSystemInfo,
+	lookUpFacility
 } from '../src/index.ts';
 import { TEST_UA, fakeFetch, json } from './fake-fetch.ts';
 
@@ -122,5 +123,70 @@ describe('universe clients', () => {
 		expect(items.map((i) => i.id)).toEqual(ids.slice(100));
 		expect(items[0]).toEqual({ id: 101, name: 'Name 101', category: 'corporation' });
 		expect(failedChunks).toEqual([{ ids: ids.slice(0, 100), status: 404 }]);
+	});
+
+	it('reports the latest Expires of the answered chunks, null without one', async () => {
+		const ids = Array.from({ length: 150 }, (_, i) => 1 + i);
+		const { esi } = esiWith(({ body }) => {
+			const chunk = JSON.parse(body!) as number[];
+			const expires = chunk[0] === 1 ? 'Wed, 14 Oct 2026 09:00:00 GMT' : 'Wed, 14 Oct 2026 09:30:00 GMT';
+			return json(
+				chunk.map((id) => ({ character_id: id, corporation_id: 98000001 })),
+				{ headers: { Expires: expires } }
+			);
+		});
+		expect((await fetchAffiliations(esi, ids)).expiresAt).toBe(Date.UTC(2026, 9, 14, 9, 30));
+		const bare = esiWith(() => json([]));
+		expect((await fetchAffiliations(bare.esi, [1])).expiresAt).toBeNull();
+	});
+});
+
+describe('lookUpFacility', () => {
+	const EXPIRES = 'Wed, 14 Oct 2026 09:05:02 GMT';
+
+	it('looks up an NPC station publicly and a structure with the token', async () => {
+		const { esi, calls } = esiWith(({ url }) =>
+			url.includes('/stations/')
+				? json(
+						{ name: 'Jita IV - Moon 4', system_id: 30000142, type_id: 1529 },
+						{ headers: { Expires: EXPIRES } }
+					)
+				: json(
+						{ name: '671-ST - Ceres', owner_id: 98210135, solar_system_id: 30004604, type_id: 35836 },
+						{ headers: { Expires: EXPIRES } }
+					)
+		);
+		const expiresAt = Date.parse(EXPIRES);
+		expect(await lookUpFacility(esi, 60003760, 'tok')).toEqual({
+			ok: true,
+			kind: 'station',
+			name: 'Jita IV - Moon 4',
+			systemId: 30000142,
+			typeId: 1529,
+			expiresAt
+		});
+		expect(await lookUpFacility(esi, 1053793571360, 'tok')).toEqual({
+			ok: true,
+			kind: 'structure',
+			name: '671-ST - Ceres',
+			systemId: 30004604,
+			typeId: 35836,
+			expiresAt
+		});
+		expect(calls.map((c) => [c.url, c.headers.get('Authorization')])).toEqual([
+			['https://esi.evetech.net/universe/stations/60003760', null],
+			['https://esi.evetech.net/universe/structures/1053793571360', 'Bearer tok']
+		]);
+	});
+
+	it('returns a refusal with its status and Expires', async () => {
+		const { esi } = esiWith(() =>
+			json({ error: 'Forbidden' }, { status: 403, headers: { Expires: EXPIRES } })
+		);
+		expect(await lookUpFacility(esi, 1053793571360, 'tok')).toEqual({
+			ok: false,
+			status: 403,
+			expiresAt: Date.parse(EXPIRES)
+		});
 	});
 });

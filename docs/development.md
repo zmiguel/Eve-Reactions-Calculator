@@ -54,16 +54,23 @@ Without one, use `/auth/dev-login` (below) and leave the SSO values empty; `/aut
 
 1. Open <https://developers.eveonline.com/applications> and create an application of type "Authentication & API Access".
 2. Callback URL: `http://localhost:5173/auth/callback`.
-3. Scopes: every scope of `ALL_ESI_SCOPES` in `packages/eve/src/scopes.ts` (nine; "Personal assets" and "Corporation assets" on `/account` need the asset, division and industry job scopes, so an older dev app must add `esi-assets.read_corporation_assets.v1`, `esi-corporations.read_divisions.v1` and `esi-industry.read_corporation_jobs.v1`):
+3. Scopes: every scope of `ALL_ESI_SCOPES` in `packages/eve/src/scopes.ts` (sixteen; the features on `/account` fail at EVE's login page when the app lacks one of their scopes, so an older dev app must add the profit tracking scopes `esi-wallet.read_corporation_wallets.v1`, `esi-contracts.read_character_contracts.v1`, `esi-contracts.read_corporation_contracts.v1`, `esi-markets.read_character_orders.v1`, `esi-markets.read_corporation_orders.v1`, `esi-characters.read_blueprints.v1` and `esi-corporations.read_blueprints.v1`):
    - `esi-assets.read_assets.v1`
    - `esi-assets.read_corporation_assets.v1`
+   - `esi-characters.read_blueprints.v1`
+   - `esi-contracts.read_character_contracts.v1`
+   - `esi-contracts.read_corporation_contracts.v1`
+   - `esi-corporations.read_blueprints.v1`
    - `esi-corporations.read_divisions.v1`
    - `esi-industry.read_character_jobs.v1`
    - `esi-industry.read_corporation_jobs.v1`
+   - `esi-markets.read_character_orders.v1`
+   - `esi-markets.read_corporation_orders.v1`
    - `esi-markets.structure_markets.v1`
    - `esi-search.search_structures.v1`
    - `esi-universe.read_structures.v1`
    - `esi-wallet.read_character_wallet.v1`
+   - `esi-wallet.read_corporation_wallets.v1`
 4. Copy the client id and secret into both `apps/web/.dev.vars` and `apps/updater/.dev.vars`.
 
 ## Local state (`.wrangler/state`)
@@ -82,15 +89,18 @@ Apply migrations without seeding:
 npm run db:migrate:local
 ```
 
-## Seeding
+## Seeding (separate state)
 
 ```bash
-npm run seed:local
+npm run seed:local                       # writes .wrangler/seeded
+npm run dev:seeded -- --port 5180        # web dev server on the seeded state
 ```
 
-> **Warning:** `seed:local` overwrites local data with fixtures. It applies migrations, then replaces in `.wrangler/state`: KV `dataset:v1` and `market:v1`; the reference tables (`types`, `regions`, `systems`, reactions); latest prices, adjusted prices, cost indices and market stats; every history table (synthetic market from `mulberry32(42)`: 10 days of snapshots and daily prices, 400 days of ESI history); all `job_runs`; the seed accounts and structure hubs without links; NPC hubs return to their migration state. Live data fetched by a local updater is lost. After seeding, run an SDE sync (SDE sync "Re-import (force)" on `/admin`) if you need the real system list, for example to add real structures.
+The seed never touches `.wrangler/state`, which holds your real local data (live ESI, SDE and market history fetched by the local updater); `seedLocal` refuses that folder. It writes `.wrangler/seeded`: it applies the migrations, then replaces there KV `dataset:v1` and `market:v1`; the reference tables (`types`, `regions`, `systems`, reactions); latest prices, adjusted prices, cost indices and market stats; every history table (synthetic market from `mulberry32(42)`: 10 days of snapshots and daily prices, 400 days of ESI history); all `job_runs`; the seed accounts and structure hubs without links; NPC hubs return to their migration state. `npm run dev:seeded` starts `vite dev` with `WRANGLER_PERSIST` pointing at it and a generated `apps/web/wrangler.seeded.jsonc` whose `UPDATER` binding is `reactions-updater-seeded`, so its actions never reach your own updater (extra arguments go to `vite dev`). An updater on the seeded state, from `apps/updater`: `npx wrangler dev --name reactions-updater-seeded --test-scheduled --port 8792 --persist-to ../../.wrangler/seeded`. The e2e server seeds its own `.wrangler/e2e`.
 
-The seed contains the SDE fixture (`packages/sde/test/fixtures/sde-mini.zip`, 119 reactions) and two accounts:
+The seed contains the SDE fixture (`packages/sde/test/fixtures/sde-mini.zip`, 119 reactions) and two accounts. The fixture is built from an unpacked SDE in `references/sde/` (with `dogmaEffects.jsonl`) and the Hoboleaks fixtures in `packages/sde/test/fixtures/hoboleaks/`; rebuild it with `node scripts/make-sde-fixture.ts [sdeDir] [outFile]` (defaults: `references/sde/` and `packages/sde/test/fixtures/sde-mini.zip`).
+
+The accounts:
 
 | Account       | Character                     | Structure hub                                                  |
 | ------------- | ----------------------------- | -------------------------------------------------------------- |
@@ -98,6 +108,8 @@ The seed contains the SDE fixture (`packages/sde/test/fixtures/sde-mini.zip`, 11
 | `seed-user-2` | 90000002 "Seed Pilot Two"     | `structure-1042508032148` "Seed Shared Market", pending review |
 
 The seed pilots' refresh token is a dummy encrypted with the dev `TOKEN_ENCRYPTION_KEY`; a price refresh marks it invalid (expected).
+
+`seed-user` also has profit tracking on its personal connection (Profit tracking on, every stream `ok`, `SEED_TRACKING` in `scripts/seed-local.ts`): two contract purchases of raw inputs (one split by a stored Janice appraisal linked in its title, one by the contract price rule), market buys through buy orders with broker fee rows, the two intermediate jobs and a Titanium Carbide job that uses them, a partial sale through a sell order with journal sales tax and broker fee, a delivered manufacturing job (Spike S Blueprint, blueprint ME 10) that takes part of the Titanium Carbide, and one purchase entered by hand (`manual_entries`). The seed also writes the ledger results the updater's rebuild computes from these rows (same `ledger-rows.ts` mapping and `runLedger`), so the data is complete without a running updater.
 
 ## Running locally
 
@@ -119,7 +131,7 @@ npm run dev -w apps/updater
 npm run dev:cron -w apps/updater
 ```
 
-The updater fetches live ESI, Fuzzwork, SDE and market.coalition.space data into `.wrangler/state`. Run `npm run seed:local` to return to fixture data. `GET /` on the updater answers 500 "no fetch() handler"; that is expected.
+The updater fetches live ESI, Fuzzwork, SDE and market.coalition.space data into `.wrangler/state`. `GET /` on the updater answers 500 "no fetch() handler"; that is expected.
 
 The admin buttons and hub changes call the updater through the `UPDATER` service binding; without a running updater `/admin` shows "the updater worker did not answer".
 
@@ -140,6 +152,27 @@ http://localhost:5173/auth/dev-login?characterId=90000001&name=Seed%20Pilot
 
 Optional parameters: `purpose=add_character` (attach to the current account) and `returnTo=/path`. Character 90000001 is an admin with the example `.dev.vars`, so `/admin` and `/admin/hubs` open. The route answers 404 unless `DEV_LOGIN` is `1`; never set it in production.
 
+### Profit tracking locally
+
+1. The dev SSO application needs the profit tracking scopes (listed above); grant Profit tracking (or Corporation profit tracking) to a character on `/account`. A character granted it before the blueprint scopes existed must grant it again (the feature needs every scope).
+2. Turn tracking on for its connection. Until the switch on `/account/connections` ships (B25), set it in SQL, from `apps/web`:
+
+   ```bash
+   npx wrangler d1 execute DB --local --persist-to ../../.wrangler/state --command "UPDATE inventory_sources SET tracking_enabled = 1 WHERE source_id = <id>"
+   ```
+
+3. With the updater dev server running (`npm run dev -w apps/updater`), run a tracking pass (cron step 8 runs on every tick):
+
+   ```bash
+   curl "http://localhost:8787/__scheduled?cron=*/10+*+*+*+*"
+   ```
+
+   The pass starts a `reactions-tracking-sync` instance per due connection; its steps log as `[tracking-<sourceId>-<ms>] step n/total …`. A connection whose streams are still fresh is skipped until their ESI `Expires`, and the cron syncs a connection at most once an hour (`TRACKING_MIN_INTERVAL_MINUTES`).
+
+`JANICE_API_KEY` in `apps/updater/.dev.vars` is optional: without it the `janice` step is skipped and contracts are split by the contract price rule.
+
+`RYBBIT_SITE_ID=` (empty, as in the example) must stay in `apps/updater/.dev.vars`: `apps/updater/wrangler.jsonc` sets the production site id `"1"`, and without the empty override a local updater would send local accounts' corporation and alliance traits to the production Rybbit.
+
 ## Common commands
 
 | Command                                         | Purpose                                                                      |
@@ -155,7 +188,7 @@ Optional parameters: `purpose=add_character` (attach to the current account) and
 | `npm run types -w apps/web` / `-w apps/updater` | Regenerates `src/worker-configuration.d.ts` from `wrangler.jsonc`            |
 | `npm run check:legacy -- <baseUrl>`             | Requests every v2 URL of every reaction on a deployed site (see deploy.md)   |
 
-Regenerate `worker-configuration.d.ts` without a `.dev.vars` file present and without build output, otherwise local values and build artefacts leak into the types.
+Regenerate `worker-configuration.d.ts` without a `.dev.vars` file present and without build output, otherwise local values and build artefacts leak into the types. The updater's `types` script passes `--strict-vars=false`, so vars are typed `string` (`.dev.vars` can override any of them). For `apps/web`, then delete the generated `interface GlobalProps { mainModule: typeof import("../.svelte-kit/cloudflare/_worker") }` block: it pulls the build output into `svelte-check`, which then fails. `wrangler types --check` therefore reports the web file as out of date; nothing runs it.
 
 ## Tests
 

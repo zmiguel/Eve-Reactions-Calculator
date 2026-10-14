@@ -1,18 +1,18 @@
-import { ESI_FEATURES, buildAuthorizeUrl, isGrantableFeature, scopesForFeature } from '@reactions/eve';
+import { ESI_FEATURES, isGrantableFeature, scopesForFeature } from '@reactions/eve';
 import { error, redirect } from '@sveltejs/kit';
-import { OAUTH_MAX_AGE, setOauthCookie } from '$lib/server/cookies';
 import { getCharacter } from '$lib/server/auth/accounts';
 import { OFFERED_FEATURES } from '$lib/account/features';
-import { LOGIN_PURPOSES, safeReturnTo, signOauthState, type LoginPurpose } from '$lib/server/auth/oauth';
-import { SSO_NOT_CONFIGURED, ssoConfig } from '$lib/server/auth/sso';
-import { randomToken } from '$lib/server/crypto';
+import { LOGIN_PURPOSES, safeReturnTo, type LoginPurpose } from '$lib/server/auth/oauth';
+import { SSO_NOT_CONFIGURED, ssoConfig, startSso } from '$lib/server/auth/sso';
 import type { PageServerLoad } from './$types';
 
 /**
  * `GET /auth/login?purpose=login|add_character|feature&feature=&characterId=&returnTo=` → EVE SSO.
  * `login` and `add_character` ask for no scopes; `feature` asks for the feature's scopes plus the
- * character's current ones. `add_character`/`feature` need a session (else: log in first, then resume).
- * `purpose=structures` (the plan's name) is an alias of `purpose=feature&feature=structures`.
+ * character's current ones (never fewer). Everything but `login` needs a session (else: log in first,
+ * then resume). `purpose=structures` (the plan's name) is an alias of
+ * `purpose=feature&feature=structures`. `purpose=features` can drop scopes, so it only starts from the
+ * permissions form (a POST action, `/account/permissions/<id>?/save`); a link here goes to that form.
  */
 export const load: PageServerLoad = async ({ url, locals, platform, cookies }) => {
 	const params = url.searchParams;
@@ -24,6 +24,15 @@ export const load: PageServerLoad = async ({ url, locals, platform, cookies }) =
 	}
 	const purpose = (params.get('purpose') ?? 'login') as LoginPurpose;
 	if (!LOGIN_PURPOSES.includes(purpose)) error(400, 'Unknown login purpose.');
+	if (purpose === 'features') {
+		const characterId = Number(params.get('characterId'));
+		redirect(
+			303,
+			Number.isSafeInteger(characterId) && characterId > 0
+				? `/account/permissions/${characterId}`
+				: '/account'
+		);
+	}
 	const returnTo = safeReturnTo(params.get('returnTo'));
 
 	const featureParam = params.get('feature');
@@ -59,18 +68,19 @@ export const load: PageServerLoad = async ({ url, locals, platform, cookies }) =
 				: scopesForFeature(feature, (await getCharacter(env, characterId))?.scopes);
 	}
 
-	const state = randomToken(16);
-	const signed = await signOauthState(config.sessionSecret, {
-		state,
-		purpose,
-		feature: isGrantableFeature(feature) ? feature : null,
-		characterId,
-		returnTo,
-		exp: Date.now() + OAUTH_MAX_AGE * 1000
-	});
-	setOauthCookie(cookies, signed);
 	redirect(
 		302,
-		buildAuthorizeUrl({ clientId: config.clientId, redirectUri: config.callbackUrl, scopes, state })
+		await startSso(
+			config,
+			cookies,
+			{
+				purpose,
+				feature: isGrantableFeature(feature) ? feature : null,
+				features: null,
+				characterId,
+				returnTo
+			},
+			scopes
+		)
 	);
 };

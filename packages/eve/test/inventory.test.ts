@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { resolveInventory, type AssetRow } from '../src/index.ts';
+import { fittedStructures, resolveInventory, type AssetRow } from '../src/index.ts';
 import personal from './fixtures/assets-personal.json' with { type: 'json' };
 import corp from './fixtures/assets-corp.json' with { type: 'json' };
 
@@ -71,5 +71,41 @@ describe('resolveInventory', () => {
 			items: [{ locationId: JITA, bucket: 'hangar', typeId: 34, quantity: 999 }]
 		});
 		expect(resolveInventory(toRows(corp), new Set())).toEqual({ locations: [], items: [] });
+	});
+});
+
+describe('fittedStructures', () => {
+	const row = (itemId: number, typeId: number, locationId: number, locationFlag: string): AssetRow => ({
+		itemId,
+		typeId,
+		quantity: 1,
+		locationId,
+		locationType: locationFlag === 'AutoFit' ? 'solar_system' : 'item',
+		locationFlag,
+		isSingleton: true
+	});
+	const RAITARU = 35825;
+	const ME_RIG = 37174;
+	const OTHER_ME_RIG = 37175;
+
+	it('lists owned structures with their material rigs, [] when none is fitted', () => {
+		const rows = [
+			row(2, RAITARU, 30004604, 'AutoFit'),
+			row(1, RAITARU, 30000142, 'AutoFit'),
+			row(10, OTHER_ME_RIG, 1, 'RigSlot2'),
+			row(11, ME_RIG, 1, 'RigSlot0'),
+			row(12, 43920, 1, 'RigSlot1'),
+			row(13, ME_RIG, 1, 'Cargo'),
+			row(14, 35881, 2, 'ServiceSlot0'),
+			// A ship in space is not a structure.
+			row(3, 670, 30004604, 'AutoFit'),
+			// Rigs in a structure whose own row is not among the structure types.
+			row(20, ME_RIG, 99, 'RigSlot0')
+		];
+		expect(fittedStructures(rows, new Set([RAITARU]), new Set([ME_RIG, OTHER_ME_RIG]))).toEqual([
+			{ structureId: 1, typeId: RAITARU, systemId: 30000142, rigs: [ME_RIG, OTHER_ME_RIG] },
+			{ structureId: 2, typeId: RAITARU, systemId: 30004604, rigs: [] },
+			{ structureId: 99, typeId: null, systemId: null, rigs: [ME_RIG] }
+		]);
 	});
 });

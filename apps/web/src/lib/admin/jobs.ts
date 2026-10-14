@@ -17,7 +17,8 @@ export type UpdaterAction =
 	| 'history'
 	| 'market_snapshot'
 	| 'affiliations'
-	| 'inventory';
+	| 'inventory'
+	| 'tracking';
 
 export interface JobAction {
 	action: UpdaterAction;
@@ -60,7 +61,8 @@ const DEFINITIONS = {
 	},
 	sde: {
 		label: 'SDE sync',
-		description: 'Imports types, systems and reactions from the static data export when a new build is out.',
+		description:
+			'Imports types, systems, reactions and the structure and rig bonus data from the static data export and the game client data when a new build is out.',
 		workflow: true,
 		actions: [
 			{ action: 'sde_check', label: 'Check for new build', notice: 'SDE sync' },
@@ -90,7 +92,7 @@ const DEFINITIONS = {
 	affiliations: {
 		label: 'Affiliations',
 		description:
-			'Corporation and alliance of the characters of accounts seen in the last 30 days (ESI bulk lookups, 100 per request), used for the analytics traits. Daily at 12:20 UTC.',
+			'Corporation and alliance of the characters of accounts seen in the last 30 days (ESI bulk lookups, 100 per request), used for the analytics traits; changes are sent to Rybbit. Daily at 12:20 UTC. "Fetch now" also sends the traits of every covered account to Rybbit (back-fill).',
 		workflow: false,
 		actions: [{ action: 'affiliations', label: 'Fetch now', notice: 'Affiliations' }]
 	},
@@ -100,6 +102,13 @@ const DEFINITIONS = {
 			'Syncs the asset sources (personal and corporation assets) of accounts seen in the last 30 days, up to 20 per tick, once a day from 12:00 UTC. Each source runs as its own workflow; this row records the passes. "Sync now" starts a pass at once, ignoring the daily schedule.',
 		workflow: false,
 		actions: [{ action: 'inventory', label: 'Sync now', notice: 'Inventory sync' }]
+	},
+	tracking: {
+		label: 'Profit tracking',
+		description:
+			'Syncs the profit tracking connections (industry jobs, wallet, orders, contracts, blueprints and job facilities) of accounts seen in the last 30 days whose ESI data expired, up to 20 per tick, each at most once an hour, then rebuilds up to 10 ledgers marked dirty. Each connection runs as its own workflow; this row records the passes. "Run now" starts a pass at once.',
+		workflow: false,
+		actions: [{ action: 'tracking', label: 'Run now', notice: 'Profit tracking' }]
 	}
 } satisfies Record<JobKind, Omit<JobDefinition, 'kind'>>;
 

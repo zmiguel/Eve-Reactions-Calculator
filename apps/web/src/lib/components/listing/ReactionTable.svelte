@@ -125,7 +125,7 @@
 	<span title={formatIskFull(value)} class={signed ? tone(value) : ''}>{formatIsk(value)}</span>
 {/snippet}
 
-<div class="overflow-x-auto rounded-lg border border-gray-200 dark:border-gray-700">
+<div class="relative overflow-x-auto rounded-lg border border-gray-200 dark:border-gray-700">
 	<table class="w-full bg-white text-left text-sm dark:bg-gray-800">
 		{#if caption}
 			<caption class="sr-only">{caption}</caption>

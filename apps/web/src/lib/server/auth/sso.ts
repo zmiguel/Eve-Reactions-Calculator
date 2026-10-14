@@ -1,9 +1,11 @@
-import { exchangeCode, verifyAccessToken } from '@reactions/eve';
-import { error, redirect, type RequestEvent } from '@sveltejs/kit';
-import { OAUTH_COOKIE, deleteCookie } from '../cookies.ts';
+import { buildAuthorizeUrl, exchangeCode, verifyAccessToken } from '@reactions/eve';
+import { error, redirect, type Cookies, type RequestEvent } from '@sveltejs/kit';
+import { OAUTH_COOKIE, OAUTH_MAX_AGE, deleteCookie, setOauthCookie } from '../cookies.ts';
+import { randomToken } from '../crypto.ts';
 import { userAgent } from '../user-agent.ts';
-import { completeLogin } from './accounts.ts';
-import { readOauthState } from './oauth.ts';
+import { lookUpNewAffiliations } from '../affiliations.ts';
+import { completeLogin, getCharacter } from './accounts.ts';
+import { readOauthState, signOauthState, type LoginFlow } from './oauth.ts';
 
 export const LOGIN_EXPIRED = 'Login expired, try again.';
 export const SSO_NOT_CONFIGURED = 'Logging in with EVE Online is not configured on this server.';
@@ -29,6 +31,26 @@ export function ssoConfig(env: Env): SsoConfig | null {
 	return null;
 }
 
+/**
+ * Starts an EVE SSO round trip for `flow` asking for `scopes`: sets the signed, short-lived `rc_oauth`
+ * cookie (bound to a fresh `state`) and returns the authorize URL to redirect to.
+ */
+export async function startSso(
+	config: SsoConfig,
+	cookies: Cookies,
+	flow: LoginFlow,
+	scopes: string[]
+): Promise<string> {
+	const state = randomToken(16);
+	const signed = await signOauthState(config.sessionSecret, {
+		...flow,
+		state,
+		exp: Date.now() + OAUTH_MAX_AGE * 1000
+	});
+	setOauthCookie(cookies, signed);
+	return buildAuthorizeUrl({ clientId: config.clientId, redirectUri: config.callbackUrl, scopes, state });
+}
+
 /** Outbound dependencies of the callback; tests inject a fake token endpoint and a local JWKS key. */
 export interface SsoDeps {
 	fetch: typeof fetch;
@@ -40,8 +62,9 @@ const defaultDeps: SsoDeps = { fetch: (input, init) => fetch(input, init) };
 
 /**
  * `GET /auth/callback`: verifies the signed `rc_oauth` cookie against the returned `state` (one use: the
- * cookie is always cleared), exchanges the code, verifies the access token and applies the login.
- * Failures render the auth error page; success redirects to the flow's `returnTo`.
+ * cookie is always cleared), exchanges the code, verifies the access token and applies the login, then
+ * looks up the affiliation of the account's characters never looked up (bounded; failures leave them to
+ * the daily job). Failures render the auth error page; success redirects to the flow's `returnTo`.
  */
 export async function handleCallback(
 	event: Pick<RequestEvent, 'url' | 'cookies' | 'locals' | 'platform'>,
@@ -87,5 +110,9 @@ export async function handleCallback(
 		refreshToken || null
 	);
 	if (!result.ok) error(result.status, result.message);
+	// The first page after the login identifies the account for analytics: give it the affiliation of
+	// characters never looked up (new ones). Dev logins skip this and stay offline.
+	const character = await getCharacter(env, verified.characterId);
+	if (character) await lookUpNewAffiliations(env, deps.fetch, character.userId, now);
 	redirect(303, result.location);
 }

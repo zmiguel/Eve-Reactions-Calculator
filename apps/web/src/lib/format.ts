@@ -15,10 +15,20 @@ export function formatIsk(n: number | null | undefined, digits = 2): string {
 	return n.toFixed(abs >= 100 || Number.isInteger(n) ? 0 : digits);
 }
 
-/** Full value for `title` attributes: `1,234,567.89 ISK`. */
+/** Full value for `title` attributes, always with 2 decimals: `1,234,567.89 ISK`, `6,150,000.00 ISK`. */
 export function formatIskFull(n: number | null | undefined): string {
 	if (n === null || n === undefined || !Number.isFinite(n)) return 'n/a';
-	return `${n.toLocaleString('en-US', { maximumFractionDigits: 2 })} ISK`;
+	return `${n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ISK`;
+}
+
+/**
+ * Compact ISK for chart axes: {@link formatIsk} without trailing zeros, so every tick of an axis reads
+ * alike (`800`, `1K`, `1.5K`, `800K`, `1.25M`).
+ */
+export function formatIskAxis(n: number): string {
+	return formatIsk(n)
+		.replace(/(\.\d*?)0+([KMBT]?)$/, '$1$2')
+		.replace(/\.([KMBT]?)$/, '$1');
 }
 
 export function formatPct(n: number | null | undefined, digits = 1): string {
@@ -100,4 +110,29 @@ export function formatRelative(ms: number | null | undefined, now: number): stri
 				? [Math.round(abs / 3_600_000), 'h']
 				: [Math.round(abs / 86_400_000), 'd'];
 	return diff >= 0 ? `${value} ${unit} ago` : `in ${value} ${unit}`;
+}
+
+/** A length of time in its two largest units: `1d 4h`, `5h 12m`, `12m`, `under 1m`. */
+export function formatSpan(ms: number): string {
+	if (!Number.isFinite(ms) || ms < 0) return 'n/a';
+	const minutes = Math.floor(ms / 60_000);
+	if (minutes < 1) return 'under 1m';
+	const d = Math.floor(minutes / 1440);
+	const h = Math.floor((minutes % 1440) / 60);
+	const m = minutes % 60;
+	const parts: [number, string][] = d
+		? [
+				[d, 'd'],
+				[h, 'h']
+			]
+		: h
+			? [
+					[h, 'h'],
+					[m, 'm']
+				]
+			: [[m, 'm']];
+	return parts
+		.filter(([n], i) => i === 0 || n > 0)
+		.map(([n, unit]) => `${n}${unit}`)
+		.join(' ');
 }

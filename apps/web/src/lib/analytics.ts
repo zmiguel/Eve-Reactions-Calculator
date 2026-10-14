@@ -15,7 +15,7 @@ export interface AnalyticsTraits {
 	username: string;
 	name: string;
 	main_character_id: number;
-	/** `unknown` until the updater's daily affiliation lookup has run for the character. */
+	/** `unknown` until the character's affiliation is looked up (at login, else by the daily job). */
 	corporation: string;
 	/** `none` without an alliance, `unknown` while the corporation is unknown. */
 	alliance: string;

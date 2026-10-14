@@ -12,6 +12,7 @@
 		{ href: '/biochemical', label: 'Biochemical' },
 		{ href: '/hybrid', label: 'Hybrid' },
 		{ href: '/planner', label: 'Planner' },
+		{ href: '/profits', label: 'Profits' },
 		{ href: '/settings', label: 'Settings' },
 		{ href: '/api', label: 'API' }
 	];

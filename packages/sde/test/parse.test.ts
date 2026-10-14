@@ -1,7 +1,7 @@
 import { strToU8, zipSync } from 'fflate';
 import { describe, expect, it } from 'vitest';
 import { SDE_FILES, createLineSplitter, parseSdeZip, readSdeZip } from '../src/index.ts';
-import { fixtureBytes, streamOf } from './helpers.ts';
+import { fixtureBytes, industryFixture, streamOf } from './helpers.ts';
 
 function collectLines(chunks: Uint8Array[]): string[] {
 	const lines: string[] = [];
@@ -47,6 +47,16 @@ describe('readSdeZip', () => {
 	it('projects raw lines from the fixture', async () => {
 		const raw = await readSdeZip(streamOf(fixtureBytes()));
 		expect(raw.blueprints).toHaveLength(120);
+		expect(raw.manufacturing).toHaveLength(385);
+		expect(raw.manufacturing.find((b) => b.blueprintTypeId === 17349)).toEqual({
+			blueprintTypeId: 17349,
+			materials: [
+				{ typeId: 16672, quantity: 13 },
+				{ typeId: 16680, quantity: 3 },
+				{ typeId: 16683, quantity: 1 }
+			],
+			products: [{ typeId: 11532, quantity: 1 }]
+		});
 		expect(raw.blueprints.find((b) => b.blueprintTypeId === 46166)).toEqual({
 			blueprintTypeId: 46166,
 			maxProductionLimit: 1000,
@@ -67,13 +77,49 @@ describe('readSdeZip', () => {
 		expect(raw.typeMaterials.find((m) => m.typeId === 90283)?.randomizedMaterials).toEqual([
 			{ materialTypeId: 34, quantityMin: 368000, quantityMax: 496800 }
 		]);
-		expect(raw.typeDogma.map((d) => d.typeId).sort((a, b) => a - b)).toEqual([
-			35835, 35836, 45746, 45748, 45749, 46484, 46485, 46486, 46487, 46488, 46489, 46490, 46491, 46492, 46493,
-			46494, 46495, 46496, 46497
-		]);
+		const dogma = (typeId: number) => raw.typeDogma.find((d) => d.typeId === typeId);
+		// The constants' types with every attribute and effect.
+		expect(dogma(46497)?.attributes).toContainEqual({ attributeId: 2714, value: -2.4 });
+		expect(dogma(46497)?.effectIds).toContain(6970);
+		// Any other type with a rig size: rig size and slots only.
+		expect(dogma(35825)).toEqual({
+			typeId: 35825,
+			attributes: [
+				{ attributeId: 1154, value: 3 },
+				{ attributeId: 1547, value: 2 }
+			],
+			effectIds: []
+		});
+		expect(dogma(37175)).toEqual({
+			typeId: 37175,
+			attributes: [{ attributeId: 1547, value: 3 }],
+			effectIds: []
+		});
+		// Effects that modify the structure of the fitted item.
+		expect(raw.dogmaEffects.find((e) => e.effectId === 6824)).toEqual({
+			effectId: 6824,
+			structureModifiers: [{ modifiedAttributeId: 2557, modifyingAttributeId: 2594, operation: 6 }]
+		});
 		expect(raw.systems.find((s) => s.name === '671-ST')).toMatchObject({
 			systemId: 30004604,
 			regionId: 10000058
+		});
+	});
+
+	it('reads the full dogma of the industry sources with a material bonus', async () => {
+		const raw = await readSdeZip(streamOf(fixtureBytes()), { industry: industryFixture() });
+		const dogma = (typeId: number) => raw.typeDogma.find((d) => d.typeId === typeId);
+		expect(dogma(37175)?.attributes).toContainEqual({ attributeId: 2594, value: -2.4 });
+		expect(dogma(37175)?.effectIds).toEqual(expect.arrayContaining([6824, 6888]));
+		expect(dogma(35825)?.attributes).toContainEqual({ attributeId: 2600, value: 0.99 });
+		// Listed for manufacturing with only time and cost bonuses ('Moreau' Fortizar): rig size and slots only.
+		expect(dogma(47512)).toEqual({
+			typeId: 47512,
+			attributes: [
+				{ attributeId: 1154, value: 3 },
+				{ attributeId: 1547, value: 3 }
+			],
+			effectIds: []
 		});
 	});
 

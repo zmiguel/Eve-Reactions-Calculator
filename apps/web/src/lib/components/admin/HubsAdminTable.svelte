@@ -33,7 +33,7 @@
 	const muted = 'bg-gray-100 text-gray-700 dark:bg-gray-600 dark:text-gray-200';
 </script>
 
-<div class="overflow-x-auto">
+<div class="relative overflow-x-auto">
 	<table
 		class="w-full overflow-hidden rounded-lg border border-gray-200 bg-white text-left text-sm dark:border-gray-700 dark:bg-gray-800"
 	>

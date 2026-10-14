@@ -42,6 +42,6 @@
 		</p>
 	{/if}
 	<a href="/account/inventory" class="text-primary-700 dark:text-primary-400 text-xs hover:underline"
-		>Sources and places on your inventory page</a
+		>Places on your inventory page</a
 	>
 </div>

@@ -27,7 +27,7 @@ const data = {
 			lastError: null
 		}
 	],
-	offeredFeatures: [],
+	offeredFeatures: ['structures', 'assets', 'corp_assets', 'tracking', 'corp_tracking'],
 	createdAt: Date.UTC(2026, 9, 1),
 	settingsUpdatedAt: Date.UTC(2026, 9, 6, 12),
 	notice: null
@@ -43,36 +43,23 @@ describe('/account', () => {
 		expect(screen.getByRole('link', { name: 'Add character' }).getAttribute('href')).toBe(
 			'/auth/login?purpose=add_character&returnTo=%2Faccount'
 		);
-		expect(screen.getAllByRole('button', { name: 'Remove' })).toHaveLength(2);
-		// A character with a granted feature exists, so the feature/token columns are shown.
+		expect(screen.getAllByRole('button', { name: /^Remove / })).toHaveLength(2);
+		expect(
+			screen.getAllByRole('link', { name: /^Edit permissions of / }).map((a) => a.getAttribute('href'))
+		).toEqual(['/account/permissions/90000001', '/account/permissions/90000002']);
 		expect([...container.querySelectorAll('thead th')].map((th) => th.textContent?.trim())).toEqual([
 			'Character',
-			'Features',
+			'Permissions',
 			'Token',
-			'Last refresh',
 			'Actions'
 		]);
 		expect(container.querySelector('[data-settings-sync]')?.textContent).toContain(
 			'Last saved 2026-10-06 12:00 UTC'
 		);
 		expect(screen.getByRole('link', { name: 'Edit settings' }).getAttribute('href')).toBe('/settings');
-		expect(screen.getByRole('link', { name: 'Manage inventory' }).getAttribute('href')).toBe(
-			'/account/inventory'
-		);
 		const del = container.querySelector('form[action="?/deleteAccount"]')!;
 		expect(del.closest('details')).not.toBeNull();
 		expect(del.getAttribute('method')).toBe('POST');
-	});
-
-	it('hides feature and token columns while no feature exists for any character', () => {
-		const plain = { ...data, characters: [data.characters[0]] };
-		const { container } = render(Page, { props: { data: plain, form: null, params: {} } as never });
-		expect([...container.querySelectorAll('thead th')].map((th) => th.textContent?.trim())).toEqual([
-			'Character',
-			'Actions'
-		]);
-		expect(container.textContent).toContain('You can log in with any of these characters.');
-		expect(container.textContent).not.toMatch(/permission|coming|wallet/i);
 	});
 
 	it('shows action errors and notices', () => {
@@ -80,5 +67,11 @@ describe('/account', () => {
 			props: { data: { ...data, notice: 'Character removed.' }, form: null, params: {} } as never
 		});
 		expect(screen.getByRole('status').textContent).toContain('Character removed.');
+	});
+
+	it('shows the permissions notice', () => {
+		const notice = 'Permissions updated for Beta. Added: Profit tracking. Removed: Structure markets.';
+		render(Page, { props: { data: { ...data, notice }, form: null, params: {} } as never });
+		expect(screen.getByRole('status').textContent?.trim()).toBe(notice);
 	});
 });

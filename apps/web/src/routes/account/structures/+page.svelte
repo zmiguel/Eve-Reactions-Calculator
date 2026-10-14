@@ -30,21 +30,16 @@
 />
 
 <div class="space-y-4 pb-4">
-	<header
-		class="flex flex-wrap items-end justify-between gap-x-4 gap-y-1 border-b-2 border-gray-300 pb-3 dark:border-gray-600"
-	>
-		<div>
-			<h1 class="text-xl font-bold text-gray-800 sm:text-2xl dark:text-gray-200">Structure markets</h1>
-			<p class="mt-1 text-sm text-gray-600 dark:text-gray-400">
-				Price reactions with the markets of structures your characters can dock at.
-			</p>
-		</div>
-		<a href="/account" class="text-sm text-primary-700 hover:underline dark:text-primary-400">Your account</a>
+	<header class="border-b-2 border-gray-300 pb-3 dark:border-gray-600">
+		<h1 class="text-xl font-bold text-gray-800 sm:text-2xl dark:text-gray-200">Structure markets</h1>
+		<p class="mt-1 text-sm text-gray-600 dark:text-gray-400">
+			Price reactions with the markets of structures your characters can dock at.
+		</p>
 	</header>
 
 	{#if form?.notice || form?.error}
 		<p
-			role="status"
+			role={form?.error ? 'alert' : 'status'}
 			class="rounded-md border px-3 py-2 text-sm {form?.error
 				? 'border-red-300 bg-red-50 text-red-800 dark:border-red-700 dark:bg-red-900/30 dark:text-red-300'
 				: 'border-green-300 bg-green-50 text-green-800 dark:border-green-700 dark:bg-green-900/30 dark:text-green-300'}"
@@ -58,7 +53,7 @@
 			Your markets <span class="text-gray-500 dark:text-gray-400">({data.links.length}/{data.limit})</span>
 		</h2>
 		{#if data.links.length}
-			<div class="overflow-x-auto">
+			<div class="relative overflow-x-auto">
 				<table class={table}>
 					<thead class={thead}>
 						<tr>
@@ -151,7 +146,7 @@
 					{:else if !form.search.results?.length}
 						<p class="text-gray-500 dark:text-gray-400">No structures found</p>
 					{:else}
-						<div class="overflow-x-auto">
+						<div class="relative overflow-x-auto">
 							<table class={table}>
 								<thead class={thead}>
 									<tr>

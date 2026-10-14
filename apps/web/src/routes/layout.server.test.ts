@@ -12,7 +12,8 @@ const account: AccountFacts = {
 	createdAt: NOW,
 	features: ['structures'],
 	corporation: 'Reaction Corp',
-	alliance: null
+	alliance: null,
+	allianceId: null
 };
 
 const run = (
@@ -68,9 +69,13 @@ describe('root layout load', () => {
 		const notLookedUp = await traitsOf({ ...account, corporation: null, alliance: null });
 		expect(notLookedUp).toMatchObject({ corporation: 'unknown', alliance: 'unknown' });
 		expect(Object.values(notLookedUp)).not.toContain(null);
-		expect(await traitsOf({ ...account, alliance: 'Moon Alliance' })).toMatchObject({
+		expect(await traitsOf({ ...account, alliance: 'Moon Alliance', allianceId: 99000001 })).toMatchObject({
 			corporation: 'Reaction Corp',
 			alliance: 'Moon Alliance'
+		});
+		// In an alliance whose name is not resolved yet: unknown, not "none".
+		expect(await traitsOf({ ...account, alliance: null, allianceId: 99000001 })).toMatchObject({
+			alliance: 'unknown'
 		});
 	});
 

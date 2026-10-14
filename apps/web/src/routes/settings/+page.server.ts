@@ -1,9 +1,16 @@
 import { getCoreDb, users } from '@reactions/db';
-import { DEFAULT_CONSTANTS, DEFAULT_SETTINGS, decodeSettings, encodeSettings } from '@reactions/engine';
-import { error, fail, redirect } from '@sveltejs/kit';
+import {
+	DEFAULT_CONSTANTS,
+	DEFAULT_SETTINGS,
+	decodeSettings,
+	encodeSettings,
+	type Settings
+} from '@reactions/engine';
+import { error, fail, redirect, type Cookies } from '@sveltejs/kit';
 import { eq } from 'drizzle-orm';
 import { getDataset } from '$lib/server/data';
 import { getAccessibleHubs } from '$lib/server/hubs';
+import { requestLedgerRebuild } from '$lib/server/ledger-rebuild';
 import { persistSettings } from '$lib/server/settings';
 import {
 	normalizeSettings,
@@ -23,6 +30,15 @@ const INVALID_IMPORT = 'This share link is not valid (it may be truncated). Your
 function requireEnv(platform: App.Platform | undefined): Env {
 	if (!platform) error(503, 'Settings cannot be saved right now.');
 	return platform.env;
+}
+
+/**
+ * Saves the settings; for an account also recalculates its profit tracking, which uses the account's
+ * fees and reactor profile.
+ */
+async function saveSettings(env: Env, cookies: Cookies, userId: string | null, settings: Settings) {
+	await persistSettings(env, cookies, userId, settings);
+	if (userId) await requestLedgerRebuild(env, userId);
 }
 
 /** Problems of imported settings as sentences, e.g. `Composite · System: Jita is a highsec system…`. */
@@ -95,13 +111,13 @@ export const actions: Actions = {
 			const { errors, values, systemText } = result;
 			return fail(400, { errors, values, systemText });
 		}
-		await persistSettings(env, cookies, locals.user?.userId ?? null, result.settings);
+		await saveSettings(env, cookies, locals.user?.userId ?? null, result.settings);
 		redirect(303, '/settings?notice=saved');
 	},
 
 	reset: async ({ locals, platform, cookies }) => {
 		const env = requireEnv(platform);
-		await persistSettings(env, cookies, locals.user?.userId ?? null, DEFAULT_SETTINGS);
+		await saveSettings(env, cookies, locals.user?.userId ?? null, DEFAULT_SETTINGS);
 		redirect(303, '/settings?notice=reset');
 	},
 
@@ -123,7 +139,7 @@ export const actions: Actions = {
 				importError: `These settings cannot be applied: ${problems.join('; ')}. Your settings were not changed.`
 			});
 		}
-		await persistSettings(env, cookies, locals.user?.userId ?? null, settings);
+		await saveSettings(env, cookies, locals.user?.userId ?? null, settings);
 		redirect(303, '/settings?notice=imported');
 	}
 };

@@ -16,11 +16,19 @@ import {
 	upsertMany
 } from '@reactions/db';
 import { DEFAULT_CONSTANTS, REACTORS } from '@reactions/engine';
-import { parseSdeZip } from '@reactions/sde';
-import type { SdeDataset } from '@reactions/sde';
+import { parseSdeZip, readIndustrySources } from '@reactions/sde';
+import type { IndustrySources, SdeDataset } from '@reactions/sde';
 import type { BatchItem } from 'drizzle-orm/batch';
 import { eq } from 'drizzle-orm';
-import { SDE_ARCHIVE_KEY, SDE_MIN_REACTIONS, SDE_ZIP_URL, STEP_CONFIG } from '../config.ts';
+import {
+	HOBOLEAKS_MODIFIER_SOURCES_URL,
+	HOBOLEAKS_TARGET_FILTERS_URL,
+	HOBOLEAKS_TIMEOUT_MS,
+	SDE_ARCHIVE_KEY,
+	SDE_MIN_REACTIONS,
+	SDE_ZIP_URL,
+	STEP_CONFIG
+} from '../config.ts';
 import { MARKET_PRICES_URL } from '../cron/adjusted-prices.ts';
 import { httpFetch, userAgent } from '../http.ts';
 import { failJobRun, finishJobRun, startJobRun } from '../jobs.ts';
@@ -65,7 +73,27 @@ export function validateSdeDataset(sde: SdeDataset): string[] {
 		if (!list.some((r) => r.reactor === reactor)) problems.push(`no ${reactor} reactions`);
 	const missing = missingConstants(DEFAULT_CONSTANTS, constants);
 	if (missing.length > 0) problems.push(`constants missing: ${missing.join(', ')}`);
+	const industry = sde.dataset.industry;
+	if (!industry?.rigs.length || !industry.structures.length)
+		problems.push('no industry rig or structure bonuses');
 	return problems;
+}
+
+/** Downloads the Hoboleaks industry files; an HTTP error, a timeout or an unexpected shape throws. */
+export async function fetchIndustrySources(env: Env): Promise<IndustrySources> {
+	const download = async (url: string): Promise<unknown> => {
+		const response = await httpFetch(url, {
+			headers: { 'User-Agent': userAgent(env) },
+			signal: AbortSignal.timeout(HOBOLEAKS_TIMEOUT_MS)
+		});
+		if (!response.ok) throw new Error(`Hoboleaks download failed: HTTP ${response.status} for ${url}`);
+		return response.json();
+	};
+	const [modifierSources, targetFilters] = await Promise.all([
+		download(HOBOLEAKS_MODIFIER_SOURCES_URL),
+		download(HOBOLEAKS_TARGET_FILTERS_URL)
+	]);
+	return readIndustrySources(modifierSources, targetFilters);
 }
 
 async function readArchivedSde(env: Env, build: number): Promise<SdeDataset> {
@@ -74,11 +102,15 @@ async function readArchivedSde(env: Env, build: number): Promise<SdeDataset> {
 	return object.json<SdeDataset>();
 }
 
-/** Step `download-parse`: download + parse + validate the archive, keep the dataset in R2. */
+/**
+ * Step `download-parse`: download the Hoboleaks industry files and the SDE archive, parse and validate
+ * them, keep the dataset in R2.
+ */
 export async function downloadAndParse(env: Env, build: number): Promise<SdeCounts> {
+	const industry = await fetchIndustrySources(env);
 	const response = await httpFetch(SDE_ZIP_URL(build), { headers: { 'User-Agent': userAgent(env) } });
 	if (!response.ok || !response.body) throw new Error(`SDE archive download failed: HTTP ${response.status}`);
-	const sde = await parseSdeZip(response.body);
+	const sde = await parseSdeZip(response.body, { industry });
 	const problems = validateSdeDataset(sde);
 	if (problems.length > 0)
 		throw new NonRetryableError(`SDE build ${build} failed validation: ${problems.join('; ')}`);

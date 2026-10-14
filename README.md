@@ -1,6 +1,6 @@
 # EVE Reactions Calculator v3
 
-Live profitability of every EVE Online reaction at [reactions.coalition.space](https://reactions.coalition.space). Prices come from ESI market orders (Fuzzwork as fallback) and refresh every 30 minutes; reaction data comes from the official SDE. It runs on Cloudflare Workers with D1, KV, R2 and Workflows, and is a rewrite of the v2 site.
+Live profitability of every EVE Online reaction at [reactions.coalition.space](https://reactions.coalition.space). Prices come from ESI market orders (Fuzzwork as fallback) and refresh every 30 minutes; reaction data comes from the official SDE, industry bonuses of structures and rigs from Hoboleaks, and optional contract appraisals from Janice. It runs on Cloudflare Workers with D1, KV, R2 and Workflows, and is a rewrite of the v2 site.
 
 ## Features
 
@@ -10,22 +10,23 @@ Live profitability of every EVE Online reaction at [reactions.coalition.space](h
 - Settings for structure, rigs, system, taxes, skill, market hubs, buy/sell methods and shipping, shared or per reactor; stored as a small cookie, synced to the account when logged in, shareable as a link.
 - Planner: slot targets, auto-fill, stock and owned formulas (pasted, or read from your EVE inventory; held intermediates start the plan sooner), a material flow of one steady cycle (with reprocessing byproducts drawn back to the material they replace), shopping lists with market availability, multibuy copy and share links.
 - "Use what I have": plans up to 12 cycles of reactions that turn the stock you hold into the most value, buying only fuel blocks (and, if allowed, formulas); runs in the browser with a Web Worker.
-- EVE SSO accounts with several characters; structure markets as private hubs, optionally shared after admin review; inventory from personal and corporation assets and industry jobs (`/account/inventory`), synced daily, with several characters per corporation as fallback readers.
+- EVE SSO accounts with several characters; structure markets as private hubs, optionally shared after admin review; inventory from personal and corporation assets and industry jobs (`/account/connections`, places on `/account/inventory`), synced daily, with several characters per corporation as fallback readers.
+- Profit tracking: Profits section with Overview, Jobs and Ledger tabs, a page per item, add purchases (one by one or as a list) and missing prices; reaction jobs and the manufacturing jobs that use reaction products, with material use from the facility, rigs and blueprint ME; a Profit tracking switch per connection; settings on `/account/tracking` (contract prices, facilities, manufacturing, default period).
 - Public API v2 with JSON and CSV (Google Sheets `IMPORTDATA`), OpenAPI document and interactive reference at `/api`.
 - Price history kept indefinitely: refresh snapshots for 90 days, daily aggregates and ESI regional history forever, raw archives in R2.
 - Dark mode by default; v2 reaction URLs answer 301 to their new pages, API v1 answers 410.
 
 ## Repository layout
 
-| Path              | Contents                                                                                                 |
-| ----------------- | -------------------------------------------------------------------------------------------------------- |
-| `apps/web`        | SvelteKit app, worker `reactions-web`: pages, API v2, accounts, admin                                    |
-| `apps/updater`    | Worker `reactions-updater`: cron, price/daily/SDE/history/inventory workflows, `UpdaterRpc`              |
-| `packages/engine` | `@reactions/engine`: settings, formulas, calculator, slot allocation, sourcing, planner, stock plan (LP) |
-| `packages/sde`    | `@reactions/sde`: streaming SDE zip parser and normalizer                                                |
-| `packages/db`     | `@reactions/db`: Drizzle schemas, D1 migrations (core and history), KV types                             |
-| `packages/eve`    | `@reactions/eve`: ESI, SSO, Fuzzwork and market.coalition.space clients, token crypto, scopes            |
-| `scripts`         | Local seed, e2e server, dev cron, SDE fixture and OG image generators                                    |
+| Path              | Contents                                                                                                                         |
+| ----------------- | -------------------------------------------------------------------------------------------------------------------------------- |
+| `apps/web`        | SvelteKit app, worker `reactions-web`: pages, API v2, accounts, admin                                                            |
+| `apps/updater`    | Worker `reactions-updater`: cron, price/daily/SDE/history/inventory/tracking workflows, `UpdaterRpc`                             |
+| `packages/engine` | `@reactions/engine`: settings, formulas, calculator, slot allocation, sourcing, planner, stock plan (LP), profit tracking ledger |
+| `packages/sde`    | `@reactions/sde`: streaming SDE zip parser and normalizer, Hoboleaks industry data                                               |
+| `packages/db`     | `@reactions/db`: Drizzle schemas, D1 migrations (core and history), KV types                                                     |
+| `packages/eve`    | `@reactions/eve`: ESI, SSO, Fuzzwork, Janice and market.coalition.space clients, token crypto, scopes                            |
+| `scripts`         | Local seed, e2e server, dev cron, SDE fixture and OG image generators                                                            |
 
 ## Quick start
 
@@ -37,27 +38,31 @@ cp apps/web/.dev.vars.example apps/web/.dev.vars
 cp apps/updater/.dev.vars.example apps/updater/.dev.vars
 # set SESSION_SECRET in apps/web/.dev.vars:
 node -e "console.log(crypto.randomBytes(32).toString('base64'))"
-npm run seed:local        # overwrites .wrangler/state with fixture data
-npm run dev -w apps/web   # http://localhost:5173
+npm run dev -w apps/web   # http://localhost:5173, your own data in .wrangler/state
+# or fixture data in a separate state (never .wrangler/state):
+npm run seed:local && npm run dev:seeded
 ```
 
 Optional, in two more terminals: `npm run dev -w apps/updater` and `npm run dev:cron -w apps/updater` (live data, cron every 10 minutes). Log in without EVE SSO at `http://localhost:5173/auth/dev-login?characterId=90000001` (admin with the example `.dev.vars`). Details in [docs/development.md](docs/development.md).
 
 ## Common commands
 
-| Command                             | Purpose                                                                                       |
-| ----------------------------------- | --------------------------------------------------------------------------------------------- |
-| `npm run lint`                      | ESLint and Prettier check                                                                     |
-| `npm run format`                    | Prettier write                                                                                |
-| `npm run check`                     | Type checks (svelte-check, tsc)                                                               |
-| `npm test`                          | All vitest projects                                                                           |
-| `npx vitest run --project <name>`   | One project: `engine`, `sde`, `db`, `eve`, `updater`, `web-unit`, `web-components`, `scripts` |
-| `npm run build -w apps/web`         | Production build of the web app                                                               |
-| `npm run test:e2e`                  | Playwright on an isolated seeded server (port 8790)                                           |
-| `npm run lhci`                      | Lighthouse CI on `/` and `/composite`                                                         |
-| `npm run db:generate`               | Generate migrations from the Drizzle schemas                                                  |
-| `npm run db:migrate:local`          | Apply migrations to the local D1 databases                                                    |
-| `npm run check:legacy -- <baseUrl>` | Check every v2 URL of a deployed site (301 then 200)                                          |
+| Command                                               | Purpose                                                                                       |
+| ----------------------------------------------------- | --------------------------------------------------------------------------------------------- |
+| `npm run lint`                                        | ESLint and Prettier check                                                                     |
+| `npm run format`                                      | Prettier write                                                                                |
+| `npm run check`                                       | Type checks (svelte-check, tsc)                                                               |
+| `npm test`                                            | All vitest projects                                                                           |
+| `npx vitest run --project <name>`                     | One project: `engine`, `sde`, `db`, `eve`, `updater`, `web-unit`, `web-components`, `scripts` |
+| `npm run build -w apps/web`                           | Production build of the web app                                                               |
+| `npm run test:e2e`                                    | Playwright on an isolated seeded server (port 8790)                                           |
+| `npm run lhci`                                        | Lighthouse CI on `/` and `/composite`                                                         |
+| `npm run db:generate`                                 | Generate migrations from the Drizzle schemas                                                  |
+| `npm run db:migrate:local`                            | Apply migrations to the local D1 databases                                                    |
+| `npm run seed:local`                                  | Fixture data into `.wrangler/seeded` (never your `.wrangler/state`)                           |
+| `npm run dev:seeded`                                  | Web dev server on the seeded state                                                            |
+| `node scripts/make-sde-fixture.ts [sdeDir] [outFile]` | Rebuild `sde-mini.zip` from `references/sde/` and the Hoboleaks fixtures                      |
+| `npm run check:legacy -- <baseUrl>`                   | Check every v2 URL of a deployed site (301 then 200)                                          |
 
 ## Documentation
 

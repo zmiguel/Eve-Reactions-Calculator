@@ -60,7 +60,7 @@ describe('scheduled', () => {
 		const { log, error, all } = await runCron(at);
 
 		expect(error).toEqual([]);
-		expect(log).toHaveLength(8);
+		expect(log).toHaveLength(9);
 		expect(log[0]).toContain(CRON);
 		// The job lifecycle is logged too: each run's start with how it was triggered.
 		expect(all).toContain(`[job] prices-${at} started (prices, cron)`);
@@ -72,6 +72,7 @@ describe('scheduled', () => {
 		expect(log[5]).toBe('[scheduled] daily: started daily-2026-10-06');
 		expect(log[6]).toBe('[scheduled] affiliations: skipped (daily at 12:20 UTC)');
 		expect(log[7]).toBe('[scheduled] inventory: no sources due');
+		expect(log[8]).toBe('[scheduled] tracking: no connections due; ledgers rebuilt: 0');
 		expect(calls).toHaveLength(3);
 		expect(await completedInstanceCount(introspector)).toBe(1);
 		expect(await completedInstanceCount(prices)).toBe(1);
@@ -99,7 +100,8 @@ describe('scheduled', () => {
 			'[scheduled] sde-check: skipped (checked hourly)',
 			'[scheduled] daily: started daily-2026-10-06',
 			'[scheduled] affiliations: skipped (daily at 12:20 UTC)',
-			'[scheduled] inventory: no sources due'
+			'[scheduled] inventory: no sources due',
+			'[scheduled] tracking: no connections due; ledgers rebuilt: 0'
 		]);
 		expect(await completedInstanceCount(prices)).toBe(1);
 		expect(await completedInstanceCount(daily)).toBe(1);

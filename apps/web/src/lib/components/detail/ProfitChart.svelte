@@ -1,8 +1,10 @@
 <script lang="ts">
 	import type { ChartProps } from '@flowbite-svelte-plugins/chart';
 	import { onMount, type Component } from 'svelte';
-	import { formatIsk, formatIskFull, formatNumber } from '$lib/format';
+	import { containTooltips } from '$lib/charts';
+	import { formatIsk, formatIskAxis, formatIskFull, formatNumber } from '$lib/format';
 	import type { SeriesPoint, VolumePoint } from '$lib/server/series';
+	import { isDark } from '$lib/theme.svelte';
 
 	interface Props {
 		series: SeriesPoint[];
@@ -49,7 +51,7 @@
 			color: m.color,
 			dates: series.map((p) => p.date),
 			values: series.map((p) => p[m.key]),
-			axis: (v: number) => formatIsk(v),
+			axis: formatIskAxis,
 			full: (v: number) => formatIskFull(v)
 		})),
 		...(volumes.length > 0
@@ -60,7 +62,7 @@
 						color: '#7c3aed',
 						dates: volumes.map((p) => p.date),
 						values: volumes.map((p) => p.volume),
-						axis: (v: number) => formatIsk(v),
+						axis: formatIskAxis,
 						full: (v: number) => `${formatNumber(v)} units`
 					}
 				]
@@ -69,10 +71,10 @@
 
 	// onMount never runs during SSR, so the chart is rendered client-side only.
 	let Chart = $state<Component<ChartProps> | null>(null);
-	let dark = $state(true);
+	// Follows the theme toggle: the charts recolour without a reload.
+	const dark = $derived(isDark());
 
 	onMount(() => {
-		dark = document.documentElement.classList.contains('dark');
 		loadChart().then((c) => (Chart = c));
 	});
 
@@ -120,12 +122,14 @@
 {:else}
 	<div
 		class="grid grid-cols-1 gap-3 md:grid-cols-2 {panels.length > 3 ? 'xl:grid-cols-4' : 'xl:grid-cols-3'}"
+		{@attach containTooltips}
 	>
 		{#each panels as panel (panel.key)}
 			<figure class="rounded-lg bg-white p-3 dark:bg-gray-700" data-chart={panel.key}>
 				<figcaption class="text-sm font-semibold text-gray-800 dark:text-gray-200">{panel.title}</figcaption>
 				{#if Chart}
-					<Chart options={options(panel)} />
+					<!-- Recreated on a theme toggle: a live chart switching theme mode takes ApexCharts' own colours. -->
+					{#key dark}<Chart options={options(panel)} />{/key}
 				{:else}
 					<div class="h-[220px]" aria-hidden="true"></div>
 				{/if}

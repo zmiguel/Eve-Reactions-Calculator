@@ -13,17 +13,50 @@ const summary: InventorySummaryView = {
 		}
 	],
 	materials: {
-		fuel: [{ typeId: 4312, name: 'Oxygen Fuel Block', quantity: 1500, unitValue: 20_000, value: 30_000_000 }],
+		fuel: [
+			{
+				typeId: 4312,
+				name: 'Oxygen Fuel Block',
+				quantity: 1500,
+				unitValue: 20_000,
+				value: 30_000_000,
+				paid: null
+			}
+		],
 		raw: [
-			{ typeId: 16634, name: 'Atmospheric Gases', quantity: 200_000, unitValue: 50, value: 10_000_000 },
-			{ typeId: 16640, name: 'Cobalt', quantity: 10, unitValue: null, value: null }
+			{
+				typeId: 16634,
+				name: 'Atmospheric Gases',
+				quantity: 200_000,
+				unitValue: 50,
+				value: 10_000_000,
+				paid: null
+			},
+			{ typeId: 16640, name: 'Cobalt', quantity: 10, unitValue: null, value: null, paid: null }
 		],
 		intermediate: [
-			{ typeId: 16663, name: 'Titanium Chromide', quantity: 4000, unitValue: 1000, value: 4_000_000 }
+			{
+				typeId: 16663,
+				name: 'Titanium Chromide',
+				quantity: 4000,
+				unitValue: 1000,
+				value: 4_000_000,
+				paid: null
+			}
 		],
-		product: [{ typeId: 16671, name: 'Titanium Carbide', quantity: 1234, unitValue: 2000, value: 2_468_000 }]
+		product: [
+			{
+				typeId: 16671,
+				name: 'Titanium Carbide',
+				quantity: 1234,
+				unitValue: 2000,
+				value: 2_468_000,
+				paid: null
+			}
+		]
 	},
 	totalValue: 46_468_000,
+	showPaid: false,
 	empty: null
 };
 
@@ -85,14 +118,39 @@ describe('InventorySummary', () => {
 		]);
 	});
 
+	it('adds Paid only with a ledger: the average linked to the item page, the uncovered rest unknown', () => {
+		const without = render(InventorySummary, { props: { summary } });
+		expect(without.container.querySelector('[data-paid]')).toBeNull();
+		without.unmount();
+
+		const withPaid: InventorySummaryView = {
+			...summary,
+			showPaid: true,
+			materials: {
+				...summary.materials,
+				intermediate: [{ ...summary.materials.intermediate[0], paid: { unitCost: 950, covered: 4000 } }],
+				product: [{ ...summary.materials.product[0], paid: { unitCost: 1500, covered: 1000 } }]
+			}
+		};
+		const { container } = render(InventorySummary, { props: { summary: withPaid } });
+		const paid = (role: string) => group(container, role)!.querySelector('[data-paid]')!;
+		expect(paid('intermediate').querySelector('a')?.getAttribute('href')).toBe('/profits/ledger/16663');
+		expect(paid('intermediate').querySelector('a')?.textContent).toBe('950');
+		expect(paid('intermediate').querySelector('[data-paid-covered]')).toBeNull();
+		// 1,000 of the 1,234 held are covered by the ledger.
+		expect(paid('product').querySelector('[data-paid-covered]')?.textContent).toContain('1,000');
+		expect(paid('fuel').querySelector('a')).toBeNull();
+	});
+
 	it.each([
-		['no_sources', /Add the assets of a character or corporation/],
-		['no_selection', /Tick the hangars to use under each source and press Save/]
+		['no_sources', /Switch Inventory on for a connection/],
+		['no_selection', /Tick the hangars to use under each connection and press Save/]
 	] as const)('explains the %s empty state', (empty, text) => {
 		const blank: InventorySummaryView = {
 			formulas: [],
 			materials: { fuel: [], raw: [], intermediate: [], product: [] },
 			totalValue: 0,
+			showPaid: false,
 			empty
 		};
 		const { container } = render(InventorySummary, { props: { summary: blank } });

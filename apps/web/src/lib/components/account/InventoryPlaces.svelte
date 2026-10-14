@@ -83,7 +83,7 @@
 													name="place"
 													value="{place.locationId}:{bucket.bucket}"
 													checked={bucket.selected}
-													class="h-4 w-4 rounded border-gray-300 text-primary-600 focus:ring-primary-500 dark:border-gray-600 dark:bg-gray-700"
+													class="h-4 w-4 rounded border-gray-300 bg-gray-50 text-primary-600 focus:ring-primary-500 dark:border-gray-500 dark:bg-gray-800"
 												/>
 												<span class="font-medium text-gray-800 dark:text-gray-200">{bucket.label}</span>
 												<span class="text-xs text-gray-500 dark:text-gray-400" data-counts

@@ -43,6 +43,10 @@ export const AFFILIATION_START_MINUTE_UTC = 12 * 60 + 20;
 export const AFFILIATION_END_MINUTE_UTC = 12 * 60 + 29;
 /** Only characters of accounts seen within this many days are looked up. */
 export const AFFILIATION_ACTIVE_DAYS = 30;
+/** Concurrent Rybbit trait updates (`POST /api/identify`) after an affiliation change. */
+export const RYBBIT_CONCURRENCY = 4;
+/** Each Rybbit request is aborted after this long (counted as failed). */
+export const RYBBIT_TIMEOUT_MS = 10_000;
 
 /** The daily inventory pass runs on every tick from 12:00 UTC (after downtime). */
 export const INVENTORY_DAILY_MINUTE_UTC = 12 * 60;
@@ -66,8 +70,44 @@ export const INVENTORY_STAGING_KEY = (instanceId: string, page: number): string 
 export const INVENTORY_JOBS_KEY = (instanceId: string, page: number): string =>
 	`${INVENTORY_STAGING_PREFIX(instanceId)}jobs-${page}.json`;
 
+/** Tracking syncs started per cron tick (the rest wait for the next ticks). */
+export const TRACKING_SYNCS_PER_TICK = 20;
+/** A connection is synced by the cron at most once per this many minutes. */
+export const TRACKING_MIN_INTERVAL_MINUTES = 60;
+/** A `running` tracking sync older than this no longer blocks a new one; it is marked `error` instead. */
+export const TRACKING_RUN_STALE_MINUTES = 15;
+/** Wallet transaction pages (`from_id` walk) fetched per stream step. */
+export const TRACKING_TX_MAX_PAGES = 50;
+/** Journal and order history pages fetched per stream step at most. */
+export const TRACKING_MAX_PAGES = 50;
+/** Contract item requests per `contracts` step; the rest wait for the next sync. */
+export const TRACKING_CONTRACT_ITEMS_PER_STEP = 50;
+/** Janice appraisals fetched per sync at most. */
+export const TRACKING_JANICE_PER_STEP = 20;
+/** A failed Janice appraisal is tried again after this many hours, doubling per failure in a row. */
+export const JANICE_RETRY_MIN_HOURS = 6;
+/** ... up to this many days. */
+export const JANICE_RETRY_MAX_DAYS = 30;
+/** Dirty ledgers rebuilt per cron tick. */
+export const TRACKING_LEDGERS_PER_TICK = 10;
+/** Job facilities looked up (`/universe/structures/{id}`, `/universe/stations/{id}`) per tracking sync at most. */
+export const TRACKING_FACILITY_LOOKUPS_PER_SYNC = 20;
+/** A facility looked up successfully is looked up again after this many days (type and system rarely change). */
+export const FACILITY_RECHECK_DAYS = 30;
+/** A failed lookup waits at least one day (and at least its `Expires`), doubling per failure up to the recheck period. */
+export const FACILITY_RETRY_MIN_DAYS = 1;
+
 export const SDE_ZIP_URL = (build: number): string =>
 	`https://developers.eveonline.com/static-data/tranquility/eve-online-static-data-${build}-jsonl.zip`;
+
+/**
+ * Game client industry data published by Hoboleaks, fetched with every SDE import: which rigs and
+ * structures give material bonuses to which products (joined with the SDE dogma into `Dataset.industry`).
+ */
+export const HOBOLEAKS_MODIFIER_SOURCES_URL = 'https://sde.hoboleaks.space/tq/industrymodifiersources.json';
+export const HOBOLEAKS_TARGET_FILTERS_URL = 'https://sde.hoboleaks.space/tq/industrytargetfilters.json';
+/** Each Hoboleaks request is aborted after this long (the step then retries). */
+export const HOBOLEAKS_TIMEOUT_MS = 60_000;
 
 /** R2 key of a parsed SDE build (`SdeDataset` JSON). */
 export const SDE_ARCHIVE_KEY = (build: number): string => `sde/${build}/dataset.json`;

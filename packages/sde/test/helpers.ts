@@ -1,9 +1,17 @@
 import { readFileSync } from 'node:fs';
+import { readIndustrySources, type IndustrySources } from '../src/index.ts';
 
 export const FIXTURE_URL = new URL('./fixtures/sde-mini.zip', import.meta.url);
 
 export function fixtureBytes(): Uint8Array {
 	return new Uint8Array(readFileSync(FIXTURE_URL));
+}
+
+/** The Hoboleaks fixtures (manufacturing and reaction entries of the files fetched on 2026-10-14). */
+export function industryFixture(): IndustrySources {
+	const read = (file: string): unknown =>
+		JSON.parse(readFileSync(new URL(`./fixtures/hoboleaks/${file}`, import.meta.url), 'utf8'));
+	return readIndustrySources(read('industrymodifiersources.json'), read('industrytargetfilters.json'));
 }
 
 /** A byte stream delivering `bytes` in chunks of `chunkSize` (exercises chunk boundaries). */

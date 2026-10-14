@@ -23,9 +23,11 @@ export interface AccountFacts {
 	createdAt: number;
 	/** Features granted to at least one of the account's characters, in registry order. */
 	features: GrantableFeature[];
-	/** Main (first) character's corporation and alliance; null until the updater's daily refresh. */
+	/** Main (first) character's corporation and alliance; null until looked up (at login or daily). */
 	corporation: string | null;
 	alliance: string | null;
+	/** Main character's alliance id: null = no alliance (or not looked up); set with `alliance` null = name not resolved yet. */
+	allianceId: number | null;
 }
 
 export interface LoadedSession {
@@ -88,7 +90,8 @@ export async function loadSession(
 			name: characters.name,
 			scopes: characters.scopes,
 			corporation: characters.corporationName,
-			alliance: characters.allianceName
+			alliance: characters.allianceName,
+			allianceId: characters.allianceId
 		})
 		.from(characters)
 		.where(eq(characters.userId, row.userId))
@@ -106,7 +109,8 @@ export async function loadSession(
 			createdAt: row.createdAt,
 			features: GRANTABLE_FEATURES.filter((f) => granted.has(f)),
 			corporation: chars[0]?.corporation ?? null,
-			alliance: chars[0]?.alliance ?? null
+			alliance: chars[0]?.alliance ?? null,
+			allianceId: chars[0]?.allianceId ?? null
 		},
 		settingsJson: row.settingsJson
 	};

@@ -5,15 +5,15 @@ import { STRUCTURE_SCOPES } from './market.ts';
  * re-authenticating that character with the feature's scopes added to the ones it already has.
  *
  * `assets` and `corp_assets` feed the inventory features (personal and corporation assets, plus the
- * industry jobs that hold installed reaction formulas).
- * `wallet` and `industry` belong to the profit-tracking phase: they are defined so the SSO application
- * can be registered with every scope up front, but no feature uses them yet and the web app does not
- * offer them.
+ * industry jobs that hold installed reaction formulas). `tracking` and `corp_tracking` feed profit
+ * tracking: industry job history, wallet transactions and journal, contracts, market orders and
+ * blueprints (material efficiency of manufacturing jobs) of a character or a corporation (the
+ * corporation endpoints also need in-game roles: Accountant or Junior Accountant for wallets, Factory
+ * Manager for jobs, Accountant or Trader for orders, Director for blueprints).
  */
 export const ESI_FEATURES = {
 	login: [],
 	structures: STRUCTURE_SCOPES,
-	wallet: ['esi-wallet.read_character_wallet.v1'],
 	assets: [
 		'esi-assets.read_assets.v1',
 		'esi-industry.read_character_jobs.v1',
@@ -25,7 +25,23 @@ export const ESI_FEATURES = {
 		'esi-industry.read_corporation_jobs.v1',
 		'esi-universe.read_structures.v1'
 	],
-	industry: ['esi-industry.read_character_jobs.v1']
+	tracking: [
+		'esi-characters.read_blueprints.v1',
+		'esi-contracts.read_character_contracts.v1',
+		'esi-industry.read_character_jobs.v1',
+		'esi-markets.read_character_orders.v1',
+		'esi-universe.read_structures.v1',
+		'esi-wallet.read_character_wallet.v1'
+	],
+	corp_tracking: [
+		'esi-contracts.read_corporation_contracts.v1',
+		'esi-corporations.read_blueprints.v1',
+		'esi-corporations.read_divisions.v1',
+		'esi-industry.read_corporation_jobs.v1',
+		'esi-markets.read_corporation_orders.v1',
+		'esi-universe.read_structures.v1',
+		'esi-wallet.read_corporation_wallets.v1'
+	]
 } as const satisfies Record<string, readonly string[]>;
 
 export type EsiFeature = keyof typeof ESI_FEATURES;

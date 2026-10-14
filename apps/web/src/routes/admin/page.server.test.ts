@@ -50,6 +50,15 @@ function updaterStub() {
 		triggerInventorySync: vi.fn(async (sourceId: number) => ({
 			instanceId: `inventory-${sourceId}-manual-${NOW}`
 		})),
+		triggerTrackingPass: vi.fn(async (): Promise<InlineRunResult> => ({
+			runId: `tracking-manual-${NOW}`,
+			status: 'ok',
+			summary: 'started 1 of 1 due connections (0 skipped, 0 busy); ledgers rebuilt: 0'
+		})),
+		triggerTrackingSync: vi.fn(async (sourceId: number) => ({
+			instanceId: `tracking-${sourceId}-${NOW}`
+		})),
+		rebuildLedger: vi.fn(async () => ({ rebuiltAt: NOW, lots: 0, jobs: 0, needsReview: 0 })),
 		publishMarketSnapshot: vi.fn(async () => ({ snapshotAt: NOW, hubIds: ['jita'] })),
 		workflowStatus: vi.fn(
 			async (runs: { kind: string; runId: string }[]): Promise<Record<string, WorkflowStatus>> =>
@@ -137,7 +146,8 @@ describe('/admin', () => {
 			history: [],
 			market_snapshot: [],
 			affiliations: [],
-			inventory: []
+			inventory: [],
+			tracking: []
 		});
 		expect(data.jobs[0]!.runs[0]).toEqual({
 			runId: 'prices-2',
@@ -298,6 +308,12 @@ describe('/admin', () => {
 				text: `Inventory sync run inventory-manual-${NOW} finished: 2 syncs started, 1 busy.`
 			}
 		});
+		expect(await actions.tracking(event(env, admin, '/admin?/tracking'))).toEqual({
+			notice: {
+				ok: true,
+				text: `Profit tracking run tracking-manual-${NOW} finished: started 1 of 1 due connections (0 skipped, 0 busy); ledgers rebuilt: 0.`
+			}
+		});
 		expect(UPDATER.triggerPriceRefresh).toHaveBeenCalledTimes(1);
 		expect(UPDATER.triggerSdeSync.mock.calls).toEqual([[false], [true]]);
 		expect(UPDATER.triggerDaily).toHaveBeenCalledWith('2026-10-06');
@@ -306,6 +322,7 @@ describe('/admin', () => {
 		expect(UPDATER.triggerCostIndices).toHaveBeenCalledTimes(1);
 		expect(UPDATER.publishMarketSnapshot).toHaveBeenCalledTimes(1);
 		expect(UPDATER.triggerInventoryPass).toHaveBeenCalledTimes(1);
+		expect(UPDATER.triggerTrackingPass).toHaveBeenCalledTimes(1);
 	});
 
 	it('a failed inline run gives a 503 notice', async () => {

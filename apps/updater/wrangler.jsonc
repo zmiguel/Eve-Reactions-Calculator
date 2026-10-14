@@ -32,7 +32,11 @@
 		// User-Agent of outgoing requests (ESI, SSO, SDE, Fuzzwork, mirror): this tool's public URL or source.
 		"USER_AGENT_URL": "https://reactions.coalition.space",
 		// Contact for CCP and API operators.
-		"USER_AGENT_CONTACT": "mail:eve@zmiguel.me; eve:Oxed G; discord:oxedpixel"
+		"USER_AGENT_CONTACT": "mail:eve@zmiguel.me; eve:Oxed G; discord:oxedpixel",
+		// Rybbit site id of the site (as `data-site-id` in apps/web/src/app.html): corporation and alliance
+		// changes update the account's Rybbit traits. Empty = nothing is sent; `.dev.vars` sets it empty
+		// locally so local accounts never reach the production Rybbit.
+		"RYBBIT_SITE_ID": "1"
 	},
 	// Secrets: never in this file. Set each once with `npx wrangler secret put <NAME>` (from apps/updater):
 	// - EVE_SSO_CLIENT_SECRET: the production SSO application's secret key.
@@ -72,6 +76,11 @@
 			"name": "reactions-inventory-sync",
 			"binding": "INVENTORY_SYNC",
 			"class_name": "InventorySyncWorkflow"
+		},
+		{
+			"name": "reactions-tracking-sync",
+			"binding": "TRACKING_SYNC",
+			"class_name": "TrackingSyncWorkflow"
 		}
 	]
 }

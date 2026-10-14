@@ -1,11 +1,19 @@
 import { characters, getCoreDb, structureLinks, users } from '@reactions/db';
-import { encryptToken, formatScopes, missingScopes, type VerifiedCharacter } from '@reactions/eve';
+import {
+	encryptToken,
+	formatScopes,
+	grantedFeatures,
+	missingScopes,
+	type GrantableFeature,
+	type VerifiedCharacter
+} from '@reactions/eve';
 import type { Cookies } from '@sveltejs/kit';
 import { asc, eq, type SQL } from 'drizzle-orm';
 import { createSession, endSession, type SessionUser } from '../session.ts';
 import { adoptSettingsOnLogin } from '../settings.ts';
 import { releaseStructureHubs } from '../structures.ts';
-import type { LoginFlow } from './oauth.ts';
+import { applyFeatureChange, heldFeatures } from './feature-change.ts';
+import { safeReturnTo, type LoginFlow } from './oauth.ts';
 
 export type CharacterRow = typeof characters.$inferSelect;
 
@@ -14,6 +22,25 @@ export type LoginResult = { ok: true; location: string } | { ok: false; status: 
 export const LINKED_ELSEWHERE =
 	'This character is linked to another account. Log in with it to use that account.';
 export const SESSION_ENDED = 'Your session has ended. Log in and try again.';
+export const NOT_YOUR_CHARACTER = 'That character is not on your account.';
+
+/**
+ * `returnTo` (re-checked with `safeReturnTo`) with the `/account` notice of a permissions change:
+ * `notice=permissions`, the character and the features added and removed (comma-separated).
+ */
+export function permissionsNoticeLocation(
+	returnTo: string,
+	characterId: number,
+	added: readonly GrantableFeature[],
+	removed: readonly GrantableFeature[]
+): string {
+	const url = new URL(safeReturnTo(returnTo), 'https://notice.invalid');
+	url.searchParams.set('notice', 'permissions');
+	url.searchParams.set('characterId', String(characterId));
+	url.searchParams.set('added', added.join(','));
+	url.searchParams.set('removed', removed.join(','));
+	return url.pathname + url.search + url.hash;
+}
 
 export async function getCharacter(env: Env, characterId: number): Promise<CharacterRow | undefined> {
 	const [row] = await getCoreDb(env.DB)
@@ -122,7 +149,7 @@ interface LoginContext {
 
 /**
  * Applies a verified EVE SSO (or dev) login:
- * - `feature` with an expected character rejects any other character before touching data.
+ * - `feature` with an expected character, and `features`, reject any other character before touching data.
  * - A stored character whose owner hash changed (the character was sold/transferred) is removed first
  *   and the login continues as for a new character.
  * - `login`: the character's account, else the session's account, else a new account; creates a session
@@ -130,6 +157,9 @@ interface LoginContext {
  * - `add_character`: attaches the character to the session's account (scope-less, no token).
  * - `feature`: stores the encrypted refresh token and the granted scopes on the character (attaching it
  *   to the session's account when new). Refuses grants that would drop scopes the character has.
+ * - `features`: the session account's own character only. Stores the token and exactly the granted
+ *   scopes (fewer than before is the point; none = no token), cleans up what removed features drove
+ *   (`applyFeatureChange`) and returns with the `permissions` notice.
  */
 export async function completeLogin(
 	ctx: LoginContext,
@@ -142,13 +172,16 @@ export async function completeLogin(
 	let user = ctx.user;
 	const db = getCoreDb(env.DB);
 
-	if (flow.purpose === 'feature' && flow.characterId !== null && verified.characterId !== flow.characterId) {
-		const expected =
-			user?.characters.find((c) => c.characterId === flow.characterId)?.name ?? `#${flow.characterId}`;
+	const expectsCharacter =
+		flow.purpose === 'features' || (flow.purpose === 'feature' && flow.characterId !== null);
+	if (expectsCharacter && verified.characterId !== flow.characterId) {
+		const expected = user?.characters.find((c) => c.characterId === flow.characterId)?.name;
 		return {
 			ok: false,
 			status: 400,
-			message: `You logged in as ${verified.name} but were upgrading ${expected}. Nothing was changed: try again and pick ${expected} on the EVE login screen.`
+			message: expected
+				? `You logged in as ${verified.name} but were changing the permissions of ${expected}. Nothing was changed: try again and pick ${expected} on the EVE login screen.`
+				: `You logged in as ${verified.name} but were changing the permissions of another character. Nothing was changed: try again and pick that character on the EVE login screen.`
 		};
 	}
 	if (flow.purpose !== 'login' && !user) return { ok: false, status: 400, message: SESSION_ENDED };
@@ -176,18 +209,22 @@ export async function completeLogin(
 		createdAt: now
 	};
 
-	if (flow.purpose === 'feature') {
-		const dropped = missingScopes(existing?.scopes, verified.scopes);
-		if (dropped.length) {
+	/** The stored token and scopes of this login (no scopes: no token). */
+	const grantOf = async () => {
+		if (verified.scopes.length === 0) {
 			return {
-				ok: false,
-				status: 400,
-				message: `This login grants fewer permissions than ${verified.name} already has (${dropped.join(', ')}), so it was not saved. Use the Enable button on your account page for this character.`
+				name: verified.name,
+				scopes: '',
+				refreshTokenEnc: null,
+				ssoClientId: null,
+				tokenStatus: 'none',
+				lastRefreshedAt: null,
+				lastError: null
 			};
 		}
-		if (!refreshToken) return { ok: false, status: 400, message: 'EVE SSO returned no refresh token.' };
+		if (!refreshToken) return null;
 		if (!env.TOKEN_ENCRYPTION_KEY) throw new Error('TOKEN_ENCRYPTION_KEY is not configured');
-		const grant = {
+		return {
 			name: verified.name,
 			scopes: formatScopes(verified.scopes),
 			refreshTokenEnc: await encryptToken(refreshToken, env.TOKEN_ENCRYPTION_KEY),
@@ -197,6 +234,39 @@ export async function completeLogin(
 			lastRefreshedAt: now,
 			lastError: null
 		};
+	};
+	const NO_REFRESH_TOKEN = 'EVE SSO returned no refresh token.';
+
+	if (flow.purpose === 'features') {
+		if (!existing) return { ok: false, status: 400, message: NOT_YOUR_CHARACTER };
+		const grant = await grantOf();
+		if (!grant) return { ok: false, status: 400, message: NO_REFRESH_TOKEN };
+		await db.update(characters).set(grant).where(eq(characters.characterId, existing.characterId));
+		const before = heldFeatures(existing.scopes);
+		const after = grantedFeatures(verified.scopes);
+		await applyFeatureChange(env, existing.userId, existing.characterId, before, after);
+		return {
+			ok: true,
+			location: permissionsNoticeLocation(
+				flow.returnTo,
+				existing.characterId,
+				after.filter((f) => !before.includes(f)),
+				before.filter((f) => !after.includes(f))
+			)
+		};
+	}
+
+	if (flow.purpose === 'feature') {
+		const dropped = missingScopes(existing?.scopes, verified.scopes);
+		if (dropped.length) {
+			return {
+				ok: false,
+				status: 400,
+				message: `This login grants fewer permissions than ${verified.name} already has (${dropped.join(', ')}), so it was not saved. Use the Permissions button on your account page for this character.`
+			};
+		}
+		const grant = verified.scopes.length && refreshToken ? await grantOf() : null;
+		if (!grant) return { ok: false, status: 400, message: NO_REFRESH_TOKEN };
 		await db
 			.insert(characters)
 			.values({ ...newCharacter, ...grant, userId: sessionUserId! })

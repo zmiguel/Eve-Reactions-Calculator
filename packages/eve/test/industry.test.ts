@@ -33,15 +33,23 @@ const ESI_JOB = {
 	end_date: '2026-10-12T11:00:00Z'
 };
 
-const JOB = {
+const JOB: IndustryJobRow = {
 	jobId: 7,
+	installerId: 9001,
 	activityId: 9,
 	blueprintId: 555,
 	blueprintTypeId: 46166,
+	productTypeId: null,
 	stationId: 1035000000001,
+	facilityId: 1035000000001,
+	outputLocationId: 1035000000001,
 	status: 'active',
-	runs: 30
-} as const;
+	runs: 30,
+	cost: null,
+	startDate: Date.UTC(2026, 9, 12, 10),
+	endDate: Date.UTC(2026, 9, 12, 11),
+	completedDate: null
+};
 
 describe('industry job clients', () => {
 	it('fetches character jobs with the bearer token and compatibility date', async () => {
@@ -50,7 +58,8 @@ describe('industry job clients', () => {
 			ok: true,
 			items: [JOB],
 			pages: 1,
-			lastModified: null
+			lastModified: null,
+			expiresAt: null
 		});
 		expect(calls[0]!.url).toBe('https://esi.evetech.net/characters/9001/industry/jobs');
 		expect(calls[0]!.headers.get('Authorization')).toBe('Bearer tok');
@@ -65,10 +74,57 @@ describe('industry job clients', () => {
 			ok: true,
 			items: [{ ...JOB, stationId: 60003760 }],
 			pages: 2,
-			lastModified: null
+			lastModified: null,
+			expiresAt: null
 		});
 		expect(calls[0]!.url).toBe('https://esi.evetech.net/corporations/98000001/industry/jobs?page=2');
 		expect(calls[0]!.headers.get('Authorization')).toBe('Bearer tok');
+	});
+
+	it('asks for completed jobs and maps their product, cost, dates and expiry', async () => {
+		const { esi, calls } = esiWith(() =>
+			json(
+				[
+					{
+						...ESI_JOB,
+						station_id: 60003760,
+						product_type_id: 16663,
+						cost: 1234567.89,
+						status: 'delivered',
+						completed_date: '2026-10-12T11:05:30Z',
+						completed_character_id: 9001
+					}
+				],
+				{ headers: { Expires: 'Mon, 12 Oct 2026 12:00:00 GMT' } }
+			)
+		);
+		expect(await fetchCharacterIndustryJobs(esi, 9001, 'tok', { includeCompleted: true })).toEqual({
+			ok: true,
+			items: [
+				{
+					...JOB,
+					stationId: 60003760,
+					productTypeId: 16663,
+					cost: 1234567.89,
+					status: 'delivered',
+					completedDate: Date.UTC(2026, 9, 12, 11, 5, 30)
+				}
+			],
+			pages: 1,
+			lastModified: null,
+			expiresAt: Date.UTC(2026, 9, 12, 12)
+		});
+		expect(calls[0]!.url).toBe(
+			'https://esi.evetech.net/characters/9001/industry/jobs?include_completed=true'
+		);
+	});
+
+	it('asks a corporation page for completed jobs', async () => {
+		const { esi, calls } = esiWith(() => json([]));
+		await fetchCorporationIndustryJobs(esi, 98000001, 'tok', 3, { includeCompleted: true });
+		const url = new URL(calls[0]!.url);
+		expect(url.pathname).toBe('/corporations/98000001/industry/jobs');
+		expect(Object.fromEntries(url.searchParams)).toEqual({ include_completed: 'true', page: '3' });
 	});
 
 	it('returns 403 typed instead of throwing', async () => {

@@ -70,10 +70,16 @@
 			<ul class="py-1">
 				<li><a href="/account" class={item} onclick={() => close(false)}>Account</a></li>
 				<li>
-					<a href="/account/structures" class={item} onclick={() => close(false)}>Structure markets</a>
+					<a href="/account/connections" class={item} onclick={() => close(false)}>Connections</a>
 				</li>
 				<li>
 					<a href="/account/inventory" class={item} onclick={() => close(false)}>Inventory</a>
+				</li>
+				<li>
+					<a href="/account/tracking" class={item} onclick={() => close(false)}>Profit tracking</a>
+				</li>
+				<li>
+					<a href="/account/structures" class={item} onclick={() => close(false)}>Structure markets</a>
 				</li>
 				{#if user.isAdmin}
 					<li><a href="/admin" class={item} onclick={() => close(false)}>Admin</a></li>

@@ -1,21 +1,51 @@
 /**
  * Seeds the local (miniflare) D1 databases and KV namespace shared by both workers with the SDE fixture,
- * a deterministic market (mulberry32(42)) and two seed accounts with structure markets.
- * Usage: `npm run seed:local` (= `node scripts/seed-local.ts`); the e2e server seeds its own
- * directory through `seedLocal(E2E_PERSIST_TO)`.
+ * a deterministic market (mulberry32(42)), two seed accounts with structure markets, and the seed pilot's
+ * profit tracking (trades, contracts, a Titanium Carbide job chain and the ledger computed from them).
+ * Usage: `npm run seed:local` (= `node scripts/seed-local.ts`) seeds `.wrangler/seeded`, served by
+ * `npm run dev:seeded`; the e2e server seeds its own directory through `seedLocal(E2E_PERSIST_TO, …)`,
+ * adding running jobs of its own.
+ * The developer's own state (`.wrangler/state`, real ESI data) is never written: `seedLocal` refuses it.
  */
 import { execSync } from 'node:child_process';
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
-import { join } from 'node:path';
+import { join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import type { Dataset, Reaction } from '@reactions/engine';
-import { ESI_FEATURES, STRUCTURE_SCOPES, encryptToken, formatScopes } from '@reactions/eve';
-import { parseSdeZip, type SdeDataset } from '@reactions/sde';
+import { runLedger, type Dataset, type Reaction } from '@reactions/engine';
+import {
+	ESI_FEATURES,
+	STRUCTURE_SCOPES,
+	encryptToken,
+	formatScopes,
+	type JaniceAppraisal
+} from '@reactions/eve';
+import { parseSdeZip, readIndustrySources, type SdeDataset } from '@reactions/sde';
+import {
+	JOB_RESULT_COLUMNS,
+	LEDGER_LOT_COLUMNS,
+	LEDGER_PRICE_COLUMNS,
+	LEDGER_USE_COLUMNS,
+	UNALLOCATED_FEE_COLUMNS,
+	ledgerResultRows,
+	facilitiesFromEve,
+	parseAccountSettings,
+	parseTrackingSettings,
+	referenceKey,
+	referencePriceFn,
+	toRunLedgerInput,
+	type SidePrices,
+	type TrackedFacilityRow,
+	type TrackedRows
+} from '../apps/updater/src/ledger-rows.ts';
 
 const ROOT = fileURLToPath(new URL('..', import.meta.url));
 export const FIXTURE_ZIP = join(ROOT, 'packages/sde/test/fixtures/sde-mini.zip');
-/** Local state of `npm run dev` / `preview` (both workers). */
-export const PERSIST_TO = join(ROOT, '.wrangler/state');
+/** Game client industry data (Hoboleaks) matching the SDE fixture: rig bonuses and their product filters. */
+const INDUSTRY_FIXTURES = join(ROOT, 'packages/sde/test/fixtures/hoboleaks');
+/** Local state of `npm run dev` (both workers): the developer's real data, never seeded. */
+export const DEV_STATE = join(ROOT, '.wrangler/state');
+/** Seeded state of `npm run seed:local` and `npm run dev:seeded`. */
+export const PERSIST_TO = join(ROOT, '.wrangler/seeded');
 const WEB_CONFIG = join(ROOT, 'apps/web/wrangler.jsonc');
 const OUT_DIR = join(ROOT, '.wrangler/seed');
 
@@ -121,6 +151,26 @@ export const SEED_INVENTORY = {
 		{ bucket: 'div1', selected: true, items: { Cobalt: 20000, Cadmium: 15000 } },
 		{ bucket: 'div2', selected: false, items: { 'Oxygen Fuel Block': 1000 } }
 	]
+} as const;
+
+/**
+ * Job facilities of the seed pilot as the updater detects them (`tracked_facilities`): the refinery of
+ * the Titanium Chromide and Titanium Carbide jobs, a lowsec Tatara whose L-Set Reactor Efficiency II the
+ * corporation assets showed (2.4 %, as the default reactor profile); the factory of the manufacturing
+ * job, a Raitaru found by the lookup whose rigs were not read (the site asks for them); and the
+ * structure of the Silicon Diborite job, whose lookup was refused (the site asks for type and rigs; the
+ * reactor profile applies meanwhile).
+ */
+export const SEED_FACILITIES = {
+	refinery: {
+		facilityId: 1045000000001,
+		name: 'Ignoitton - Seed Refinery',
+		systemId: 30002647,
+		typeId: 35836,
+		rigs: [46497]
+	},
+	factory: { facilityId: 1045000000002, name: 'Perimeter - Seed Factory', systemId: 30000144, typeId: 35825 },
+	unknown: { facilityId: 1045000000003 }
 } as const;
 
 /** Hub whose prices omit ~5 % of types so "n/a" rows can be exercised locally. */
@@ -230,17 +280,27 @@ const q = (s: string) => `'${s.replace(/'/g, "''")}'`;
 const n = (v: number | null) => (v === null ? 'NULL' : String(v));
 const isoDate = (ms: number) => new Date(ms).toISOString().slice(0, 10);
 
-function insert(table: string, columns: string[], rows: (string | number | null)[][], chunk = 200): string[] {
+/** A raw SQL expression in an {@link insert} row (e.g. a subquery). */
+type RawSql = { sql: string };
+type SqlCell = string | number | null | RawSql;
+
+function insert(table: string, columns: readonly string[], rows: SqlCell[][], chunk = 200): string[] {
+	const cell = (v: SqlCell) =>
+		typeof v === 'string' ? q(v) : v !== null && typeof v === 'object' ? v.sql : n(v);
 	const out: string[] = [];
 	for (let i = 0; i < rows.length; i += chunk) {
 		const values = rows
 			.slice(i, i + chunk)
-			.map((r) => `(${r.map((v) => (typeof v === 'string' ? q(v) : n(v))).join(', ')})`)
+			.map((r) => `(${r.map(cell).join(', ')})`)
 			.join(',\n');
 		out.push(`INSERT INTO ${table} (${columns.join(', ')}) VALUES\n${values};`);
 	}
 	return out;
 }
+
+/** Source id of a seed connection of {@link SEED_INVENTORY} (ids autoincrement). */
+export const seedSource = (kind: 'character' | 'corporation', ownerId: number) =>
+	`(SELECT source_id FROM inventory_sources WHERE user_id = ${q(SEED_INVENTORY.userId)} AND kind = ${q(kind)} AND owner_id = ${ownerId})`;
 
 export interface SeedOutput {
 	core: string;
@@ -252,18 +312,18 @@ export interface SeedOutput {
 const SEED_ACCOUNT_IDS = `SELECT user_id FROM users WHERE user_id IN (${SEED_USERS.map((u) => q(u.userId)).join(', ')})
 	UNION SELECT user_id FROM characters WHERE character_id IN (${SEED_USERS.map((u) => u.characterId).join(', ')})`;
 
+function seedTypeId(sde: SdeDataset, name: string): number {
+	const t = sde.types.find((x) => x.name === name);
+	if (!t) throw new Error(`seed: no type named ${name}`);
+	return t.typeId;
+}
+
 /** SQL inserting {@link SEED_INVENTORY}; source ids come from subqueries (they autoincrement). */
 function inventorySql(sde: SdeDataset, now: number): string[] {
 	const inv = SEED_INVENTORY;
-	const typeId = (name: string) => {
-		const t = sde.types.find((x) => x.name === name);
-		if (!t) throw new Error(`seed inventory: no type named ${name}`);
-		return t.typeId;
-	};
-	const source = (kind: string, ownerId: number) =>
-		`(SELECT source_id FROM inventory_sources WHERE user_id = ${q(inv.userId)} AND kind = ${q(kind)} AND owner_id = ${ownerId})`;
-	const personal = source('character', inv.characterId);
-	const corp = source('corporation', inv.corporation.corporationId);
+	const typeId = (name: string) => seedTypeId(sde, name);
+	const personal = seedSource('character', inv.characterId);
+	const corp = seedSource('corporation', inv.corporation.corporationId);
 	const pilot = SEED_USERS.find((u) => u.characterId === inv.characterId)!;
 	const items = (src: string, locationId: number, bucket: string, list: Record<string, number>) =>
 		Object.entries(list).map(
@@ -279,7 +339,8 @@ function inventorySql(sde: SdeDataset, now: number): string[] {
 		ownerId: number,
 		ownerName: string,
 		divisions: string | null,
-		lists: Record<string, number>[]
+		lists: Record<string, number>[],
+		tracking: boolean
 	) => [
 		inv.userId,
 		inv.characterId,
@@ -292,7 +353,11 @@ function inventorySql(sde: SdeDataset, now: number): string[] {
 		now,
 		now,
 		lists.reduce((a, l) => a + Object.keys(l).length, 0),
-		now
+		now,
+		tracking ? 1 : 0,
+		tracking ? 'ok' : null,
+		tracking ? now : null,
+		tracking ? now : null
 	];
 	return [
 		...insert(
@@ -309,19 +374,28 @@ function inventorySql(sde: SdeDataset, now: number): string[] {
 				'last_synced_at',
 				'data_as_of',
 				'item_count',
-				'created_at'
+				'created_at',
+				'tracking_enabled',
+				'tracking_status',
+				'tracking_last_attempt_at',
+				'tracking_synced_at'
 			],
 			[
-				sourceRow('character', inv.characterId, pilot.name, null, [
-					...inv.personal.map((l) => l.items),
-					inv.personalJobs.items
-				]),
+				sourceRow(
+					'character',
+					inv.characterId,
+					pilot.name,
+					null,
+					[...inv.personal.map((l) => l.items), inv.personalJobs.items],
+					true
+				),
 				sourceRow(
 					'corporation',
 					inv.corporation.corporationId,
 					inv.corporation.name,
 					JSON.stringify(inv.corporation.divisions),
-					inv.corpDivisions.map((d) => d.items)
+					inv.corpDivisions.map((d) => d.items),
+					false
 				)
 			]
 		),
@@ -337,6 +411,464 @@ function inventorySql(sde: SdeDataset, now: number): string[] {
 			...items(corp, JITA_STATION.locationId, d.bucket, d.items),
 			...(d.selected ? [select(corp, JITA_STATION.locationId, d.bucket)] : [])
 		])
+	];
+}
+
+/**
+ * `price_daily` buy/sell averages the history SQL of {@link buildSeedSql} writes for `typeId` at a hub
+ * with price factor `factor`, `k` days before the seed day: the same arithmetic in the same order as
+ * the SQL, rounded like SQLite's `round(x, 2)` (the decimal value of the double, which `toFixed` uses;
+ * `round2` scales first and can differ by a cent). The seed test checks that both agree.
+ */
+export function seedDailyPrice(market: MarketFixture, factor: number, typeId: number, k: number): SidePrices {
+	const jitter = 0.95 + ((k * 7919 + typeId * 104729) % 1000) / 10000;
+	const price = market.base[typeId]!;
+	return {
+		buy: Number((price * factor * jitter * 0.9).toFixed(2)),
+		sell: Number((price * factor * jitter).toFixed(2))
+	};
+}
+
+/**
+ * Profit tracking of the seed pilot's personal connection (Profit tracking on, every stream `ok`), on
+ * UTC days before the seed day: day 9 two contract purchases of the intermediates' raw inputs (one
+ * split by a stored Janice appraisal linked in its title, one by the contract rule); day 8 market buys of
+ * Titanium Chromide and Silicon Diborite through buy orders (broker fee rows) and the two intermediate
+ * jobs; day 6 a Titanium Carbide job that uses the bought and the made intermediates; days 4–3 a partial
+ * sale of Titanium Carbide through a sell order (journal sales tax and broker fee); day 2 a manufacturing
+ * job (blueprint ME 10 read from EVE) that takes part of the Titanium Carbide; day 1 a purchase the pilot
+ * entered by hand.
+ */
+export const SEED_TRACKING = {
+	streams: ['jobs', 'contracts', 'orders', 'transactions', 'journal', 'blueprints'],
+	/** Market counterparty and contract issuer: not own parties. */
+	traderId: 95000101,
+	sellerId: 95000102,
+	sellerCorporationId: 98000102,
+	janiceCode: 'SeedJanice1',
+	runs: 30,
+	/**
+	 * Raw input per intermediate job: 30 runs × 100 × 0.976 (the refinery's L-Set Reactor Efficiency II in
+	 * lowsec, or the default reactor profile's T2 ME rig in lowsec where the structure is unknown).
+	 */
+	rawUnits: 2928,
+	/** Units of each intermediate bought on the market (the rest of the final job's need is made). */
+	boughtUnits: 1000,
+	jobs: [
+		{ jobId: 610000001, name: 'Titanium Chromide', cost: 1_480_000, startDay: 8, facility: 'refinery' },
+		{ jobId: 610000002, name: 'Silicon Diborite', cost: 1_520_000, startDay: 8, facility: 'unknown' },
+		{ jobId: 610000003, name: 'Titanium Carbide', cost: 3_150_000, startDay: 6, facility: 'refinery' }
+	],
+	/**
+	 * Spike S Blueprint (Titanium Carbide 150 and Fernite Carbide 75 per run): 40 runs at ME 10 in the
+	 * Raitaru (role bonus 1 %, rigs not read) take 40 × 150 × 0.9 × 0.99 = 5,346 Titanium Carbide (Fernite
+	 * Carbide is not tracked).
+	 */
+	manufacturing: {
+		jobId: 610000004,
+		blueprintTypeId: 12619,
+		blueprintId: 1060000000001,
+		runs: 40,
+		me: 10,
+		cost: 420_000,
+		startDay: 2
+	},
+	/** Entered on the Ledger tab: Titanium Carbide bought outside the tracked wallets. */
+	manual: {
+		entryId: 1,
+		name: 'Titanium Carbide',
+		quantity: 2_000,
+		unitPrice: 950,
+		day: 1,
+		note: 'Station trade'
+	},
+	contracts: { janice: 220000001, rule: 220000002 },
+	sale: { listed: 200_000, sold: 120_000 },
+	brokerFeePct: 1.5,
+	salesTaxPct: 3.6
+} as const;
+
+/** Run time of one reaction run at the seed facility (Tatara, T2 TE rig, lowsec, skill 5), ms. */
+const SEED_RUN_MS = 4_924_800;
+/** `source_id` of the seed pilot's personal connection in the engine input; the SQL uses its subquery. */
+const SEED_TRACKING_SOURCE = 1;
+
+/**
+ * SQL of {@link SEED_TRACKING}: the tracked rows as the tracking sync stores them, and the ledger the
+ * updater's rebuild computes from them (same `ledger-rows.ts` mapping and `runLedger`; reference prices
+ * from the seeded `price_daily`, else the fixture's latest prices), so the seeded site shows results
+ * without an updater.
+ */
+function trackingSql(sde: SdeDataset, market: MarketFixture, now: number): string[] {
+	const t = SEED_TRACKING;
+	const userId = SEED_INVENTORY.userId;
+	const pilot = SEED_INVENTORY.characterId;
+	const today = Math.floor(now / DAY_MS) * DAY_MS;
+	const at = (daysAgo: number, hour: number, minute = 0) =>
+		today - daysAgo * DAY_MS + (hour * 60 + minute) * 60_000;
+	const typeId = (name: string) => seedTypeId(sde, name);
+	const jita = market.prices.jita!;
+	const settings = parseAccountSettings(null);
+	const tracking = parseTrackingSettings(null);
+
+	// Reference prices of the contract rule's hub: what the updater reads from the seeded history.
+	const hub = SEED_HUBS.find((h) => h.hubId === tracking.contractRule.hubId)!;
+	const formulaIds = new Set(sde.dataset.reactions.map((r) => r.blueprintTypeId));
+	const daily = new Map<string, SidePrices>();
+	for (const id of Object.keys(market.base).map(Number)) {
+		if (formulaIds.has(id)) continue;
+		for (let k = 1; k <= SNAPSHOT_DAYS; k++)
+			daily.set(referenceKey(id, isoDate(today - k * DAY_MS)), seedDailyPrice(market, hub.factor, id, k));
+	}
+	const latest = new Map(
+		Object.entries(market.prices[hub.hubId]!).map(([id, p]) => [Number(id), { buy: p.buy, sell: p.sell }])
+	);
+	const sources = { daily, regional: new Map(), latest };
+	const referencePrice = referencePriceFn({ name: hub.name, basis: tracking.contractRule.basis }, sources);
+	const buyPrice = referencePriceFn({ name: hub.name, basis: 'buy' }, sources);
+
+	const transactions: Record<string, number | null>[] = [];
+	const journal: Record<string, string | number | null>[] = [];
+	const orders: Record<string, string | number | null>[] = [];
+	let nextRef = 21000000001;
+	const journalRow = (
+		date: number,
+		refType: string,
+		amount: number,
+		contextId: number | null,
+		contextIdType: string | null
+	) => {
+		journal.push({
+			ref_id: nextRef,
+			source_id: SEED_TRACKING_SOURCE,
+			division: null,
+			date,
+			ref_type: refType,
+			amount,
+			context_id: contextId,
+			context_id_type: contextIdType
+		});
+		return nextRef++;
+	};
+	/** A filled part of an own order: the order (fee row at `issued`), the transaction and its journal rows. */
+	const trade = (
+		id: number,
+		name: string,
+		isBuy: boolean,
+		price: number,
+		order: { issued: number; total: number; remain: number; state: string },
+		date: number,
+		quantity: number
+	) => {
+		orders.push({
+			order_id: id + 700000000,
+			source_id: SEED_TRACKING_SOURCE,
+			division: null,
+			type_id: typeId(name),
+			is_buy: isBuy ? 1 : 0,
+			price,
+			volume_total: order.total,
+			volume_remain: order.remain,
+			issued: order.issued,
+			location_id: JITA_STATION.locationId,
+			state: order.state
+		});
+		journalRow(
+			order.issued,
+			'brokers_fee',
+			-round2((price * order.total * t.brokerFeePct) / 100),
+			null,
+			null
+		);
+		const gross = round2(price * quantity);
+		const journalRefId = journalRow(
+			date,
+			'market_transaction',
+			isBuy ? -gross : gross,
+			id,
+			'market_transaction_id'
+		);
+		if (!isBuy) journalRow(date, 'transaction_tax', -round2((gross * t.salesTaxPct) / 100), null, null);
+		transactions.push({
+			transaction_id: id,
+			source_id: SEED_TRACKING_SOURCE,
+			division: null,
+			date,
+			type_id: typeId(name),
+			quantity,
+			unit_price: price,
+			is_buy: isBuy ? 1 : 0,
+			client_id: t.traderId,
+			location_id: JITA_STATION.locationId,
+			journal_ref_id: journalRefId,
+			is_personal: 1
+		});
+	};
+	for (const [i, name] of ['Titanium Chromide', 'Silicon Diborite'].entries()) {
+		const price = jita[typeId(name)]!.buy;
+		const order = { issued: at(8, 8), total: t.boughtUnits, remain: 0, state: 'expired' };
+		trade(6100000001 + i, name, true, price, order, at(8, 9, i), t.boughtUnits);
+	}
+	const carbidePrice = jita[typeId('Titanium Carbide')]!.sell;
+	trade(
+		6100000003,
+		'Titanium Carbide',
+		false,
+		carbidePrice,
+		{ issued: at(4, 10), total: t.sale.listed, remain: t.sale.listed - t.sale.sold, state: 'open' },
+		at(3, 15),
+		t.sale.sold
+	);
+
+	// Contracts: issued day 9 10:00 by a seller, accepted by the pilot at 11:00.
+	const issued = at(9, 10);
+	const completed = at(9, 11);
+	const janiceLines: [string, number][] = [
+		['Titanium', t.rawUnits],
+		['Chromium', t.rawUnits],
+		['Oxygen Fuel Block', 150]
+	];
+	const ruleLines: [string, number][] = [
+		['Silicates', t.rawUnits],
+		['Evaporite Deposits', t.rawUnits],
+		['Oxygen Fuel Block', 300]
+	];
+	const appraisal: JaniceAppraisal = {
+		code: t.janiceCode,
+		created: at(9, 9, 30),
+		datasetTime: at(9, 9),
+		marketId: 2,
+		marketName: 'Jita 4-4',
+		pricing: 'buy',
+		pricingVariant: 'immediate',
+		pricePercentage: null,
+		items: janiceLines.map(([name, amount]) => {
+			const p = jita[typeId(name)]!;
+			return {
+				typeId: typeId(name),
+				name,
+				amount,
+				buyPrice: p.buy,
+				splitPrice: round2((p.buy + p.sell) / 2),
+				sellPrice: p.sell
+			};
+		})
+	};
+	const janicePrice = Math.round(appraisal.items.reduce((sum, i) => sum + i.amount * i.buyPrice, 0) * 0.95);
+	const rulePrice = Math.round(
+		ruleLines.reduce((sum, [name, qty]) => sum + qty * referencePrice(typeId(name), issued)!.unitPrice, 0)
+	);
+	const contract = (contractId: number, price: number, title: string, janice: JaniceAppraisal | null) => ({
+		contract_id: contractId,
+		source_id: SEED_TRACKING_SOURCE,
+		type: 'item_exchange',
+		status: 'finished',
+		issuer_id: t.sellerId,
+		issuer_corporation_id: t.sellerCorporationId,
+		acceptor_id: pilot,
+		assignee_id: pilot,
+		for_corporation: 0,
+		price,
+		reward: 0,
+		title,
+		date_issued: issued,
+		date_completed: completed,
+		start_location_id: JITA_STATION.locationId,
+		janice_code: janice?.code ?? null,
+		janice_json: janice ? JSON.stringify(janice) : null
+	});
+	const contracts = [
+		contract(
+			t.contracts.janice,
+			janicePrice,
+			`Titanium Chromide inputs https://janice.e-351.com/a/${t.janiceCode}`,
+			appraisal
+		),
+		contract(t.contracts.rule, rulePrice, 'Silicon Diborite inputs', null)
+	];
+	for (const c of contracts) journalRow(completed, 'contract_price', -c.price, c.contract_id, 'contract_id');
+	const contractItems = [
+		...janiceLines.map(([name, quantity], i) => [t.contracts.janice, i + 1, name, quantity] as const),
+		...ruleLines.map(([name, quantity], i) => [t.contracts.rule, i + 1, name, quantity] as const)
+	].map(([contractId, recordId, name, quantity]) => ({
+		contract_id: contractId,
+		record_id: recordId,
+		type_id: typeId(name),
+		quantity,
+		is_included: 1
+	}));
+
+	let blueprintId = 1060000000100;
+	const jobs = t.jobs.map((j): Record<string, string | number | null> => {
+		const reaction = sde.dataset.reactions.find((r) => r.name === j.name)!;
+		const start = at(j.startDay, 12);
+		const end = start + t.runs * SEED_RUN_MS;
+		return {
+			job_id: j.jobId,
+			source_id: SEED_TRACKING_SOURCE,
+			installer_id: pilot,
+			activity_id: 9,
+			blueprint_id: blueprintId++,
+			blueprint_me: null,
+			blueprint_type_id: reaction.blueprintTypeId,
+			product_type_id: reaction.product.typeId,
+			runs: t.runs,
+			status: 'delivered',
+			cost: j.cost,
+			facility_id: SEED_FACILITIES[j.facility].facilityId,
+			output_location_id: SEED_FACILITIES[j.facility].facilityId,
+			start_date: start,
+			end_date: end,
+			completed_date: end + 3_600_000
+		};
+	});
+	const m = t.manufacturing;
+	const blueprint = sde.dataset.manufacturing?.find((b) => b.blueprintTypeId === m.blueprintTypeId);
+	if (!blueprint) throw new Error(`the SDE fixture has no manufacturing blueprint ${m.blueprintTypeId}`);
+	const manufacturingStart = at(m.startDay, 9);
+	jobs.push({
+		job_id: m.jobId,
+		source_id: SEED_TRACKING_SOURCE,
+		installer_id: pilot,
+		activity_id: 1,
+		blueprint_id: m.blueprintId,
+		blueprint_me: m.me,
+		blueprint_type_id: blueprint.blueprintTypeId,
+		product_type_id: blueprint.productTypeId,
+		runs: m.runs,
+		status: 'delivered',
+		cost: m.cost,
+		facility_id: SEED_FACILITIES.factory.facilityId,
+		output_location_id: SEED_FACILITIES.factory.facilityId,
+		start_date: manufacturingStart,
+		end_date: manufacturingStart + 6 * 3_600_000,
+		completed_date: manufacturingStart + 7 * 3_600_000
+	});
+	const manualEntries = [
+		{
+			entry_id: t.manual.entryId,
+			date: at(t.manual.day, 14),
+			type_id: typeId(t.manual.name),
+			quantity: t.manual.quantity,
+			unit_price: t.manual.unitPrice,
+			note: t.manual.note,
+			created_at: at(t.manual.day, 15)
+		}
+	];
+
+	const rows = {
+		transactions,
+		journal,
+		orders,
+		contracts,
+		contractItems,
+		jobs,
+		corrections: [],
+		manualEntries
+	};
+	const { refinery, factory, unknown } = SEED_FACILITIES;
+	const facilityRows: (TrackedFacilityRow & Record<string, SqlCell>)[] = [
+		{
+			facility_id: refinery.facilityId,
+			kind: 'structure',
+			name: refinery.name,
+			system_id: refinery.systemId,
+			type_id: refinery.typeId,
+			rigs_json: JSON.stringify(refinery.rigs),
+			rigs_read_at: now,
+			checked_at: now,
+			next_check_at: now + 30 * DAY_MS
+		},
+		{
+			facility_id: factory.facilityId,
+			kind: 'structure',
+			name: factory.name,
+			system_id: factory.systemId,
+			type_id: factory.typeId,
+			rigs_json: null,
+			rigs_read_at: null,
+			checked_at: now,
+			next_check_at: now + 30 * DAY_MS
+		},
+		{
+			facility_id: unknown.facilityId,
+			kind: 'unknown',
+			name: null,
+			system_id: null,
+			type_id: null,
+			rigs_json: null,
+			rigs_read_at: null,
+			checked_at: now,
+			next_check_at: now + DAY_MS
+		}
+	];
+	const systemBands = new Map(sde.systems.map((s) => [s.systemId, s.securityBand]));
+	const result = runLedger(
+		toRunLedgerInput(rows as unknown as TrackedRows, {
+			dataset: sde.dataset,
+			settings,
+			tracking,
+			systemBands,
+			facilities: facilitiesFromEve(
+				facilityRows,
+				new Map([...SEED_INVENTORY.personal, JITA_STATION].map((l) => [l.locationId, l.systemId])),
+				systemBands
+			),
+			characterIds: [pilot],
+			corporationIds: [SEED_INVENTORY.corporation.corporationId],
+			ordersAvailable: [SEED_TRACKING_SOURCE],
+			referencePrice,
+			buyPrice,
+			now
+		})
+	);
+	const out = ledgerResultRows(result);
+
+	const source: RawSql = { sql: seedSource('character', pilot) };
+	const owned = (table: string, columns: readonly string[], list: SqlCell[][]) =>
+		list.length === 0
+			? []
+			: insert(
+					table,
+					['user_id', ...columns],
+					list.map((row) => [userId, ...row])
+				);
+	const tracked = (table: string, list: Record<string, string | number | null>[]) =>
+		owned(
+			table,
+			Object.keys(list[0]!),
+			list.map((row) =>
+				Object.entries(row).map(([column, value]) => (column === 'source_id' ? source : value))
+			)
+		);
+	return [
+		...insert(
+			'tracking_streams',
+			['source_id', 'stream', 'user_id', 'status', 'expires_at', 'last_synced_at'],
+			t.streams.map((stream) => [source, stream, userId, 'ok', now + 3_600_000, now])
+		),
+		...tracked('tracked_transactions', transactions),
+		...tracked('tracked_journal', journal),
+		...tracked('tracked_orders', orders),
+		...tracked('tracked_contracts', contracts),
+		...tracked('tracked_contract_items', contractItems),
+		...tracked('tracked_jobs', jobs),
+		...owned(
+			'tracked_facilities',
+			Object.keys(facilityRows[0]!),
+			facilityRows.map((row) => Object.values(row))
+		),
+		...owned(
+			'manual_entries',
+			Object.keys(manualEntries[0]!),
+			manualEntries.map((row) => Object.values(row))
+		),
+		...owned('ledger_lots', LEDGER_LOT_COLUMNS, out.lots),
+		...owned('ledger_uses', LEDGER_USE_COLUMNS, out.uses),
+		...owned('job_results', JOB_RESULT_COLUMNS, out.jobs),
+		...owned('ledger_prices', LEDGER_PRICE_COLUMNS, out.prices),
+		...owned('ledger_unallocated_fees', UNALLOCATED_FEE_COLUMNS, out.unallocatedFees),
+		...owned('ledger_state', ['rebuilt_at', 'dirty'], [[now, 0]])
 	];
 }
 
@@ -377,6 +909,24 @@ export function buildSeedSql(
 		'DELETE FROM user_sessions WHERE user_id NOT IN (SELECT user_id FROM users);',
 		'DELETE FROM characters WHERE user_id NOT IN (SELECT user_id FROM users);',
 		'DELETE FROM inventory_source_readers WHERE source_id NOT IN (SELECT source_id FROM inventory_sources) OR character_id NOT IN (SELECT character_id FROM characters);',
+		...[
+			'tracking_streams',
+			'tracked_jobs',
+			'tracked_facilities',
+			'tracked_transactions',
+			'tracked_journal',
+			'tracked_orders',
+			'tracked_contract_items',
+			'tracked_contracts',
+			'price_corrections',
+			'manual_entries',
+			'ledger_lots',
+			'ledger_uses',
+			'job_results',
+			'ledger_prices',
+			'ledger_unallocated_fees',
+			'ledger_state'
+		].map((table) => `DELETE FROM ${table} WHERE user_id NOT IN (SELECT user_id FROM users);`),
 		// Seed structure hubs and hubs without links go; NPC hubs get their migration state back.
 		`DELETE FROM market_hubs WHERE kind = 'structure' AND (hub_id IN (${SEED_STRUCTURE_HUBS.map((h) => q(`structure-${h.structureId}`)).join(', ')}) OR location_id NOT IN (SELECT structure_id FROM structure_links));`,
 		`UPDATE market_hubs SET enabled = 1, visibility = 'public', share_status = 'none', last_error = NULL, sort_order = CASE hub_id ${SEED_HUBS.map((h, i) => `WHEN ${q(h.hubId)} THEN ${i + 1}`).join(' ')} END WHERE kind <> 'structure';`
@@ -561,7 +1111,12 @@ export function buildSeedSql(
 				`seed-${u.characterId}`,
 				formatScopes(
 					u.characterId === SEED_INVENTORY.characterId
-						? [...STRUCTURE_SCOPES, ...ESI_FEATURES.assets, ...ESI_FEATURES.corp_assets]
+						? [
+								...STRUCTURE_SCOPES,
+								...ESI_FEATURES.assets,
+								...ESI_FEATURES.corp_assets,
+								...ESI_FEATURES.tracking
+							]
 						: STRUCTURE_SCOPES
 				),
 				refreshTokenEnc,
@@ -619,7 +1174,7 @@ export function buildSeedSql(
 			])
 		)
 	);
-	core.push(...inventorySql(sde, now));
+	core.push(...inventorySql(sde, now), ...trackingSql(sde, market, now));
 
 	// History rows are generated in SQL (recursive CTEs) to keep the seed file small. The jitter term is an
 	// integer hash of (step, type) so every run produces the same values.
@@ -704,8 +1259,12 @@ FROM steps, base b, regions r;`,
 	};
 }
 
+/** The SDE fixture with its industry data (`Dataset.industry`), as the SDE sync parses a build. */
 export async function loadFixtureSde(path = FIXTURE_ZIP): Promise<SdeDataset> {
-	return parseSdeZip(new Blob([readFileSync(path)]).stream());
+	const json = (name: string): unknown => JSON.parse(readFileSync(join(INDUSTRY_FIXTURES, name), 'utf8'));
+	return parseSdeZip(new Blob([readFileSync(path)]).stream(), {
+		industry: readIndustrySources(json('industrymodifiersources.json'), json('industrytargetfilters.json'))
+	});
 }
 
 function wrangler(args: string[], persistTo: string) {
@@ -716,8 +1275,18 @@ function wrangler(args: string[], persistTo: string) {
 	execSync(command, { cwd: ROOT, stdio: ['ignore', 'ignore', 'inherit'] });
 }
 
-/** Applies the migrations and replaces the seed rows and KV values in `persistTo`. */
-export async function seedLocal(persistTo = PERSIST_TO): Promise<void> {
+/**
+ * Applies the migrations and replaces the seed rows and KV values in `persistTo`, then runs `extraCoreSql`
+ * (statements a caller adds to the core database, e.g. the e2e server's own rows). Refuses the
+ * developer's own state (`DEV_STATE`) before doing anything: the seed replaces reference tables,
+ * prices and history there and breaks the real ESI data.
+ */
+export async function seedLocal(persistTo = PERSIST_TO, extraCoreSql: readonly string[] = []): Promise<void> {
+	if (resolve(persistTo).toLowerCase() === resolve(DEV_STATE).toLowerCase()) {
+		throw new Error(
+			`Refusing to seed ${DEV_STATE}: it holds your real local data. Seed another directory (default ${PERSIST_TO}).`
+		);
+	}
 	const sde = await loadFixtureSde();
 	const refreshTokenEnc = await encryptToken(SEED_REFRESH_TOKEN, DEV_TOKEN_ENCRYPTION_KEY);
 	const seed = buildSeedSql(sde, buildMarketFixture(sde), Date.now(), refreshTokenEnc);
@@ -728,7 +1297,7 @@ export async function seedLocal(persistTo = PERSIST_TO): Promise<void> {
 		dataset: join(OUT_DIR, 'dataset.json'),
 		market: join(OUT_DIR, 'market.json')
 	};
-	writeFileSync(files.core, seed.core);
+	writeFileSync(files.core, [seed.core, ...extraCoreSql].join('\n'));
 	writeFileSync(files.history, seed.history);
 	writeFileSync(files.dataset, seed.kv['dataset:v1']);
 	writeFileSync(files.market, seed.kv['market:v1']);

@@ -110,6 +110,20 @@ const RESET_SQL = [
 	"UPDATE market_hubs SET enabled = 1, visibility = 'public', last_success_at = NULL, last_error = NULL",
 	'DELETE FROM market_stats',
 	'DELETE FROM structure_links',
+	'DELETE FROM price_corrections',
+	'DELETE FROM ledger_uses',
+	'DELETE FROM ledger_lots',
+	'DELETE FROM job_results',
+	'DELETE FROM ledger_prices',
+	'DELETE FROM ledger_unallocated_fees',
+	'DELETE FROM ledger_state',
+	'DELETE FROM tracked_contract_items',
+	'DELETE FROM tracked_contracts',
+	'DELETE FROM tracked_jobs',
+	'DELETE FROM tracked_transactions',
+	'DELETE FROM tracked_journal',
+	'DELETE FROM tracked_orders',
+	'DELETE FROM tracking_streams',
 	'DELETE FROM inventory_source_readers',
 	'DELETE FROM inventory_selection',
 	'DELETE FROM inventory_items',
@@ -216,6 +230,18 @@ export async function mockedDailyWorkflow(): Promise<WorkflowIntrospector> {
  */
 export async function mockedInventoryWorkflow(): Promise<WorkflowIntrospector> {
 	const introspector = await introspectWorkflow(env.INVENTORY_SYNC);
+	await introspector.modifyAll(async (m) => {
+		await m.mockStepResult({ name: 'prepare' }, { ok: false, status: 'busy', message: 'mocked' });
+	});
+	return introspector;
+}
+
+/**
+ * `TRACKING_SYNC` instances complete at once without touching their connection: a mocked `prepare` ends
+ * them as `busy`, so a claimed connection stays `running`.
+ */
+export async function mockedTrackingWorkflow(): Promise<WorkflowIntrospector> {
+	const introspector = await introspectWorkflow(env.TRACKING_SYNC);
 	await introspector.modifyAll(async (m) => {
 		await m.mockStepResult({ name: 'prepare' }, { ok: false, status: 'busy', message: 'mocked' });
 	});

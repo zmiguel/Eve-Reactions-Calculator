@@ -20,12 +20,12 @@ const SETTLE_SQL = `
 	RETURNING source_id`;
 
 /**
- * Claims source `?1` for run `?2` at `?3` unless a sync is running (stale ones are settled first) or,
- * with `?4` = 1, its ESI data expires after `?3`.
+ * Claims source `?1` for run `?2` at `?3` unless its Inventory switch is off, a sync is running (stale
+ * ones are settled first) or, with `?4` = 1, its ESI data expires after `?3`.
  */
 const CLAIM_SQL = `
 	UPDATE inventory_sources SET status = 'running', run_id = ?2, sync_started_at = ?3, last_attempt_at = ?3
-	WHERE source_id = ?1 AND status <> 'running'
+	WHERE source_id = ?1 AND inventory_enabled = 1 AND status <> 'running'
 		AND (?4 = 0 OR data_expires_at IS NULL OR data_expires_at <= ?3)
 	RETURNING source_id`;
 
@@ -69,11 +69,16 @@ export async function claimInventorySource(
 	const [, claimed, existing] = await env.DB.batch([
 		env.DB.prepare(SETTLE_SQL).bind(sourceId, now - INVENTORY_RUN_STALE_MINUTES * 60_000),
 		env.DB.prepare(CLAIM_SQL).bind(sourceId, runId, now, respectExpiry ? 1 : 0),
-		env.DB.prepare('SELECT status, data_expires_at FROM inventory_sources WHERE source_id = ?').bind(sourceId)
+		env.DB.prepare(
+			'SELECT status, data_expires_at, inventory_enabled FROM inventory_sources WHERE source_id = ?'
+		).bind(sourceId)
 	]);
 	if (claimed!.results.length > 0) return 'claimed';
-	const row = (existing!.results as { status: string; data_expires_at: number | null }[])[0];
-	if (!row) return 'missing';
+	const row = (
+		existing!.results as { status: string; data_expires_at: number | null; inventory_enabled: number }[]
+	)[0];
+	// A connection with Inventory switched off has nothing to sync, like a removed one.
+	if (!row || !row.inventory_enabled) return 'missing';
 	if (row.status === 'running' || row.data_expires_at === null) return 'busy';
 	return { notBefore: row.data_expires_at };
 }

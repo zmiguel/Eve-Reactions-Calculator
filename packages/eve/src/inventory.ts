@@ -110,3 +110,50 @@ export function resolveInventory(
 		)
 	};
 }
+
+/** A structure in an owner's assets with the rigs fitted in its `RigSlot0`–`RigSlot7`. */
+export interface FittedStructure {
+	structureId: number;
+	/** Structure type; null when the rigs sit in an item that is not one of the structure types asked for. */
+	typeId: number | null;
+	/** The structure's solar system; null as for `typeId`. */
+	systemId: number | null;
+	/** Fitted rig type ids among the rigs asked for, sorted. */
+	rigs: number[];
+}
+
+const RIG_SLOT = /^RigSlot[0-7]$/;
+
+/**
+ * Structures in corporation assets and their fitted rigs of `rigTypeIds`. An owned Upwell structure is
+ * an asset in space (`location_type` `solar_system`, `item_id` = structure id) and its rigs are assets
+ * located in it with a `RigSlot*` flag, so a structure of `structureTypeIds` is returned even without
+ * such a rig (`rigs: []`: the owner's assets show it has none). Pure; sorted by structure id.
+ */
+export function fittedStructures(
+	rows: readonly AssetRow[],
+	structureTypeIds: ReadonlySet<number>,
+	rigTypeIds: ReadonlySet<number>
+): FittedStructure[] {
+	const structures = new Map<number, FittedStructure>();
+	for (const row of rows)
+		if (row.locationType === 'solar_system' && structureTypeIds.has(row.typeId))
+			structures.set(row.itemId, {
+				structureId: row.itemId,
+				typeId: row.typeId,
+				systemId: row.locationId,
+				rigs: []
+			});
+	for (const row of rows) {
+		if (!RIG_SLOT.test(row.locationFlag) || !rigTypeIds.has(row.typeId)) continue;
+		let structure = structures.get(row.locationId);
+		if (!structure) {
+			structure = { structureId: row.locationId, typeId: null, systemId: null, rigs: [] };
+			structures.set(row.locationId, structure);
+		}
+		structure.rigs.push(row.typeId);
+	}
+	const list = [...structures.values()].sort((a, b) => a.structureId - b.structureId);
+	for (const s of list) s.rigs.sort((a, b) => a - b);
+	return list;
+}

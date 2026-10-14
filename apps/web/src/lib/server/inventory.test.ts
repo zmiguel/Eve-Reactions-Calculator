@@ -118,6 +118,30 @@ describe('getUserInventory', () => {
 			oldestSyncAt: null
 		});
 	});
+
+	it('leaves out connections with Inventory off; their data is kept', async () => {
+		const { env, types } = await accounts();
+		const on = insertSource(env.DB, { userId: 'u1', characterId: alpha.characterId, ownerName: 'Alpha' });
+		const off = insertSource(env.DB, {
+			userId: 'u1',
+			characterId: alpha.characterId,
+			kind: 'corporation',
+			ownerId: 98000001,
+			ownerName: 'Seed Corp',
+			inventoryEnabled: false,
+			trackingEnabled: true
+		});
+		insertItems(env.DB, on, JITA, 'hangar', { [types.raw]: 5 });
+		insertItems(env.DB, off, JITA, 'hangar', { [types.raw]: 100, [types.formula]: 1 });
+		selectBucket(env.DB, on, JITA, 'hangar');
+		selectBucket(env.DB, off, JITA, 'hangar');
+
+		const inventory = await getUserInventory(asEnv(env), 'u1');
+		expect(inventory.stock).toEqual({ [types.raw]: 5 });
+		expect(inventory.formulas).toEqual({});
+		expect(inventory.sources.map((s) => s.sourceId)).toEqual([on]);
+		expect(env.DB.rows('SELECT quantity FROM inventory_items WHERE source_id = ?', off)).toHaveLength(2);
+	});
 });
 
 describe('listSources', () => {
@@ -188,7 +212,7 @@ describe('addSource corporation lookup', () => {
 		);
 		const { fetch, calls } = corpFetch('ok');
 		const outcome = await addSource(asEnv(env), fetch, 'u1', await corpCharacter(env), 'corporation');
-		expect(outcome).toMatchObject({ ok: true, label: 'Seed Corp' });
+		expect(outcome).toMatchObject({ ok: true, ownerName: 'Seed Corp', inventory: true, tracking: false });
 		expect(calls).toEqual([]);
 		const [source] = env.DB.rows<{ source_id: number }>('SELECT source_id FROM inventory_sources');
 		expect(
@@ -209,7 +233,7 @@ describe('addSource corporation lookup', () => {
 		const { env } = await accounts();
 		const { fetch, calls } = corpFetch('ok');
 		const outcome = await addSource(asEnv(env), fetch, 'u1', await corpCharacter(env), 'corporation');
-		expect(outcome).toMatchObject({ ok: true, label: 'Moon Corp' });
+		expect(outcome).toMatchObject({ ok: true, ownerName: 'Moon Corp' });
 		expect(calls).toEqual([`/characters/affiliation [${alpha.characterId}]`, '/universe/names [98000042]']);
 		expect(env.DB.rows('SELECT owner_id, owner_name FROM inventory_sources')).toEqual([
 			{ owner_id: 98000042, owner_name: 'Moon Corp' }
@@ -274,7 +298,7 @@ describe('addSource corporation lookup', () => {
 		});
 		const { fetch } = corpFetch('ok');
 		const outcome = await addSource(asEnv(env), fetch, 'u1', await corpCharacter(env), 'corporation');
-		expect(outcome).toMatchObject({ ok: true, label: 'Moon Corp' });
+		expect(outcome).toMatchObject({ ok: true, ownerName: 'Moon Corp' });
 		if (!outcome.ok || outcome.joined) throw new Error('expected a new source');
 		const ours = outcome.sourceId;
 		expect(ours).not.toBe(theirs);
@@ -351,7 +375,7 @@ describe('removeReader', () => {
 		expect(await removeReader(asEnv(env), 'u1', corp, alpha.characterId)).toEqual({
 			ok: false,
 			status: 400,
-			message: 'Alpha is the only character reading Seed Corp. Remove the inventory instead.'
+			message: 'Alpha is the only character reading Seed Corp. Remove the connection instead.'
 		});
 		expect(poolOf(env.DB, corp)).toEqual([alpha.characterId]);
 	});

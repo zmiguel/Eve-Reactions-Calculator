@@ -18,12 +18,21 @@ export const load: PageServerLoad = async ({ url, locals, platform, cookies }) =
 	if (purpose !== 'login' && purpose !== 'add_character')
 		error(400, 'purpose must be login or add_character.');
 
-	// Reuse a stored owner hash so a dev login never looks like a character transfer.
-	const ownerHash = (await getCharacter(env, characterId))?.ownerHash ?? `dev-${characterId}`;
+	// Reuse a stored owner hash so a dev login never looks like a character transfer, and the stored
+	// name unless `name` is given: only a new character gets the placeholder name.
+	const stored = await getCharacter(env, characterId);
+	const ownerHash = stored?.ownerHash ?? `dev-${characterId}`;
+	const name = params.get('name') || stored?.name || `Dev Pilot ${characterId}`;
 	const result = await completeLogin(
 		{ env, cookies, user: locals.user },
-		{ purpose, feature: null, characterId: null, returnTo: safeReturnTo(params.get('returnTo')) },
-		{ characterId, name: params.get('name') || `Dev Pilot ${characterId}`, scopes: [], ownerHash },
+		{
+			purpose,
+			feature: null,
+			features: null,
+			characterId: null,
+			returnTo: safeReturnTo(params.get('returnTo'))
+		},
+		{ characterId, name, scopes: [], ownerHash },
 		null
 	);
 	if (!result.ok) error(result.status, result.message);

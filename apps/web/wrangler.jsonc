@@ -81,7 +81,7 @@
 		{
 			"name": "ACCOUNT_RATE_LIMITER",
 			"namespace_id": "3002",
-			"simple": { "limit": 10, "period": 60 }
+			"simple": { "limit": 30, "period": 60 }
 		}
 	],
 	// Previews Base: settings of every Preview (`npx wrangler preview`). Previews read the SAME live data as

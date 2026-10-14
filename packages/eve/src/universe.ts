@@ -1,4 +1,5 @@
 import { EsiError, type EsiClient } from './esi.ts';
+import { isStationId } from './inventory.ts';
 
 export interface SystemInfo {
 	systemId: number;
@@ -75,6 +76,59 @@ export async function fetchStationInfo(client: EsiClient, stationId: number): Pr
 	return data ? { stationId, name: data.name, systemId: data.system_id } : null;
 }
 
+/** What EVE says about an industry job's facility; a refusal keeps its status and `Expires`. */
+export type FacilityLookup =
+	| {
+			ok: true;
+			kind: 'station' | 'structure';
+			name: string;
+			systemId: number;
+			/** Station or structure type. */
+			typeId: number | null;
+			/** ESI `Expires` (unix ms). */
+			expiresAt: number | null;
+	  }
+	| { ok: false; status: number; expiresAt: number | null };
+
+/**
+ * Looks up a job's facility: NPC stations (`isStationId`) through public `/universe/stations/{id}`,
+ * anything else through `/universe/structures/{id}` with `accessToken` (scope
+ * `esi-universe.read_structures.v1`; 403 when the character may not dock). Non-200 is returned, not thrown.
+ */
+export async function lookUpFacility(
+	client: EsiClient,
+	facilityId: number,
+	accessToken: string
+): Promise<FacilityLookup> {
+	if (isStationId(facilityId)) {
+		const res = await client.get<{ name: string; system_id: number; type_id?: number }>(
+			`/universe/stations/${facilityId}`
+		);
+		if (res.status !== 200 || !res.data) return { ok: false, status: res.status, expiresAt: res.expiresAt };
+		return {
+			ok: true,
+			kind: 'station',
+			name: res.data.name,
+			systemId: res.data.system_id,
+			typeId: res.data.type_id ?? null,
+			expiresAt: res.expiresAt
+		};
+	}
+	const res = await client.get<{ name: string; solar_system_id: number; type_id?: number }>(
+		`/universe/structures/${facilityId}`,
+		{ accessToken }
+	);
+	if (res.status !== 200 || !res.data) return { ok: false, status: res.status, expiresAt: res.expiresAt };
+	return {
+		ok: true,
+		kind: 'structure',
+		name: res.data.name,
+		systemId: res.data.solar_system_id,
+		typeId: res.data.type_id ?? null,
+		expiresAt: res.expiresAt
+	};
+}
+
 /** Ids per bulk request (`/characters/affiliation`, `/universe/names`; ESI accepts up to 1000). */
 export const ESI_BULK_CHUNK = 100;
 
@@ -84,10 +138,14 @@ export interface Affiliation {
 	allianceId: number | null;
 }
 
-/** Outcome of a chunked bulk lookup: what resolved, plus the chunks ESI refused (status per chunk). */
+/**
+ * Outcome of a chunked bulk lookup: what resolved, the chunks ESI refused (status per chunk), and the
+ * latest `Expires` of the chunks ESI answered (unix ms; null when none had one).
+ */
 export interface BulkResult<T> {
 	items: T[];
 	failedChunks: { ids: number[]; status: number }[];
+	expiresAt: number | null;
 }
 
 /**
@@ -101,10 +159,11 @@ async function postChunks<Row, T>(
 	map: (row: Row) => T
 ): Promise<BulkResult<T>> {
 	const unique = [...new Set(ids)];
-	const result: BulkResult<T> = { items: [], failedChunks: [] };
+	const result: BulkResult<T> = { items: [], failedChunks: [], expiresAt: null };
 	for (let start = 0; start < unique.length; start += ESI_BULK_CHUNK) {
 		const chunk = unique.slice(start, start + ESI_BULK_CHUNK);
 		const res = await client.post<Row[]>(path, chunk);
+		if (res.expiresAt !== null) result.expiresAt = Math.max(result.expiresAt ?? 0, res.expiresAt);
 		if (res.status !== 200 || !res.data) result.failedChunks.push({ ids: chunk, status: res.status });
 		else result.items.push(...res.data.map(map));
 	}

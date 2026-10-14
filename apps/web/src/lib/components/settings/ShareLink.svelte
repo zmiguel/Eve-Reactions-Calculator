@@ -46,9 +46,9 @@
 	</button>
 	<span role="status" class="text-xs text-gray-500 dark:text-gray-400">
 		{#if status === 'copied'}
-			Link copied to the clipboard
+			Link copied to the clipboard.
 		{:else if status === 'failed'}
-			Clipboard unavailable: copy the selected link
+			Clipboard unavailable: copy the selected link.
 		{/if}
 	</span>
 </div>
