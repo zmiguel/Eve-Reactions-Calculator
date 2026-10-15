@@ -412,7 +412,8 @@ describe('buildSeedSql', () => {
 		expect(first.streams).toEqual(
 			[...SEED_TRACKING.streams].sort().map((stream) => ({ stream, status: 'ok' }))
 		);
-		expect(first.counts).toEqual([3, 9, 3, 2, 6, 4, 1]);
+		// The day-1 mixed contract adds a contract, two items and its contract_price journal row.
+		expect(first.counts).toEqual([3, 10, 3, 3, 8, 4, 1]);
 		// The refinery with its rig read from assets, the Raitaru without rigs read, a refused lookup.
 		const { refinery, factory, unknown } = SEED_FACILITIES;
 		expect(first.facilities).toEqual([
@@ -494,6 +495,18 @@ describe('buildSeedSql', () => {
 				ref: `contract:${SEED_TRACKING.contracts.rule}`,
 				type_id: typeId,
 				source_kind: 'rule_match',
+				needs_review: 0,
+				tax_source: null,
+				broker_fee_source: null
+			})),
+			// Platinum and the module of the mixed contract: the module is not tracked, nothing needs review.
+			...[
+				[SEED_TRACKING.mixed.moduleTypeId, 'untracked'],
+				[16644, 'contract_mixed']
+			].map(([typeId, kind]) => ({
+				ref: `contract:${SEED_TRACKING.contracts.mixed}`,
+				type_id: typeId,
+				source_kind: kind,
 				needs_review: 0,
 				tax_source: null,
 				broker_fee_source: null

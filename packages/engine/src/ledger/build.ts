@@ -1,4 +1,5 @@
 import { requiredQuantity } from '../formulas.ts';
+import { inventoryTypeIds } from '../inventory.ts';
 import type { Dataset, ManufacturingBlueprint, Reaction } from '../types.ts';
 import { priceContract, priceTrades } from './pricing.ts';
 import {
@@ -174,8 +175,9 @@ export function buildLedger(input: BuildLedgerInput): BuildLedgerResult {
 			source: { kind: 'manual', text: `Entered by you on ${formatDate(entry.at)}`, needsReview: false }
 		});
 	}
+	// Untracked types are recorded with their price but are no part of FIFO.
 	for (const t of input.trades) {
-		if (t.transfer || t.quantity <= 0) continue;
+		if (t.transfer || t.quantity <= 0 || t.source.kind === 'untracked') continue;
 		if (t.isBuy) {
 			events.push({
 				at: t.at,
@@ -205,7 +207,7 @@ export function buildLedger(input: BuildLedgerInput): BuildLedgerResult {
 	for (const c of input.contracts) {
 		if (c.direction === 'transfer') continue;
 		for (const item of c.items) {
-			if (item.quantity <= 0) continue;
+			if (item.quantity <= 0 || item.source.kind === 'untracked') continue;
 			// Several rows of one contract: by type, then incoming first (one row per type and direction).
 			const order = item.typeId * 2 + (item.incoming ? 0 : 1);
 			if (item.incoming && (c.direction === 'buy' || c.direction === 'swap')) {
@@ -546,8 +548,13 @@ export interface RunLedgerInput {
 	now: number;
 }
 
-/** Prices the raw trades and contracts, then rebuilds the ledger from them. */
+/**
+ * Prices the raw trades and contracts, then rebuilds the ledger from them. Only types of
+ * `inventoryTypeIds(dataset)` (every type a reaction uses) are tracked; the rest is priced as
+ * `untracked` and stays out of the ledger.
+ */
 export function runLedger(input: RunLedgerInput): LedgerResult {
+	const tracked = inventoryTypeIds(input.dataset);
 	const { trades, unallocatedFees } = priceTrades({
 		transactions: input.transactions,
 		journal: input.journal,
@@ -556,11 +563,19 @@ export function runLedger(input: RunLedgerInput): LedgerResult {
 		brokerFeePct: input.brokerFeePct,
 		salesTaxPct: input.salesTaxPct,
 		ordersAvailable: input.ordersAvailable,
-		corrections: input.corrections
+		corrections: input.corrections,
+		tracked
 	});
 	const contracts: PricedContract[] = [];
 	for (const c of input.contracts) {
-		const priced = priceContract(c, input.own, input.settings, input.referencePrice, input.corrections);
+		const priced = priceContract(
+			c,
+			input.own,
+			input.settings,
+			input.referencePrice,
+			input.corrections,
+			tracked
+		);
 		if (priced) contracts.push(priced);
 	}
 	const built = buildLedger({

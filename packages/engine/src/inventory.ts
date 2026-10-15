@@ -46,6 +46,8 @@ function inventoryIndex(dataset: Dataset): InventoryIndex {
 /**
  * Types worth reading from an inventory: every reaction's formula (blueprint), materials and product,
  * plus the reprocessed outputs of the unrefined reactions' products (Unrefined and Prismaticite tiers).
+ * Also the types the profit tracking ledger tracks (`runLedger`); trades and contract items of other
+ * types are recorded as `untracked`.
  */
 export function inventoryTypeIds(dataset: Dataset): ReadonlySet<number> {
 	return inventoryIndex(dataset).relevant;

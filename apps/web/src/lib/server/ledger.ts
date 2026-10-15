@@ -91,7 +91,8 @@ const SQL = {
 	keys: `${ENTRIES} SELECT e.kind, e.id ${FILTERED} ORDER BY e.at DESC, e.kind DESC, e.id DESC`,
 	/**
 	 * Totals of the filtered entries' prices (only the filtered item's prices with an item filter) and
-	 * the contract fees of the filtered contracts.
+	 * the contract fees of the filtered contracts. "Not tracked" prices (items no reaction uses) count
+	 * nowhere, nor do the fees of a contract of only such items.
 	 */
 	summary: `${ENTRIES}, f AS (SELECT e.kind, e.id, e.review ${FILTERED}),
 	p AS (
@@ -99,7 +100,7 @@ const SQL = {
 			lp.broker_fee, lp.broker_fee_source
 		FROM f JOIN ledger_prices lp ON lp.user_id = ?1
 			AND lp.ref = (CASE f.kind WHEN 'market' THEN 'transaction:' ELSE 'contract:' END) || f.id
-		WHERE f.kind <> 'manual' AND (?2 IS NULL OR lp.type_id = ?2)
+		WHERE f.kind <> 'manual' AND (?2 IS NULL OR lp.type_id = ?2) AND lp.source_kind <> 'untracked'
 		UNION ALL
 		SELECT 1, 0, m.unit_price * m.quantity, NULL, NULL, NULL, NULL
 		FROM f JOIN manual_entries m ON m.user_id = ?1 AND m.entry_id = f.id
@@ -115,7 +116,9 @@ const SQL = {
 			AS estimated,
 		(SELECT COALESCE(SUM(ABS(j.amount)), 0) FROM tracked_journal j
 			JOIN f ON f.kind = 'contract' AND j.context_id = f.id
-			WHERE j.user_id = ?1 AND j.context_id_type = 'contract_id' AND j.ref_type IN (${CONTRACT_FEES}))
+			WHERE j.user_id = ?1 AND j.context_id_type = 'contract_id' AND j.ref_type IN (${CONTRACT_FEES})
+				AND (SELECT MIN(lp.source_kind = 'untracked') FROM ledger_prices lp
+					WHERE lp.user_id = ?1 AND lp.ref = 'contract:' || f.id) IS NOT 1)
 			AS contract_fees
 	FROM p`,
 	/** Market fees no order matched, of tracked connections; `?2` earliest date, `?3` connection. */

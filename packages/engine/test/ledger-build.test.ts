@@ -870,4 +870,112 @@ describe('runLedger', () => {
 		// 5 × 20 + 100 × 11 + 100 × 5 = 1700.
 		expect(result.jobs[0].inputCost).toBe(1700);
 	});
+
+	it('records untracked trades and contract items without lots, sales or review', () => {
+		const ME = 1;
+		const MODULE = 4405; // no reaction uses it
+		const tx = (
+			transactionId: number,
+			date: number,
+			typeId: number,
+			quantity: number,
+			unitPrice: number,
+			isBuy: boolean
+		) =>
+			({
+				transactionId,
+				sourceId: 1,
+				division: null,
+				date,
+				typeId,
+				quantity,
+				unitPrice,
+				isBuy,
+				clientId: 50,
+				locationId: 60003760
+			}) satisfies LedgerTransaction;
+		const bought = (contractId: number, price: number, items: [number, number][]): LedgerContract => ({
+			contractId,
+			issuerId: 77,
+			issuerCorporationId: 78,
+			acceptorId: ME,
+			assigneeId: ME,
+			forCorporation: false,
+			price,
+			reward: 0,
+			title: null,
+			dateIssued: 0,
+			completedAt: 0,
+			items: items.map(([typeId, quantity], i) => ({ recordId: i + 1, typeId, quantity, isIncluded: true })),
+			janice: null
+		});
+		const result = runLedger({
+			dataset,
+			own: { characterIds: new Set([ME]), corporationIds: new Set() },
+			settings: TrackingSettings.parse({}),
+			brokerFeePct: 0,
+			salesTaxPct: 0,
+			ordersAvailable: new Set(),
+			transactions: [
+				tx(1, 0, MODULE, 2, 1000, true),
+				tx(2, 100, MODULE, 1, 1500, false),
+				// A formula is a reaction type: tracked.
+				tx(3, 0, TITANIUM_CHROMIDE_FORMULA, 1, 5000, true)
+			],
+			journal: [],
+			orders: [],
+			contracts: [
+				// Titanium 100 × 10 = 1,000; the module takes the 1,000 left.
+				bought(10, 2000, [
+					[TITANIUM, 100],
+					[MODULE, 1]
+				]),
+				// Free, untracked only.
+				bought(11, 0, [
+					[MODULE, 3],
+					[5697, 1]
+				])
+			],
+			jobs: [],
+			corrections: [],
+			manualEntries: [],
+			referencePrice: (typeId) => (typeId === TITANIUM ? { unitPrice: 10, label: 'Reference' } : null),
+			buyPrice: noPrices,
+			now: 10_000
+		});
+		expect(result.lots.map((l) => [l.typeId, l.originRef, l.unitCost])).toEqual([
+			[TITANIUM, 'contract:10', 10],
+			[TITANIUM_CHROMIDE_FORMULA, 'transaction:3', 5000]
+		]);
+		expect(result.uses).toEqual([]);
+		expect(result.trades.map((t) => [t.ref, t.source.kind, t.source.needsReview])).toEqual([
+			['transaction:1', 'untracked', false],
+			['transaction:3', 'market', false],
+			['transaction:2', 'untracked', false]
+		]);
+		expect(
+			result.contracts.map((c) => [
+				c.ref,
+				c.needsReview,
+				c.items.map((i) => [i.typeId, i.unitPrice, i.source.kind])
+			])
+		).toEqual([
+			[
+				'contract:10',
+				false,
+				[
+					[MODULE, 1000, 'untracked'],
+					[TITANIUM, 10, 'contract_mixed']
+				]
+			],
+			[
+				'contract:11',
+				false,
+				[
+					[MODULE, 0, 'untracked'],
+					[5697, 0, 'untracked']
+				]
+			]
+		]);
+	});
 });

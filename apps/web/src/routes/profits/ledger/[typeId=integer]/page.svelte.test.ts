@@ -187,6 +187,21 @@ describe('/profits/ledger/[typeId] page', () => {
 		expect(row.querySelector('[data-source] [data-pill]')?.textContent).toBe('Estimated fees');
 	});
 
+	it('lists a trade of an untracked item with its badge and no price', () => {
+		const untracked: LedgerItemTrade = {
+			...sale,
+			ref: 'transaction:903',
+			sourceKind: 'untracked',
+			sourceText: 'Not tracked'
+		};
+		const container = renderPage(data({ trades: paginate([untracked], 1) }));
+		const row = container.querySelector('[data-trade="transaction:903"]')!;
+		expect(row.hasAttribute('data-untracked')).toBe(true);
+		expect(row.querySelector('[data-source]')?.getAttribute('data-source')).toBe('untracked');
+		expect(row.querySelectorAll('[data-isk="none"]')).toHaveLength(2);
+		expect(row.querySelector('[data-estimated]')).toBeNull();
+	});
+
 	it('says what to do when nothing of the item is tracked, without tables or chart', () => {
 		const container = renderPage(
 			data({

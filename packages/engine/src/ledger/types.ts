@@ -68,6 +68,16 @@ export type PriceSourceKind =
 	| 'rule_match'
 	/** Split by the contract rule's reference prices; the implied % is outside tolerance. */
 	| 'rule_outside'
+	/**
+	 * A tracked item of a contract that also holds untracked items, valued at its reference price × the
+	 * rule's expected % (capped at the contract amount).
+	 */
+	| 'contract_mixed'
+	/**
+	 * An item no reaction uses (outside `inventoryTypeIds`): recorded and shown, but it makes no lot or
+	 * sale and never needs review.
+	 */
+	| 'untracked'
 	/** Could not be priced reliably (no reference price, or items went both ways). */
 	| 'review'
 	/** The user's correction. */

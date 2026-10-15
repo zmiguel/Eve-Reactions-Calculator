@@ -1,6 +1,6 @@
 <script lang="ts">
 	import Pill from '$lib/components/profits/Pill.svelte';
-	import { sourceBadge } from '$lib/ledger/source';
+	import { sourceBadge, UNTRACKED, UNTRACKED_TEXT } from '$lib/ledger/source';
 
 	interface Props {
 		/** Engine `PriceSourceKind`. */
@@ -17,17 +17,20 @@
 	let { kind, needsReview = false, estimatedFees = false, text, lines = [] }: Props = $props();
 
 	const badge = $derived(sourceBadge(kind, needsReview, estimatedFees));
+	/** "Not tracked" explains itself the same way everywhere, whatever text the ledger stored. */
+	const shown = $derived(kind === UNTRACKED ? UNTRACKED_TEXT : text);
+	const shownLines = $derived(kind === UNTRACKED ? [] : lines);
 </script>
 
 <details class="group max-w-xs" data-source={kind}>
-	<summary class="inline-flex cursor-pointer list-none items-center gap-1" title={text}>
+	<summary class="inline-flex cursor-pointer list-none items-center gap-1" title={shown}>
 		<Pill tone={badge.tone}>{badge.label}</Pill>
 		<span class="text-xs text-gray-400 group-open:rotate-90" aria-hidden="true">›</span>
 		<span class="sr-only">Show where this price comes from</span>
 	</summary>
 	<div class="mt-1 space-y-0.5 text-xs text-gray-600 dark:text-gray-300">
-		<p data-source-text>{text}</p>
-		{#each lines as line (line)}
+		<p data-source-text>{shown}</p>
+		{#each shownLines as line (line)}
 			<p class="text-gray-500 dark:text-gray-400" data-source-line>{line}</p>
 		{/each}
 	</div>

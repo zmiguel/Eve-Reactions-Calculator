@@ -12,6 +12,7 @@ import {
 	REACTORS,
 	Settings,
 	TrackingSettings,
+	inventoryTypeIds,
 	jobMaterialModifier,
 	manufacturingMaterialModifier,
 	parseRigIds,
@@ -460,9 +461,10 @@ export function toRunLedgerInput(rows: TrackedRows, ctx: LedgerContext): RunLedg
 export const REFERENCE_LOOKBACK_DAYS = 7;
 
 /**
- * UTC days per type the ledger can ask a reference or buy price for: every contract item at the
- * contract's `date_issued`, every material of a reaction job's formula and every reaction-product
- * material of a manufacturing job's blueprint at the job's `start_date`.
+ * UTC days per type the ledger can ask a reference or buy price for: every tracked contract item
+ * (`inventoryTypeIds`; untracked ones share what is left by quantity) at the contract's `date_issued`,
+ * every material of a reaction job's formula and every reaction-product material of a manufacturing
+ * job's blueprint at the job's `start_date`.
  */
 export function referenceRequests(
 	rows: Pick<TrackedRows, 'contracts' | 'contractItems' | 'jobs'>,
@@ -475,9 +477,10 @@ export function referenceRequests(
 		days.add(utcDate(at));
 	};
 	const issued = new Map(rows.contracts.map((c) => [c.contract_id, c.date_issued]));
+	const tracked = inventoryTypeIds(dataset);
 	for (const item of rows.contractItems) {
 		const at = issued.get(item.contract_id);
-		if (at !== undefined) add(item.type_id, at);
+		if (at !== undefined && tracked.has(item.type_id)) add(item.type_id, at);
 	}
 	const reactions = new Map(dataset.reactions.map((r) => [r.blueprintTypeId, r.materials]));
 	const manufacturing = new Map((dataset.manufacturing ?? []).map((b) => [b.blueprintTypeId, b.materials]));

@@ -22,11 +22,22 @@ const TRITANIUM = 34; // reference 5
 const PYERITE = 35; // reference 50
 const MEXALLON = 36; // no reference price
 const ISOGEN = 37; // reference 100
+// Untracked (no reaction uses them): the module has no reference price, the drone 1,000, the ship 3,000.
+const MODULE = 4405;
+const DRONE = 2488;
+const SHIP = 587;
+const TRACKED: ReadonlySet<number> = new Set([TRITANIUM, PYERITE, MEXALLON, ISOGEN]);
 
 const ISSUED = Date.UTC(2026, 9, 1, 8, 0, 0);
 const COMPLETED = Date.UTC(2026, 9, 2, 9, 30, 0);
 
-const REFERENCES: Record<number, number> = { [TRITANIUM]: 5, [PYERITE]: 50, [ISOGEN]: 100 };
+const REFERENCES: Record<number, number> = {
+	[TRITANIUM]: 5,
+	[PYERITE]: 50,
+	[ISOGEN]: 100,
+	[DRONE]: 1000,
+	[SHIP]: 3000
+};
 const referencePrice: ReferencePriceFn = (typeId, at) => {
 	expect(at).toBe(ISSUED); // the rule prices at date_issued
 	const unitPrice = REFERENCES[typeId];
@@ -57,8 +68,12 @@ function contract(overrides: Partial<LedgerContract>): LedgerContract {
 	};
 }
 
-function price(c: LedgerContract, corrections: readonly LedgerCorrection[] = []) {
-	return priceContract(c, own, settings, referencePrice, corrections);
+function price(
+	c: LedgerContract,
+	corrections: readonly LedgerCorrection[] = [],
+	rule: TrackingSettings = settings
+) {
+	return priceContract(c, own, rule, referencePrice, corrections, TRACKED);
 }
 
 /** Σ quantity × unit price, rounded to cents. */
@@ -385,6 +400,188 @@ describe('priceContract splits', () => {
 	});
 });
 
+describe('priceContract with untracked items', () => {
+	const pct90 = TrackingSettings.parse({ contractRule: { expectedPct: 90 } });
+
+	it('mixed: tracked lines at reference × expected %, untracked lines share the rest by reference', () => {
+		// Tritanium 1,000 × 5 × 90% = 4,500; the 15,500 left goes to the drone (4 × 1,000) and the
+		// ship (2 × 3,000) as 4,000 : 6,000 → 6,200 and 9,300 → units 1,550 and 4,650.
+		const items = () => [item(TRITANIUM, 1000, true), item(DRONE, 4, true), item(SHIP, 2, true)];
+		const c = price(contract({ price: 20_000, items: items() }), [], pct90);
+		expect(c?.direction).toBe('buy');
+		expect(c?.items).toMatchObject([
+			{ typeId: TRITANIUM, unitPrice: 4.5, source: { kind: 'contract_mixed', needsReview: false } },
+			{ typeId: SHIP, unitPrice: 4650, source: { kind: 'untracked', needsReview: false } },
+			{ typeId: DRONE, unitPrice: 1550, source: { kind: 'untracked', needsReview: false } }
+		]);
+		expect(c?.impliedPct).toBeNull();
+		expect(c?.needsReview).toBe(false);
+		// A sale of the same items (acceptor own, asked for, paid with the reward) is split the same way.
+		const sale = price(
+			contract({ reward: 20_000, items: items().map((i) => ({ ...i, isIncluded: false })) }),
+			[],
+			pct90
+		);
+		expect(sale?.direction).toBe('sell');
+		expect(sale?.items.map((i) => [i.typeId, i.incoming, i.unitPrice])).toEqual([
+			[TRITANIUM, false, 4.5],
+			[SHIP, false, 4650],
+			[DRONE, false, 1550]
+		]);
+	});
+
+	it('mixed and cheaper than the tracked value: tracked lines scaled down to the price, untracked 0', () => {
+		// Tritanium 4,500 + Pyerite 100 × 50 × 90% = 4,500 → 9,000 > 3,000: scaled by 5,000 : 5,000 →
+		// 1,500 each → units 1.5 and 15; nothing left for the module.
+		const c = price(
+			contract({
+				price: 3_000,
+				items: [item(TRITANIUM, 1000, true), item(PYERITE, 100, true), item(MODULE, 10, true)]
+			}),
+			[],
+			pct90
+		);
+		expect(c?.items).toMatchObject([
+			{ typeId: TRITANIUM, unitPrice: 1.5, source: { kind: 'contract_mixed' } },
+			{ typeId: PYERITE, unitPrice: 15, source: { kind: 'contract_mixed' } },
+			{ typeId: MODULE, unitPrice: 0, source: { kind: 'untracked' } }
+		]);
+		expect(c?.needsReview).toBe(false);
+	});
+
+	it('mixed and free: the tracked line is capped at 0, nothing needs review', () => {
+		const c = price(contract({ price: 0, items: [item(TRITANIUM, 1000, true), item(MODULE, 10, true)] }));
+		expect(c?.items).toMatchObject([
+			{ typeId: TRITANIUM, unitPrice: 0, source: { kind: 'contract_mixed', needsReview: false } },
+			{ typeId: MODULE, unitPrice: 0, source: { kind: 'untracked', needsReview: false } }
+		]);
+		expect(c?.needsReview).toBe(false);
+	});
+
+	it('mixed with a tracked line without reference: only that line needs review; untracked split by quantity', () => {
+		// Tritanium 1,000 × 5 × 100% = 5,000; Mexallon 0 (review); 5,000 left, the module has no
+		// reference → split by quantity 5 : 5 → units 500.
+		const c = price(
+			contract({
+				price: 10_000,
+				items: [
+					item(TRITANIUM, 1000, true),
+					item(MEXALLON, 10, true),
+					item(DRONE, 5, true),
+					item(MODULE, 5, true)
+				]
+			})
+		);
+		expect(c?.items).toMatchObject([
+			{ typeId: TRITANIUM, unitPrice: 5, source: { kind: 'contract_mixed', needsReview: false } },
+			{ typeId: MEXALLON, unitPrice: 0, source: { kind: 'review', needsReview: true } },
+			{ typeId: DRONE, unitPrice: 500, source: { kind: 'untracked', needsReview: false } },
+			{ typeId: MODULE, unitPrice: 500, source: { kind: 'untracked', needsReview: false } }
+		]);
+		expect(c?.needsReview).toBe(true);
+	});
+
+	it('only untracked items: split by reference, no review; corrections on them are ignored', () => {
+		// 5,000 over drone 4 × 1,000 : ship 2 × 3,000 → 2,000 and 3,000 → units 500 and 1,500.
+		const c = price(contract({ price: 5_000, items: [item(DRONE, 4, true), item(SHIP, 2, true)] }), [
+			{ targetKind: 'contract_item', targetRef: `contract:500:${DRONE}`, unitPrice: 1 }
+		]);
+		expect(c?.items).toMatchObject([
+			{ typeId: SHIP, unitPrice: 1500, source: { kind: 'untracked', needsReview: false } },
+			{ typeId: DRONE, unitPrice: 500, source: { kind: 'untracked', needsReview: false } }
+		]);
+		expect(c?.needsReview).toBe(false);
+		// One untracked type: its whole price, still untracked.
+		expect(price(contract({ price: 300, items: [item(MODULE, 3, true)] }))?.items).toMatchObject([
+			{ unitPrice: 100, source: { kind: 'untracked', needsReview: false } }
+		]);
+	});
+
+	it('a free item exchange of untracked items only: every item untracked, no review', () => {
+		// The production shape: price and reward 0, no Janice, every record received, no type tracked.
+		const types = [MODULE, 5697, 5945, 9491];
+		const c = price(
+			contract({
+				price: 0,
+				reward: 0,
+				title: 'stuff',
+				items: types.map((typeId) => item(typeId, 1, true))
+			})
+		);
+		expect(c?.direction).toBe('buy');
+		expect(c?.items).toHaveLength(types.length);
+		for (const line of c?.items ?? []) {
+			expect(line).toMatchObject({ unitPrice: 0, source: { kind: 'untracked', needsReview: false } });
+		}
+		expect(c?.needsReview).toBe(false);
+	});
+
+	it('a Janice appraisal of every item splits a mixed contract; without the untracked item the rule values it', () => {
+		const appraisal = (types: number[]): LedgerJaniceAppraisal => ({
+			code: 'Mx34Ef',
+			marketName: 'Jita 4-4',
+			pricing: 'sell',
+			datasetTime: Date.UTC(2026, 8, 30, 12, 0),
+			items: types.map((typeId) => ({
+				typeId,
+				buyPrice: 1,
+				splitPrice: 2,
+				sellPrice: typeId === TRITANIUM ? 6 : 400
+			}))
+		});
+		const items = () => [item(TRITANIUM, 1000, true), item(MODULE, 10, true)];
+		// sell prices: 1,000 × 6 = 6,000 and 10 × 400 = 4,000 → exactly 10,000 → units 6 and 400.
+		const c = price(contract({ price: 10_000, items: items(), janice: appraisal([TRITANIUM, MODULE]) }));
+		expect(c?.items).toMatchObject([
+			{ typeId: TRITANIUM, unitPrice: 6, source: { kind: 'janice', needsReview: false } },
+			{ typeId: MODULE, unitPrice: 400, source: { kind: 'untracked', needsReview: false } }
+		]);
+		// Appraisal without the module: Tritanium at 5 × 100% = 5,000, the module takes the 5,000 left.
+		const partial = price(contract({ price: 10_000, items: items(), janice: appraisal([TRITANIUM]) }));
+		expect(partial?.items).toMatchObject([
+			{ typeId: TRITANIUM, unitPrice: 5, source: { kind: 'contract_mixed' } },
+			{ typeId: MODULE, unitPrice: 500, source: { kind: 'untracked' } }
+		]);
+	});
+
+	it('a swap with an untracked item: tracked items need review, the untracked one does not', () => {
+		const c = price(
+			contract({
+				issuerId: 1001,
+				acceptorId: 9001,
+				items: [item(TRITANIUM, 1000, false), item(DRONE, 2, true)]
+			})
+		);
+		expect(c?.direction).toBe('swap');
+		expect(c?.items).toMatchObject([
+			{ typeId: TRITANIUM, incoming: true, unitPrice: 5, source: { kind: 'review', needsReview: true } },
+			{ typeId: DRONE, incoming: false, unitPrice: 1000, source: { kind: 'untracked', needsReview: false } }
+		]);
+		expect(c?.needsReview).toBe(true);
+	});
+
+	it('a corrected tracked line of a mixed contract keeps its price; the untracked line gets the rest', () => {
+		// Pyerite corrected to 40 → 4,000; Tritanium 5,000; 20,000 − 4,000 − 5,000 = 11,000 → drone 4 →
+		// 2,750. The correction on the drone is ignored.
+		const c = price(
+			contract({
+				price: 20_000,
+				items: [item(TRITANIUM, 1000, true), item(PYERITE, 100, true), item(DRONE, 4, true)]
+			}),
+			[
+				{ targetKind: 'contract_item', targetRef: `contract:500:${PYERITE}`, unitPrice: 40 },
+				{ targetKind: 'contract_item', targetRef: `contract:500:${DRONE}`, unitPrice: 1 }
+			]
+		);
+		expect(c?.items).toMatchObject([
+			{ typeId: TRITANIUM, unitPrice: 5, source: { kind: 'contract_mixed' } },
+			{ typeId: PYERITE, unitPrice: 40, source: { kind: 'correction', needsReview: false } },
+			{ typeId: DRONE, unitPrice: 2750, source: { kind: 'untracked' } }
+		]);
+		expect(c?.needsReview).toBe(false);
+	});
+});
+
 describe('priceTrades', () => {
 	const T = Date.UTC(2026, 9, 10, 12, 0, 0); // a whole second
 	const JITA = 60003760;
@@ -488,7 +685,8 @@ describe('priceTrades', () => {
 		brokerFeePct: 1.5,
 		salesTaxPct: 3.37,
 		ordersAvailable: new Set([1]),
-		corrections: [] as LedgerCorrection[]
+		corrections: [] as LedgerCorrection[],
+		tracked: TRACKED
 	};
 	const byRef = (trades: PricedTrade[], ref: string) => {
 		const trade = trades.find((t) => t.ref === ref);
@@ -589,6 +787,29 @@ describe('priceTrades', () => {
 			netUnitPrice: 4.9,
 			brokerFeeSource: 'journal',
 			source: { kind: 'correction', needsReview: false }
+		});
+	});
+
+	it('marks trades of untracked types untracked: fees as usual, no review, corrections ignored', () => {
+		const { trades } = priceTrades({
+			...input,
+			transactions: [
+				tx({ transactionId: 30, typeId: MODULE, quantity: 2, unitPrice: 1000 }),
+				tx({ transactionId: 31, typeId: MODULE, isBuy: false, quantity: 2, unitPrice: 1000 })
+			],
+			journal: [],
+			orders: [],
+			corrections: [{ targetKind: 'transaction', targetRef: 'transaction:30', unitPrice: 1 }]
+		});
+		// Instant buy: no broker fee → 1,000; sale: tax 3.37% of 2,000 = 67.40 → (2,000 − 67.40) / 2.
+		expect(byRef(trades, 'transaction:30')).toMatchObject({
+			netUnitPrice: 1000,
+			source: { kind: 'untracked', needsReview: false }
+		});
+		expect(byRef(trades, 'transaction:31')).toMatchObject({
+			tax: 67.4,
+			netUnitPrice: 966.3,
+			source: { kind: 'untracked', needsReview: false }
 		});
 	});
 

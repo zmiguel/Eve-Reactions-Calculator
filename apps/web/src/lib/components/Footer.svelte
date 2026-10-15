@@ -1,4 +1,7 @@
 <script lang="ts">
+	// Only `version` is bundled (named JSON import), nothing else of package.json.
+	import { version } from '../../../package.json';
+
 	const year = new Date().getUTCFullYear();
 
 	const links = [
@@ -9,7 +12,12 @@
 			external: true
 		},
 		{ href: '/about', label: 'About', external: false },
-		{ href: '/api', label: 'API', external: false }
+		{ href: '/api', label: 'API', external: false },
+		{
+			href: `https://github.com/zmiguel/Eve-Reactions-Calculator/releases/tag/v${version}`,
+			label: `v${version}`,
+			external: true
+		}
 	];
 
 	/** The author's other EVE Online tools. */
