@@ -19,7 +19,9 @@ const BY_KIND: Record<string, Badge> = {
 	correction: { label: 'Your correction', tone: 'purple' },
 	production: { label: 'Made by a job', tone: 'gray' },
 	market_fallback: { label: 'Market estimate', tone: 'amber' },
-	manual: { label: 'Entered by you', tone: 'purple' }
+	manual: { label: 'Entered by you', tone: 'purple' },
+	contract_mixed: { label: 'Estimated (mixed contract)', tone: 'blue' },
+	untracked: { label: 'Not tracked', tone: 'gray' }
 };
 
 /**
@@ -32,6 +34,12 @@ export function sourceBadge(kind: string, needsReview: boolean, estimatedFees = 
 	if (kind === 'market' && estimatedFees) return { label: 'Estimated fees', tone: 'gray' };
 	return Object.hasOwn(BY_KIND, kind) ? BY_KIND[kind] : { label: 'Other', tone: 'gray' };
 }
+
+/** Engine `PriceSourceKind` of an item no reaction uses: listed, but its price counts nowhere. */
+export const UNTRACKED = 'untracked';
+
+/** Why an item is "Not tracked", in words (badge tooltip and missing-price dash). */
+export const UNTRACKED_TEXT = 'Not used by any reaction, so its price is not used.';
 
 /** Direction pills: rows of the ledger (`bought`/`buy`/`in` …) and of the item page. */
 export const DIRECTION_BADGE: Record<string, Badge> = {

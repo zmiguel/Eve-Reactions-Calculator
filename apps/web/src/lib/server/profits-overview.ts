@@ -138,11 +138,12 @@ const TRACKED = `WITH tracked(ref) AS (
 
 const SQL = {
 	/**
-	 * Purchases (`incoming` 1) and sales at their net unit price; transfers between own parties left out.
+	 * Purchases (`incoming` 1) and sales at their net unit price; transfers between own parties and "Not
+	 * tracked" prices (items no reaction uses) left out.
 	 * Entered purchases have no `ledger_prices` row: their price is the one the user entered.
 	 */
 	prices: `${TRACKED} SELECT ref, type_id, incoming, at, quantity, unit_price FROM ledger_prices
-		WHERE user_id = ?1 AND transfer = 0 AND ref IN (SELECT ref FROM tracked)
+		WHERE user_id = ?1 AND transfer = 0 AND source_kind <> 'untracked' AND ref IN (SELECT ref FROM tracked)
 		UNION ALL
 		SELECT 'manual:' || entry_id, type_id, 1, date, quantity, unit_price FROM manual_entries
 		WHERE user_id = ?1 AND quantity > 0`,

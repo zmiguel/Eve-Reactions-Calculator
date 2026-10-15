@@ -1,5 +1,6 @@
 import { render } from '@testing-library/svelte';
 import { describe, expect, it } from 'vitest';
+import pkg from '../../../package.json' with { type: 'json' };
 import Footer from './Footer.svelte';
 
 const text = (el: Element) => (el.textContent ?? '').replace(/\s+/g, ' ').trim();
@@ -36,6 +37,14 @@ describe('Footer', () => {
 				'/api'
 			])
 		);
+	});
+
+	it('links the running version to its GitHub release', () => {
+		const { container } = render(Footer);
+		const release = container.querySelector(
+			`a[href="https://github.com/zmiguel/Eve-Reactions-Calculator/releases/tag/v${pkg.version}"]`
+		);
+		expect(release?.textContent).toBe(`v${pkg.version}`);
 	});
 
 	it('advertises D-Scan Space and Coalition Market Data', () => {

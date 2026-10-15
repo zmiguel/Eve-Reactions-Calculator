@@ -700,6 +700,66 @@ describe('rebuildLedger', () => {
 		expect(job!.input_cost).toBe(976 * 12.5 + 976 * 20 + 49 * 500);
 	});
 
+	it('records untracked contract items as untracked rows that never need review or make lots', async () => {
+		const MODULE = 4405; // no reaction uses it
+		const contract = (contractId: number, price: number) =>
+			prepare(
+				`INSERT INTO tracked_contracts (user_id, contract_id, source_id, type, status, issuer_id, issuer_corporation_id,
+					acceptor_id, assignee_id, for_corporation, price, reward, title, date_issued, date_completed)
+				VALUES ('u1', ?, 11, 'item_exchange', 'finished', 3000001, 3000002, 91000001, 91000001, 0, ?, 0, 'stuff', ?, ?)`,
+				contractId,
+				price,
+				START,
+				START + DAY
+			);
+		const items = (contractId: number, lines: [number, number][]) =>
+			lines.map(([typeId, quantity], i) =>
+				prepare(
+					`INSERT INTO tracked_contract_items (user_id, contract_id, record_id, type_id, quantity, is_included)
+					VALUES ('u1', ?, ?, ?, ?, 1)`,
+					contractId,
+					i + 1,
+					typeId,
+					quantity
+				)
+			);
+		await env.DB.batch([
+			// Titanium 100 at the current Jita buy 12 = 1,200; Chromium has no reference price (review);
+			// the module takes the 3,800 left.
+			contract(900, 5000),
+			...items(900, [
+				[TITANIUM, 100],
+				[CHROMIUM, 10],
+				[MODULE, 2]
+			]),
+			// A free contract of untracked items only.
+			contract(901, 0),
+			...items(901, [
+				[MODULE, 3],
+				[5697, 1]
+			]),
+			prepare(
+				`INSERT INTO latest_prices (hub_id, type_id, buy_max, sell_min, buy_volume, sell_volume, buy_orders, sell_orders, source, observed_at)
+				VALUES ('jita', ${TITANIUM}, 12, 14, 1, 1, 1, 1, 'esi', 1)`
+			)
+		]);
+		const summary = await rebuildLedger(env, 'u1', NOW);
+		expect(
+			(await pricesOf('u1')).map((p) => [p.ref, p.type_id, p.unit_price, p.source_kind, p.needs_review])
+		).toEqual([
+			['contract:900', MODULE, 1900, 'untracked', 0],
+			['contract:900', TITANIUM, 12, 'contract_mixed', 0],
+			['contract:900', CHROMIUM, 0, 'review', 1],
+			['contract:901', MODULE, 0, 'untracked', 0],
+			['contract:901', 5697, 0, 'untracked', 0]
+		]);
+		expect((await lotsOf('u1')).map((l) => [l.type_id, l.origin_ref, l.unit_cost])).toEqual([
+			[TITANIUM, 'contract:900', 12],
+			[CHROMIUM, 'contract:900', 0]
+		]);
+		expect(summary.needsReview).toBe(1);
+	});
+
 	it('uses the facility system from inventory_locations for the security band', async () => {
 		await insertJob('u1', 11, 10).run();
 		await rebuildLedger(env, 'u1', NOW);
@@ -1375,11 +1435,14 @@ describe('ledger-rows mapping', () => {
 		});
 	});
 
-	it('lists the days each type can be priced at', () => {
+	it('lists the days each type can be priced at, leaving out untracked contract items', () => {
 		const requests = referenceRequests(
 			{
 				contracts: [{ contract_id: 5, date_issued: Date.UTC(2026, 9, 1, 23) } as never],
-				contractItems: [{ contract_id: 5, record_id: 1, type_id: TITANIUM, quantity: 1, is_included: 1 }],
+				contractItems: [
+					{ contract_id: 5, record_id: 1, type_id: TITANIUM, quantity: 1, is_included: 1 },
+					{ contract_id: 5, record_id: 2, type_id: 4405, quantity: 1, is_included: 1 }
+				],
 				jobs: [
 					{ blueprint_type_id: CHROMIDE_FORMULA, start_date: Date.UTC(2026, 9, 2, 1) } as never,
 					{ blueprint_type_id: 1, start_date: 0 } as never,

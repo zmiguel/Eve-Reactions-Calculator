@@ -5,7 +5,7 @@
 	import PagedTable from '$lib/components/profits/PagedTable.svelte';
 	import Pill from '$lib/components/profits/Pill.svelte';
 	import { formatIsk, formatIskFull, formatNumber, formatRelative, formatUtc } from '$lib/format';
-	import { DIRECTION_BADGE } from '$lib/ledger/source';
+	import { DIRECTION_BADGE, UNTRACKED, UNTRACKED_TEXT } from '$lib/ledger/source';
 	import type {
 		LedgerActionResult,
 		LedgerContractRow,
@@ -54,10 +54,12 @@
 		];
 	}
 
-	/** The badge of a contract: the first price needing review, else its first price. */
+	/** The badge of a contract: the first price needing review, else its first tracked price, else its first. */
 	function contractSource(row: LedgerContractRow) {
 		const prices = row.items.flatMap((i) => (i.price ? [i.price] : []));
-		return prices.find((p) => p.needsReview) ?? prices[0] ?? null;
+		return (
+			prices.find((p) => p.needsReview) ?? prices.find((p) => p.sourceKind !== UNTRACKED) ?? prices[0] ?? null
+		);
 	}
 
 	const cell = 'px-3 py-2 align-top';
@@ -67,22 +69,37 @@
 	const rowClass = 'border-t border-gray-200 dark:border-gray-700';
 </script>
 
-{#snippet item(t: LedgerItemType)}
-	<a
-		href="/profits/ledger/{t.typeId}"
-		class="inline-flex items-center gap-2 whitespace-nowrap {link}"
-		data-item={t.typeId}
-	>
-		<img
-			src={t.formula ? blueprintIconUrl(t.typeId) : typeIconUrl(t.typeId)}
-			alt=""
-			width="24"
-			height="24"
-			loading="lazy"
-			class="h-6 w-6 shrink-0 rounded"
-		/>
-		{t.name}
-	</a>
+{#snippet icon(t: LedgerItemType)}
+	<img
+		src={t.formula ? blueprintIconUrl(t.typeId) : typeIconUrl(t.typeId)}
+		alt=""
+		width="24"
+		height="24"
+		loading="lazy"
+		class="h-6 w-6 shrink-0 rounded"
+	/>
+{/snippet}
+
+<!-- An untracked item has no ledger page: its name is plain text. -->
+{#snippet item(t: LedgerItemType, untracked = false)}
+	{#if untracked}
+		<span
+			class="inline-flex items-center gap-2 whitespace-nowrap text-gray-800 dark:text-gray-200"
+			data-item-name={t.typeId}
+		>
+			{@render icon(t)}
+			{t.name}
+		</span>
+	{:else}
+		<a
+			href="/profits/ledger/{t.typeId}"
+			class="inline-flex items-center gap-2 whitespace-nowrap {link}"
+			data-item={t.typeId}
+		>
+			{@render icon(t)}
+			{t.name}
+		</a>
+	{/if}
 {/snippet}
 
 {#snippet date(at: number, owner: LedgerOwnerView)}
@@ -100,23 +117,30 @@
 {/snippet}
 
 {#snippet trade(row: LedgerTradeRow)}
+	{@const untracked = row.price.sourceKind === UNTRACKED}
 	{@const estimated =
-		row.direction !== 'transfer' && (row.taxSource === 'estimated' || row.brokerFeeSource === 'estimated')}
-	<tr class={rowClass} data-trade={row.transactionId}>
+		!untracked &&
+		row.direction !== 'transfer' &&
+		(row.taxSource === 'estimated' || row.brokerFeeSource === 'estimated')}
+	<tr class={rowClass} data-trade={row.transactionId} data-untracked={untracked || undefined}>
 		{@render date(row.at, row.owner)}
-		<td class={cell}>{@render item(row)}</td>
+		<td class={cell}>{@render item(row, untracked)}</td>
 		{@render direction(row.direction)}
 		<td class={num}>{formatNumber(row.quantity)}</td>
 		<td class={num}>
-			<span
-				class="cursor-help"
-				title={[`Before tax and fees: ${formatIskFull(row.grossUnitPrice)}`, ...feeLines(row)].join('\n')}
-				data-unit-price>{formatIsk(row.price.unitPrice)}</span
-			>{#if estimated}<Estimated
-					reason="Broker fee or sales tax estimated from your settings: no matching wallet journal row."
-				/>{/if}
+			{#if untracked}
+				<Isk value={null} missing={UNTRACKED_TEXT} />
+			{:else}
+				<span
+					class="cursor-help"
+					title={[`Before tax and fees: ${formatIskFull(row.grossUnitPrice)}`, ...feeLines(row)].join('\n')}
+					data-unit-price>{formatIsk(row.price.unitPrice)}</span
+				>{#if estimated}<Estimated
+						reason="Broker fee or sales tax estimated from your settings: no matching wallet journal row."
+					/>{/if}
+			{/if}
 		</td>
-		<td class={num}><Isk value={row.price.total} /></td>
+		<td class={num}><Isk value={untracked ? null : row.price.total} missing={UNTRACKED_TEXT} /></td>
 		<td class={cell}>
 			<PriceSource
 				kind={row.price.sourceKind}
@@ -127,7 +151,7 @@
 			/>
 		</td>
 		<td class={cell}>
-			{#if row.direction !== 'transfer' || row.price.correction}
+			{#if !untracked && (row.direction !== 'transfer' || row.price.correction)}
 				<CorrectionForm
 					kind="transaction"
 					ref={row.price.ref}
@@ -205,11 +229,19 @@
 						</thead>
 						<tbody>
 							{#each row.items as line (`${line.typeId}:${line.incoming}`)}
-								<tr class={rowClass} data-contract-item={line.typeId}>
-									<td class={cell}>{@render item(line)}</td>
+								{@const untracked = line.price?.sourceKind === UNTRACKED}
+								<tr class={rowClass} data-contract-item={line.typeId} data-untracked={untracked || undefined}>
+									<td class={cell}>{@render item(line, untracked)}</td>
 									{@render direction(line.incoming === null ? 'transfer' : line.incoming ? 'in' : 'out')}
 									<td class={num}>{formatNumber(line.quantity)}</td>
-									{#if line.price}
+									{#if line.price && untracked}
+										<td class={num}><Isk value={null} missing={UNTRACKED_TEXT} /></td>
+										<td class={num}><Isk value={null} missing={UNTRACKED_TEXT} /></td>
+										<td class={cell}>
+											<PriceSource kind={UNTRACKED} text={line.price.sourceText} />
+										</td>
+										<td class={cell}></td>
+									{:else if line.price}
 										<td class={num}><Isk value={line.price.unitPrice} /></td>
 										<td class={num}><Isk value={line.price.total} /></td>
 										<td class={cell}>

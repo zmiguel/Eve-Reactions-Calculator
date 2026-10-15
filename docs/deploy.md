@@ -535,6 +535,13 @@ Migrations must be additive (new tables, nullable or defaulted columns): the liv
 7. Build and deploy the web preview; check it with real characters: grant Profit tracking to a character and Corporation profit tracking to a character with the corporation roles, through the permissions dialog (pencil icon on `/account`; in light mode too, its save button must be readable); switch Profit tracking on for a personal and a corporation connection on `/account/connections` and press Sync now; open Profits Overview, Jobs and Ledger and an item page; open a running job and check its cost per unit and estimated expected profit; correct a price and undo it; add a purchase on Add purchases; check Missing prices; on `/account/tracking`, pick a structure and its rigs under Facilities, check that a facility in the system of the reactor settings shows the reactor settings' structure and rigs, and save the Manufacturing settings; open a manufacturing job and check its blueprint ME and material bonus; toggle the theme on Profits Overview, an item page and a reaction page and check that the charts and their tooltips recolour without a reload; check "Paid" on `/account/inventory`.
 8. Deploy the web production, then a production smoke test (home, a reaction page, login, `/profits`).
 
+### 3.2.1 (untracked items) release order
+
+1. Deploy the updater: rebuilds now mark items that no reaction uses as not tracked.
+2. Mark every ledger for a rebuild so existing results change: `npx wrangler d1 execute reactions-core --remote --command "UPDATE ledger_state SET dirty = 1"`. The cron rebuilds them, `TRACKING_LEDGERS_PER_TICK` (10) per tick, every 10 minutes. Until a ledger is rebuilt, its old review warnings stay.
+3. Build and deploy the web preview; check that contracts of items no reaction uses show "Not tracked", without a review warning.
+4. Deploy the web production.
+
 ### Rotating secrets
 
 | Secret                                                  | How                                                                                                                                                                                                                                                                              | Effect                                                                                                                               |

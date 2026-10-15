@@ -436,8 +436,8 @@ export function seedDailyPrice(market: MarketFixture, factor: number, typeId: nu
  * Titanium Chromide and Silicon Diborite through buy orders (broker fee rows) and the two intermediate
  * jobs; day 6 a Titanium Carbide job that uses the bought and the made intermediates; days 4–3 a partial
  * sale of Titanium Carbide through a sell order (journal sales tax and broker fee); day 2 a manufacturing
- * job (blueprint ME 10 read from EVE) that takes part of the Titanium Carbide; day 1 a purchase the pilot
- * entered by hand.
+ * job (blueprint ME 10 read from EVE) that takes part of the Titanium Carbide; day 1 a contract purchase
+ * of Platinum with an untracked module, and a purchase the pilot entered by hand.
  */
 export const SEED_TRACKING = {
 	streams: ['jobs', 'contracts', 'orders', 'transactions', 'journal', 'blueprints'],
@@ -482,7 +482,12 @@ export const SEED_TRACKING = {
 		day: 1,
 		note: 'Station trade'
 	},
-	contracts: { janice: 220000001, rule: 220000002 },
+	contracts: { janice: 220000001, rule: 220000002, mixed: 220000003 },
+	/**
+	 * Day 1 contract purchase of Platinum (valued at its reference price) together with a module no
+	 * reaction uses and without a reference price (recorded as "Not tracked", gets the rest of the price).
+	 */
+	mixed: { name: 'Platinum', quantity: 1_000, moduleTypeId: 4405, moduleQuantity: 2, modulePrice: 250_000 },
 	sale: { listed: 200_000, sold: 120_000 },
 	brokerFeePct: 1.5,
 	salesTaxPct: 3.6
@@ -658,7 +663,13 @@ function trackingSql(sde: SdeDataset, market: MarketFixture, now: number): strin
 	const rulePrice = Math.round(
 		ruleLines.reduce((sum, [name, qty]) => sum + qty * referencePrice(typeId(name), issued)!.unitPrice, 0)
 	);
-	const contract = (contractId: number, price: number, title: string, janice: JaniceAppraisal | null) => ({
+	const contract = (
+		contractId: number,
+		price: number,
+		title: string,
+		janice: JaniceAppraisal | null,
+		dates = { issued, completed }
+	) => ({
 		contract_id: contractId,
 		source_id: SEED_TRACKING_SOURCE,
 		type: 'item_exchange',
@@ -671,12 +682,17 @@ function trackingSql(sde: SdeDataset, market: MarketFixture, now: number): strin
 		price,
 		reward: 0,
 		title,
-		date_issued: issued,
-		date_completed: completed,
+		date_issued: dates.issued,
+		date_completed: dates.completed,
 		start_location_id: JITA_STATION.locationId,
 		janice_code: janice?.code ?? null,
 		janice_json: janice ? JSON.stringify(janice) : null
 	});
+	// Day 1: the Platinum at its reference price, the module takes the rest.
+	const mixedDates = { issued: at(1, 10), completed: at(1, 11) };
+	const mixedPrice =
+		Math.round(t.mixed.quantity * referencePrice(typeId(t.mixed.name), mixedDates.issued)!.unitPrice) +
+		t.mixed.modulePrice;
 	const contracts = [
 		contract(
 			t.contracts.janice,
@@ -684,16 +700,20 @@ function trackingSql(sde: SdeDataset, market: MarketFixture, now: number): strin
 			`Titanium Chromide inputs https://janice.e-351.com/a/${t.janiceCode}`,
 			appraisal
 		),
-		contract(t.contracts.rule, rulePrice, 'Silicon Diborite inputs', null)
+		contract(t.contracts.rule, rulePrice, 'Silicon Diborite inputs', null),
+		contract(t.contracts.mixed, mixedPrice, 'Platinum and a module', null, mixedDates)
 	];
-	for (const c of contracts) journalRow(completed, 'contract_price', -c.price, c.contract_id, 'contract_id');
+	for (const c of contracts)
+		journalRow(c.date_completed, 'contract_price', -c.price, c.contract_id, 'contract_id');
 	const contractItems = [
-		...janiceLines.map(([name, quantity], i) => [t.contracts.janice, i + 1, name, quantity] as const),
-		...ruleLines.map(([name, quantity], i) => [t.contracts.rule, i + 1, name, quantity] as const)
-	].map(([contractId, recordId, name, quantity]) => ({
+		...janiceLines.map(([name, quantity], i) => [t.contracts.janice, i + 1, typeId(name), quantity] as const),
+		...ruleLines.map(([name, quantity], i) => [t.contracts.rule, i + 1, typeId(name), quantity] as const),
+		[t.contracts.mixed, 1, typeId(t.mixed.name), t.mixed.quantity] as const,
+		[t.contracts.mixed, 2, t.mixed.moduleTypeId, t.mixed.moduleQuantity] as const
+	].map(([contractId, recordId, type, quantity]) => ({
 		contract_id: contractId,
 		record_id: recordId,
-		type_id: typeId(name),
+		type_id: type,
 		quantity,
 		is_included: 1
 	}));

@@ -1,6 +1,7 @@
 import { and, eq } from 'drizzle-orm';
 import {
 	getCoreDb,
+	ledgerPrices,
 	priceCorrections,
 	trackedContractItems,
 	trackedJobs,
@@ -95,10 +96,26 @@ async function targetExists(env: Env, userId: string, target: CorrectionTarget):
 	}
 }
 
+/** Whether the ledger marks the price of `target` "Not tracked" (an item no reaction uses: its price is ignored). */
+async function targetUntracked(env: Env, userId: string, target: CorrectionTarget): Promise<boolean> {
+	if (target.kind === 'job_input') return false;
+	const where =
+		target.kind === 'transaction'
+			? eq(ledgerPrices.ref, `transaction:${target.transactionId}`)
+			: and(eq(ledgerPrices.ref, `contract:${target.contractId}`), eq(ledgerPrices.typeId, target.typeId));
+	const [row] = await getCoreDb(env.DB)
+		.select({ kind: ledgerPrices.sourceKind })
+		.from(ledgerPrices)
+		.where(and(eq(ledgerPrices.userId, userId), where))
+		.limit(1);
+	return row?.kind === 'untracked';
+}
+
 export type CorrectionOutcome =
 	{ ok: true; rebuilt: boolean } | { ok: false; status: 400 | 404; message: string };
 
 const NOT_FOUND = 'That price is not in your ledger.';
+const UNTRACKED = 'This item is not tracked: no reaction uses it, so its price is not used.';
 
 /** Notice after a saved or removed correction (the ledger may only be recalculated at the next tick). */
 export function correctionNotice(saved: 'saved' | 'removed', rebuilt: boolean): string {
@@ -132,6 +149,7 @@ export async function saveCorrection(
 		return { ok: false, status: 400, message: `Keep the note under ${MAX_NOTE_LENGTH} characters.` };
 	}
 	if (!(await targetExists(env, userId, target))) return { ok: false, status: 404, message: NOT_FOUND };
+	if (await targetUntracked(env, userId, target)) return { ok: false, status: 400, message: UNTRACKED };
 	const values = {
 		userId,
 		targetKind: target.kind,

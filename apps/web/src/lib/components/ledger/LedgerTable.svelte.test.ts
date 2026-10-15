@@ -112,7 +112,8 @@ describe('PriceSource', () => {
 		['janice', true, false, 'Needs review'],
 		['correction', false, false, 'Your correction'],
 		['correction', true, false, 'Your correction'],
-		['market_fallback', false, false, 'Market estimate']
+		['market_fallback', false, false, 'Market estimate'],
+		['contract_mixed', false, false, 'Estimated (mixed contract)']
 	])(
 		'%s (review %s, estimated fees %s) shows "%s" and the full text',
 		(kind, needsReview, estimatedFees, label) => {
@@ -139,6 +140,21 @@ describe('PriceSource', () => {
 			'gray',
 			'blue'
 		]);
+	});
+
+	it('marks an untracked item "Not tracked" in gray, never as needing review, with its own explanation', () => {
+		const { container } = render(PriceSource, {
+			kind: 'untracked',
+			text: 'Stored text',
+			lines: ['Broker fee: 1 ISK']
+		});
+		const pill = container.querySelector('summary [data-pill]')!;
+		expect(pill.textContent).toBe('Not tracked');
+		expect(pill.getAttribute('data-pill')).toBe('gray');
+		const explanation = container.querySelector('[data-source-text]')?.textContent;
+		expect(explanation).not.toBe('Stored text');
+		expect(container.querySelector('summary')?.getAttribute('title')).toBe(explanation);
+		expect(container.querySelectorAll('[data-source-line]')).toHaveLength(0);
 	});
 });
 
@@ -256,5 +272,83 @@ describe('LedgerTable', () => {
 			'Transfer'
 		);
 		expect(container.querySelector('[data-contract-items="202"] form')).toBeNull();
+	});
+
+	it('shows an untracked trade without a price, an estimate marker or a correction form', () => {
+		const untracked = trade(106, {
+			brokerFeeSource: 'estimated',
+			price: price('transaction:106', { sourceKind: 'untracked', sourceText: 'Not tracked' })
+		});
+		const row = renderTable([untracked]).querySelector('[data-trade="106"]')!;
+		expect(row.hasAttribute('data-untracked')).toBe(true);
+		expect(row.querySelector('[data-source]')?.getAttribute('data-source')).toBe('untracked');
+		expect(row.querySelector('[data-unit-price]')).toBeNull();
+		expect(row.querySelectorAll('[data-isk="none"]')).toHaveLength(2);
+		expect(row.querySelector('[data-estimated]')).toBeNull();
+		expect(row.querySelector('form, [data-correct]')).toBeNull();
+		expect(row.querySelector('[data-item]')).toBeNull();
+		expect(row.querySelector('[data-item-name]')?.textContent?.trim()).toBe('Atmospheric Gases');
+	});
+
+	it('shows untracked contract items without a price or form, and badges the contract by its tracked items', () => {
+		const mixed = contract({
+			contractId: 205,
+			needsReview: false,
+			items: [
+				{
+					typeId: 4405,
+					name: 'Drone Damage Amplifier II',
+					formula: false,
+					quantity: 1,
+					incoming: true,
+					price: price('contract:205:4405', { sourceKind: 'untracked', sourceText: 'Not tracked' })
+				},
+				{
+					typeId: 16634,
+					name: 'Atmospheric Gases',
+					formula: false,
+					quantity: 10,
+					incoming: true,
+					price: price('contract:205:16634', { sourceKind: 'contract_mixed', sourceText: 'Estimated' })
+				}
+			]
+		});
+		const container = renderTable([mixed]);
+		expect(container.querySelector('[data-contract="205"] [data-source]')?.getAttribute('data-source')).toBe(
+			'contract_mixed'
+		);
+		const module = container.querySelector('[data-contract-item="4405"]')!;
+		expect(module.hasAttribute('data-untracked')).toBe(true);
+		expect(module.querySelector('[data-source]')?.getAttribute('data-source')).toBe('untracked');
+		expect(module.querySelectorAll('[data-isk="none"]')).toHaveLength(2);
+		expect(module.querySelector('form, [data-correct]')).toBeNull();
+		const tracked = container.querySelector('[data-contract-item="16634"]')!;
+		expect(tracked.hasAttribute('data-untracked')).toBe(false);
+		expect(tracked.querySelector('[data-correct]')).not.toBeNull();
+	});
+
+	it('badges a contract of only untracked items "Not tracked", not "Needs review"', () => {
+		const free = contract({
+			contractId: 206,
+			total: 0,
+			needsReview: false,
+			itemCount: 1,
+			items: [
+				{
+					typeId: 4405,
+					name: 'Type 4405',
+					formula: false,
+					quantity: 1,
+					incoming: true,
+					price: price('contract:206:4405', { sourceKind: 'untracked', unitPrice: 0, total: 0 })
+				}
+			]
+		});
+		const container = renderTable([free]);
+		const pill = container.querySelector('[data-contract="206"] [data-source] [data-pill]');
+		expect(pill?.textContent).toBe('Not tracked');
+		const line = container.querySelector('[data-contract-item="4405"]')!;
+		expect(line.querySelector('[data-item]')).toBeNull();
+		expect(container.querySelector('[data-contract-items="206"] form')).toBeNull();
 	});
 });

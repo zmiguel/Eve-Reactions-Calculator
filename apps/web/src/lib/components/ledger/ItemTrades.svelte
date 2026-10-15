@@ -3,7 +3,7 @@
 	import PagedTable from '$lib/components/profits/PagedTable.svelte';
 	import Pill from '$lib/components/profits/Pill.svelte';
 	import { formatNumber, formatRelative, formatUtc } from '$lib/format';
-	import { DIRECTION_BADGE } from '$lib/ledger/source';
+	import { DIRECTION_BADGE, UNTRACKED, UNTRACKED_TEXT } from '$lib/ledger/source';
 	import type { LedgerItemTrade, LedgerLotOrigin } from '$lib/ledger/types';
 	import type { Paged } from '$lib/paging';
 	import PriceSource from './PriceSource.svelte';
@@ -73,7 +73,12 @@
 	{/snippet}
 	{#snippet row(trade: LedgerItemTrade)}
 		{@const badge = DIRECTION_BADGE[trade.direction]}
-		<tr class="border-t border-gray-200 dark:border-gray-700" data-trade={trade.ref}>
+		{@const untracked = trade.sourceKind === UNTRACKED}
+		<tr
+			class="border-t border-gray-200 dark:border-gray-700"
+			data-trade={trade.ref}
+			data-untracked={untracked || undefined}
+		>
 			<td class="{cell} whitespace-nowrap">
 				<span class="cursor-help text-gray-800 dark:text-gray-200" title={formatUtc(trade.at)}
 					>{formatRelative(trade.at, now)}</span
@@ -84,13 +89,20 @@
 			<td class={num}>{formatNumber(trade.quantity)}</td>
 			<td class={num}>
 				<Isk
-					value={trade.unitPrice}
-					missing="No price: a transfer between your own characters and corporations"
-					estimated={trade.estimatedFees ? 'Broker fee or sales tax estimated from your settings.' : null}
+					value={untracked ? null : trade.unitPrice}
+					missing={untracked
+						? UNTRACKED_TEXT
+						: 'No price: a transfer between your own characters and corporations'}
+					estimated={trade.estimatedFees && !untracked
+						? 'Broker fee or sales tax estimated from your settings.'
+						: null}
 				/>
 			</td>
 			<td class={num}>
-				<Isk value={trade.unitPrice === null ? null : trade.unitPrice * trade.quantity} />
+				<Isk
+					value={untracked || trade.unitPrice === null ? null : trade.unitPrice * trade.quantity}
+					missing={untracked ? UNTRACKED_TEXT : null}
+				/>
 			</td>
 			<td class={cell}>
 				{#if trade.sourceKind !== null && trade.sourceText !== null}

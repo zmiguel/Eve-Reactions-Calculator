@@ -402,6 +402,43 @@ describe('entered purchases', () => {
 	});
 });
 
+describe('items no reaction uses', () => {
+	it('leave every total, chart and table of the overview unchanged', async () => {
+		const s = await overviewScenario();
+		const before = await overview(s.env, '?period=7');
+		const MODULE = 4405;
+		for (const [id, isBuy] of [
+			[911, true],
+			[912, false]
+		] as const) {
+			insertTransaction(s.env.DB, {
+				userId: 'u1',
+				sourceId: s.mine,
+				transactionId: id,
+				typeId: MODULE,
+				isBuy,
+				date: NOW - DAY
+			});
+			insertPrice(s.env.DB, {
+				userId: 'u1',
+				ref: `transaction:${id}`,
+				typeId: MODULE,
+				incoming: isBuy,
+				quantity: 3,
+				unitPrice: 1e6,
+				at: NOW - DAY,
+				sourceKind: 'untracked',
+				sourceText: 'Not tracked'
+			});
+		}
+		const after = await overview(s.env, '?period=7');
+		expect(after.kpis).toEqual(before.kpis);
+		expect(after.charts).toEqual(before.charts);
+		expect(after.sales).toEqual(before.sales);
+		expect(after.attention).toEqual(before.attention);
+	});
+});
+
 describe('cancelled jobs', () => {
 	it('count when they were cancelled, not at their scheduled end', async () => {
 		const { env } = await overviewScenario();

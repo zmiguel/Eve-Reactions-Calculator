@@ -296,6 +296,82 @@ async function feeAccounts() {
 	return setup;
 }
 
+/** A type no reaction uses (a module). */
+const MODULE = 4405;
+
+/**
+ * "Not tracked" prices on top of `feeAccounts`: trade 106 (Alpha buys 5 modules at 1,000, broker fee
+ * 50), contract 204 of only modules (contract fee 300) and contract 205 of 10 X at 100 plus a module
+ * (contract fee 200).
+ */
+async function untrackedAccounts() {
+	const setup = await feeAccounts();
+	const { env, personal } = setup;
+	const db = env.DB;
+	const untracked = { sourceKind: 'untracked', sourceText: 'Not tracked: not used by any reaction' };
+	insertTransaction(db, { userId: 'u1', sourceId: personal, transactionId: 106, typeId: MODULE });
+	insertPrice(db, {
+		userId: 'u1',
+		ref: 'transaction:106',
+		typeId: MODULE,
+		at: NOW - 6 * HOUR,
+		quantity: 5,
+		unitPrice: 1000,
+		brokerFee: 50,
+		brokerFeeSource: 'estimated',
+		...untracked
+	});
+	for (const [contractId, items] of [
+		[204, [[MODULE, 2]]],
+		[
+			205,
+			[
+				[X, 10],
+				[MODULE, 1]
+			]
+		]
+	] as [number, [number, number][]][]) {
+		insertContract(db, {
+			userId: 'u1',
+			sourceId: personal,
+			contractId,
+			acceptorId: alpha.characterId,
+			issuerId: OUTSIDER,
+			price: 5000,
+			dateIssued: NOW - 7 * HOUR,
+			items
+		});
+	}
+	insertPrice(db, {
+		userId: 'u1',
+		ref: 'contract:204',
+		typeId: MODULE,
+		quantity: 2,
+		unitPrice: 2500,
+		...untracked
+	});
+	insertPrice(db, {
+		userId: 'u1',
+		ref: 'contract:205',
+		typeId: X,
+		quantity: 10,
+		unitPrice: 100,
+		sourceKind: 'contract_mixed',
+		sourceText: 'Contract with untracked items'
+	});
+	insertPrice(db, {
+		userId: 'u1',
+		ref: 'contract:205',
+		typeId: MODULE,
+		quantity: 1,
+		unitPrice: 4000,
+		...untracked
+	});
+	insertJournal(env, 'u1', personal, 4, 'contract_brokers_fee', -300, 204);
+	insertJournal(env, 'u1', personal, 5, 'contract_brokers_fee', -200, 205);
+	return setup;
+}
+
 describe('/profits/ledger load', () => {
 	it('returns empty data without work for anonymous visitors and accounts without tracking (the layout shows the gate)', async () => {
 		const { env, user } = await accounts();
@@ -645,6 +721,28 @@ describe('/profits/ledger summary', () => {
 		expect((await pageData(env, user, '?direction=transfer')).summary.reviewCount).toBe(0);
 		expect((await pageData(env, user, '?review=1')).summary.reviewCount).toBe(2);
 	});
+
+	it('lists "Not tracked" prices but leaves them out of every total and of the review count', async () => {
+		const { env, user } = await untrackedAccounts();
+		const data = await pageData(env, user);
+		expect(keys(data.rows.rows)).toEqual(expect.arrayContaining(['t106', 'c204', 'c205']));
+		expect(data.summary).toMatchObject({
+			bought: 900 + 1_000_000 + 1000,
+			sold: 1000,
+			reviewCount: 2,
+			fees: { brokerFees: 12, salesTax: 30, contractFees: 500 + 200, otherMarketFees: 110, total: 852 }
+		});
+		for (const id of [204, 205]) {
+			const contract = data.rows.rows.find((r) => r.kind === 'contract' && r.contractId === id);
+			expect(contract).toMatchObject({ needsReview: false });
+		}
+		expect(keys((await pageData(env, user, '?review=1')).rows.rows)).toEqual(['c201', 't102']);
+		// Only the untracked trade: nothing to sum, no estimated fees.
+		expect((await pageData(env, user, `?type=${MODULE}&kind=market`)).summary).toMatchObject({
+			bought: 0,
+			fees: expect.objectContaining({ brokerFees: 0, estimated: false })
+		});
+	});
 });
 
 describe('/profits/ledger actions', () => {
@@ -749,6 +847,21 @@ describe('/profits/ledger actions', () => {
 		});
 		expect(corrections(env.DB, 'u2')).toEqual([]);
 		expect(corrections(env.DB, 'u1')).toHaveLength(2);
+	});
+
+	it.each([
+		['an untracked trade', { kind: 'transaction', ref: 'transaction:106' }],
+		['an untracked contract item', { kind: 'contract_item', ref: `contract:205:${MODULE}` }]
+	])('correct refuses %s with 400 and stores nothing', async (_case, target) => {
+		const { env, user } = await untrackedAccounts();
+		const outcome = await settle(
+			actions.correct(event(env, user, '', { ...target, unitPrice: '5', note: '' }))
+		);
+		expect(outcome).toMatchObject({
+			status: 400,
+			data: { action: 'correct', ref: target.ref, error: expect.any(String) }
+		});
+		expect(corrections(env.DB, 'u1').map((c) => c.target_ref)).not.toContain(target.ref);
 	});
 
 	it("undo answers 404 when there is no correction, and leaves another user's correction alone", async () => {

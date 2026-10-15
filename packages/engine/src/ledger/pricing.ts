@@ -10,6 +10,7 @@ import type {
 	PricedContract,
 	PricedContractItem,
 	PricedTrade,
+	ReferencePrice,
 	ReferencePriceFn,
 	TrackingSettings,
 	UnallocatedFee
@@ -112,20 +113,141 @@ function contractCorrections(
 }
 
 const CORRECTION_SOURCE: PriceSource = { kind: 'correction', text: 'Your correction', needsReview: false };
+const UNTRACKED_SOURCE: PriceSource = {
+	kind: 'untracked',
+	text: 'Not tracked: not used by any reaction',
+	needsReview: false
+};
+const NO_REFERENCE_SOURCE: PriceSource = {
+	kind: 'review',
+	text: 'No reference price for this item: check',
+	needsReview: true
+};
+
+/**
+ * Unit prices of `lines` sharing `amount`: corrected lines keep their price, the rest of the amount is
+ * split over the others in proportion to `quantity × weight` (see {@link allocateTotal}).
+ */
+function splitAmount(
+	amount: number,
+	lines: readonly ContractLine[],
+	weights: readonly number[],
+	corrected: ReadonlyMap<number, number>
+): number[] {
+	const unitPrices: number[] = lines.map(() => 0);
+	const free: number[] = [];
+	let correctedTotal = 0;
+	lines.forEach((line, index) => {
+		const correction = corrected.get(line.typeId);
+		if (correction === undefined) {
+			free.push(index);
+		} else {
+			unitPrices[index] = correction;
+			correctedTotal += roundCents(correction * line.quantity);
+		}
+	});
+	const freePrices = allocateTotal(
+		Math.max(0, amount - correctedTotal),
+		free.map((index) => ({ quantity: lines[index].quantity, weight: weights[index] }))
+	);
+	free.forEach((lineIndex, i) => {
+		unitPrices[lineIndex] = freePrices[i];
+	});
+	return unitPrices;
+}
+
+/**
+ * Weights of untracked lines sharing an amount: their reference prices when every line has one, else
+ * 0 each (split by quantity).
+ */
+function untrackedWeights(references: readonly (ReferencePrice | null)[]): number[] {
+	return references.every((reference) => reference !== null)
+		? references.map((reference) => reference!.unitPrice)
+		: references.map(() => 0);
+}
+
+/**
+ * A buy or sell contract with tracked and untracked lines and no Janice appraisal of every line: each
+ * tracked line is worth its reference price × the rule's expected % (all of them scaled down together
+ * when that exceeds the amount left after corrected lines); a tracked line without a reference price
+ * gets 0 and needs review; the untracked lines share what is left.
+ */
+function priceMixed(
+	lines: readonly ContractLine[],
+	isTracked: readonly boolean[],
+	amount: number,
+	expectedPct: number,
+	references: readonly (ReferencePrice | null)[],
+	corrected: ReadonlyMap<number, number>
+): { unitPrices: number[]; sources: PriceSource[] } {
+	const unitPrices: number[] = lines.map(() => 0);
+	const sources: PriceSource[] = lines.map(() => UNTRACKED_SOURCE);
+	const valued: number[] = [];
+	let correctedTotal = 0;
+	let valuedTotal = 0;
+	lines.forEach((line, index) => {
+		if (!isTracked[index]) return;
+		const correction = corrected.get(line.typeId);
+		const reference = references[index];
+		if (correction !== undefined) {
+			unitPrices[index] = correction;
+			sources[index] = CORRECTION_SOURCE;
+			correctedTotal += roundCents(correction * line.quantity);
+		} else if (reference) {
+			unitPrices[index] = (reference.unitPrice * expectedPct) / 100;
+			valuedTotal += unitPrices[index] * line.quantity;
+			valued.push(index);
+		} else {
+			sources[index] = NO_REFERENCE_SOURCE;
+		}
+	});
+	const rest = Math.max(0, amount - correctedTotal);
+	const capped = valuedTotal > rest + 0.005;
+	if (capped) {
+		const scaled = allocateTotal(
+			rest,
+			valued.map((index) => ({ quantity: lines[index].quantity, weight: references[index]!.unitPrice }))
+		);
+		valued.forEach((lineIndex, i) => {
+			unitPrices[lineIndex] = scaled[i];
+		});
+	}
+	for (const index of valued) {
+		sources[index] = {
+			kind: 'contract_mixed',
+			text: `Contract with untracked items: valued at ${references[index]!.label} × ${formatPct(expectedPct)}${capped ? ', scaled down to the contract price' : ''}`,
+			needsReview: false
+		};
+	}
+	const untracked = lines.flatMap((_, index) => (isTracked[index] ? [] : [index]));
+	const weights = untrackedWeights(untracked.map((index) => references[index]));
+	const shares = allocateTotal(
+		capped ? 0 : Math.max(0, rest - valuedTotal),
+		untracked.map((index, i) => ({ quantity: lines[index].quantity, weight: weights[i] }))
+	);
+	untracked.forEach((lineIndex, i) => {
+		unitPrices[lineIndex] = shares[i];
+	});
+	return { unitPrices, sources };
+}
 
 /**
  * Prices a contract from the user's side. Null when no own party is on either side, or when no item
  * changed hands between the user and someone else. The issuing side is own when the issuer is, or
  * when it was issued for an own corporation; the receiving side when the acceptor is, or when the
  * contract was assigned to an own corporation (a member who is none of the user's characters accepted
- * it for the corporation).
+ * it for the corporation). Items outside `tracked` (`inventoryTypeIds` of the dataset) are priced with
+ * kind `untracked`: they never need review and corrections on them are ignored; with tracked items
+ * beside them, the tracked ones are valued first (see `priceMixed`) unless a Janice appraisal covers
+ * every item.
  */
 export function priceContract(
 	contract: LedgerContract,
 	own: OwnParties,
 	settings: TrackingSettings,
 	referencePrice: ReferencePriceFn,
-	corrections: readonly LedgerCorrection[]
+	corrections: readonly LedgerCorrection[],
+	tracked: ReadonlySet<number>
 ): PricedContract | null {
 	const issuerOwn =
 		isOwnParty(contract.issuerId, own) ||
@@ -167,15 +289,22 @@ export function priceContract(
 	);
 	if (lines.length === 0) return null;
 
+	const isTracked = lines.map((line) => tracked.has(line.typeId));
+	const anyTracked = isTracked.some(Boolean);
+	const allTracked = isTracked.every(Boolean);
 	const corrected = contractCorrections(contract.contractId, corrections);
+	for (const typeId of corrected.keys()) if (!tracked.has(typeId)) corrected.delete(typeId);
 	const hasIn = lines.some((line) => line.incoming);
 	const hasOut = lines.some((line) => !line.incoming);
 
 	if (hasIn && hasOut) {
-		const items = lines.map((line): PricedContractItem => {
+		const items = lines.map((line, index): PricedContractItem => {
 			const correction = corrected.get(line.typeId);
 			if (correction !== undefined) return { ...line, unitPrice: correction, source: CORRECTION_SOURCE };
 			const reference = referencePrice(line.typeId, contract.dateIssued);
+			if (!isTracked[index]) {
+				return { ...line, unitPrice: reference?.unitPrice ?? 0, source: UNTRACKED_SOURCE };
+			}
 			return {
 				...line,
 				unitPrice: reference?.unitPrice ?? 0,
@@ -203,8 +332,8 @@ export function priceContract(
 	const direction = hasIn ? 'buy' : 'sell';
 	const amount = Math.max(0, hasIn ? -iskIn : iskIn);
 
-	// Weights and per-line sources, first step that applies.
-	let weights: number[];
+	// Unit prices and per-line sources, first step that applies.
+	let unitPrices: number[];
 	let sources: PriceSource[];
 	let impliedPct: number | null = null;
 	const janice = contract.janice;
@@ -217,19 +346,34 @@ export function priceContract(
 		}
 	}
 
-	if (lines.length === 1) {
-		weights = [1];
+	if (!anyTracked) {
+		const references = lines.map((line) => referencePrice(line.typeId, contract.dateIssued));
+		unitPrices = splitAmount(amount, lines, untrackedWeights(references), corrected);
+		sources = lines.map(() => UNTRACKED_SOURCE);
+	} else if (lines.length === 1) {
+		unitPrices = splitAmount(amount, lines, [1], corrected);
 		sources = [
 			{ kind: 'contract_single', text: 'Only item type in the contract: exact price', needsReview: false }
 		];
 	} else if (janice && lines.every((line) => janiceByType.has(line.typeId))) {
-		weights = lines.map((line) => janiceByType.get(line.typeId) ?? 0);
+		const weights = lines.map((line) => janiceByType.get(line.typeId) ?? 0);
+		unitPrices = splitAmount(amount, lines, weights, corrected);
 		const source: PriceSource = {
 			kind: 'janice',
 			text: `Janice appraisal ${janice.code} (${janice.marketName}, ${janice.pricing}, ${formatTime(janice.datasetTime)})`,
 			needsReview: false
 		};
-		sources = lines.map(() => source);
+		sources = isTracked.map((isLineTracked) => (isLineTracked ? source : UNTRACKED_SOURCE));
+	} else if (!allTracked) {
+		const references = lines.map((line) => referencePrice(line.typeId, contract.dateIssued));
+		({ unitPrices, sources } = priceMixed(
+			lines,
+			isTracked,
+			amount,
+			settings.contractRule.expectedPct,
+			references,
+			corrected
+		));
 	} else {
 		const references = lines.map((line) => referencePrice(line.typeId, contract.dateIssued));
 		const referenceTotal = lines.reduce(
@@ -240,15 +384,14 @@ export function priceContract(
 		const { expectedPct, tolerancePct } = settings.contractRule;
 		const inside = impliedPct !== null && Math.abs(impliedPct - expectedPct) <= tolerancePct + 1e-9;
 		const pctText = impliedPct === null ? 'unknown %' : formatPct(impliedPct);
-		weights = references.map((reference) => reference?.unitPrice ?? 0);
+		unitPrices = splitAmount(
+			amount,
+			lines,
+			references.map((reference) => reference?.unitPrice ?? 0),
+			corrected
+		);
 		sources = references.map((reference): PriceSource => {
-			if (!reference) {
-				return {
-					kind: 'review',
-					text: 'No reference price for this item: check',
-					needsReview: true
-				};
-			}
+			if (!reference) return NO_REFERENCE_SOURCE;
 			return inside
 				? { kind: 'rule_match', text: `Matches ${reference.label} × ${pctText}`, needsReview: false }
 				: {
@@ -258,28 +401,6 @@ export function priceContract(
 					};
 		});
 	}
-
-	// Corrected lines keep their price; the rest of the amount is split over the others.
-	const unitPrices: number[] = lines.map(() => 0);
-	const free: number[] = [];
-	let correctedTotal = 0;
-	lines.forEach((line, index) => {
-		const correction = corrected.get(line.typeId);
-		if (correction === undefined) {
-			free.push(index);
-		} else {
-			unitPrices[index] = correction;
-			correctedTotal += roundCents(correction * line.quantity);
-		}
-	});
-	const rest = Math.max(0, amount - correctedTotal);
-	const freePrices = allocateTotal(
-		rest,
-		free.map((index) => ({ quantity: lines[index].quantity, weight: weights[index] }))
-	);
-	free.forEach((lineIndex, i) => {
-		unitPrices[lineIndex] = freePrices[i];
-	});
 
 	const items = lines.map((line, index): PricedContractItem => ({
 		...line,
@@ -316,12 +437,15 @@ interface PriceTradesInput {
 	/** `sourceId`s whose order stream is readable. */
 	ordersAvailable: ReadonlySet<number>;
 	corrections: readonly LedgerCorrection[];
+	/** Types the ledger tracks (`inventoryTypeIds` of the dataset); other trades are `untracked`. */
+	tracked: ReadonlySet<number>;
 }
 
 /**
  * Market transactions with sales tax (journal `transaction_tax` rows at the same second) and broker
  * fees (the matched order's fee rows at its `issued` second, spread over its filled units). Fee rows
- * no matched order uses are returned as `unallocatedFees`.
+ * no matched order uses are returned as `unallocatedFees`. Trades of untracked types keep their fees
+ * but get kind `untracked` (no review, corrections ignored).
  */
 export function priceTrades(input: PriceTradesInput): {
 	trades: PricedTrade[];
@@ -432,6 +556,7 @@ export function priceTrades(input: PriceTradesInput): {
 		const ref = `transaction:${tx.transactionId}`;
 		const gross = tx.quantity * tx.unitPrice;
 		const transfer = isOwnParty(tx.clientId, input.own);
+		const isTracked = input.tracked.has(tx.typeId);
 		if (transfer) {
 			return {
 				ref,
@@ -445,11 +570,13 @@ export function priceTrades(input: PriceTradesInput): {
 				brokerFee: 0,
 				brokerFeeSource: 'none',
 				netUnitPrice: tx.unitPrice,
-				source: {
-					kind: 'market',
-					text: 'Market trade with one of your own characters or corporations: transfer',
-					needsReview: false
-				},
+				source: isTracked
+					? {
+							kind: 'market',
+							text: 'Market trade with one of your own characters or corporations: transfer',
+							needsReview: false
+						}
+					: UNTRACKED_SOURCE,
 				transfer: true
 			};
 		}
@@ -489,7 +616,7 @@ export function priceTrades(input: PriceTradesInput): {
 		const netUnitPrice = tx.isBuy
 			? (gross + brokerFee) / tx.quantity
 			: (gross - tax - brokerFee) / tx.quantity;
-		const correction = transactionCorrections.get(ref);
+		const correction = isTracked ? transactionCorrections.get(ref) : undefined;
 		const feeText =
 			brokerFeeSource === 'journal'
 				? 'broker fee from the order'
@@ -513,8 +640,9 @@ export function priceTrades(input: PriceTradesInput): {
 			brokerFee,
 			brokerFeeSource,
 			netUnitPrice: correction ?? netUnitPrice,
-			source:
-				correction !== undefined
+			source: !isTracked
+				? UNTRACKED_SOURCE
+				: correction !== undefined
 					? CORRECTION_SOURCE
 					: {
 							kind: 'market',
