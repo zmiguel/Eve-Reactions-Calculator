@@ -406,3 +406,120 @@ export function addManufacturing(s: JobsScenario, productTypeId: number) {
 		.run(JOB.intermediate);
 	db.sqlite.prepare("UPDATE ledger_lots SET remaining = 20 WHERE user_id = 'u1' AND lot_id = 3").run();
 }
+
+/** The fuel block job added by {@link addFuelBlocks}, and the fixture dataset's Nitrogen Fuel Block. */
+export const FUEL = {
+	/** u1 (Alpha): 10 runs of Nitrogen Fuel Block Blueprint, ended 3 days ago. */
+	job: 7201,
+	/** A manufacturing job of a blueprint making no fuel block. */
+	notFuel: 7202,
+	blueprint: 4314,
+	block: 4051,
+	/** An ingredient (Heavy Water) the job had no purchase for. */
+	ingredient: 16272,
+	/** The ingredient batch valued at market (`job:<job>`) and the fuel block batch the job made. */
+	inputLot: 21,
+	blockLot: 22
+} as const;
+
+/**
+ * Adds a fuel block job to {@link jobsScenario}: 1,700 Heavy Water without a purchase (market estimate,
+ * 1 each), job cost 200, inputs 3,000 in all; it made 400 blocks at 8 each, of which `JOB.final` took
+ * 300, 40 were sold for 12 each net (sale 903, a day ago) and 60 are held.
+ */
+export function addFuelBlocks(s: JobsScenario) {
+	const db = s.env.DB;
+	insertTrackedJob(db, 'u1', {
+		jobId: FUEL.job,
+		sourceId: s.mine,
+		activityId: 1,
+		blueprintTypeId: FUEL.blueprint,
+		productTypeId: FUEL.block,
+		runs: 10,
+		cost: 200,
+		facilityId: FACILITY,
+		startDate: NOW - 4 * DAY,
+		endDate: NOW - 3 * DAY
+	});
+	insertJobResult(db, 'u1', {
+		jobId: FUEL.job,
+		inputCost: 3000,
+		jobCost: 200,
+		outputTypeId: FUEL.block,
+		outputQty: 400,
+		usedQty: 300,
+		soldQty: 40,
+		salesNet: 480,
+		unsoldQty: 60,
+		unitCost: 8,
+		realizedProfit: 160,
+		flags: ['market_fallback']
+	});
+	insertTrackedJob(db, 'u1', {
+		jobId: FUEL.notFuel,
+		sourceId: s.mine,
+		activityId: 1,
+		blueprintTypeId: MANUFACTURING.blueprint,
+		productTypeId: 11186,
+		endDate: NOW - DAY
+	});
+	insertLot(db, 'u1', {
+		lotId: FUEL.inputLot,
+		typeId: FUEL.ingredient,
+		acquiredAt: NOW - 4 * DAY,
+		quantity: 1700,
+		remaining: 0,
+		unitCost: 1,
+		origin: 'market',
+		originRef: `job:${FUEL.job}`
+	});
+	insertUse(db, 'u1', {
+		lotId: FUEL.inputLot,
+		kind: 'job',
+		ref: `job:${FUEL.job}`,
+		quantity: 1700,
+		unitCost: 1
+	});
+	insertLot(db, 'u1', {
+		lotId: FUEL.blockLot,
+		typeId: FUEL.block,
+		acquiredAt: NOW - 3 * DAY,
+		quantity: 400,
+		remaining: 60,
+		unitCost: 8,
+		origin: 'job',
+		originRef: `job:${FUEL.job}`
+	});
+	insertUse(db, 'u1', {
+		lotId: FUEL.blockLot,
+		kind: 'job',
+		ref: `job:${JOB.final}`,
+		quantity: 300,
+		unitCost: 8
+	});
+	insertTransaction(db, {
+		userId: 'u1',
+		sourceId: s.mine,
+		transactionId: 903,
+		typeId: FUEL.block,
+		quantity: 40,
+		isBuy: false,
+		date: NOW - DAY
+	});
+	insertPrice(db, {
+		userId: 'u1',
+		ref: 'transaction:903',
+		typeId: FUEL.block,
+		incoming: false,
+		quantity: 40,
+		unitPrice: 12,
+		at: NOW - DAY
+	});
+	insertUse(db, 'u1', {
+		lotId: FUEL.blockLot,
+		kind: 'sale',
+		ref: 'transaction:903',
+		quantity: 40,
+		unitCost: 8
+	});
+}

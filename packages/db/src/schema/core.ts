@@ -85,6 +85,20 @@ export const reprocessMaterials = sqliteTable(
 	(t) => [primaryKey({ columns: [t.typeId, t.materialTypeId] })]
 );
 
+/**
+ * Every material of the manufacturing blueprints that make a reaction material (`Dataset.manufacturing`
+ * entries with `makes: 'material'`: the fuel blocks), replaced with the reactions at each SDE import.
+ */
+export const materialBlueprintMaterials = sqliteTable(
+	'material_blueprint_materials',
+	{
+		blueprintTypeId: integer('blueprint_type_id').notNull(),
+		typeId: integer('type_id').notNull(),
+		quantity: integer('quantity').notNull()
+	},
+	(t) => [primaryKey({ columns: [t.blueprintTypeId, t.typeId] })]
+);
+
 export const regions = sqliteTable('regions', {
 	regionId: integer('region_id').primaryKey(),
 	name: text('name').notNull()
@@ -402,9 +416,10 @@ export const trackingStreams = sqliteTable(
 );
 
 /**
- * Industry jobs from ESI (completed for 90 days): reaction jobs, and manufacturing jobs whose blueprint
- * uses a reaction product (`activity_id` 1; they only consume reaction output in the ledger). ESI ids are
- * unique per user: a job seen by a character and its corporation is one row.
+ * Industry jobs from ESI (completed for 90 days): reaction jobs, and manufacturing jobs (`activity_id` 1)
+ * whose blueprint uses a reaction product (they only consume reaction output in the ledger) or makes a
+ * reaction material (fuel blocks: they produce like reactions). ESI ids are unique per user: a job seen
+ * by a character and its corporation is one row.
  */
 export const trackedJobs = sqliteTable(
 	'tracked_jobs',
@@ -474,7 +489,7 @@ export const trackedFacilities = sqliteTable(
 	(t) => [primaryKey({ columns: [t.userId, t.facilityId] })]
 );
 
-/** Market transactions of relevant types (`inventoryTypeIds`). */
+/** Market transactions of tracked types (`trackedTypeIds` of the dataset). */
 export const trackedTransactions = sqliteTable(
 	'tracked_transactions',
 	{

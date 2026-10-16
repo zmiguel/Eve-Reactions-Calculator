@@ -173,6 +173,11 @@
 				buy value on the day the job started or at what they cost you (no profit, no loss), as you choose.
 			</li>
 			<li>
+				<strong>Fuel blocks you build:</strong> a fuel block job uses its ingredients like a reaction uses its inputs,
+				oldest first, and its fuel blocks cost what went into them plus the job cost. Your reactions then use those
+				fuel blocks at that cost. Fuel block jobs make no profit of their own and are not counted as reaction jobs.
+			</li>
+			<li>
 				<strong>Material use</strong> follows the structure each job ran in, its rigs (a structure fits one rig
 				of each kind) and, for manufacturing, the blueprint's material efficiency. EVE tells most of this; you fill
 				in the rest on the profit tracking settings page. A reaction job whose structure or rigs are not known uses

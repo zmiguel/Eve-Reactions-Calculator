@@ -23,7 +23,9 @@ import type {
 } from '$lib/profits/types';
 import type { JobRow } from '$lib/jobs/types';
 import { listJobRows, type JobListRow, type JobsLocals } from './jobs.ts';
+import { getDataset } from './data.ts';
 import { ledgerReviewCount } from './ledger.ts';
+import { materialBlueprintIds } from './ledger-item.ts';
 import { getTrackingSettings } from './tracking-settings.ts';
 
 export const PROFIT_PERIODS: readonly ProfitPeriod[] = ['7', '30', '90', '365', 'all'];
@@ -99,6 +101,7 @@ interface UseSqlRow {
 	unit_cost: number;
 	type_id: number;
 	origin: InputSourceKind;
+	fuel_block: number;
 }
 
 interface HeldSqlRow {
@@ -114,6 +117,18 @@ interface ManufacturingSqlRow {
 	unit_value: number;
 	type_id: number;
 }
+
+interface FuelJobSqlRow {
+	start_date: number;
+	cost: number;
+}
+
+/**
+ * SQL condition: ledger lot `l` was not made by a fuel block job (a bought batch, or a reaction job's
+ * output). Fuel block jobs are the only manufacturing jobs (1) whose output is a batch.
+ */
+const NOT_FUEL_BLOCK_LOT = `NOT (l.origin = 'job' AND EXISTS (SELECT 1 FROM tracked_jobs f
+	WHERE f.user_id = l.user_id AND f.job_id = CAST(substr(l.origin_ref, 5) AS INTEGER) AND f.activity_id = 1))`;
 
 /**
  * Refs (`transaction:<id>`, `contract:<id>`, `job:<id>`) of rows of the user's tracking-on connections,
@@ -139,7 +154,7 @@ const TRACKED = `WITH tracked(ref) AS (
 const SQL = {
 	/**
 	 * Purchases (`incoming` 1) and sales at their net unit price; transfers between own parties and "Not
-	 * tracked" prices (items no reaction uses) left out.
+	 * tracked" prices (items no reaction or fuel block uses) left out.
 	 * Entered purchases have no `ledger_prices` row: their price is the one the user entered.
 	 */
 	prices: `${TRACKED} SELECT ref, type_id, incoming, at, quantity, unit_price FROM ledger_prices
@@ -147,8 +162,12 @@ const SQL = {
 		UNION ALL
 		SELECT 'manual:' || entry_id, type_id, 1, date, quantity, unit_price FROM manual_entries
 		WHERE user_id = ?1 AND quantity > 0`,
-	/** What reaction jobs and sales took from which kind of batch. */
-	uses: `${TRACKED} SELECT u.use_kind, u.use_ref, u.quantity, u.unit_cost, l.type_id, l.origin
+	/**
+	 * What reaction jobs and sales took from which kind of batch (`fuel_block` 1: a batch a fuel block job
+	 * made; fuel block jobs' own uses are left out by the callers, which only count reaction jobs).
+	 */
+	uses: `${TRACKED} SELECT u.use_kind, u.use_ref, u.quantity, u.unit_cost, l.type_id, l.origin,
+			CASE WHEN ${NOT_FUEL_BLOCK_LOT} THEN 0 ELSE 1 END AS fuel_block
 		FROM ledger_uses u JOIN ledger_lots l ON l.user_id = u.user_id AND l.lot_id = u.lot_id
 		WHERE u.user_id = ?1 AND u.use_kind IN ('job', 'sale')
 			AND u.use_ref IN (SELECT ref FROM tracked) AND l.origin_ref IN (SELECT ref FROM tracked)`,
@@ -162,10 +181,20 @@ const SQL = {
 		JOIN tracked_jobs m ON m.user_id = u.user_id AND u.use_ref = 'job:' || m.job_id
 		JOIN inventory_sources s ON s.source_id = m.source_id AND s.user_id = m.user_id
 		WHERE u.user_id = ?1 AND u.use_kind = 'manufacturing' AND m.activity_id = 1 AND s.tracking_enabled = 1
-			AND l.origin = 'job' AND l.origin_ref IN (SELECT ref FROM tracked)`,
-	/** Output of the user's jobs still held. */
-	held: `${TRACKED} SELECT type_id, remaining, unit_cost FROM ledger_lots
-		WHERE user_id = ?1 AND origin = 'job' AND remaining > 0 AND origin_ref IN (SELECT ref FROM tracked)`,
+			AND l.origin = 'job' AND l.origin_ref IN (SELECT ref FROM tracked) AND ${NOT_FUEL_BLOCK_LOT}`,
+	/** Output of the user's reaction jobs still held (fuel blocks they built are not reaction output). */
+	held: `${TRACKED} SELECT type_id, remaining, unit_cost FROM ledger_lots l
+		WHERE user_id = ?1 AND origin = 'job' AND remaining > 0 AND origin_ref IN (SELECT ref FROM tracked)
+			AND ${NOT_FUEL_BLOCK_LOT}`,
+	/**
+	 * Start date and cost of the fuel block jobs of tracking-on connections (`?2`: JSON array of the
+	 * material-making blueprints): money spent, though they are not reaction jobs.
+	 */
+	fuelJobs: `SELECT j.start_date, COALESCE(r.job_cost, j.cost, 0) AS cost FROM tracked_jobs j
+		JOIN inventory_sources s ON s.source_id = j.source_id AND s.user_id = j.user_id
+		LEFT JOIN job_results r ON r.user_id = j.user_id AND r.job_id = j.job_id
+		WHERE j.user_id = ?1 AND s.tracking_enabled = 1 AND j.activity_id = 1
+			AND j.blueprint_type_id IN (SELECT value FROM json_each(?2))`,
 	state: 'SELECT rebuilt_at, dirty FROM ledger_state WHERE user_id = ?1',
 	/** Tracking-on connections whose sync or one of its streams failed or was denied. */
 	failing: `SELECT COUNT(*) AS n FROM inventory_sources s
@@ -188,6 +217,8 @@ export interface OverviewUse {
 	unitCost: number;
 	typeId: number;
 	origin: InputSourceKind;
+	/** The batch was made by a fuel block job: no reaction profit when sold. */
+	fuelBlock: boolean;
 }
 
 /** Reaction output taken by a manufacturing job (dated at that job's start). */
@@ -217,6 +248,8 @@ export interface OverviewFacts {
 	/** Reaction output used by manufacturing jobs (realized at once). */
 	manufacturingUses: OverviewManufacturingUse[];
 	held: { typeId: number; quantity: number; unitCost: number }[];
+	/** Fuel block jobs (not reaction jobs): only their job costs count, as money paid out. */
+	fuelJobs: { startDate: number; jobCost: number }[];
 	rebuiltAt: number | null;
 	dirty: boolean;
 	reviewCount: number;
@@ -227,24 +260,31 @@ export interface OverviewFacts {
 export async function loadOverviewFacts(env: Env, locals: JobsLocals, now: number): Promise<OverviewFacts> {
 	const userId = locals.user.userId;
 	const db = env.DB;
-	const [[pricesRes, usesRes, manufacturingRes, heldRes, stateRes, failingRes], jobs, reviewCount] =
-		await Promise.all([
-			db.batch([
-				db.prepare(SQL.prices).bind(userId),
-				db.prepare(SQL.uses).bind(userId),
-				db.prepare(SQL.manufacturing).bind(userId),
-				db.prepare(SQL.held).bind(userId),
-				db.prepare(SQL.state).bind(userId),
-				db.prepare(SQL.failing).bind(userId)
-			]),
-			listJobRows(
-				env,
-				locals,
-				{ period: 'all', status: null, formula: null, connection: null, sort: 'newest' },
-				now
-			),
-			ledgerReviewCount(env, userId)
-		]);
+	const [
+		[pricesRes, usesRes, manufacturingRes, heldRes, stateRes, failingRes],
+		jobs,
+		reviewCount,
+		fuelJobsRes
+	] = await Promise.all([
+		db.batch([
+			db.prepare(SQL.prices).bind(userId),
+			db.prepare(SQL.uses).bind(userId),
+			db.prepare(SQL.manufacturing).bind(userId),
+			db.prepare(SQL.held).bind(userId),
+			db.prepare(SQL.state).bind(userId),
+			db.prepare(SQL.failing).bind(userId)
+		]),
+		listJobRows(
+			env,
+			locals,
+			{ period: 'all', status: null, formula: null, connection: null, sort: 'newest' },
+			now
+		),
+		ledgerReviewCount(env, userId),
+		getDataset(env).then((dataset) =>
+			db.prepare(SQL.fuelJobs).bind(userId, materialBlueprintIds(dataset)).all<FuelJobSqlRow>()
+		)
+	]);
 	const trade = (p: PriceSqlRow): OverviewTrade => ({
 		ref: p.ref,
 		typeId: p.type_id,
@@ -260,7 +300,8 @@ export async function loadOverviewFacts(env: Env, locals: JobsLocals, now: numbe
 			quantity: u.quantity,
 			unitCost: u.unit_cost,
 			typeId: u.type_id,
-			origin: u.origin
+			origin: u.origin,
+			fuelBlock: u.fuel_block === 1
 		} satisfies OverviewUse
 	}));
 	const state = stateRes.results[0] as { rebuilt_at: number | null; dirty: number } | undefined;
@@ -285,6 +326,7 @@ export async function loadOverviewFacts(env: Env, locals: JobsLocals, now: numbe
 			quantity: h.remaining,
 			unitCost: h.unit_cost
 		})),
+		fuelJobs: fuelJobsRes.results.map((j) => ({ startDate: j.start_date, jobCost: j.cost })),
 		rebuiltAt: state?.rebuilt_at ?? null,
 		dirty: Boolean(state?.dirty),
 		reviewCount,
@@ -311,15 +353,16 @@ function salesByKey(facts: OverviewFacts): Map<string, OverviewTrade> {
 }
 
 /**
- * Realized profit events: every sale of job-made units (quantity × (net sale price − batch unit cost),
- * dated at the sale), every use of job output by a manufacturing job (quantity × (unit value − unit
- * cost), dated at that job's start) and every cancelled job's loss (dated when it was cancelled).
+ * Realized profit events: every sale of reaction-made units (quantity × (net sale price − batch unit
+ * cost), dated at the sale), every use of reaction output by a manufacturing job (quantity × (unit value
+ * − unit cost), dated at that job's start) and every cancelled reaction job's loss (dated when it was
+ * cancelled). Fuel blocks the user built are not reaction output.
  */
 function realizedEvents(facts: OverviewFacts): RealizedEvent[] {
 	const sales = salesByKey(facts);
 	const events: RealizedEvent[] = [];
 	for (const use of facts.saleUses) {
-		if (use.origin !== 'job') continue;
+		if (use.origin !== 'job' || use.fuelBlock) continue;
 		const sale = sales.get(`${use.ref}|${use.typeId}`);
 		if (sale) events.push({ at: sale.at, amount: use.quantity * (sale.netUnitPrice - use.unitCost) });
 	}
@@ -373,10 +416,15 @@ export function overviewKpis(facts: OverviewFacts, b: PeriodBounds): OverviewKpi
 		facts.purchases.filter((p) => inPeriod(b, p.at)),
 		(p) => p.quantity * p.netUnitPrice
 	);
-	const jobCosts = sum(
-		facts.jobs.filter((j) => inPeriod(b, j.startDate)),
-		(j) => j.jobCost ?? 0
-	);
+	const jobCosts =
+		sum(
+			facts.jobs.filter((j) => inPeriod(b, j.startDate)),
+			(j) => j.jobCost ?? 0
+		) +
+		sum(
+			facts.fuelJobs.filter((j) => inPeriod(b, j.startDate)),
+			(j) => j.jobCost
+		);
 
 	const unsold = { quantity: 0, value: 0, cost: 0, gain: 0, unvaluedTypes: 0 };
 	for (const row of unsoldRows(facts)) {
@@ -430,7 +478,8 @@ function buckets(facts: OverviewFacts, b: PeriodBounds): number[] {
 		const dates = [
 			...facts.sales.map((s) => s.at),
 			...facts.purchases.map((p) => p.at),
-			...facts.jobs.map((j) => j.startDate)
+			...facts.jobs.map((j) => j.startDate),
+			...facts.fuelJobs.map((j) => j.startDate)
 		].filter((at) => at <= b.end);
 		if (dates.length === 0) return [];
 		start = Math.min(...dates);
@@ -468,7 +517,7 @@ export function overviewCharts(facts: OverviewFacts, b: PeriodBounds): OverviewC
 		const p = at(s.at);
 		if (p) p.purchases += s.quantity * s.netUnitPrice;
 	}
-	for (const j of facts.jobs) {
+	for (const j of [...facts.jobs, ...facts.fuelJobs]) {
 		const p = at(j.startDate);
 		if (p) p.jobCosts += j.jobCost ?? 0;
 	}

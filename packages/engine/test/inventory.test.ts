@@ -1,7 +1,13 @@
 import { describe, expect, it } from 'vitest';
-import { inventoryRole, inventoryTypeIds, stockUnitValue } from '../src/inventory.ts';
+import {
+	inventoryRole,
+	inventoryTypeIds,
+	isMaterialBlueprint,
+	stockUnitValue,
+	trackedTypeIds
+} from '../src/inventory.ts';
 import type { ResolvedProfile } from '../src/settings.ts';
-import type { Reactor } from '../src/types.ts';
+import type { Dataset, Reactor } from '../src/types.ts';
 import { makeCtx, resolved } from './fixtures/context.ts';
 import { dataset, jitaPrices, priceBook } from './fixtures/dataset.ts';
 
@@ -37,6 +43,57 @@ describe('inventoryTypeIds', () => {
 
 	it('leaves out types no reaction touches', () => {
 		expect(inventoryTypeIds(dataset).has(RIFTER)).toBe(false);
+	});
+});
+
+describe('trackedTypeIds', () => {
+	const OXYGEN_FUEL_BLOCK_BLUEPRINT = 4313;
+	const OXYGEN_ISOTOPES = 17887;
+	const ROBOTICS = 9848;
+	const SPIKE_S_BLUEPRINT = 12619;
+	const SPIKE_S = 12618;
+	const withBlueprints: Dataset = {
+		...dataset,
+		manufacturing: [
+			{
+				blueprintTypeId: OXYGEN_FUEL_BLOCK_BLUEPRINT,
+				productTypeId: OXYGEN_FUEL_BLOCK,
+				productQuantity: 40,
+				makes: 'material',
+				materials: [
+					{ typeId: OXYGEN_ISOTOPES, quantity: 450 },
+					{ typeId: ROBOTICS, quantity: 1 }
+				]
+			},
+			{
+				blueprintTypeId: SPIKE_S_BLUEPRINT,
+				productTypeId: SPIKE_S,
+				productQuantity: 5000,
+				materials: [{ typeId: TITANIUM_CARBIDE, quantity: 150 }]
+			}
+		]
+	};
+
+	it('adds the fuel block blueprints and all their materials to the inventory types', () => {
+		const tracked = trackedTypeIds(withBlueprints);
+		const added = [...tracked]
+			.filter((id) => !inventoryTypeIds(withBlueprints).has(id))
+			.sort((a, b) => a - b);
+		expect(added).toEqual([OXYGEN_FUEL_BLOCK_BLUEPRINT, ROBOTICS, OXYGEN_ISOTOPES]);
+		for (const id of inventoryTypeIds(withBlueprints)) expect(tracked.has(id)).toBe(true);
+	});
+
+	it('leaves out blueprints that only use reaction products, and their products', () => {
+		const tracked = trackedTypeIds(withBlueprints);
+		expect(tracked.has(SPIKE_S_BLUEPRINT)).toBe(false);
+		expect(tracked.has(SPIKE_S)).toBe(false);
+		expect(inventoryTypeIds(withBlueprints).has(OXYGEN_ISOTOPES)).toBe(false);
+	});
+
+	it('tells material-making blueprints apart', () => {
+		expect(isMaterialBlueprint(withBlueprints, OXYGEN_FUEL_BLOCK_BLUEPRINT)).toBe(true);
+		expect(isMaterialBlueprint(withBlueprints, SPIKE_S_BLUEPRINT)).toBe(false);
+		expect(isMaterialBlueprint(dataset, OXYGEN_FUEL_BLOCK_BLUEPRINT)).toBe(false);
 	});
 });
 

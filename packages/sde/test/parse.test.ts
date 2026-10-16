@@ -47,7 +47,8 @@ describe('readSdeZip', () => {
 	it('projects raw lines from the fixture', async () => {
 		const raw = await readSdeZip(streamOf(fixtureBytes()));
 		expect(raw.blueprints).toHaveLength(120);
-		expect(raw.manufacturing).toHaveLength(385);
+		// Blueprints taking a reaction product (published or not) and the four fuel block blueprints.
+		expect(raw.manufacturing).toHaveLength(389);
 		expect(raw.manufacturing.find((b) => b.blueprintTypeId === 17349)).toEqual({
 			blueprintTypeId: 17349,
 			materials: [

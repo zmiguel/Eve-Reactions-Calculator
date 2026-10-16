@@ -12,7 +12,8 @@ const HOUR = 3_600_000;
 
 /**
  * Relevant types: formula 46166, product 16663, materials 4312, 16643, 16647 (34 is not). Manufacturing
- * blueprint 12619 uses the product 16663.
+ * blueprint 12619 uses the product 16663; blueprint 4313 makes the material 4312 (Oxygen Fuel Block) from
+ * 17887 and 9832, which are tracked too.
  */
 const DATASET = {
 	sdeBuild: 1,
@@ -30,6 +31,16 @@ const DATASET = {
 	],
 	manufacturing: [
 		{
+			blueprintTypeId: 4313,
+			productTypeId: 4312,
+			productQuantity: 40,
+			makes: 'material',
+			materials: [
+				{ typeId: 17887, quantity: 450 },
+				{ typeId: 9832, quantity: 9 }
+			]
+		},
+		{
 			blueprintTypeId: 12619,
 			productTypeId: 12618,
 			productQuantity: 5000,
@@ -40,6 +51,7 @@ const DATASET = {
 	reprocess: {}
 };
 const MFG_BLUEPRINT = 12619;
+const FUEL_BLUEPRINT = 4313;
 
 /** Raw ESI wallet transaction. */
 function tx(id: number, typeId: number, isPersonal?: boolean) {
@@ -80,7 +92,8 @@ function job(
 		activity_id: activityId,
 		blueprint_id: 9000 + jobId,
 		blueprint_type_id: blueprintTypeId,
-		product_type_id: blueprintTypeId === MFG_BLUEPRINT ? 12618 : 16663,
+		product_type_id:
+			blueprintTypeId === MFG_BLUEPRINT ? 12618 : blueprintTypeId === FUEL_BLUEPRINT ? 4312 : 16663,
 		output_location_id: 1035000000000,
 		runs: 10,
 		cost: 1234.5,
@@ -757,6 +770,75 @@ describe('TrackingSyncWorkflow', () => {
 			expect(esiCalls(second, /industry\/jobs$/)).toHaveLength(1);
 			expect(esiCalls(second, /blueprints$/)).toEqual([]);
 			expect((await jobsOf())[1]).toMatchObject({ job_id: 3, blueprint_me: 7 });
+		});
+
+		it('stores fuel block jobs and transactions of their materials, and reads the blueprint ME', async () => {
+			await seedConnection(1, 'u1', 'character');
+			const state: EveState = {
+				...emptyState(),
+				// Two fuel block materials and a type nothing uses.
+				transactions: [tx(203, 17887, true), tx(202, 34, true), tx(201, 9832, true)],
+				jobs: [job(6, 1, 'active', FUEL_BLUEPRINT), job(7, 1, 'delivered', FUEL_BLUEPRINT)],
+				blueprints: [[blueprint(9006, 9)]]
+			};
+			installEve(state);
+
+			expect(await runSync('tracking-1-1', 1)).toMatchObject({ ok: true, status: 'ok', ledgerRebuilt: true });
+
+			expect(await jobsOf()).toEqual([
+				{ job_id: 6, activity_id: 1, blueprint_id: 9006, blueprint_me: 9, status: 'active' },
+				{ job_id: 7, activity_id: 1, blueprint_id: 9007, blueprint_me: null, status: 'delivered' }
+			]);
+			expect(
+				await rows('SELECT transaction_id, type_id FROM tracked_transactions ORDER BY transaction_id')
+			).toEqual([
+				{ transaction_id: 201, type_id: 9832 },
+				{ transaction_id: 203, type_id: 17887 }
+			]);
+		});
+
+		it('fetches material transactions and fuel block jobs again after the 3.2.2 stream reset', async () => {
+			await seedConnection(1, 'u1', 'character');
+			const withoutFuel = {
+				...DATASET,
+				manufacturing: DATASET.manufacturing.filter((b) => b.blueprintTypeId !== FUEL_BLUEPRINT)
+			};
+			await env.CACHE.put(DATASET_KV_KEY, JSON.stringify(withoutFuel));
+			const state: EveState = {
+				...emptyState(),
+				transactions: [tx(203, 17887, true), tx(202, 4312, true), tx(201, 9832, true)],
+				jobs: [job(7, 1, 'delivered', FUEL_BLUEPRINT)]
+			};
+			installEve(state);
+			await runSync('tracking-1-1', 1);
+			// Before the release: only the reaction material is kept, the fuel block job is not.
+			expect(await rows('SELECT transaction_id FROM tracked_transactions')).toEqual([
+				{ transaction_id: 202 }
+			]);
+			expect(await jobsOf()).toEqual([]);
+
+			// The release: the new dataset, then the stream reset of docs/deploy.md.
+			await env.CACHE.put(DATASET_KV_KEY, JSON.stringify(DATASET));
+			await env.DB.batch([
+				env.DB.prepare(
+					"UPDATE tracking_streams SET cursor = NULL, expires_at = NULL WHERE stream = 'transactions' OR stream LIKE 'transactions:%'"
+				),
+				env.DB.prepare("UPDATE tracking_streams SET expires_at = NULL WHERE stream = 'jobs'")
+			]);
+			installEve(state);
+			await runSync('tracking-1-2', 1);
+			expect(await rows('SELECT transaction_id FROM tracked_transactions ORDER BY transaction_id')).toEqual([
+				{ transaction_id: 201 },
+				{ transaction_id: 202 },
+				{ transaction_id: 203 }
+			]);
+			expect(await jobsOf()).toMatchObject([{ job_id: 7, activity_id: 1 }]);
+			expect(await streams(1)).toContainEqual({
+				stream: 'transactions',
+				status: 'ok',
+				cursor: 203,
+				last_error: null
+			});
 		});
 
 		it('walks blueprint pages until every wanted blueprint is found', async () => {

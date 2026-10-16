@@ -115,7 +115,7 @@ function contractCorrections(
 const CORRECTION_SOURCE: PriceSource = { kind: 'correction', text: 'Your correction', needsReview: false };
 const UNTRACKED_SOURCE: PriceSource = {
 	kind: 'untracked',
-	text: 'Not tracked: not used by any reaction',
+	text: 'Not tracked: not used by any reaction or fuel block',
 	needsReview: false
 };
 const NO_REFERENCE_SOURCE: PriceSource = {
@@ -236,7 +236,7 @@ function priceMixed(
  * changed hands between the user and someone else. The issuing side is own when the issuer is, or
  * when it was issued for an own corporation; the receiving side when the acceptor is, or when the
  * contract was assigned to an own corporation (a member who is none of the user's characters accepted
- * it for the corporation). Items outside `tracked` (`inventoryTypeIds` of the dataset) are priced with
+ * it for the corporation). Items outside `tracked` (`trackedTypeIds` of the dataset) are priced with
  * kind `untracked`: they never need review and corrections on them are ignored; with tracked items
  * beside them, the tracked ones are valued first (see `priceMixed`) unless a Janice appraisal covers
  * every item.
@@ -437,7 +437,7 @@ interface PriceTradesInput {
 	/** `sourceId`s whose order stream is readable. */
 	ordersAvailable: ReadonlySet<number>;
 	corrections: readonly LedgerCorrection[];
-	/** Types the ledger tracks (`inventoryTypeIds` of the dataset); other trades are `untracked`. */
+	/** Types the ledger tracks (`trackedTypeIds` of the dataset); other trades are `untracked`. */
 	tracked: ReadonlySet<number>;
 }
 

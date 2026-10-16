@@ -7,10 +7,12 @@ import { NOW, defaults, insertUser, loadSde, marketFor, putKv } from '../../test
 import {
 	ALPHA,
 	FACILITY,
+	FUEL,
 	GAMMA,
 	JOB,
 	MANUFACTURING,
 	OTHER_FACILITY,
+	addFuelBlocks,
 	addManufacturing,
 	insertJobResult,
 	insertTrackedJob,
@@ -717,5 +719,62 @@ describe('jobDetailPage', () => {
 		// A facility in the reactor settings' system (Ignoitton): the settings are its defaults, on purpose.
 		insertTrackedFacility(env.DB, 'u1', { facilityId: OTHER_FACILITY, systemId: 30002647 });
 		expect((await detail(env, JOB.final))!.materialBonus).toMatchObject({ reactorSettingsSystem: true });
+	});
+});
+
+describe('fuel block jobs', () => {
+	it('stay out of the job list, its counts, totals and formula choices', async () => {
+		const s = await jobsScenario();
+		const before = await page(s.env);
+		addFuelBlocks(s);
+		const after = await page(s.env);
+		expect(ids(after)).toEqual(ids(before));
+		expect(after.counts).toEqual(before.counts);
+		expect(after.totals).toEqual(before.totals);
+		expect(after.formulas).toEqual(before.formulas);
+		const rows = (await listJobRows(asEnv(s.env), u1(), ALL, NOW)).rows;
+		expect(rows.map((r) => r.jobId)).not.toContain(FUEL.job);
+	});
+
+	it('have a job page: inputs, output used by reactions, cost per block, no material bonus', async () => {
+		const s = await jobsScenario();
+		addFuelBlocks(s);
+		const data = (await jobDetailPage(asEnv(s.env), u1(), FUEL.job, NOW))!;
+		expect(data.kind).toBe('fuel_block');
+		expect(data.job.formula).toEqual({
+			blueprintTypeId: FUEL.blueprint,
+			name: 'Nitrogen Fuel Block Blueprint'
+		});
+		expect(data.job.product?.typeId).toBe(FUEL.block);
+		// (3,000 inputs + 200 job cost) / 400 blocks.
+		expect(data.job.unitCost).toBe(8);
+		expect(data.materialBonus).toBeNull();
+		expect(data.inputs.map((i) => [i.typeId, i.quantity, i.cost])).toEqual([[FUEL.ingredient, 1700, 1700]]);
+		expect(data.inputs[0].lots[0]).toMatchObject({
+			origin: 'market',
+			correctionRef: `job:${FUEL.job}:${FUEL.ingredient}`
+		});
+		expect(data.output).toMatchObject({ quantity: 400, usedQty: 300, soldQty: 40, unsoldQty: 60 });
+		expect(data.chain.to).toEqual([expect.objectContaining({ jobId: JOB.final, quantity: 300 })]);
+		expect(data.chain.from).toEqual([]);
+		expect(await isTrackedJob(asEnv(s.env), 'u1', FUEL.job)).toBe(true);
+
+		// The reaction job using the blocks links back to it by blueprint name.
+		const final = (await jobDetailPage(asEnv(s.env), u1(), JOB.final, NOW))!;
+		expect(final.kind).toBe('reaction');
+		expect(final.chain.from).toContainEqual(
+			expect.objectContaining({
+				jobId: FUEL.job,
+				formula: { blueprintTypeId: FUEL.blueprint, name: 'Nitrogen Fuel Block Blueprint' },
+				quantity: 300
+			})
+		);
+	});
+
+	it('a manufacturing job making no fuel block has no job page', async () => {
+		const s = await jobsScenario();
+		addFuelBlocks(s);
+		expect(await jobDetailPage(asEnv(s.env), u1(), FUEL.notFuel, NOW)).toBeNull();
+		expect(await isTrackedJob(asEnv(s.env), 'u1', FUEL.notFuel)).toBe(false);
 	});
 });

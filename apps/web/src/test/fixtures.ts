@@ -1,5 +1,5 @@
 import type { MarketSnapshot } from '@reactions/db';
-import { DEFAULT_SETTINGS, type Settings } from '@reactions/engine';
+import { DEFAULT_SETTINGS, inventoryTypeIds, type Settings } from '@reactions/engine';
 import { parseSdeZip, type SdeDataset } from '@reactions/sde';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
@@ -151,15 +151,19 @@ export function marketFor(sde: SdeDataset, snapshotAt = NOW): MarketSnapshot {
 
 /**
  * Fixture prices (deterministic, log-uniform 10 to 100,000 at Jita) at which Fermionic Condensates'
- * best chain uses unrefined routes, so its Full chain and Using unrefined numbers differ.
+ * best chain uses unrefined routes, so its Full chain and Using unrefined numbers differ. Only the
+ * reaction types (`inventoryTypeIds`) draw from the sequence; the fuel block blueprints and materials
+ * keep their `marketFor` price.
  */
 export function routeMarket(sde: SdeDataset): MarketSnapshot {
 	let state = 1;
 	const random = () => (state = (state * 1103515245 + 12345) % 2147483648) / 2147483648;
 	const market = marketFor(sde);
-	for (const id of Object.keys(market.prices.jita)) {
+	const reactionTypes = inventoryTypeIds(sde.dataset);
+	for (const id of Object.keys(market.prices.jita).map(Number)) {
+		if (!reactionTypes.has(id)) continue;
 		const price = 10 ** (1 + random() * 4);
-		market.prices.jita[Number(id)] = [price * 0.9, price, 1e9, 1e9];
+		market.prices.jita[id] = [price * 0.9, price, 1e9, 1e9];
 	}
 	return market;
 }

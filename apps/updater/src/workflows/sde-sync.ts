@@ -6,6 +6,7 @@ import {
 	DATASET_KV_KEY,
 	getCoreDb,
 	httpCache,
+	materialBlueprintMaterials,
 	reactionMaterials,
 	reactions,
 	regions,
@@ -166,7 +167,10 @@ export async function writeReference(env: Env, build: number): Promise<void> {
 	);
 }
 
-/** Step `write-reactions`: replace `reactions`, `reaction_materials`, `reprocess_materials` in one batch. */
+/**
+ * Step `write-reactions`: replace `reactions`, `reaction_materials`, `reprocess_materials` and
+ * `material_blueprint_materials` in one batch.
+ */
 export async function writeReactions(env: Env, build: number): Promise<void> {
 	const { dataset } = await readArchivedSde(env, build);
 	const db = getCoreDb(env.DB);
@@ -196,13 +200,24 @@ export async function writeReactions(env: Env, build: number): Promise<void> {
 			portionSize: entry.portionSize
 		}))
 	);
+	const blueprintMaterialRows = (dataset.manufacturing ?? [])
+		.filter((bp) => bp.makes === 'material')
+		.flatMap((bp) =>
+			bp.materials.map((m) => ({
+				blueprintTypeId: bp.blueprintTypeId,
+				typeId: m.typeId,
+				quantity: m.quantity
+			}))
+		);
 	const statements: BatchItem<'sqlite'>[] = [
 		db.delete(reactionMaterials),
 		db.delete(reprocessMaterials),
+		db.delete(materialBlueprintMaterials),
 		db.delete(reactions),
 		...chunkRows(reactionRows, 11).map((chunk) => db.insert(reactions).values(chunk)),
 		...chunkRows(materialRows, 3).map((chunk) => db.insert(reactionMaterials).values(chunk)),
-		...chunkRows(reprocessRows, 6).map((chunk) => db.insert(reprocessMaterials).values(chunk))
+		...chunkRows(reprocessRows, 6).map((chunk) => db.insert(reprocessMaterials).values(chunk)),
+		...chunkRows(blueprintMaterialRows, 3).map((chunk) => db.insert(materialBlueprintMaterials).values(chunk))
 	];
 	await db.batch(statements as [BatchItem<'sqlite'>, ...BatchItem<'sqlite'>[]]);
 }

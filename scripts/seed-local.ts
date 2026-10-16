@@ -1,7 +1,8 @@
 /**
  * Seeds the local (miniflare) D1 databases and KV namespace shared by both workers with the SDE fixture,
  * a deterministic market (mulberry32(42)), two seed accounts with structure markets, and the seed pilot's
- * profit tracking (trades, contracts, a Titanium Carbide job chain and the ledger computed from them).
+ * profit tracking (trades, contracts, a fuel block job, a Titanium Carbide job chain and the ledger
+ * computed from them).
  * Usage: `npm run seed:local` (= `node scripts/seed-local.ts`) seeds `.wrangler/seeded`, served by
  * `npm run dev:seeded`; the e2e server seeds its own directory through `seedLocal(E2E_PERSIST_TO, …)`,
  * adding running jobs of its own.
@@ -11,7 +12,7 @@ import { execSync } from 'node:child_process';
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { runLedger, type Dataset, type Reaction } from '@reactions/engine';
+import { inventoryTypeIds, runLedger, type Dataset, type Reaction } from '@reactions/engine';
 import {
 	ESI_FEATURES,
 	STRUCTURE_SCOPES,
@@ -207,6 +208,7 @@ export interface MarketFixture {
 
 const RAW_PRICE_RANGE: Record<number, [number, number]> = {
 	18: [4, 900], // minerals
+	423: [80, 700], // ice products (fuel block materials)
 	427: [400, 6000], // moon materials
 	711: [800, 6000], // gases
 	1042: [300, 900], // planetary materials
@@ -215,15 +217,23 @@ const RAW_PRICE_RANGE: Record<number, [number, number]> = {
 
 const round2 = (n: number) => Math.round(n * 100) / 100;
 
-/** Deterministic market: raw prices from ranges, products priced from inputs × a 0.95–1.30 margin. */
+/**
+ * Deterministic market: raw prices from ranges, products priced from inputs × a 0.95–1.30 margin. Types
+ * only fuel block jobs use (the fuel block blueprints and their materials) draw from a second generator,
+ * so the prices of the reaction types stay what they were before those types were tracked.
+ */
 export function buildMarketFixture(sde: SdeDataset, seed = 42): MarketFixture {
-	const rng = mulberry32(seed);
+	const reactionRng = mulberry32(seed);
+	const fuelRng = mulberry32(seed + 1);
 	const { dataset } = sde;
+	const reactionTypes = inventoryTypeIds(dataset);
+	const rngOf = (typeId: number) => (reactionTypes.has(typeId) ? reactionRng : fuelRng);
 	const formulaIds = new Set(dataset.reactions.map((r) => r.blueprintTypeId));
 	const producer = new Map<number, Reaction>(dataset.reactions.map((r) => [r.product.typeId, r]));
 	const base: Record<number, number> = {};
 	const typeIds = sde.types.map((t) => t.typeId).sort((a, b) => a - b);
 	for (const t of [...sde.types].sort((a, b) => a.typeId - b.typeId)) {
+		const rng = rngOf(t.typeId);
 		if (formulaIds.has(t.typeId)) base[t.typeId] = round2(10_000_000 + rng() * 30_000_000);
 		else if (!producer.has(t.typeId)) {
 			const [lo, hi] = RAW_PRICE_RANGE[t.groupId] ?? [500, 5000];
@@ -238,7 +248,7 @@ export function buildMarketFixture(sde: SdeDataset, seed = 42): MarketFixture {
 			(acc, m) => acc + m.quantity * priceOf(m.typeId, new Set(seen).add(r.blueprintTypeId)),
 			0
 		);
-		base[typeId] = round2((cost / r.product.quantity) * (0.95 + rng() * 0.35));
+		base[typeId] = round2((cost / r.product.quantity) * (0.95 + reactionRng() * 0.35));
 		return base[typeId];
 	};
 	for (const r of [...dataset.reactions].sort((a, b) => a.blueprintTypeId - b.blueprintTypeId)) {
@@ -250,6 +260,7 @@ export function buildMarketFixture(sde: SdeDataset, seed = 42): MarketFixture {
 	for (const hub of SEED_HUBS) {
 		const book: Record<number, SeedPrice> = {};
 		for (const typeId of typeIds) {
+			const rng = rngOf(typeId);
 			const skip = hub.hubId === SPARSE_HUB && rng() < 0.05;
 			const sell = round2(base[typeId] * hub.factor * (0.97 + rng() * 0.06));
 			const buy = round2(sell * (0.86 + rng() * 0.1));
@@ -261,12 +272,13 @@ export function buildMarketFixture(sde: SdeDataset, seed = 42): MarketFixture {
 	const adjusted: Record<number, number> = {};
 	for (const typeId of typeIds) {
 		adjusted[typeId] = round2(base[typeId] * 0.95);
-		if (!formulaIds.has(typeId)) dailyVolume[typeId] = Math.round(5_000 + rng() * 5_000_000);
+		if (!formulaIds.has(typeId)) dailyVolume[typeId] = Math.round(5_000 + rngOf(typeId)() * 5_000_000);
 	}
 	const structurePrices: MarketFixture['structurePrices'] = {};
 	for (const hub of SEED_STRUCTURE_HUBS) {
 		const book: Record<number, SeedPrice> = {};
 		for (const typeId of typeIds) {
+			const rng = rngOf(typeId);
 			const sell = round2(base[typeId] * hub.factor * (0.97 + rng() * 0.06));
 			const volume = Math.round(100 + rng() * 200_000);
 			book[typeId] = { buy: round2(sell * 0.9), sell, buyVolume: volume, sellVolume: volume };
@@ -431,13 +443,15 @@ export function seedDailyPrice(market: MarketFixture, factor: number, typeId: nu
 
 /**
  * Profit tracking of the seed pilot's personal connection (Profit tracking on, every stream `ok`), on
- * UTC days before the seed day: day 9 two contract purchases of the intermediates' raw inputs (one
- * split by a stored Janice appraisal linked in its title, one by the contract rule); day 8 market buys of
- * Titanium Chromide and Silicon Diborite through buy orders (broker fee rows) and the two intermediate
- * jobs; day 6 a Titanium Carbide job that uses the bought and the made intermediates; days 4–3 a partial
- * sale of Titanium Carbide through a sell order (journal sales tax and broker fee); day 2 a manufacturing
- * job (blueprint ME 10 read from EVE) that takes part of the Titanium Carbide; day 1 a contract purchase
- * of Platinum with an untracked module, and a purchase the pilot entered by hand.
+ * UTC days before the seed day: day 9 two contract purchases of the intermediates' raw inputs and 300
+ * Oxygen Fuel Blocks (one split by a stored Janice appraisal linked in its title, one by the contract
+ * rule); day 8 market buys of Titanium Chromide, Silicon Diborite and Oxygen Isotopes through buy orders
+ * (broker fee rows) and the two intermediate jobs (they use 294 of the 300 blocks); day 7 a fuel block
+ * job; day 6 a Titanium Carbide job that uses the bought and the made intermediates and the last 6
+ * bought blocks plus 141 made ones; days 4–3 a partial sale of Titanium Carbide through a sell order
+ * (journal sales tax and broker fee); day 2 a manufacturing job (blueprint ME 10 read from EVE) that
+ * takes part of the Titanium Carbide; day 1 a contract purchase of Platinum with an untracked module,
+ * and a purchase the pilot entered by hand.
  */
 export const SEED_TRACKING = {
 	streams: ['jobs', 'contracts', 'orders', 'transactions', 'journal', 'blueprints'],
@@ -472,6 +486,21 @@ export const SEED_TRACKING = {
 		me: 10,
 		cost: 420_000,
 		startDay: 2
+	},
+	/**
+	 * Oxygen Fuel Block Blueprint at ME 10 (read from EVE) in the Raitaru (role bonus 1 %): 4 runs make
+	 * 160 blocks from 4 × 450 × 0.891 = 1,603.8 → 1,604 Oxygen Isotopes (bought on day 8) and its other
+	 * materials (no purchase: valued at the buy value at the job start).
+	 */
+	fuel: {
+		jobId: 610000005,
+		blueprintTypeId: 4313,
+		blueprintId: 1060000000002,
+		runs: 4,
+		me: 10,
+		cost: 95_000,
+		startDay: 7,
+		isotopes: 1_604
 	},
 	/** Entered on the Ledger tab: Titanium Carbide bought outside the tracked wallets. */
 	manual: {
@@ -624,6 +653,16 @@ function trackingSql(sde: SdeDataset, market: MarketFixture, now: number): strin
 		at(3, 15),
 		t.sale.sold
 	);
+	const isotopes = 'Oxygen Isotopes';
+	trade(
+		6100000004,
+		isotopes,
+		true,
+		jita[typeId(isotopes)]!.buy,
+		{ issued: at(8, 8), total: t.fuel.isotopes, remain: 0, state: 'expired' },
+		at(8, 10),
+		t.fuel.isotopes
+	);
 
 	// Contracts: issued day 9 10:00 by a seller, accepted by the pilot at 11:00.
 	const issued = at(9, 10);
@@ -636,7 +675,7 @@ function trackingSql(sde: SdeDataset, market: MarketFixture, now: number): strin
 	const ruleLines: [string, number][] = [
 		['Silicates', t.rawUnits],
 		['Evaporite Deposits', t.rawUnits],
-		['Oxygen Fuel Block', 300]
+		['Oxygen Fuel Block', 150]
 	];
 	const appraisal: JaniceAppraisal = {
 		code: t.janiceCode,
@@ -763,6 +802,28 @@ function trackingSql(sde: SdeDataset, market: MarketFixture, now: number): strin
 		start_date: manufacturingStart,
 		end_date: manufacturingStart + 6 * 3_600_000,
 		completed_date: manufacturingStart + 7 * 3_600_000
+	});
+	const f = t.fuel;
+	const fuelBlueprint = sde.dataset.manufacturing?.find((b) => b.blueprintTypeId === f.blueprintTypeId);
+	if (!fuelBlueprint) throw new Error(`the SDE fixture has no fuel block blueprint ${f.blueprintTypeId}`);
+	const fuelStart = at(f.startDay, 8);
+	jobs.push({
+		job_id: f.jobId,
+		source_id: SEED_TRACKING_SOURCE,
+		installer_id: pilot,
+		activity_id: 1,
+		blueprint_id: f.blueprintId,
+		blueprint_me: f.me,
+		blueprint_type_id: fuelBlueprint.blueprintTypeId,
+		product_type_id: fuelBlueprint.productTypeId,
+		runs: f.runs,
+		status: 'delivered',
+		cost: f.cost,
+		facility_id: SEED_FACILITIES.factory.facilityId,
+		output_location_id: SEED_FACILITIES.factory.facilityId,
+		start_date: fuelStart,
+		end_date: fuelStart + 3_600_000,
+		completed_date: fuelStart + 2 * 3_600_000
 	});
 	const manualEntries = [
 		{
@@ -909,6 +970,7 @@ export function buildSeedSql(
 	const core: string[] = [
 		'DELETE FROM reaction_materials;',
 		'DELETE FROM reprocess_materials;',
+		'DELETE FROM material_blueprint_materials;',
 		'DELETE FROM reactions;',
 		'DELETE FROM types;',
 		'DELETE FROM systems;',
@@ -1016,6 +1078,13 @@ export function buildSeedSql(
 			Object.values(dataset.reprocess).flatMap((e) =>
 				e.materials.map((m) => [e.typeId, m.typeId, m.quantity, m.quantityMin, m.quantityMax, e.portionSize])
 			)
+		),
+		...insert(
+			'material_blueprint_materials',
+			['blueprint_type_id', 'type_id', 'quantity'],
+			(dataset.manufacturing ?? [])
+				.filter((b) => b.makes === 'material')
+				.flatMap((b) => b.materials.map((m) => [b.blueprintTypeId, m.typeId, m.quantity]))
 		),
 		...insert(
 			'sde_state',

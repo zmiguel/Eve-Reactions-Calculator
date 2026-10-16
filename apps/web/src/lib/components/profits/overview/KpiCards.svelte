@@ -80,7 +80,7 @@
 	<div class={card} data-kpi="spent">
 		<span
 			class={title}
-			title="Purchases and job costs paid in this period: market, contract and entered purchases (fees included) plus the job costs of jobs started in it."
+			title="Purchases and job costs paid in this period: market, contract and entered purchases (fees included) plus the job costs of reaction and fuel block jobs started in it."
 			>Paid out</span
 		>
 		<span class={big}><Isk value={kpis.spent} /></span>

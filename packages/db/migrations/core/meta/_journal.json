@@ -85,6 +85,13 @@
       "when": 1791964907508,
       "tag": "0011_tracking_manufacturing",
       "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "6",
+      "when": 1792093562352,
+      "tag": "0012_fuel_blocks",
+      "breakpoints": true
     }
   ]
 }

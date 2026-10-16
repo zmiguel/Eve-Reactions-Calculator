@@ -51,7 +51,10 @@ export function parseCorrectionTarget(kind: unknown, ref: unknown): CorrectionTa
 	return null;
 }
 
-/** Whether `target` is one of the user's tracked rows (a job input must be a material of the job's formula). */
+/**
+ * Whether `target` is one of the user's tracked rows (a job input must be a material of the job's
+ * formula, or of its blueprint for a fuel block job).
+ */
 async function targetExists(env: Env, userId: string, target: CorrectionTarget): Promise<boolean> {
 	const db = getCoreDb(env.DB);
 	switch (target.kind) {
@@ -84,19 +87,24 @@ async function targetExists(env: Env, userId: string, target: CorrectionTarget):
 		}
 		case 'job_input': {
 			const [job] = await db
-				.select({ blueprintTypeId: trackedJobs.blueprintTypeId })
+				.select({ blueprintTypeId: trackedJobs.blueprintTypeId, activityId: trackedJobs.activityId })
 				.from(trackedJobs)
 				.where(and(eq(trackedJobs.userId, userId), eq(trackedJobs.jobId, target.jobId)))
 				.limit(1);
 			if (!job) return false;
 			const dataset = await getDataset(env);
-			const reaction = dataset?.reactions.find((r) => r.blueprintTypeId === job.blueprintTypeId);
-			return reaction?.materials.some((m) => m.typeId === target.typeId) ?? false;
+			const materials =
+				job.activityId === 1
+					? dataset?.manufacturing?.find(
+							(b) => b.makes === 'material' && b.blueprintTypeId === job.blueprintTypeId
+						)?.materials
+					: dataset?.reactions.find((r) => r.blueprintTypeId === job.blueprintTypeId)?.materials;
+			return materials?.some((m) => m.typeId === target.typeId) ?? false;
 		}
 	}
 }
 
-/** Whether the ledger marks the price of `target` "Not tracked" (an item no reaction uses: its price is ignored). */
+/** Whether the ledger marks the price of `target` "Not tracked" (an item no reaction or fuel block uses: its price is ignored). */
 async function targetUntracked(env: Env, userId: string, target: CorrectionTarget): Promise<boolean> {
 	if (target.kind === 'job_input') return false;
 	const where =
@@ -115,7 +123,7 @@ export type CorrectionOutcome =
 	{ ok: true; rebuilt: boolean } | { ok: false; status: 400 | 404; message: string };
 
 const NOT_FOUND = 'That price is not in your ledger.';
-const UNTRACKED = 'This item is not tracked: no reaction uses it, so its price is not used.';
+const UNTRACKED = 'This item is not tracked: no reaction or fuel block uses it, so its price is not used.';
 
 /** Notice after a saved or removed correction (the ledger may only be recalculated at the next tick). */
 export function correctionNotice(saved: 'saved' | 'removed', rebuilt: boolean): string {

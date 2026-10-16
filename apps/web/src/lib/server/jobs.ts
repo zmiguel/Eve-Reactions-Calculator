@@ -9,6 +9,7 @@ import {
 import {
 	DEFAULT_CONSTANTS,
 	expectedProfit,
+	isMaterialBlueprint,
 	jobMaterialBonus,
 	manufacturingNames,
 	resolveFacility,
@@ -48,7 +49,7 @@ import { loadCalc } from './context.ts';
 import { getDataset } from './data.ts';
 import { facilityEve, facilityPlaces, type FacilityPlace } from './facilities.ts';
 import { ledgerReviewCount } from './ledger.ts';
-import { refId, trackedRef } from './ledger-item.ts';
+import { ledgerJobName, ledgerJobSql, materialBlueprintIds, refId, trackedRef } from './ledger-item.ts';
 import { correctionRef } from './price-corrections.ts';
 import { resolveProfiles } from './profiles.ts';
 import type { SessionUser } from './session.ts';
@@ -65,23 +66,27 @@ export interface JobsLocals {
 	settings: Settings;
 }
 
-/** ESI `activity_id`s of reaction jobs; manufacturing jobs (1) are tracked only for what they use. */
+/**
+ * ESI `activity_id`s of reaction jobs. Manufacturing jobs (1) are tracked for what they use, and fuel
+ * block jobs (1, a material-making blueprint) also for what they make; neither is a reaction job.
+ */
 export const REACTION_ACTIVITIES = '(9, 11)';
 
 const SQL = {
 	/**
 	 * Reaction jobs of tracking-on connections with their result; `?2` end date from (null = all), `?3`
-	 * formula, `?4` connection, `?5` one job (null = all).
+	 * formula, `?4` connection, `?5` one job (null = all), `?6` one more activity id (null = none: the
+	 * job page asks for 1, then keeps it only for a fuel block blueprint).
 	 */
-	jobs: `SELECT j.job_id, j.source_id, j.blueprint_type_id, j.product_type_id, j.runs, j.status, j.cost,
-			j.facility_id, j.start_date, j.end_date, j.completed_date, s.owner_name, r.job_id AS result_id,
+	jobs: `SELECT j.job_id, j.source_id, j.activity_id, j.blueprint_type_id, j.product_type_id, j.runs, j.status,
+			j.cost, j.facility_id, j.start_date, j.end_date, j.completed_date, s.owner_name, r.job_id AS result_id,
 			r.input_cost, r.job_cost,
 			r.output_type_id, r.output_qty, r.sold_qty, r.sales_net, r.used_qty, r.manufactured_qty,
 			r.manufactured_value, r.unsold_qty, r.unit_cost, r.realized_profit, r.flags_json
 		FROM tracked_jobs j
 		JOIN inventory_sources s ON s.source_id = j.source_id AND s.user_id = j.user_id
 		LEFT JOIN job_results r ON r.user_id = j.user_id AND r.job_id = j.job_id
-		WHERE j.user_id = ?1 AND s.tracking_enabled = 1 AND j.activity_id IN ${REACTION_ACTIVITIES}
+		WHERE j.user_id = ?1 AND s.tracking_enabled = 1 AND j.activity_id IN (9, 11, ?6)
 			AND (?2 IS NULL OR j.end_date >= ?2)
 			AND (?3 IS NULL OR j.blueprint_type_id = ?3)
 			AND (?4 IS NULL OR j.source_id = ?4)
@@ -112,6 +117,7 @@ const SQL = {
 interface JobSqlRow {
 	job_id: number;
 	source_id: number;
+	activity_id: number;
 	blueprint_type_id: number;
 	product_type_id: number | null;
 	runs: number;
@@ -226,10 +232,10 @@ const NOTE = {
 	unvalued: 'Some output could not be valued: it has no market value today with your settings.'
 } as const;
 
-/** Formula of a job, named from the dataset. */
+/** Formula of a job (or fuel block blueprint of a fuel block job), named from the dataset. */
 const formulaOf = (dataset: Dataset | null, blueprintTypeId: number): JobFormula => ({
 	blueprintTypeId,
-	name: dataset?.reactions.find((r) => r.blueprintTypeId === blueprintTypeId)?.formulaName ?? null
+	name: ledgerJobName(dataset, blueprintTypeId)
 });
 
 const typeName = (dataset: Dataset | null, typeId: number) =>
@@ -411,7 +417,9 @@ async function matchingRows(
 ): Promise<{ rows: JobListRow[]; c: RowContext }> {
 	const since = filters.period === 'all' ? null : now - Number(filters.period) * DAY_MS;
 	const [jobsRes, c] = await Promise.all([
-		env.DB.prepare(SQL.jobs).bind(locals.user.userId, since, filters.formula, filters.connection, null).all(),
+		env.DB.prepare(SQL.jobs)
+			.bind(locals.user.userId, since, filters.formula, filters.connection, null, null)
+			.all(),
 		rowContext(env, locals, now)
 	]);
 	return { rows: (jobsRes.results as unknown as JobSqlRow[]).map((j) => toRow(j, c)), c };
@@ -552,15 +560,22 @@ export async function jobsPage(
 /** Whether `id` is a positive integer job id (route param). */
 export const isJobId = (id: number) => Number.isSafeInteger(id) && id > 0;
 
-/** Whether `jobId` is a reaction job of one of the user's connections with Profit tracking on. */
-export async function isTrackedJob(env: Pick<Env, 'DB'>, userId: string, jobId: number): Promise<boolean> {
+/**
+ * Whether `jobId` is a reaction job or a fuel block job of one of the user's connections with Profit
+ * tracking on: a job the ledger priced inputs of.
+ */
+export async function isTrackedJob(
+	env: Pick<Env, 'DB' | 'CACHE'>,
+	userId: string,
+	jobId: number
+): Promise<boolean> {
+	const dataset = await getDataset(env);
 	const row = await env.DB.prepare(
 		`SELECT 1 AS found FROM tracked_jobs j
 		JOIN inventory_sources s ON s.source_id = j.source_id AND s.user_id = j.user_id
-		WHERE j.user_id = ?1 AND j.job_id = ?2 AND s.tracking_enabled = 1
-			AND j.activity_id IN ${REACTION_ACTIVITIES}`
+		WHERE j.user_id = ?1 AND j.job_id = ?2 AND s.tracking_enabled = 1 AND ${ledgerJobSql('j', '?3')}`
 	)
-		.bind(userId, jobId)
+		.bind(userId, jobId, materialBlueprintIds(dataset))
 		.first<{ found: number }>();
 	return row !== null;
 }
@@ -628,7 +643,7 @@ export async function jobDetailPage(
 	const jobRef = `job:${jobId}`;
 	const [[jobRes, stateRes, manufacturingRes], c, tracking] = await Promise.all([
 		db.batch([
-			db.prepare(SQL.jobs).bind(userId, null, null, null, jobId),
+			db.prepare(SQL.jobs).bind(userId, null, null, null, jobId, 1),
 			db.prepare(SQL.state).bind(userId),
 			db.prepare(SQL.manufacturing).bind(userId, jobRef)
 		]),
@@ -637,6 +652,9 @@ export async function jobDetailPage(
 	]);
 	const raw = (jobRes.results as unknown as JobSqlRow[])[0];
 	if (!raw) return null;
+	// A manufacturing job has a page only when it built fuel blocks.
+	const fuelBlock = raw.activity_id === 1;
+	if (fuelBlock && !(c.dataset && isMaterialBlueprint(c.dataset, raw.blueprint_type_id))) return null;
 	const state = stateRes.results[0] as { rebuilt_at: number | null; dirty: number } | undefined;
 	const row = toRow(raw, c);
 	const orm = getCoreDb(env.DB);
@@ -727,6 +745,7 @@ export async function jobDetailPage(
 		? await orm
 				.select({
 					jobId: trackedJobs.jobId,
+					activityId: trackedJobs.activityId,
 					blueprintTypeId: trackedJobs.blueprintTypeId,
 					startDate: trackedJobs.startDate
 				})
@@ -734,12 +753,17 @@ export async function jobDetailPage(
 				.where(
 					and(
 						eq(trackedJobs.userId, userId),
-						inArray(trackedJobs.activityId, [9, 11]),
+						inArray(trackedJobs.activityId, [1, 9, 11]),
 						sql`${trackedJobs.jobId} IN (SELECT value FROM json_each(${JSON.stringify([...linkedIds])}))`
 					)
 				)
 		: [];
-	const linked = new Map(linkedJobs.map((j) => [j.jobId, j]));
+	// Reaction jobs and fuel block jobs (the manufacturing jobs whose batches reach a reaction job).
+	const linked = new Map(
+		linkedJobs
+			.filter((j) => j.activityId !== 1 || (c.dataset && isMaterialBlueprint(c.dataset, j.blueprintTypeId)))
+			.map((j) => [j.jobId, j])
+	);
 	const link = (id: number, quantity: number): JobLink | null => {
 		const job = linked.get(id);
 		return job === undefined
@@ -747,9 +771,14 @@ export async function jobDetailPage(
 			: { jobId: id, formula: formulaOf(c.dataset, job.blueprintTypeId), startDate: job.startDate, quantity };
 	};
 
-	// Inputs in formula order, then anything else the job took.
-	const reaction = c.dataset?.reactions.find((r) => r.blueprintTypeId === raw.blueprint_type_id);
-	const order = new Map(reaction?.materials.map((m, i) => [m.typeId, i]) ?? []);
+	// Inputs in formula (or blueprint) order, then anything else the job took.
+	const reaction = fuelBlock
+		? undefined
+		: c.dataset?.reactions.find((r) => r.blueprintTypeId === raw.blueprint_type_id);
+	const blueprint = fuelBlock
+		? c.dataset?.manufacturing?.find((b) => b.blueprintTypeId === raw.blueprint_type_id)
+		: undefined;
+	const order = new Map((reaction ?? blueprint)?.materials.map((m, i) => [m.typeId, i]) ?? []);
 	const inputs = new Map<number, JobInputView>();
 	const from = new Map<number, JobLink>();
 	for (const l of inputRows) {
@@ -847,24 +876,31 @@ export async function jobDetailPage(
 			unsoldValueNow: unitValueNow === null ? null : unitValueNow * row.output.unsoldQty
 		};
 	}
-	const productTypeId = raw.product_type_id ?? reaction?.product.typeId ?? null;
-	// A running job with current results: its unit cost and expected profit for the output it will make.
+	const made = reaction
+		? { typeId: reaction.product.typeId, quantity: reaction.product.quantity }
+		: blueprint
+			? { typeId: blueprint.productTypeId, quantity: blueprint.productQuantity }
+			: null;
+	const productTypeId = raw.product_type_id ?? made?.typeId ?? null;
+	// A running job with current results: its unit cost and expected profit for the output it will make
+	// (a fuel block job: its unit cost only, it makes no profit of its own).
 	let running: Partial<Pick<JobDetail, 'unitCost' | 'expectedProfit' | 'expectedNote'>> &
 		Pick<JobDetail, 'runningOutputQty'> = { runningOutputQty: null };
-	if (row.status === 'running' && row.inputCost !== null && reaction) {
-		const outputQty = raw.runs * reaction.product.quantity;
+	if (row.status === 'running' && row.inputCost !== null && made) {
+		const outputQty = raw.runs * made.quantity;
 		const totalCost = row.inputCost + (row.jobCost ?? 0);
-		const unitValueNow = c.value(reaction.product.typeId);
+		const unitValueNow = fuelBlock ? null : c.value(made.typeId);
 		running = {
 			runningOutputQty: outputQty,
 			unitCost: outputQty > 0 ? totalCost / outputQty : null,
 			expectedProfit: unitValueNow === null ? null : outputQty * unitValueNow - totalCost,
-			expectedNote: unitValueNow !== null ? null : c.ctx ? NOTE.unvalued : NOTE.noMarket
+			expectedNote: fuelBlock || unitValueNow !== null ? null : c.ctx ? NOTE.unvalued : NOTE.noMarket
 		};
 	}
 	return {
 		now,
-		materialBonus: await materialBonusView(env, locals, c, raw, tracking.facilities),
+		kind: fuelBlock ? 'fuel_block' : 'reaction',
+		materialBonus: fuelBlock ? null : await materialBonusView(env, locals, c, raw, tracking.facilities),
 		job: {
 			...row,
 			...running,

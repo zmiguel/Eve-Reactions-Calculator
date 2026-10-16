@@ -1,4 +1,4 @@
-import { manufacturingNames, stockUnitValue, type Dataset } from '@reactions/engine';
+import { isMaterialBlueprint, manufacturingNames, stockUnitValue, type Dataset } from '@reactions/engine';
 import {
 	getCoreDb,
 	inventorySources,
@@ -51,6 +51,32 @@ export function trackedRef(userId: string, ref: SQLWrapper): SQL {
 			AND m.entry_id = CAST(substr(${ref}, 8) AS INTEGER))))`;
 }
 
+/**
+ * JSON array of the dataset's material-making blueprints (the fuel blocks): the bind value of
+ * {@link ledgerJobSql}.
+ */
+export const materialBlueprintIds = (dataset: Dataset | null): string =>
+	JSON.stringify(
+		dataset?.manufacturing?.filter((b) => b.makes === 'material').map((b) => b.blueprintTypeId) ?? []
+	);
+
+/**
+ * SQL condition: tracked job `alias` is one the ledger takes inputs for and makes a batch of, a reaction
+ * job or a fuel block job. `param` binds {@link materialBlueprintIds}.
+ */
+export const ledgerJobSql = (alias: string, param: string): string =>
+	`(${alias}.activity_id IN (9, 11) OR (${alias}.activity_id = 1
+		AND ${alias}.blueprint_type_id IN (SELECT value FROM json_each(${param}))))`;
+
+/** A reaction formula's name, else a fuel block blueprint's name; null when the dataset has neither. */
+export function ledgerJobName(dataset: Dataset | null, blueprintTypeId: number): string | null {
+	const reaction = dataset?.reactions.find((r) => r.blueprintTypeId === blueprintTypeId);
+	if (reaction) return reaction.formulaName;
+	return dataset && isMaterialBlueprint(dataset, blueprintTypeId)
+		? manufacturingNames(dataset, blueprintTypeId).blueprint
+		: null;
+}
+
 /** The dataset and the item `typeId` names, or null when the type is not in the dataset. */
 async function itemOf(
 	env: Pick<Env, 'CACHE'>,
@@ -85,7 +111,8 @@ async function itemLots(
 				origin: ledgerLots.origin,
 				originRef: ledgerLots.originRef,
 				priceSource: ledgerLots.priceSource,
-				blueprintTypeId: trackedJobs.blueprintTypeId
+				blueprintTypeId: trackedJobs.blueprintTypeId,
+				activityId: trackedJobs.activityId
 			})
 			.from(ledgerLots)
 			// The job that made the batch, or whose input it priced.
@@ -154,12 +181,17 @@ async function itemLots(
 			.orderBy(asc(ledgerUses.lotId), asc(ledgerUses.useRef))
 	]);
 
-	const formulas = new Map(dataset.reactions.map((r) => [r.blueprintTypeId, r.formulaName]));
+	const names = new Map<number, string | null>();
+	/** {@link ledgerJobName}, once per blueprint. */
+	const jobName = (blueprintTypeId: number) => {
+		if (!names.has(blueprintTypeId)) names.set(blueprintTypeId, ledgerJobName(dataset, blueprintTypeId));
+		return names.get(blueprintTypeId) ?? null;
+	};
 	const usesByLot = new Map<number, LedgerItemLotUse[]>();
 	for (const u of useRows) {
 		const kind = u.kind === 'job' || u.kind === 'manufacturing' ? u.kind : 'sale';
 		const job = kind !== 'sale';
-		const name = kind === 'job' && u.blueprintTypeId !== null ? formulas.get(u.blueprintTypeId) : undefined;
+		const name = kind === 'job' && u.blueprintTypeId !== null ? jobName(u.blueprintTypeId) : null;
 		const productName =
 			kind !== 'manufacturing'
 				? undefined
@@ -195,7 +227,9 @@ async function itemLots(
 			acquiredAt: l.acquiredAt,
 			origin: l.origin,
 			jobId,
-			jobFormula: l.blueprintTypeId === null ? null : (formulas.get(l.blueprintTypeId) ?? null),
+			jobFormula: l.blueprintTypeId === null ? null : jobName(l.blueprintTypeId),
+			// Only reaction and fuel block jobs make batches; manufacturing (1) here is a fuel block job.
+			fuelBlockJob: l.origin === 'job' && l.activityId === 1,
 			priceSource: l.priceSource,
 			quantity: l.quantity,
 			remaining: l.remaining,

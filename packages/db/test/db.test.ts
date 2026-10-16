@@ -20,6 +20,7 @@ import {
 	ledgerUnallocatedFees,
 	ledgerUses,
 	manualEntries,
+	materialBlueprintMaterials,
 	marketHubs,
 	priceCorrections,
 	priceSnapshots,
@@ -69,6 +70,7 @@ describe('migrations', () => {
 			'manual_entries',
 			'market_hubs',
 			'market_stats',
+			'material_blueprint_materials',
 			'price_corrections',
 			'reaction_materials',
 			'reactions',
@@ -168,7 +170,11 @@ describe('migrations', () => {
 		const db = env.MIGRATION_DB;
 		const before = env.CORE_MIGRATIONS.filter((m) => m.name < '0010');
 		const after = env.CORE_MIGRATIONS.filter((m) => m.name >= '0010');
-		expect(after.map((m) => m.name)).toEqual(['0010_tracking.sql', '0011_tracking_manufacturing.sql']);
+		expect(after.map((m) => m.name)).toEqual([
+			'0010_tracking.sql',
+			'0011_tracking_manufacturing.sql',
+			'0012_fuel_blocks.sql'
+		]);
 		await applyD1Migrations(db, before);
 		await db.batch([
 			db.prepare("INSERT INTO users (user_id, created_at, last_seen_at) VALUES ('c', 1, 1)"),
@@ -287,7 +293,7 @@ describe('upsertMany', () => {
 });
 
 describe('trackedTypeIds', () => {
-	it('returns the union of blueprints, materials, products and reprocess outputs', async () => {
+	it('returns the union of blueprints, materials, products, reprocess outputs and fuel block ingredients', async () => {
 		const db = core();
 		await db.insert(reactions).values([
 			{
@@ -326,7 +332,14 @@ describe('trackedTypeIds', () => {
 			{ typeId: 32821, materialTypeId: 16642, quantity: 164, portionSize: 1 },
 			{ typeId: 32821, materialTypeId: 16643, quantity: 10, portionSize: 1 }
 		]);
-		expect(await trackedTypeIds(db)).toEqual([4246, 16642, 16643, 16663, 32821, 46166, 46191]);
+		// Two of the Hydrogen Fuel Block Blueprint's materials.
+		await db.insert(materialBlueprintMaterials).values([
+			{ blueprintTypeId: 4316, typeId: 9832, quantity: 9 },
+			{ blueprintTypeId: 4316, typeId: 17889, quantity: 450 }
+		]);
+		expect(await trackedTypeIds(db)).toEqual([
+			4246, 4316, 9832, 16642, 16643, 16663, 17889, 32821, 46166, 46191
+		]);
 	});
 });
 

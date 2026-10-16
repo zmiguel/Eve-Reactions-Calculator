@@ -212,19 +212,24 @@ export function normalize(raw: RawSde, industry?: IndustrySources): SdeDataset {
 		};
 	}
 
-	// Published manufacturing blueprints that take a reaction product, with only those materials.
+	// Published manufacturing blueprints that make a reaction material (the fuel blocks), with every
+	// material; else that take a reaction product, with only those materials.
 	const reactionProducts = new Set(reactions.map((r) => r.product.typeId));
+	const reactionMaterials = new Set(reactions.flatMap((r) => r.materials.map((m) => m.typeId)));
 	const manufacturing: ManufacturingBlueprint[] = [];
 	for (const bp of [...raw.manufacturing].sort((a, b) => a.blueprintTypeId - b.blueprintTypeId)) {
-		const materials = bp.materials.filter((m) => reactionProducts.has(m.typeId));
-		if (materials.length === 0) continue;
+		const product = bp.products[0];
+		const makesMaterial = product !== undefined && reactionMaterials.has(product.typeId);
+		const materials = makesMaterial
+			? bp.materials
+			: bp.materials.filter((m) => reactionProducts.has(m.typeId));
+		if (!makesMaterial && materials.length === 0) continue;
 		const blueprint = typesById.get(bp.blueprintTypeId);
 		if (!blueprint) {
 			warnings.push(`MISSING_TYPE:${bp.blueprintTypeId}`);
 			continue;
 		}
 		if (!blueprint.published) continue;
-		const product = bp.products[0];
 		if (!product) {
 			warnings.push(`NO_PRODUCT:${bp.blueprintTypeId}`);
 			continue;
@@ -233,13 +238,16 @@ export function normalize(raw: RawSde, industry?: IndustrySources): SdeDataset {
 			blueprintTypeId: bp.blueprintTypeId,
 			name: blueprint.name,
 			productTypeId: product.typeId,
-			// Names only: these types stay out of `types`, so no price is fetched for them.
+			// Products of blueprints without `makes` stay out of `types`, so no price is fetched for them.
 			productName: typesById.get(product.typeId)?.name ?? `Type ${product.typeId}`,
 			productQuantity: product.quantity,
+			...(makesMaterial ? { makes: 'material' as const } : {}),
 			materials: materials.map((m) => ({ typeId: m.typeId, quantity: m.quantity }))
 		});
 	}
 
+	// Types with names and prices: `trackedTypeIds` of the dataset (reaction types, reprocess outputs,
+	// the material-making blueprints and their materials).
 	const trackedIds = new Set<number>();
 	for (const r of reactions) {
 		trackedIds.add(r.blueprintTypeId);
@@ -247,6 +255,11 @@ export function normalize(raw: RawSde, industry?: IndustrySources): SdeDataset {
 		for (const m of r.materials) trackedIds.add(m.typeId);
 	}
 	for (const entry of Object.values(reprocess)) for (const m of entry.materials) trackedIds.add(m.typeId);
+	for (const bp of manufacturing) {
+		if (bp.makes !== 'material') continue;
+		trackedIds.add(bp.blueprintTypeId);
+		for (const m of bp.materials) trackedIds.add(m.typeId);
+	}
 
 	const types: SdeType[] = [];
 	const datasetTypes: Record<number, TypeInfo> = {};

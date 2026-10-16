@@ -4,7 +4,7 @@ import type { JobFilters } from '$lib/jobs/types';
 import type { ProfitPeriod } from '$lib/profits/types';
 import { asEnv, type FakeEnv } from '../../test/fakes';
 import { NOW, defaults } from '../../test/fixtures';
-import { ALPHA, GAMMA, JOB, addManufacturing } from '../../test/jobs';
+import { ALPHA, FUEL, GAMMA, JOB, addFuelBlocks, addManufacturing } from '../../test/jobs';
 import { DAY, insertLot, insertUse } from '../../test/ledger-item';
 import { insertManualEntry, insertPrice, insertTransaction } from '../../test/ledger';
 import { overviewScenario } from '../../test/profits';
@@ -342,6 +342,45 @@ describe('manufacturing use', () => {
 		);
 		expect(theirs.kpis.manufacturedQty).toBe(0);
 		expect(theirs.kpis.realized).toBe(500 * (1e6 - 1));
+	});
+});
+
+describe('fuel blocks the user built', () => {
+	it('count as money paid out and sales income only, never as reaction profit or reaction output', async () => {
+		const s = await overviewScenario();
+		const before = await overview(s.env, '?period=7');
+		addFuelBlocks(s);
+		const week = await overview(s.env, '?period=7');
+		// Selling 40 blocks at 12 that cost 8 is no reaction profit.
+		expect(week.kpis.realized).toBe(before.kpis.realized);
+		expect(week.kpis.realizedPrevious).toBe(before.kpis.realizedPrevious);
+		expect(week.kpis.salesIncome).toBe(before.kpis.salesIncome + 40 * 12);
+		// The fuel block job's cost, started 4 days ago.
+		expect(week.kpis.jobCosts).toBe(before.kpis.jobCosts + 200);
+		expect(week.kpis.spent).toBe(before.kpis.spent + 200);
+		// Not a reaction job: no job count, expected profit or profit per slot-day.
+		expect(week.kpis.endedJobs).toBe(before.kpis.endedJobs);
+		expect(week.kpis.expected).toBe(before.kpis.expected);
+		expect(week.kpis.profitPerSlotDay).toBe(before.kpis.profitPerSlotDay);
+		expect(week.reactions).toEqual(before.reactions);
+		expect(week.running).toEqual(before.running);
+		// The 60 blocks held are not unsold reaction output.
+		expect(week.unsold).toEqual(before.unsold);
+		expect(week.kpis.unsold).toEqual(before.kpis.unsold);
+		expect(week.kpis.reselling).toEqual(before.kpis.reselling);
+		// Its input without a purchase is not a reaction job's estimate.
+		expect(week.attention).toEqual(before.attention);
+		const at = (label: string) => week.charts.timeline.find((p) => p.label === label)!;
+		const was = (label: string) => before.charts.timeline.find((p) => p.label === label)!;
+		expect(at('2026-10-02').jobCosts - was('2026-10-02').jobCosts).toBe(200);
+		expect(week.charts.timeline.map((p) => p.realized)).toEqual(
+			before.charts.timeline.map((p) => p.realized)
+		);
+		expect(week.sales.rows.find((r) => r.ref === 'transaction:903')).toMatchObject({
+			typeId: FUEL.block,
+			unitCost: 8,
+			profit: 40 * (12 - 8)
+		});
 	});
 });
 

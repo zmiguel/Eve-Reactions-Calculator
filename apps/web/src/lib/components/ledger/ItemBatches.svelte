@@ -56,8 +56,12 @@
 					>{formatRelative(lot.acquiredAt, now)}</span
 				>
 			</td>
-			<td class="{cell} whitespace-nowrap text-gray-900 dark:text-gray-100" data-origin={lot.origin}>
-				{ORIGIN_TEXT[lot.origin]}
+			<td
+				class="{cell} whitespace-nowrap text-gray-900 dark:text-gray-100"
+				data-origin={lot.origin}
+				data-fuel-block-job={lot.fuelBlockJob ? '' : undefined}
+			>
+				{lot.fuelBlockJob ? 'Built in a fuel block job' : ORIGIN_TEXT[lot.origin]}
 				{#if lot.jobId !== null}
 					<span class="block {muted}"
 						>{lot.origin === 'job' ? '' : 'for '}<a

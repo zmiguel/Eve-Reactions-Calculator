@@ -42,21 +42,50 @@ function expectBuild3421648(sde: SdeDataset) {
 	);
 	expect(reactions.some((r) => r.blueprintTypeId === 45732)).toBe(false);
 	expect(sde.dataset.constants).toEqual(DEFAULT_CONSTANTS);
-	expect(sde.types).toHaveLength(307);
-	expect(Object.keys(sde.dataset.types)).toHaveLength(307);
+	// 307 reaction types and reprocess outputs, plus the four fuel block blueprints and 11 of their
+	// materials (Oxygen is a reaction material already).
+	expect(sde.types).toHaveLength(322);
+	expect(Object.keys(sde.dataset.types)).toHaveLength(322);
 	expect(Object.keys(sde.dataset.reprocess)).toHaveLength(25);
 	expect(sde.warnings).toEqual([]);
 
 	const manufacturing = sde.dataset.manufacturing ?? [];
-	expect(manufacturing).toHaveLength(354);
+	expect(manufacturing).toHaveLength(358);
 	expect(manufacturing.map((m) => m.blueprintTypeId)).toEqual(
 		[...manufacturing.map((m) => m.blueprintTypeId)].sort((a, b) => a - b)
 	);
 	const reactionProducts = new Set(reactions.map((r) => r.product.typeId));
 	for (const m of manufacturing) {
 		expect(m.materials.length).toBeGreaterThan(0);
+		if (m.makes === 'material') continue;
 		for (const material of m.materials) expect(reactionProducts.has(material.typeId)).toBe(true);
 	}
+	// The fuel blocks are the only reaction materials made by manufacturing: every material kept.
+	expect(manufacturing.filter((m) => m.makes === 'material').map((m) => m.blueprintTypeId)).toEqual([
+		4313, 4314, 4315, 4316
+	]);
+	expect(manufacturing.find((m) => m.blueprintTypeId === 4316)).toEqual({
+		blueprintTypeId: 4316,
+		name: 'Hydrogen Fuel Block Blueprint',
+		productTypeId: 4246,
+		productName: 'Hydrogen Fuel Block',
+		productQuantity: 40,
+		makes: 'material',
+		materials: [
+			{ typeId: 9848, quantity: 1 },
+			{ typeId: 44, quantity: 4 },
+			{ typeId: 3689, quantity: 4 },
+			{ typeId: 9832, quantity: 9 },
+			{ typeId: 16275, quantity: 20 },
+			{ typeId: 3683, quantity: 22 },
+			{ typeId: 16272, quantity: 170 },
+			{ typeId: 16273, quantity: 350 },
+			{ typeId: 17889, quantity: 450 }
+		]
+	});
+	// Its blueprint and materials have names (and so prices).
+	for (const typeId of [4316, 9848, 44, 3689, 9832, 16275, 16272, 16273, 17889])
+		expect(sde.dataset.types[typeId]?.name).toBeTruthy();
 	// Fusion Thruster: every material is a reaction product.
 	expect(manufacturing.find((m) => m.blueprintTypeId === 17349)).toEqual({
 		blueprintTypeId: 17349,

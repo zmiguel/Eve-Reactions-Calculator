@@ -1460,6 +1460,39 @@ describe('ledger-rows mapping', () => {
 		});
 	});
 
+	it('lists every material of a fuel block job, and contract items of those materials', () => {
+		const ISOTOPES = 17887;
+		const COOLANT = 9832;
+		const dataset: Dataset = {
+			...DATASET,
+			manufacturing: [
+				...(DATASET.manufacturing ?? []),
+				{
+					blueprintTypeId: 4313,
+					productTypeId: FUEL,
+					productQuantity: 40,
+					makes: 'material',
+					materials: [
+						{ typeId: ISOTOPES, quantity: 450 },
+						{ typeId: COOLANT, quantity: 9 }
+					]
+				}
+			]
+		};
+		const requests = referenceRequests(
+			{
+				contracts: [{ contract_id: 5, date_issued: Date.UTC(2026, 9, 1, 23) } as never],
+				contractItems: [{ contract_id: 5, record_id: 1, type_id: ISOTOPES, quantity: 1, is_included: 1 }],
+				jobs: [{ activity_id: 1, blueprint_type_id: 4313, start_date: Date.UTC(2026, 9, 3) } as never]
+			},
+			dataset
+		);
+		expect(Object.fromEntries([...requests].map(([typeId, days]) => [typeId, [...days]]))).toEqual({
+			[ISOTOPES]: ['2026-10-01', '2026-10-03'],
+			[COOLANT]: ['2026-10-03']
+		});
+	});
+
 	it('resolves reference prices day by day, then the current price', () => {
 		const lookup = referencePriceFn(
 			{ name: 'Jita 4-4', basis: 'split' },

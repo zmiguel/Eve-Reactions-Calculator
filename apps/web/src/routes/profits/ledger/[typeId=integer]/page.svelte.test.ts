@@ -16,6 +16,7 @@ function lot(lotId: number, overrides: Partial<LedgerItemLot> = {}): LedgerItemL
 		origin: 'transaction',
 		jobId: null,
 		jobFormula: null,
+		fuelBlockJob: false,
 		priceSource: `Source ${lotId}`,
 		quantity: 10,
 		remaining: 5,
@@ -138,6 +139,26 @@ describe('/profits/ledger/[typeId] page', () => {
 		// Only the market estimate's unit cost is an estimate.
 		expect(container.querySelectorAll('[data-lot] [data-estimated]')).toHaveLength(1);
 		expect(container.querySelector('[data-lot="4"] [data-estimated]')).not.toBeNull();
+	});
+
+	it('tells a batch built in a fuel block job from reaction output, linking that job by its blueprint', () => {
+		const built = lot(6, {
+			origin: 'job',
+			jobId: 8101,
+			jobFormula: 'Nitrogen Fuel Block Blueprint',
+			fuelBlockJob: true
+		});
+		const container = renderPage(data({ batches: paginate([built, LOTS[2]], 1) }));
+		const origin = (lotId: number) => container.querySelector(`[data-lot="${lotId}"] [data-origin]`)!;
+		expect(origin(6).hasAttribute('data-fuel-block-job')).toBe(true);
+		expect(origin(3).hasAttribute('data-fuel-block-job')).toBe(false);
+		expect(origin(6).querySelector('[data-job-link]')?.getAttribute('href')).toBe('/profits/jobs/8101');
+		expect(origin(6).querySelector('[data-job-link]')?.textContent).toBe('Nitrogen Fuel Block Blueprint');
+		expect(origin(6).textContent).not.toContain('8101');
+		// Worded apart from a reaction job's batch.
+		const words = (lotId: number) => origin(lotId).firstChild?.textContent?.trim();
+		expect(words(6)).not.toBe(words(3));
+		expect(container.querySelector('[data-lot="6"] [data-estimated]')).toBeNull();
 	});
 
 	it('lists where a batch went: jobs linked with their formula, sales with their price', () => {
