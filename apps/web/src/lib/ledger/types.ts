@@ -188,7 +188,7 @@ export interface LedgerItemLotUse {
 	ref: string;
 	/** Job and manufacturing uses. */
 	jobId: number | null;
-	/** Formula of a job use (name from the dataset; null when unknown). */
+	/** Formula (or fuel block blueprint) of a job use (name from the dataset; null when unknown). */
 	formula: { blueprintTypeId: number; name: string } | null;
 	/** Product of a manufacturing use (name from the dataset; null when unknown). */
 	product: { typeId: number; name: string } | null;
@@ -212,8 +212,10 @@ export interface LedgerItemLot {
 	 * found); null otherwise.
 	 */
 	jobId: number | null;
-	/** Formula name of `jobId`'s job (from the dataset); null when unknown. */
+	/** Formula name of `jobId`'s job, or its fuel block blueprint's name (from the dataset); null when unknown. */
 	jobFormula: string | null;
+	/** Made by a fuel block job (the user's manufacturing of fuel blocks), not a reaction job. */
+	fuelBlockJob: boolean;
 	/** Where the unit cost comes from, shown verbatim. */
 	priceSource: string;
 	quantity: number;

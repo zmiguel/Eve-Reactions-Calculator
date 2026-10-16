@@ -11,6 +11,7 @@ import {
 	insertUse,
 	ledgerItemScenario
 } from '../../test/ledger-item';
+import { FUEL, JOB, addFuelBlocks, jobsScenario } from '../../test/jobs';
 import { insertJob, insertManualEntry } from '../../test/ledger';
 import { loadCalc } from './context';
 import { clearDataMemo } from './data';
@@ -339,5 +340,46 @@ describe('purchases entered by the user and manufacturing uses', () => {
 		const page = (await ledgerItemPage(asEnv(env), locals(), 'u1', typeId, FIRST))!;
 		// 100 from the base scenario plus 13 left of lot 7.
 		expect(page.heldQuantity).toBe(113);
+	});
+});
+
+describe('fuel blocks the user built', () => {
+	const BLUEPRINT = { blueprintTypeId: FUEL.blueprint, name: 'Nitrogen Fuel Block Blueprint' };
+
+	it('a fuel block batch is marked as built in its job, named by the blueprint, and used by reactions', async () => {
+		const s = await jobsScenario();
+		addFuelBlocks(s);
+		const [batch] = (await ledgerItemBatches(asEnv(s.env), 'u1', FUEL.block, 1))!.rows;
+		expect(batch).toMatchObject({
+			lotId: FUEL.blockLot,
+			origin: 'job',
+			jobId: FUEL.job,
+			jobFormula: BLUEPRINT.name,
+			fuelBlockJob: true,
+			correctionRef: null
+		});
+		expect(batch.uses.map((u) => [u.kind, u.jobId, u.formula?.name ?? null, u.quantity])).toEqual([
+			['job', JOB.final, s.final.formulaName, 300],
+			['sale', null, null, 40]
+		]);
+		// A reaction job's batch is not.
+		const [made] = (await ledgerItemBatches(asEnv(s.env), 'u1', s.final.product.typeId, 1))!.rows;
+		expect(made).toMatchObject({ origin: 'job', fuelBlockJob: false });
+	});
+
+	it('an ingredient without a purchase is a correctable estimate taken by the fuel block job', async () => {
+		const s = await jobsScenario();
+		addFuelBlocks(s);
+		const [batch] = (await ledgerItemBatches(asEnv(s.env), 'u1', FUEL.ingredient, 1))!.rows;
+		expect(batch).toMatchObject({
+			origin: 'market',
+			jobId: FUEL.job,
+			jobFormula: BLUEPRINT.name,
+			fuelBlockJob: false,
+			correctionRef: `job:${FUEL.job}:${FUEL.ingredient}`
+		});
+		expect(batch.uses).toEqual([
+			expect.objectContaining({ kind: 'job', jobId: FUEL.job, formula: BLUEPRINT, quantity: 1700 })
+		]);
 	});
 });

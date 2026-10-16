@@ -74,8 +74,8 @@ export type PriceSourceKind =
 	 */
 	| 'contract_mixed'
 	/**
-	 * An item no reaction uses (outside `inventoryTypeIds`): recorded and shown, but it makes no lot or
-	 * sale and never needs review.
+	 * An item the ledger does not track (outside `trackedTypeIds`: no reaction or fuel block job uses
+	 * it): recorded and shown, but it makes no lot or sale and never needs review.
 	 */
 	| 'untracked'
 	/** Could not be priced reliably (no reference price, or items went both ways). */
@@ -199,6 +199,8 @@ export type LedgerJobActivity = 'reaction' | 'manufacturing';
 export interface LedgerJob {
 	jobId: number;
 	/**
+	 * `manufacturing` jobs of a blueprint making a reaction material (`makes: 'material'`, fuel blocks)
+	 * produce like reaction jobs: inputs at `startDate`, output and a job result at the end. Other
 	 * `manufacturing` jobs only take reaction output (their blueprint's reaction-product materials from
 	 * `Dataset.manufacturing`) at `startDate`; they have no job result, output or cost in the ledger.
 	 * Absent = `reaction`.
@@ -355,7 +357,7 @@ export interface JobResult {
 	soldQty: number;
 	/** Net proceeds of those units. */
 	salesNet: number;
-	/** Units consumed by later own reaction jobs. */
+	/** Units consumed by later own reaction or fuel block jobs. */
 	usedQty: number;
 	/** Units taken by the user's manufacturing jobs (realized at once, see `manufacturingUse`). */
 	manufacturedQty: number;

@@ -21,6 +21,7 @@ import {
 	AZBEL,
 	L_SET_AMMUNITION_ME_II,
 	L_SET_REACTOR_EFFICIENCY_II,
+	RAITARU,
 	SPIKE_S,
 	TATARA,
 	industry
@@ -44,10 +45,26 @@ const FERNITE_CARBIDE = 16679;
 const TEST_COMPONENT_BLUEPRINT = 90_001;
 /** Spike S Blueprint (SDE): 75 Fernite Carbide and 150 Titanium Carbide per run. */
 const SPIKE_S_BLUEPRINT = 12619;
+/** Oxygen Fuel Block Blueprint (SDE), with three of its materials: 40 blocks per run. */
+const OXYGEN_FUEL_BLOCK_BLUEPRINT = 4313;
+const OXYGEN_ISOTOPES = 17887;
+const HEAVY_WATER = 16272;
+const COOLANT = 9832;
 
 const dataset: Dataset = {
 	...baseDataset,
 	manufacturing: [
+		{
+			blueprintTypeId: OXYGEN_FUEL_BLOCK_BLUEPRINT,
+			productTypeId: OXYGEN_FUEL_BLOCK,
+			productQuantity: 40,
+			makes: 'material',
+			materials: [
+				{ typeId: OXYGEN_ISOTOPES, quantity: 450 },
+				{ typeId: HEAVY_WATER, quantity: 170 },
+				{ typeId: COOLANT, quantity: 9 }
+			]
+		},
 		{
 			blueprintTypeId: SPIKE_S_BLUEPRINT,
 			productTypeId: 12618,
@@ -754,6 +771,124 @@ describe('buildLedger with manufacturing jobs', () => {
 	});
 });
 
+describe('buildLedger with fuel block jobs', () => {
+	/** ME 10 in a Raitaru (1 % role bonus): 0.9 × 0.99 = 0.891. */
+	const mm = manufacturingMaterialModifier(10, industry, OXYGEN_FUEL_BLOCK, {
+		structureTypeId: RAITARU,
+		rigs: [],
+		band: 'lowsec'
+	});
+	const coolantBuy: ReferencePriceFn = (typeId) =>
+		typeId === COOLANT ? { unitPrice: 100, label: 'Jita 4-4 buy' } : null;
+
+	/**
+	 * Fuel block job 30 (10 runs, cost 4000) takes 10 × 450 × 0.891 = 4009.5 → 4010 isotopes,
+	 * 10 × 170 × 0.891 = 1514.7 → 1515 heavy water and 10 × 9 × 0.891 = 80.19 → 81 coolant (none bought);
+	 * reaction job 31 (Titanium Chromide, 1 run, cost 1000) then uses 5 of its 400 blocks.
+	 */
+	function scenario(status: LedgerJobStatus = 'delivered') {
+		return {
+			trades: [
+				trade(1, 0, OXYGEN_ISOTOPES, 3000, true, 2),
+				trade(2, 500, OXYGEN_ISOTOPES, 2000, true, 3),
+				trade(3, 0, HEAVY_WATER, 1515, true, 4),
+				trade(4, 0, TITANIUM, 100, true, 10),
+				trade(5, 0, CHROMIUM, 100, true, 5)
+			],
+			jobs: [
+				{
+					...job(30, OXYGEN_FUEL_BLOCK_BLUEPRINT, 10, 1000, 2000, status, 4000, mm),
+					activity: 'manufacturing'
+				},
+				job(31, TITANIUM_CHROMIDE_FORMULA, 1, 3000, 4000, 'delivered', 1000)
+			] satisfies LedgerJob[]
+		};
+	}
+
+	it('takes the materials FIFO with ME and structure bonus, a shortfall at the buy value', () => {
+		expect(mm).toBeCloseTo(0.891, 12);
+		const result = build({ ...scenario(), buyPrice: coolantBuy });
+		const typeOf = (lotId: number) => result.lots[lotId - 1].typeId;
+		expect(
+			result.uses
+				.filter((u) => u.useRef === 'job:30')
+				.map((u) => [typeOf(u.lotId), u.useKind, u.quantity, u.unitCost])
+		).toEqual([
+			[OXYGEN_ISOTOPES, 'job', 3000, 2],
+			[OXYGEN_ISOTOPES, 'job', 1010, 3],
+			[HEAVY_WATER, 'job', 1515, 4],
+			[COOLANT, 'job', 81, 100]
+		]);
+		expect(result.lots.find((l) => l.typeId === COOLANT)).toMatchObject({
+			origin: 'market',
+			originRef: 'job:30',
+			quantity: 81,
+			remaining: 0,
+			unitCost: 100,
+			source: { kind: 'market_fallback', needsReview: false }
+		});
+		expect(result.uses.some((u) => u.useKind === 'manufacturing')).toBe(false);
+	});
+
+	it('adds the blocks at inputs plus job cost, and the reaction using them gets that cost', () => {
+		const result = build({ ...scenario(), buyPrice: coolantBuy });
+		// 3000 × 2 + 1010 × 3 + 1515 × 4 + 81 × 100 = 23,190; (23,190 + 4,000) ÷ 400 = 67.975.
+		expect(result.lots.find((l) => l.typeId === OXYGEN_FUEL_BLOCK)).toMatchObject({
+			origin: 'job',
+			originRef: 'job:30',
+			acquiredAt: 2000,
+			quantity: 400,
+			remaining: 395,
+			unitCost: 67.975,
+			source: { kind: 'production', needsReview: false }
+		});
+		expect(result.jobs.map((j) => j.jobId)).toEqual([30, 31]);
+		expect(result.jobs[0]).toEqual({
+			jobId: 30,
+			inputCost: 23_190,
+			jobCost: 4000,
+			outputTypeId: OXYGEN_FUEL_BLOCK,
+			outputQty: 400,
+			soldQty: 0,
+			salesNet: 0,
+			usedQty: 5,
+			manufacturedQty: 0,
+			manufacturedValue: 0,
+			unsoldQty: 395,
+			unitCost: 67.975,
+			realizedProfit: 0,
+			flags: ['market_fallback']
+		});
+		// 5 × 67.975 + 100 × 10 + 100 × 5 = 1839.875; (1839.875 + 1000) ÷ 200 = 14.199375.
+		const reaction = result.jobs[1];
+		expect(reaction.inputCost).toBeCloseTo(1839.875, 9);
+		expect(reaction.unitCost).toBeCloseTo(14.199375, 9);
+		expect(reaction.flags).toEqual([]);
+	});
+
+	it('books a cancelled fuel block job as a loss; the reaction then takes blocks at the buy value', () => {
+		const buyPrice: ReferencePriceFn = (typeId) =>
+			typeId === OXYGEN_FUEL_BLOCK ? { unitPrice: 70, label: 'Jita 4-4 buy' } : coolantBuy(typeId, 0);
+		const result = build({ ...scenario('cancelled'), buyPrice });
+		expect(result.jobs[0]).toMatchObject({
+			outputQty: 0,
+			unitCost: null,
+			realizedProfit: -27_190,
+			flags: ['cancelled', 'market_fallback']
+		});
+		// 5 × 70 + 1500 = 1850.
+		expect(result.jobs[1]).toMatchObject({ inputCost: 1850, flags: ['market_fallback'] });
+	});
+
+	it('gives the same result for shuffled inputs', () => {
+		const input = { ...scenario(), buyPrice: coolantBuy };
+		const expected = build(input);
+		expect(build({ ...input, trades: [...input.trades].reverse(), jobs: [...input.jobs].reverse() })).toEqual(
+			expected
+		);
+	});
+});
+
 describe('reaction job material modifier', () => {
 	it('feeds the job input quantities', () => {
 		// Tatara with the L-Set Reactor Efficiency II in lowsec: 1 − 0.024 × 1.
@@ -920,7 +1055,9 @@ describe('runLedger', () => {
 				tx(1, 0, MODULE, 2, 1000, true),
 				tx(2, 100, MODULE, 1, 1500, false),
 				// A formula is a reaction type: tracked.
-				tx(3, 0, TITANIUM_CHROMIDE_FORMULA, 1, 5000, true)
+				tx(3, 0, TITANIUM_CHROMIDE_FORMULA, 1, 5000, true),
+				// A fuel block material: tracked.
+				tx(4, 0, HEAVY_WATER, 10, 50, true)
 			],
 			journal: [],
 			orders: [],
@@ -945,12 +1082,14 @@ describe('runLedger', () => {
 		});
 		expect(result.lots.map((l) => [l.typeId, l.originRef, l.unitCost])).toEqual([
 			[TITANIUM, 'contract:10', 10],
-			[TITANIUM_CHROMIDE_FORMULA, 'transaction:3', 5000]
+			[TITANIUM_CHROMIDE_FORMULA, 'transaction:3', 5000],
+			[HEAVY_WATER, 'transaction:4', 50]
 		]);
 		expect(result.uses).toEqual([]);
 		expect(result.trades.map((t) => [t.ref, t.source.kind, t.source.needsReview])).toEqual([
 			['transaction:1', 'untracked', false],
 			['transaction:3', 'market', false],
+			['transaction:4', 'market', false],
 			['transaction:2', 'untracked', false]
 		]);
 		expect(

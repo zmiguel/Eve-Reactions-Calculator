@@ -23,7 +23,7 @@ import {
 	mulberry32,
 	seedDailyPrice
 } from '../seed-local.ts';
-import { runLedger } from '@reactions/engine';
+import { inventoryTypeIds, runLedger } from '@reactions/engine';
 import {
 	JOB_RESULT_COLUMNS,
 	LEDGER_LOT_COLUMNS,
@@ -42,6 +42,8 @@ import {
 
 const NOW = Date.UTC(2026, 9, 6, 12, 7);
 const TOKEN = 'encrypted-dummy-token';
+/** Tracked types of the SDE fixture: 307 reaction types plus the fuel block blueprints and materials. */
+const TYPES = 322;
 
 const migrations = fileURLToPath(new URL('../../packages/db/migrations/', import.meta.url));
 
@@ -96,11 +98,31 @@ describe('buildSeedSql', () => {
 		expect(a).toEqual(b);
 	});
 
+	it('keeps the reaction types’ prices of the market that had no fuel block blueprints', () => {
+		const reactionOnly: typeof sde = {
+			...sde,
+			dataset: {
+				...sde.dataset,
+				manufacturing: sde.dataset.manufacturing?.filter((b) => b.makes !== 'material')
+			},
+			types: sde.types.filter((t) => inventoryTypeIds(sde.dataset).has(t.typeId))
+		};
+		expect(reactionOnly.types).toHaveLength(307);
+		const before = buildMarketFixture(reactionOnly);
+		const after = buildMarketFixture(sde);
+		for (const t of reactionOnly.types) {
+			expect(after.base[t.typeId]).toBe(before.base[t.typeId]);
+			expect(after.prices.jita[t.typeId]).toEqual(before.prices.jita[t.typeId]);
+			expect(after.prices.rens[t.typeId]).toEqual(before.prices.rens[t.typeId]);
+		}
+	});
+
 	it('core SQL loads every reference table and price for every tracked type at every hub', () => {
 		const market = buildMarketFixture(sde);
 		const db = database('core', buildSeedSql(sde, market, NOW, TOKEN).core);
 		expect(count(db, 'reactions')).toBe(119);
-		expect(count(db, 'types')).toBe(307);
+		expect(count(db, 'types')).toBe(TYPES);
+		expect(count(db, 'material_blueprint_materials')).toBe(36);
 		expect(count(db, 'systems')).toBe(sde.systems.length);
 		expect(count(db, 'regions')).toBe(sde.regions.length);
 		expect(count(db, 'reaction_materials')).toBe(
@@ -114,8 +136,8 @@ describe('buildSeedSql', () => {
 			0
 		);
 		expect(count(db, 'latest_prices')).toBe(priced);
-		expect(Object.keys(market.prices.jita)).toHaveLength(307);
-		expect(count(db, 'adjusted_prices')).toBe(307);
+		expect(Object.keys(market.prices.jita)).toHaveLength(TYPES);
+		expect(count(db, 'adjusted_prices')).toBe(TYPES);
 		expect(db.prepare('SELECT system_id, reaction FROM cost_indices ORDER BY system_id').all()).toEqual([
 			{ system_id: 30002647, reaction: 0.0412 },
 			{ system_id: 30004604, reaction: 0.05 }
@@ -127,14 +149,14 @@ describe('buildSeedSql', () => {
 	it('history SQL generates snapshots, daily rows and 400 days of ESI history', () => {
 		const market = buildMarketFixture(sde);
 		const db = database('history', buildSeedSql(sde, market, NOW, TOKEN).history);
-		const nonFormulaTypes = 307 - 119;
+		const nonFormulaTypes = TYPES - 119;
 		const regions = new Set(SEED_HUBS.map((h) => h.regionId)).size;
 		expect(count(db, 'price_snapshots')).toBe(
 			SNAPSHOT_DAYS * SNAPSHOTS_PER_DAY * SEED_HUBS.length * nonFormulaTypes
 		);
 		expect(count(db, 'price_daily')).toBe(SNAPSHOT_DAYS * SEED_HUBS.length * nonFormulaTypes);
 		expect(count(db, 'esi_market_history')).toBe(ESI_HISTORY_DAYS * regions * nonFormulaTypes);
-		expect(count(db, 'adjusted_price_daily')).toBe(SNAPSHOT_DAYS * 307);
+		expect(count(db, 'adjusted_price_daily')).toBe(SNAPSHOT_DAYS * TYPES);
 		const dates = db.prepare('SELECT min(date) AS lo, max(date) AS hi FROM price_daily').get() as Record<
 			string,
 			string
@@ -201,7 +223,7 @@ describe('buildSeedSql', () => {
 				enabled: 1,
 				user_id: 'seed-user',
 				share_requested: 0,
-				prices: 307
+				prices: TYPES
 			},
 			{
 				hub_id: 'structure-1042508032148',
@@ -213,7 +235,7 @@ describe('buildSeedSql', () => {
 				enabled: 1,
 				user_id: 'seed-user-2',
 				share_requested: 1,
-				prices: 307
+				prices: TYPES
 			}
 		]);
 		const { kv } = buildSeedSql(sde, buildMarketFixture(sde), NOW, TOKEN);
@@ -389,7 +411,11 @@ describe('buildSeedSql', () => {
 			manufacturing: all(
 				`SELECT j.job_id, j.activity_id, j.blueprint_me, u.use_kind, u.quantity, u.unit_value
 				FROM tracked_jobs j JOIN ledger_uses u ON u.user_id = j.user_id AND u.use_ref = 'job:' || j.job_id
-				WHERE j.activity_id = 1`
+				WHERE j.activity_id = 1 AND u.use_kind = 'manufacturing'`
+			),
+			fuel: all(
+				`SELECT u.use_ref, l.origin_ref, l.type_id, u.quantity FROM ledger_uses u JOIN ledger_lots l USING (user_id, lot_id)
+				WHERE l.type_id IN (4312, 17887) ORDER BY u.rowid`
 			),
 			manual: all(
 				"SELECT type_id, quantity, remaining, unit_cost, origin_ref FROM ledger_lots WHERE origin = 'manual'"
@@ -412,13 +438,14 @@ describe('buildSeedSql', () => {
 		expect(first.streams).toEqual(
 			[...SEED_TRACKING.streams].sort().map((stream) => ({ stream, status: 'ok' }))
 		);
-		// The day-1 mixed contract adds a contract, two items and its contract_price journal row.
-		expect(first.counts).toEqual([3, 10, 3, 3, 8, 4, 1]);
+		// The day-1 mixed contract adds a contract, two items and its contract_price journal row; the
+		// Oxygen Isotopes buy a transaction, an order and two journal rows; the fuel block job a job.
+		expect(first.counts).toEqual([4, 12, 4, 3, 8, 5, 1]);
 		// The refinery with its rig read from assets, the Raitaru without rigs read, a refused lookup.
 		const { refinery, factory, unknown } = SEED_FACILITIES;
 		expect(first.facilities).toEqual([
 			{ facility_id: refinery.facilityId, kind: 'structure', type_id: 35836, rigs_json: '[46497]', jobs: 2 },
-			{ facility_id: factory.facilityId, kind: 'structure', type_id: 35825, rigs_json: null, jobs: 1 },
+			{ facility_id: factory.facilityId, kind: 'structure', type_id: 35825, rigs_json: null, jobs: 2 },
 			{ facility_id: unknown.facilityId, kind: 'unknown', type_id: null, rigs_json: null, jobs: 1 }
 		]);
 		const janice = db
@@ -428,7 +455,7 @@ describe('buildSeedSql', () => {
 		expect(janice.janice_code).toBe(SEED_TRACKING.janiceCode);
 		expect(JSON.parse(janice.janice_json).items).toHaveLength(3);
 
-		const [chromide, diborite, carbide] = first.jobs as Record<string, number | string>[];
+		const [chromide, diborite, carbide, fuel] = first.jobs as Record<string, number | string>[];
 		const made = SEED_TRACKING.runs * 200;
 		const used = 2928 - SEED_TRACKING.boughtUnits;
 		expect(chromide).toMatchObject({
@@ -460,6 +487,39 @@ describe('buildSeedSql', () => {
 			4
 		);
 		expect(c.unit_cost).toBeCloseTo((c.input_cost + c.job_cost) / c.output_qty, 9);
+		// The fuel block job: 4 runs × 40 blocks, 141 of them used by the Titanium Carbide job (147 needed:
+		// 30 × 5 × 0.976 = 146.4, after the 6 blocks left of the contracts); no profit of its own.
+		expect(fuel).toMatchObject({
+			job_id: SEED_TRACKING.fuel.jobId,
+			name: 'Oxygen Fuel Block',
+			runs: 4,
+			output_qty: 160,
+			used_qty: 141,
+			sold_qty: 0,
+			unsold_qty: 19,
+			realized_profit: 0,
+			flags_json: '["market_fallback"]'
+		});
+		const fb = fuel as Record<string, number>;
+		expect(fb.unit_cost).toBeCloseTo((fb.input_cost + fb.job_cost) / 160, 9);
+		const fuelJob = `job:${SEED_TRACKING.fuel.jobId}`;
+		const carbideJob = `job:${SEED_TRACKING.jobs[2].jobId}`;
+		expect(first.fuel.filter((u) => u.use_ref === fuelJob || u.use_ref === carbideJob)).toEqual([
+			// The isotopes bought on day 8, all 1,604 (4 × 450 × 0.891 = 1,603.8).
+			{
+				use_ref: fuelJob,
+				origin_ref: 'transaction:6100000004',
+				type_id: 17887,
+				quantity: SEED_TRACKING.fuel.isotopes
+			},
+			{
+				use_ref: carbideJob,
+				origin_ref: `contract:${SEED_TRACKING.contracts.rule}`,
+				type_id: 4312,
+				quantity: 6
+			},
+			{ use_ref: carbideJob, origin_ref: fuelJob, type_id: 4312, quantity: 141 }
+		]);
 		// The manufacturing job took its Titanium Carbide at the day's Jita buy value.
 		expect(first.manufacturing).toEqual([
 			{
@@ -514,7 +574,8 @@ describe('buildSeedSql', () => {
 			...[
 				[16654, 'none'],
 				[16658, 'none'],
-				[16671, 'journal']
+				[16671, 'journal'],
+				[17887, 'none']
 			].map(([typeId, tax], i) => ({
 				ref: `transaction:${6100000001 + i}`,
 				type_id: typeId,
@@ -624,6 +685,7 @@ describe('buildSeedSql', () => {
 		expect(values(`SELECT ${columns(LEDGER_PRICE_COLUMNS)} FROM ledger_prices ORDER BY rowid`)).toEqual(
 			expected.prices
 		);
-		expect(expected.jobs).toHaveLength(3);
+		// Three reaction jobs and the fuel block job.
+		expect(expected.jobs).toHaveLength(4);
 	});
 });

@@ -28,8 +28,9 @@ describe.skipIf(!hasSde)('buildFixtureZip', () => {
 			'races.jsonl'
 		]);
 		const lines = (name: string) => new TextDecoder().decode(entries[name]).trim().split('\n');
-		// 120 reaction formulas plus 385 manufacturing blueprints taking a reaction product.
-		expect(lines('blueprints.jsonl')).toHaveLength(505);
+		// 120 reaction formulas, 385 manufacturing blueprints taking a reaction product and the four fuel
+		// block blueprints.
+		expect(lines('blueprints.jsonl')).toHaveLength(509);
 		expect(lines('mapSolarSystems.jsonl')).toHaveLength(10);
 		// The constants' types, the Hoboleaks fixture types and the structures with a rig size.
 		expect(lines('typeDogma.jsonl')).toHaveLength(179);

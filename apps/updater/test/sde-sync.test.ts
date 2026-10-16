@@ -1,6 +1,6 @@
 import { introspectWorkflowInstance } from 'cloudflare:test';
 import { env } from 'cloudflare:workers';
-import { DATASET_KV_KEY, MARKET_KV_KEY } from '@reactions/db';
+import { DATASET_KV_KEY, MARKET_KV_KEY, getCoreDb, trackedTypeIds } from '@reactions/db';
 import type { Dataset } from '@reactions/engine';
 import { DEFAULT_CONSTANTS } from '@reactions/engine';
 import type { SdeDataset } from '@reactions/sde';
@@ -110,7 +110,19 @@ describe('SdeSyncWorkflow', () => {
 			{ type_id: 16647, quantity: 100 }
 		]);
 		expect(await count('reprocess_materials')).toBeGreaterThan(0);
-		expect(await count('types')).toBe(307);
+		// Every material of the four fuel block blueprints (nine each).
+		expect(await count('material_blueprint_materials')).toBe(36);
+		expect(
+			(
+				await env.DB.prepare(
+					'SELECT type_id, quantity FROM material_blueprint_materials WHERE blueprint_type_id = 4316 AND type_id = 17889'
+				).first()
+			)?.quantity
+		).toBe(450);
+		// Their blueprints and materials are tracked: names and prices.
+		const tracked = await trackedTypeIds(getCoreDb(env.DB));
+		for (const typeId of [4316, 9832, 17889]) expect(tracked).toContain(typeId);
+		expect(await count('types')).toBe(322);
 		expect(
 			await env.DB.prepare('SELECT name, security_band FROM systems WHERE system_id = 30002647').first()
 		).toEqual({ name: 'Ignoitton', security_band: 'lowsec' });
@@ -139,7 +151,7 @@ describe('SdeSyncWorkflow', () => {
 			.first<{ kind: string; status: string; detail_json: string }>();
 		expect(job?.kind).toBe('sde');
 		expect(job?.status).toBe('ok');
-		expect(JSON.parse(job!.detail_json)).toMatchObject({ reactions: 119, types: 307 });
+		expect(JSON.parse(job!.detail_json)).toMatchObject({ reactions: 119, types: 322 });
 		// The tracked set changed: adjusted prices are fetched in full on the next tick.
 		expect(await count('http_cache')).toBe(0);
 		expect(await env.CACHE.get(MARKET_KV_KEY)).toBeNull();

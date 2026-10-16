@@ -72,7 +72,7 @@ const LOAD_SQL = {
 		FROM tracked_contract_items i
 		JOIN tracked_contracts c ON c.user_id = i.user_id AND c.contract_id = i.contract_id
 		WHERE i.user_id = ?1 AND c.${TRACKED_SOURCES} ORDER BY i.contract_id, i.record_id`,
-	/** Reaction jobs and manufacturing jobs (which take reaction output; `activity_id` 1). */
+	/** Reaction jobs and manufacturing jobs (`activity_id` 1: fuel block jobs, and jobs taking reaction output). */
 	jobs: `SELECT job_id, activity_id, blueprint_type_id, blueprint_me, runs, status, cost, facility_id, start_date, end_date
 		FROM tracked_jobs WHERE user_id = ?1 AND ${TRACKED_SOURCES} ORDER BY job_id`,
 	corrections: 'SELECT target_kind, target_ref, unit_price FROM price_corrections WHERE user_id = ?1',
@@ -151,7 +151,7 @@ const INSERT_SQL = {
 
 /**
  * Rebuilds one user's ledger from scratch: loads the raw rows of the user's connections with Profit
- * tracking on (reaction and manufacturing jobs), the manual purchases, the corrections and both
+ * tracking on (reaction, fuel block and manufacturing jobs), the manual purchases, the corrections and both
  * settings, runs the engine (`runLedger`) with reference and buy prices of the contract rule's hub,
  * then, in one transaction, replaces the user's `ledger_lots`, `ledger_uses`, `job_results`,
  * `ledger_prices` and `ledger_unallocated_fees` and updates `ledger_state` (`STATE_SQL`). `now` is

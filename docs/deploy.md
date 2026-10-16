@@ -542,6 +542,26 @@ Migrations must be additive (new tables, nullable or defaulted columns): the liv
 3. Build and deploy the web preview; check that contracts of items no reaction uses show "Not tracked", without a review warning.
 4. Deploy the web production.
 
+### 3.2.2 (fuel blocks) release order
+
+Until now the tracking sync dropped wallet transactions of fuel block materials (they were not tracked) and never stored fuel block manufacturing jobs. ESI keeps about 30 days of wallet transactions and 90 days of industry jobs, so do steps 4 and 5 soon after the release: what is older than that cannot be fetched again.
+
+1. Core migration 0012 (`npx wrangler d1 migrations apply reactions-core --remote`, as above). It only creates the table `material_blueprint_materials` (the materials of the fuel block blueprints); the running 3.2.1 code does not read it.
+2. Deploy the updater: the SDE import keeps the fuel block blueprints with every material (`makes: 'material'` in KV `dataset:v1`), names and prices their materials, the tracking sync stores fuel block jobs and the transactions of their materials, and rebuilds give fuel block jobs inputs, a batch of blocks and a job result. Nothing changes before step 3.
+3. On `/admin`, SDE sync **Re-import (force)**. Done when the `sde` job is `ok`: `dataset:v1` then lists the fuel block blueprints, `types` and `material_blueprint_materials` hold the materials, and the next price refresh (at most 30 minutes) prices them. Check: `npx wrangler d1 execute reactions-core --remote --command "SELECT COUNT(*) AS n FROM material_blueprint_materials"` gives 36 (four blueprints, nine materials each).
+4. Fetch the dropped rows again. Clearing a transactions stream's cursor makes its next walk start again at the newest transaction and go back as far as ESI answers (at most `TRACKING_TX_MAX_PAGES`, 50 pages); rows already stored are kept (`ON CONFLICT DO NOTHING`). The jobs stream has no cursor: every sync reads every job ESI still returns, so clearing its `expires_at` only makes it due at once. Clearing `expires_at` makes the connections due for the cron:
+
+   ```bash
+   npx wrangler d1 execute reactions-core --remote --command "UPDATE tracking_streams SET cursor = NULL, expires_at = NULL WHERE stream = 'transactions' OR stream LIKE 'transactions:%'"
+   npx wrangler d1 execute reactions-core --remote --command "UPDATE tracking_streams SET expires_at = NULL WHERE stream = 'jobs'"
+   ```
+
+   The cron then syncs the due connections, `TRACKING_SYNCS_PER_TICK` (20) per tick every 10 minutes, at most one sync per connection per hour (`TRACKING_MIN_INTERVAL_MINUTES`), and only of accounts seen in the last 30 days; each sync rebuilds its account's ledger. Wait until the `tracking` job rows show no more due connections (or check `SELECT COUNT(*) FROM tracking_streams WHERE (stream = 'transactions' OR stream LIKE 'transactions:%') AND cursor IS NULL AND status = 'ok'` is 0; a wallet with no transaction at all keeps a null cursor). Accounts not seen for 30 days are synced, with the cleared cursor, the next time their user visits; after 30 days their older transactions of fuel block materials are gone from ESI.
+
+5. Mark every ledger for a rebuild, so accounts whose sync did not run yet also get fuel block jobs and lose the "Not tracked" mark on their fuel block materials: `npx wrangler d1 execute reactions-core --remote --command "UPDATE ledger_state SET dirty = 1"`. The cron rebuilds them, `TRACKING_LEDGERS_PER_TICK` (10) per tick.
+6. Build and deploy the web preview; check with a character that built fuel blocks in the last 90 days: the fuel block job on Jobs with its inputs and its blocks, the materials bought in the last 30 days as purchases (not "Not tracked") on Ledger, a reaction job using the blocks at their cost, and materials without a purchase under Missing prices.
+7. Deploy the web production.
+
 ### Rotating secrets
 
 | Secret                                                  | How                                                                                                                                                                                                                                                                              | Effect                                                                                                                               |

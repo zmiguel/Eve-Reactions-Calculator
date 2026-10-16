@@ -46,11 +46,41 @@ function inventoryIndex(dataset: Dataset): InventoryIndex {
 /**
  * Types worth reading from an inventory: every reaction's formula (blueprint), materials and product,
  * plus the reprocessed outputs of the unrefined reactions' products (Unrefined and Prismaticite tiers).
- * Also the types the profit tracking ledger tracks (`runLedger`); trades and contract items of other
- * types are recorded as `untracked`.
  */
 export function inventoryTypeIds(dataset: Dataset): ReadonlySet<number> {
 	return inventoryIndex(dataset).relevant;
+}
+
+const trackedCache = new WeakMap<Dataset, ReadonlySet<number>>();
+
+/**
+ * Types the profit tracking ledger tracks (`runLedger`) and the tracking sync stores trades of:
+ * {@link inventoryTypeIds} plus the blueprints making a reaction material (`makes: 'material'`, the fuel
+ * blocks) and every material of them. Trades and contract items of other types are `untracked`.
+ */
+export function trackedTypeIds(dataset: Dataset): ReadonlySet<number> {
+	let tracked = trackedCache.get(dataset);
+	if (!tracked) {
+		const ids = new Set(inventoryTypeIds(dataset));
+		for (const bp of dataset.manufacturing ?? []) {
+			if (bp.makes !== 'material') continue;
+			ids.add(bp.blueprintTypeId);
+			for (const m of bp.materials) ids.add(m.typeId);
+		}
+		tracked = ids;
+		trackedCache.set(dataset, tracked);
+	}
+	return tracked;
+}
+
+/** Whether `blueprintTypeId` is a manufacturing blueprint making a reaction material (a fuel block). */
+export function isMaterialBlueprint(
+	dataset: Pick<Dataset, 'manufacturing'>,
+	blueprintTypeId: number
+): boolean {
+	return (dataset.manufacturing ?? []).some(
+		(bp) => bp.blueprintTypeId === blueprintTypeId && bp.makes === 'material'
+	);
 }
 
 /**

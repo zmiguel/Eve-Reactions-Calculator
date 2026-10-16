@@ -95,27 +95,35 @@ export function buildFixtureZip(sdeDir: string = DEFAULT_SDE_DIR): Uint8Array {
 	const reactionBlueprints = allBlueprints.filter((l) => parse<SdeBlueprintLine>(l).activities?.reaction);
 	const tracked = new Set<number>();
 	const products = new Set<number>();
+	const reactionMaterials = new Set<number>();
 	for (const line of reactionBlueprints) {
 		const bp = parse<SdeBlueprintLine>(line);
 		const reaction = bp.activities?.reaction;
 		tracked.add(bp._key);
-		for (const m of reaction?.materials ?? []) tracked.add(m.typeID);
+		for (const m of reaction?.materials ?? []) {
+			tracked.add(m.typeID);
+			reactionMaterials.add(m.typeID);
+		}
 		for (const p of reaction?.products ?? []) {
 			tracked.add(p.typeID);
 			products.add(p.typeID);
 		}
 	}
-	// Manufacturing blueprints taking a reaction product (published or not), with their blueprint and
-	// product types (for their names).
+	// Manufacturing blueprints taking a reaction product or making a reaction material (published or
+	// not), with their blueprint and product types (for their names) and, for the material-making ones
+	// (fuel blocks), the types of every material.
 	const manufacturingBlueprintIds = new Set<number>();
 	const manufacturingTypeIds = new Set<number>();
 	for (const line of allBlueprints) {
 		const bp = parse<SdeBlueprintLine>(line);
 		const materials = bp.activities?.manufacturing?.materials ?? [];
-		if (!materials.some((m) => products.has(m.typeID))) continue;
+		const productIds = (bp.activities?.manufacturing?.products ?? []).map((p) => p.typeID);
+		const makesMaterial = productIds.some((id) => reactionMaterials.has(id));
+		if (!makesMaterial && !materials.some((m) => products.has(m.typeID))) continue;
 		manufacturingBlueprintIds.add(bp._key);
 		manufacturingTypeIds.add(bp._key);
-		for (const p of bp.activities?.manufacturing?.products ?? []) manufacturingTypeIds.add(p.typeID);
+		for (const id of productIds) manufacturingTypeIds.add(id);
+		if (makesMaterial) for (const m of materials) manufacturingTypeIds.add(m.typeID);
 	}
 	const blueprints = allBlueprints.filter(
 		(l) => parse<SdeBlueprintLine>(l).activities?.reaction || manufacturingBlueprintIds.has(keyOf(l))

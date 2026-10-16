@@ -91,8 +91,8 @@ const SQL = {
 	keys: `${ENTRIES} SELECT e.kind, e.id ${FILTERED} ORDER BY e.at DESC, e.kind DESC, e.id DESC`,
 	/**
 	 * Totals of the filtered entries' prices (only the filtered item's prices with an item filter) and
-	 * the contract fees of the filtered contracts. "Not tracked" prices (items no reaction uses) count
-	 * nowhere, nor do the fees of a contract of only such items.
+	 * the contract fees of the filtered contracts. "Not tracked" prices (items no reaction or fuel block
+	 * uses) count nowhere, nor do the fees of a contract of only such items.
 	 */
 	summary: `${ENTRIES}, f AS (SELECT e.kind, e.id, e.review ${FILTERED}),
 	p AS (

@@ -1,14 +1,8 @@
 import { WorkflowEntrypoint } from 'cloudflare:workers';
 import type { WorkflowEvent, WorkflowStep } from 'cloudflare:workers';
 import { NonRetryableError } from 'cloudflare:workflows';
-import {
-	characters,
-	DATASET_KV_KEY,
-	getCoreDb,
-	inventorySourceReaders,
-	inventorySources
-} from '@reactions/db';
-import type { Dataset } from '@reactions/engine';
+import { characters, getCoreDb, inventorySourceReaders, inventorySources } from '@reactions/db';
+import { trackedTypeIds } from '@reactions/engine';
 import {
 	collectWalletTransactions,
 	ERROR_INTERNAL,
@@ -76,7 +70,7 @@ import { StepTracker } from '../progress.ts';
 import { refreshCharacterToken } from '../tokens.ts';
 import type { AccessTokenResult, StoredToken } from '../tokens.ts';
 import { claimTrackingSource, dueStreams, failTrackingSync, trackingStreamNames } from '../tracking.ts';
-import { relevantTypeIds } from './inventory-sync.ts';
+import { publishedDataset } from './inventory-sync.ts';
 
 export interface TrackingSyncParams {
 	sourceId: number;
@@ -548,13 +542,6 @@ async function wantedBlueprints(env: Env, source: TrackingSource): Promise<numbe
 	return results.map((r) => r.blueprint_id);
 }
 
-/** Manufacturing blueprints using reaction products (`Dataset.manufacturing` of the published dataset). */
-async function manufacturingBlueprintIds(env: Env): Promise<ReadonlySet<number>> {
-	const dataset = await env.CACHE.get<Dataset>(DATASET_KV_KEY, 'json');
-	if (!dataset) throw new Error(`no SDE dataset published yet (KV ${DATASET_KV_KEY})`);
-	return new Set((dataset.manufacturing ?? []).map((b) => b.blueprintTypeId));
-}
-
 const failed = (failure: EsiFailure, label: string): StreamFetch => ({ ...failure, label });
 
 /** The later of two `Expires` (null = none): a stream is not asked again before any of its requests expire. */
@@ -582,7 +569,8 @@ async function allPages<T>(
 
 /**
  * Reaction jobs, and manufacturing jobs whose blueprint uses reaction products (they take reaction
- * output; never shown as jobs). Rows keep their stored `blueprint_me`.
+ * output; never shown as jobs) or makes a reaction material (fuel blocks). Rows keep their stored
+ * `blueprint_me`.
  */
 async function syncJobs({ env, client, source, token }: StreamContext): Promise<StreamFetch> {
 	const corporation = source.kind === 'corporation';
@@ -594,7 +582,10 @@ async function syncJobs({ env, client, source, token }: StreamContext): Promise<
 			)
 		: await fetchCharacterIndustryJobs(client, source.ownerId, token, { includeCompleted: true });
 	if (!res.ok) return failed(res, 'industry jobs');
-	const manufacturing = await manufacturingBlueprintIds(env);
+	// `Dataset.manufacturing`: blueprints using reaction products or making reaction materials.
+	const manufacturing = new Set(
+		((await publishedDataset(env)).manufacturing ?? []).map((b) => b.blueprintTypeId)
+	);
 	const rows = res.items
 		.filter(
 			(j: IndustryJobRow) =>
@@ -661,7 +652,7 @@ async function syncTransactions({
 	division,
 	cursor
 }: StreamContext): Promise<StreamFetch> {
-	const relevant = await relevantTypeIds(env);
+	const tracked = trackedTypeIds(await publishedDataset(env));
 	const walk = await collectWalletTransactions(
 		(fromId) =>
 			division === null
@@ -672,9 +663,7 @@ async function syncTransactions({
 	);
 	if (!walk.ok) return failed(walk, 'wallet transactions');
 	const rows = walk.items
-		.filter(
-			(t: WalletTransaction) => relevant.has(t.typeId) && !(division === null && t.isPersonal === false)
-		)
+		.filter((t: WalletTransaction) => tracked.has(t.typeId) && !(division === null && t.isPersonal === false))
 		.map((t) => [
 			source.userId,
 			t.transactionId,

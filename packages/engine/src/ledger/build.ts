@@ -1,6 +1,6 @@
 import { requiredQuantity } from '../formulas.ts';
-import { inventoryTypeIds } from '../inventory.ts';
-import type { Dataset, ManufacturingBlueprint, Reaction } from '../types.ts';
+import { trackedTypeIds } from '../inventory.ts';
+import type { Dataset, ManufacturingBlueprint, Material } from '../types.ts';
 import { priceContract, priceTrades } from './pricing.ts';
 import {
 	type JobFlag,
@@ -28,7 +28,11 @@ export interface BuildLedgerInput {
 	dataset: Dataset;
 	/** Reads `manufacturingUse`. */
 	settings: TrackingSettings;
-	/** Reaction (`activity` absent or `reaction`) and manufacturing jobs. */
+	/**
+	 * Reaction jobs (`activity` absent or `reaction`) and manufacturing jobs: those of a blueprint making
+	 * a reaction material (`makes: 'material'`, fuel blocks) produce like reactions; the others only take
+	 * reaction output.
+	 */
 	jobs: readonly LedgerJob[];
 	trades: readonly PricedTrade[];
 	contracts: readonly PricedContract[];
@@ -45,8 +49,16 @@ export interface BuildLedgerInput {
 export interface BuildLedgerResult {
 	lots: LedgerLot[];
 	uses: LedgerUse[];
-	/** Reaction jobs only, by job id. */
+	/** Producing jobs (reactions and fuel block manufacturing), by job id. */
 	jobs: JobResult[];
+}
+
+/** What a producing job takes per run and makes per run. */
+interface Recipe {
+	/** Product name, for the output's price source text. */
+	name: string;
+	product: Material;
+	materials: readonly Material[];
 }
 
 /** Event phases at one time: acquisitions, then uses, then outputs of jobs that ended when they started. */
@@ -84,7 +96,7 @@ type LedgerEvent =
 			order: number;
 			kind: 'jobStart';
 			job: LedgerJob;
-			reaction: Reaction;
+			recipe: Recipe;
 	  }
 	| {
 			at: number;
@@ -93,7 +105,7 @@ type LedgerEvent =
 			order: number;
 			kind: 'jobOutput';
 			job: LedgerJob;
-			reaction: Reaction;
+			recipe: Recipe;
 	  }
 	| {
 			at: number;
@@ -106,6 +118,8 @@ type LedgerEvent =
 	  };
 
 interface JobState {
+	/** Undefined: a reaction formula not in the dataset. */
+	recipe: Recipe | undefined;
 	inputCost: number;
 	marketFallback: boolean;
 	unpriced: boolean;
@@ -145,15 +159,36 @@ function isFinished(job: LedgerJob, now: number): boolean {
 /**
  * Rebuilds the FIFO ledger from priced trades and contracts, the user's purchases entered by hand and
  * their jobs. Events run in time order; at one time acquisitions come before uses, then by ref, so any
- * input order gives the same result. Manufacturing jobs only take reaction output (and any other lot of
- * their blueprint's reaction-product materials) at their start; that use is realized at once.
+ * input order gives the same result. Reaction jobs and fuel block manufacturing jobs (blueprints with
+ * `makes: 'material'`) take their inputs at their start and add their output when they end; other
+ * manufacturing jobs only take reaction output (and any other lot of their blueprint's reaction-product
+ * materials) at their start, and that use is realized at once.
  */
 export function buildLedger(input: BuildLedgerInput): BuildLedgerResult {
 	const { dataset, now, buyPrice } = input;
 	const buyValueUse = input.settings.manufacturingUse === 'buy_value';
-	const reactionByBlueprint = new Map(dataset.reactions.map((r) => [r.blueprintTypeId, r]));
-	const manufacturingByBlueprint = new Map((dataset.manufacturing ?? []).map((m) => [m.blueprintTypeId, m]));
-	const reactionJobs = input.jobs.filter((job) => job.activity !== 'manufacturing');
+	const reactionRecipes = new Map(
+		dataset.reactions.map((r): [number, Recipe] => [
+			r.blueprintTypeId,
+			{ name: r.name, product: r.product, materials: r.materials }
+		])
+	);
+	const materialRecipes = new Map<number, Recipe>();
+	const consumingBlueprints = new Map<number, ManufacturingBlueprint>();
+	for (const bp of dataset.manufacturing ?? []) {
+		if (bp.makes !== 'material') {
+			consumingBlueprints.set(bp.blueprintTypeId, bp);
+			continue;
+		}
+		materialRecipes.set(bp.blueprintTypeId, {
+			name: bp.productName ?? dataset.types[bp.productTypeId]?.name ?? `Type ${bp.productTypeId}`,
+			product: { typeId: bp.productTypeId, quantity: bp.productQuantity },
+			materials: bp.materials
+		});
+	}
+	const producingJobs = input.jobs.filter(
+		(job) => job.activity !== 'manufacturing' || materialRecipes.has(job.blueprintTypeId)
+	);
 	const inputCorrections = new Map<string, number>();
 	for (const c of input.corrections) {
 		if (c.targetKind === 'job_input') inputCorrections.set(c.targetRef, c.unitPrice);
@@ -240,7 +275,7 @@ export function buildLedger(input: BuildLedgerInput): BuildLedgerResult {
 
 	for (const job of input.jobs) {
 		if (job.activity !== 'manufacturing') continue;
-		const blueprint = manufacturingByBlueprint.get(job.blueprintTypeId);
+		const blueprint = consumingBlueprints.get(job.blueprintTypeId);
 		// Materials are taken when the job is installed, whatever happened to it later.
 		if (blueprint) {
 			events.push({
@@ -256,12 +291,14 @@ export function buildLedger(input: BuildLedgerInput): BuildLedgerResult {
 	}
 
 	const states = new Map<number, JobState>();
-	for (const job of reactionJobs) {
-		states.set(job.jobId, { inputCost: 0, marketFallback: false, unpriced: false, outputLot: null });
-		const reaction = reactionByBlueprint.get(job.blueprintTypeId);
-		if (!reaction) continue;
+	for (const job of producingJobs) {
+		const recipe = (job.activity === 'manufacturing' ? materialRecipes : reactionRecipes).get(
+			job.blueprintTypeId
+		);
+		states.set(job.jobId, { recipe, inputCost: 0, marketFallback: false, unpriced: false, outputLot: null });
+		if (!recipe) continue;
 		const ref = `job:${job.jobId}`;
-		events.push({ at: job.startDate, phase: USE, ref, order: 0, kind: 'jobStart', job, reaction });
+		events.push({ at: job.startDate, phase: USE, ref, order: 0, kind: 'jobStart', job, recipe });
 		if (isFinished(job, now)) {
 			// An output can only follow its own inputs: a job that ended when it started yields after them.
 			const late = job.endDate <= job.startDate;
@@ -272,7 +309,7 @@ export function buildLedger(input: BuildLedgerInput): BuildLedgerResult {
 				order: 0,
 				kind: 'jobOutput',
 				job,
-				reaction
+				recipe
 			});
 		}
 	}
@@ -380,9 +417,9 @@ export function buildLedger(input: BuildLedgerInput): BuildLedgerResult {
 				break;
 			}
 			case 'jobStart': {
-				const { job, reaction } = e;
+				const { job, recipe } = e;
 				const state = states.get(job.jobId)!;
-				for (const material of reaction.materials) {
+				for (const material of recipe.materials) {
 					const needed = requiredQuantity(job.runs, material.quantity, job.materialModifier);
 					const shortfall = consume(material.typeId, needed, 'job', e.ref, null, (lot, qty) => {
 						state.inputCost += qty * lot.unitCost;
@@ -435,12 +472,12 @@ export function buildLedger(input: BuildLedgerInput): BuildLedgerResult {
 				break;
 			}
 			case 'jobOutput': {
-				const { job, reaction } = e;
+				const { job, recipe } = e;
 				const state = states.get(job.jobId)!;
-				const quantity = job.runs * reaction.product.quantity;
+				const quantity = job.runs * recipe.product.quantity;
 				if (quantity <= 0) break;
 				state.outputLot = addLot({
-					typeId: reaction.product.typeId,
+					typeId: recipe.product.typeId,
 					acquiredAt: e.at,
 					quantity,
 					unitCost: (state.inputCost + (job.cost ?? 0)) / quantity,
@@ -448,7 +485,7 @@ export function buildLedger(input: BuildLedgerInput): BuildLedgerResult {
 					originRef: e.ref,
 					source: {
 						kind: 'production',
-						text: `${reaction.name} job finished ${formatTime(job.endDate)}: inputs plus job cost`,
+						text: `${recipe.name} job finished ${formatTime(job.endDate)}: inputs plus job cost`,
 						needsReview: false
 					}
 				});
@@ -457,7 +494,7 @@ export function buildLedger(input: BuildLedgerInput): BuildLedgerResult {
 		}
 	}
 
-	// Sales, later reaction jobs and manufacturing per output lot.
+	// Sales, later producing jobs and manufacturing per output lot.
 	const lotOutcome = new Map<
 		number,
 		{ soldQty: number; salesNet: number; usedQty: number; manufacturedQty: number; manufacturedValue: number }
@@ -479,15 +516,15 @@ export function buildLedger(input: BuildLedgerInput): BuildLedgerResult {
 		}
 	});
 
-	const jobs = [...reactionJobs]
+	const jobs = [...producingJobs]
 		.sort((a, b) => a.jobId - b.jobId)
 		.map((job): JobResult => {
 			const state = states.get(job.jobId)!;
-			const reaction = reactionByBlueprint.get(job.blueprintTypeId);
+			const { recipe } = state;
 			const jobCost = job.cost ?? 0;
 			const flags = new Set<JobFlag>();
 			if (job.cost === null) flags.add('no_cost');
-			if (!reaction) flags.add('unknown_formula');
+			if (!recipe) flags.add('unknown_formula');
 			if (state.marketFallback) flags.add('market_fallback');
 			if (state.unpriced) flags.add('unpriced_input');
 			const cancelled = job.status === 'cancelled' || job.status === 'reverted';
@@ -510,7 +547,7 @@ export function buildLedger(input: BuildLedgerInput): BuildLedgerResult {
 				jobId: job.jobId,
 				inputCost: state.inputCost,
 				jobCost,
-				outputTypeId: reaction ? reaction.product.typeId : null,
+				outputTypeId: recipe ? recipe.product.typeId : null,
 				outputQty: lot ? lot.quantity : 0,
 				soldQty,
 				salesNet,
@@ -550,11 +587,11 @@ export interface RunLedgerInput {
 
 /**
  * Prices the raw trades and contracts, then rebuilds the ledger from them. Only types of
- * `inventoryTypeIds(dataset)` (every type a reaction uses) are tracked; the rest is priced as
- * `untracked` and stays out of the ledger.
+ * `trackedTypeIds(dataset)` (every type a reaction uses, plus the fuel block blueprints and their
+ * materials) are tracked; the rest is priced as `untracked` and stays out of the ledger.
  */
 export function runLedger(input: RunLedgerInput): LedgerResult {
-	const tracked = inventoryTypeIds(input.dataset);
+	const tracked = trackedTypeIds(input.dataset);
 	const { trades, unallocatedFees } = priceTrades({
 		transactions: input.transactions,
 		journal: input.journal,

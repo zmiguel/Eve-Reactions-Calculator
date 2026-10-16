@@ -140,7 +140,8 @@
 	{@const d = data.detail}
 	{@const job = d.job}
 	{@const parts = breakdown(d)}
-	{@const title = job.formula.name ?? 'Reaction job'}
+	{@const fuel = d.kind === 'fuel_block'}
+	{@const title = job.formula.name ?? (fuel ? 'Fuel block job' : 'Reaction job')}
 	{@const inputsEstimate = job.marks.includes('market_fallback') ? ESTIMATE.inputs : null}
 	{@const unsoldEstimate = (d.output?.unsoldQty ?? 0) > 0 ? ESTIMATE.unsold : null}
 	{@const runningEstimate =
@@ -149,7 +150,9 @@
 			: null}
 	<Seo
 		{title}
-		description="Inputs, costs and output of one of your tracked EVE Online reaction jobs."
+		description={fuel
+			? 'Inputs, costs and output of one of your tracked EVE Online fuel block jobs.'
+			: 'Inputs, costs and output of one of your tracked EVE Online reaction jobs.'}
 		path="/profits/jobs/{job.jobId}"
 		noindex
 	/>
@@ -170,6 +173,7 @@
 				<div class="min-w-0 flex-1">
 					<h1 class="text-xl font-bold text-gray-800 sm:text-2xl dark:text-gray-200">{title}</h1>
 					<p class="text-sm text-gray-600 dark:text-gray-400" data-job-facts>
+						{#if fuel}<span data-fuel-block>Fuel block job ·</span>{/if}
 						{formatNumber(job.runs)}
 						{job.runs === 1 ? 'run' : 'runs'} · {job.owner} · {job.facility}
 					</p>
@@ -252,16 +256,24 @@
 							note: `${formatNumber(d.output.unsoldQty)} units, today's value`,
 							estimated: unsoldEstimate
 						})}
-						{@render barRow('Output value', parts.outputValue, parts.max, 'value', {
-							key: 'output-value',
-							strong: true,
-							estimated: unsoldEstimate
-						})}
+						{#if !fuel}
+							{@render barRow('Output value', parts.outputValue, parts.max, 'value', {
+								key: 'output-value',
+								strong: true,
+								estimated: unsoldEstimate
+							})}
+						{/if}
 					{:else if job.status === 'running'}
 						<p class={muted} data-no-output>
-							{job.runningOutputQty !== null
-								? `Still running: it will make ${formatNumber(job.runningOutputQty)} units. The realized profit is known once they are sold; the expected profit is an estimate at today's prices.`
-								: 'Still running: output and profit are known once it ends.'}
+							{#if fuel}
+								{job.runningOutputQty !== null
+									? `Still running: it will make ${formatNumber(job.runningOutputQty)} units for your reactions.`
+									: 'Still running: the output is known once it ends.'}
+							{:else}
+								{job.runningOutputQty !== null
+									? `Still running: it will make ${formatNumber(job.runningOutputQty)} units. The realized profit is known once they are sold; the expected profit is an estimate at today's prices.`
+									: 'Still running: output and profit are known once it ends.'}
+							{/if}
 						</p>
 					{:else if job.status === 'cancelled'}
 						<p class={muted} data-no-output>
@@ -274,39 +286,46 @@
 					{/if}
 				</div>
 				<dl class="grid grid-cols-2 gap-4 self-start lg:grid-cols-1">
-					<div>
-						<dt class={muted}>Realized profit</dt>
-						<dd class="text-xl font-semibold" data-profit="realized">
-							<Isk value={job.realizedProfit} profit missing={job.realizedNote} />
-						</dd>
-						<dd class="text-xs {muted}">
-							{(d.output?.manufacturedQty ?? 0) > 0
-								? 'from the output sold or used in manufacturing so far'
-								: 'from the output sold so far'}
-						</dd>
-					</div>
-					<div>
-						<dt class={muted}>Expected profit</dt>
-						<dd class="text-xl font-semibold" data-profit="expected">
-							<Isk
-								value={job.expectedProfit}
-								profit
-								missing={job.expectedNote}
-								estimated={job.expectedProfit !== null ? (runningEstimate ?? unsoldEstimate) : null}
-							/>
-						</dd>
-						<dd class="text-xs {muted}">
-							{job.expectedNote ??
-								(job.runningOutputQty !== null
-									? `if the ${formatNumber(job.runningOutputQty)} units it will make sell at today's price (an estimate)`
-									: "if the unsold output sells at today's price")}
-						</dd>
-					</div>
+					{#if !fuel}
+						<div>
+							<dt class={muted}>Realized profit</dt>
+							<dd class="text-xl font-semibold" data-profit="realized">
+								<Isk value={job.realizedProfit} profit missing={job.realizedNote} />
+							</dd>
+							<dd class="text-xs {muted}">
+								{(d.output?.manufacturedQty ?? 0) > 0
+									? 'from the output sold or used in manufacturing so far'
+									: 'from the output sold so far'}
+							</dd>
+						</div>
+						<div>
+							<dt class={muted}>Expected profit</dt>
+							<dd class="text-xl font-semibold" data-profit="expected">
+								<Isk
+									value={job.expectedProfit}
+									profit
+									missing={job.expectedNote}
+									estimated={job.expectedProfit !== null ? (runningEstimate ?? unsoldEstimate) : null}
+								/>
+							</dd>
+							<dd class="text-xs {muted}">
+								{job.expectedNote ??
+									(job.runningOutputQty !== null
+										? `if the ${formatNumber(job.runningOutputQty)} units it will make sell at today's price (an estimate)`
+										: "if the unsold output sells at today's price")}
+							</dd>
+						</div>
+					{/if}
 					<div>
 						<dt class={muted}>Cost per unit of output</dt>
 						<dd class="text-lg font-semibold text-gray-900 dark:text-gray-100" data-unit-cost>
 							<Isk value={job.unitCost} estimated={job.unitCost !== null ? inputsEstimate : null} />
 						</dd>
+						{#if fuel}
+							<dd class="text-xs {muted}" data-fuel-note>
+								what each fuel block cost you: your reactions take them at this cost
+							</dd>
+						{/if}
 					</div>
 				</dl>
 			</div>
@@ -367,8 +386,8 @@
 			{/if}
 			{#if d.inputs.length}
 				<p class="mb-3 text-xs {muted}">
-					Quantities come from the formula and your facility settings. Each input is taken from your oldest
-					batches first. Open an input to see its batches.
+					Quantities come from the {fuel ? 'blueprint' : 'formula'} and your facility settings. Each input is taken
+					from your oldest batches first. Open an input to see its batches.
 				</p>
 				<div
 					class="divide-y divide-gray-200 overflow-hidden rounded-md border border-gray-200 dark:divide-gray-600 dark:border-gray-600"

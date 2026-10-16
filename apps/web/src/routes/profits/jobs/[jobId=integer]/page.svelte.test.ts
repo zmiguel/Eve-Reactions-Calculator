@@ -37,6 +37,7 @@ function lot(lotId: number, overrides: Partial<JobInputLot> = {}): JobInputLot {
 function detail(overrides: Partial<JobDetailData> = {}): JobDetailData {
 	return {
 		now: NOW,
+		kind: 'reaction',
 		materialBonus: {
 			facility: 'Reactor One',
 			band: 'nullsec',
@@ -459,5 +460,85 @@ describe('/profits/jobs/[jobId] page', () => {
 		const { container } = renderPage();
 		expect(container.querySelector('[data-part="manufactured"]')).toBeNull();
 		expect(container.querySelector('[data-manufacturing]')).toBeNull();
+	});
+
+	describe('a fuel block job', () => {
+		const fuel = (overrides: Partial<JobDetailData> = {}) => {
+			const base = detail();
+			return detail({
+				kind: 'fuel_block',
+				materialBonus: null,
+				job: {
+					...base.job,
+					formula: { blueprintTypeId: 4314, name: 'Nitrogen Fuel Block Blueprint' },
+					runs: 10,
+					marks: ['market_fallback'],
+					// 10 runs × 40 blocks: (3 000 inputs + 200 job cost) / 400 = 8 each.
+					inputCost: 3000,
+					jobCost: 200,
+					unitCost: 8,
+					output: { ...base.job.output!, quantity: 400, soldQty: 0, usedQty: 300, unsoldQty: 100 },
+					realizedProfit: 0,
+					expectedProfit: 100,
+					product: { typeId: 4051, name: 'Nitrogen Fuel Block' }
+				},
+				output: {
+					...base.output!,
+					typeId: 4051,
+					name: 'Nitrogen Fuel Block',
+					quantity: 400,
+					soldQty: 0,
+					usedQty: 300,
+					unsoldQty: 100,
+					sales: [],
+					usedBy: [link(7009, 'Next Formula')]
+				},
+				chain: { from: [], to: [link(7009, 'Next Formula')] },
+				...overrides
+			});
+		};
+
+		it('shows its costs and cost per block, with no profit of its own', () => {
+			const { container } = renderPage(fuel());
+			expect(container.querySelector('h1')?.textContent).toBe('Nitrogen Fuel Block Blueprint');
+			expect(container.querySelector('[data-job-facts] [data-fuel-block]')).not.toBeNull();
+			expect(part(container, 'inputs')).toBe('3000');
+			expect(part(container, 'total-cost')).toBe('3200');
+			expect(container.querySelector('[data-unit-cost] [data-isk]')?.getAttribute('data-isk')).toBe('8');
+			expect(container.querySelector('[data-profit]')).toBeNull();
+			expect(container.querySelector('[data-part="output-value"]')).toBeNull();
+			expect(container.querySelector('[data-material-bonus]')).toBeNull();
+			// Its output goes to the reaction jobs that used it.
+			expect(container.querySelector('[data-used-by] [data-job-link="7009"]')).not.toBeNull();
+			// An input without a purchase can be corrected as on a reaction job.
+			expect(forms(lotRow(container, 3)).map((f) => f.fields.ref)).toContain(`job:${JOB_ID}:${INPUT}`);
+		});
+
+		it('while running: the blocks it will make, no expected profit', () => {
+			const base = fuel();
+			const { container } = renderPage(
+				fuel({
+					job: {
+						...base.job,
+						status: 'running',
+						endDate: NOW + DAY,
+						output: null,
+						realizedProfit: null,
+						expectedProfit: null,
+						runningOutputQty: 400
+					},
+					output: null
+				})
+			);
+			expect(container.querySelector('[data-no-output]')?.textContent).toContain('400');
+			expect(container.querySelector('[data-profit]')).toBeNull();
+			expect(container.querySelector('[data-unit-cost] [data-isk]')?.getAttribute('data-isk')).toBe('8');
+		});
+	});
+
+	it('a reaction job shows its profits', () => {
+		const { container } = renderPage();
+		expect(container.querySelector('[data-profit="realized"]')).not.toBeNull();
+		expect(container.querySelector('[data-job-facts] [data-fuel-block]')).toBeNull();
 	});
 });

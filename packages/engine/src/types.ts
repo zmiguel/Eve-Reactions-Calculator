@@ -69,18 +69,23 @@ export interface ReactionConstants {
 }
 
 /**
- * A manufacturing blueprint that uses at least one reaction product (profit tracking follows reaction
- * output into manufacturing jobs). `materials` lists only its reaction-product materials, at base
- * quantity per run (ME 0, no structure bonus).
+ * A manufacturing blueprint profit tracking follows. Without `makes`: it uses at least one reaction
+ * product (reaction output goes into manufacturing jobs) and `materials` lists only its reaction-product
+ * materials. With `makes: 'material'`: its product is a reaction material (the fuel blocks), so its jobs
+ * feed reactions, and `materials` lists every material. Quantities per run at base (ME 0, no structure
+ * bonus). A blueprint that makes a reaction material counts as `material` even if it also uses a
+ * reaction product.
  */
 export interface ManufacturingBlueprint {
 	blueprintTypeId: number;
-	/** Blueprint name (the type is not in `Dataset.types`). Optional: datasets published before it lack it. */
+	/** Blueprint name. Optional: datasets published before it lack it. */
 	name?: string;
 	productTypeId: number;
-	/** Product name (the product is not in `Dataset.types`, so no price is fetched for it). Optional as `name`. */
+	/** Product name (for blueprints without `makes` the product is not in `Dataset.types`). Optional as `name`. */
 	productName?: string;
 	productQuantity: number;
+	/** `material`: the product is a reaction material; absent = the blueprint uses reaction products. */
+	makes?: 'material';
 	materials: Material[];
 }
 
@@ -176,8 +181,8 @@ export interface Dataset {
 	reprocess: Record<number, ReprocessEntry>;
 	constants: ReactionConstants;
 	/**
-	 * Manufacturing blueprints using reaction products. Optional so datasets published before it existed
-	 * still load (treated as none).
+	 * Manufacturing blueprints using reaction products or making reaction materials (`makes`). Optional
+	 * so datasets published before it existed still load (treated as none).
 	 */
 	manufacturing?: ManufacturingBlueprint[];
 	/** Industry bonus data. Optional: datasets published before it existed have none (no rig bonuses known). */

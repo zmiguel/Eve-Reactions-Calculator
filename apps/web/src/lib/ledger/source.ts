@@ -35,11 +35,11 @@ export function sourceBadge(kind: string, needsReview: boolean, estimatedFees = 
 	return Object.hasOwn(BY_KIND, kind) ? BY_KIND[kind] : { label: 'Other', tone: 'gray' };
 }
 
-/** Engine `PriceSourceKind` of an item no reaction uses: listed, but its price counts nowhere. */
+/** Engine `PriceSourceKind` of an item no reaction or fuel block uses: listed, but its price counts nowhere. */
 export const UNTRACKED = 'untracked';
 
 /** Why an item is "Not tracked", in words (badge tooltip and missing-price dash). */
-export const UNTRACKED_TEXT = 'Not used by any reaction, so its price is not used.';
+export const UNTRACKED_TEXT = 'Not used by any reaction or fuel block, so its price is not used.';
 
 /** Direction pills: rows of the ledger (`bought`/`buy`/`in` …) and of the item page. */
 export const DIRECTION_BADGE: Record<string, Badge> = {

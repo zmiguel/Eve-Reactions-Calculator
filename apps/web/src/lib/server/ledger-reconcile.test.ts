@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { asEnv, fakeEnv } from '../../test/fakes';
 import { NOW } from '../../test/fixtures';
 import { corrections, insertCorrection } from '../../test/ledger';
+import { FUEL, addFuelBlocks, jobsScenario } from '../../test/jobs';
 import { HOUR, reconcileScenario } from '../../test/reconcile';
 import { clearDataMemo } from './data';
 import {
@@ -155,5 +156,51 @@ describe('Use buy value', () => {
 		const { env, Y, rebuildLedger } = await setup();
 		expect(await confirmAllBuyValues(asEnv(env), 'u1', Y, NOW)).toMatchObject({ ok: false, status: 404 });
 		expect(rebuildLedger).not.toHaveBeenCalled();
+	});
+});
+
+describe('fuel block job inputs', () => {
+	async function fuelSetup() {
+		const rebuildLedger = vi.fn(async (_userId: string) => ({
+			rebuiltAt: NOW,
+			lots: 0,
+			jobs: 0,
+			needsReview: 0
+		}));
+		const s = await jobsScenario({ UPDATER: { rebuildLedger } } as never);
+		addFuelBlocks(s);
+		return { ...s, rebuildLedger };
+	}
+	const ref = `job:${FUEL.job}:${FUEL.ingredient}`;
+
+	it('without a purchase are listed like reaction inputs, named by the blueprint', async () => {
+		const { env } = await fuelSetup();
+		const inputs = await reconcileInputs(asEnv(env), 'u1', 1);
+		expect(inputs.rows.find((r) => r.ref === ref)).toMatchObject({
+			jobId: FUEL.job,
+			formula: { blueprintTypeId: FUEL.blueprint, name: 'Nitrogen Fuel Block Blueprint' },
+			quantity: 1700,
+			estimate: 1,
+			saved: null
+		});
+		// The scenario's reaction input without a purchase, plus this one.
+		expect((await reconcileCounts(asEnv(env), 'u1')).estimated).toBe(2);
+	});
+
+	it('can be confirmed at buy value, one by one or for the item', async () => {
+		const { env, rebuildLedger } = await fuelSetup();
+		expect(await confirmBuyValue(asEnv(env), 'u1', { jobId: FUEL.job, typeId: FUEL.ingredient })).toEqual({
+			ok: true,
+			rebuilt: true
+		});
+		expect(corrections(env.DB, 'u1')).toEqual([
+			{ target_kind: 'job_input', target_ref: ref, unit_price: 1, note: CONFIRMED_NOTE }
+		]);
+		env.DB.sqlite.prepare('DELETE FROM price_corrections').run();
+		expect(await confirmAllBuyValues(asEnv(env), 'u1', FUEL.ingredient, NOW)).toMatchObject({
+			ok: true,
+			count: 1
+		});
+		expect(rebuildLedger).toHaveBeenCalledTimes(2);
 	});
 });

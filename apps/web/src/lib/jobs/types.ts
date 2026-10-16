@@ -36,7 +36,7 @@ export interface JobFilters {
 
 export interface JobFormula {
 	blueprintTypeId: number;
-	/** Formula name from the dataset; null when the formula is not in it. */
+	/** Formula name (a fuel block job: its blueprint's name) from the dataset; null when not in it. */
 	name: string | null;
 }
 
@@ -249,8 +249,10 @@ export interface JobMaterialBonusView {
 export interface JobDetailData {
 	/** Time of the load (relative dates). */
 	now: number;
+	/** A reaction job, or a fuel block job (manufacturing that builds fuel blocks: no profit of its own). */
+	kind: 'reaction' | 'fuel_block';
 	job: JobDetail;
-	/** Null without the dataset or the job's product. */
+	/** Null without the dataset or the job's product, and for a fuel block job. */
 	materialBonus: JobMaterialBonusView | null;
 	inputs: JobInputView[];
 	/** null without output (running, cancelled, not yet calculated). */

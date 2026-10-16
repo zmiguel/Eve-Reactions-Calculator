@@ -6,6 +6,7 @@ import type {
 } from '$lib/ledger/types';
 import { paginate, type Paged } from '$lib/paging';
 import { getDataset } from './data.ts';
+import { ledgerJobName, ledgerJobSql, materialBlueprintIds } from './ledger-item.ts';
 import { requestLedgerRebuild } from './ledger-rebuild.ts';
 import { saveCorrection, type CorrectionOutcome } from './price-corrections.ts';
 
@@ -14,15 +15,15 @@ export const CONFIRMED_NOTE = 'Buy value at job start, confirmed';
 
 /**
  * Job inputs the rebuild had no purchase for (`ledger_lots` origin `market`, ref `job:<id>`) of the
- * user's reaction jobs (`?1`) on connections with Profit tracking on, with the user's saved price when
- * the ledger was not recalculated since.
+ * user's reaction and fuel block jobs (`?1`; `?2` = `materialBlueprintIds`) on connections with Profit
+ * tracking on, with the user's saved price when the ledger was not recalculated since.
  */
 const INPUTS = `SELECT l.type_id, CAST(substr(l.origin_ref, 5) AS INTEGER) AS job_id, SUM(l.quantity) AS quantity,
 		MAX(l.unit_cost) AS unit_cost, MAX(l.price_source) AS price_source, j.blueprint_type_id, j.start_date,
 		pc.unit_price AS saved_price, pc.note AS saved_note, pc.target_ref AS saved_ref
 	FROM ledger_lots l
 	JOIN tracked_jobs j ON j.user_id = l.user_id AND j.job_id = CAST(substr(l.origin_ref, 5) AS INTEGER)
-		AND j.activity_id IN (9, 11)
+		AND ${ledgerJobSql('j', '?2')}
 	JOIN inventory_sources s ON s.source_id = j.source_id AND s.user_id = l.user_id AND s.tracking_enabled = 1
 	LEFT JOIN price_corrections pc ON pc.user_id = l.user_id AND pc.target_kind = 'job_input'
 		AND pc.target_ref = l.origin_ref || ':' || l.type_id
@@ -42,13 +43,14 @@ const CONTRACTS = `SELECT c.contract_id, lp.type_id, lp.incoming, lp.quantity, l
 
 /**
  * "Use buy value for all" of item `?2`: a correction equal to the estimate (note `?3`, time `?4`) for each
- * of the item's estimated inputs; inputs the user already saved a price for keep it.
+ * of the item's estimated inputs (`?5` = `materialBlueprintIds`); inputs the user already saved a price
+ * for keep it.
  */
 const CONFIRM_ALL = `INSERT INTO price_corrections (user_id, target_kind, target_ref, unit_price, note, created_at)
 	SELECT l.user_id, 'job_input', l.origin_ref || ':' || l.type_id, MAX(l.unit_cost), ?3, ?4
 	FROM ledger_lots l
 	JOIN tracked_jobs j ON j.user_id = l.user_id AND j.job_id = CAST(substr(l.origin_ref, 5) AS INTEGER)
-		AND j.activity_id IN (9, 11)
+		AND ${ledgerJobSql('j', '?5')}
 	JOIN inventory_sources s ON s.source_id = j.source_id AND s.user_id = l.user_id AND s.tracking_enabled = 1
 	WHERE l.user_id = ?1 AND l.type_id = ?2 AND l.origin = 'market' AND l.origin_ref GLOB 'job:*'
 		AND l.unit_cost > 0
@@ -94,15 +96,14 @@ interface Loaded {
 async function loadAll(env: Pick<Env, 'DB' | 'CACHE'>, userId: string): Promise<Loaded> {
 	const db = env.DB;
 	// Plain statements, not a batch: the ledger page runs this next to its own batch.
-	const [inputsRes, contractsRes, dataset] = await Promise.all([
-		db.prepare(INPUTS).bind(userId).all<InputRow>(),
-		db.prepare(CONTRACTS).bind(userId).all<ContractRow>(),
-		getDataset(env)
+	const dataset = await getDataset(env);
+	const [inputsRes, contractsRes] = await Promise.all([
+		db.prepare(INPUTS).bind(userId, materialBlueprintIds(dataset)).all<InputRow>(),
+		db.prepare(CONTRACTS).bind(userId).all<ContractRow>()
 	]);
-	const formulas = new Map(dataset?.reactions.map((r) => [r.blueprintTypeId, r.formulaName]) ?? []);
 	const inputs = inputsRes.results
 		.map((r): LoadedInput => {
-			const name = formulas.get(r.blueprint_type_id);
+			const name = ledgerJobName(dataset, r.blueprint_type_id);
 			return {
 				ref: `job:${r.job_id}:${r.type_id}`,
 				item: {
@@ -255,11 +256,17 @@ export async function confirmBuyValue(
 ): Promise<CorrectionOutcome> {
 	const lot = await env.DB.prepare(
 		`SELECT MAX(l.unit_cost) AS unit_cost FROM ledger_lots l
-		JOIN tracked_jobs j ON j.user_id = l.user_id AND j.job_id = ?2 AND j.activity_id IN (9, 11)
+		JOIN tracked_jobs j ON j.user_id = l.user_id AND j.job_id = ?2 AND ${ledgerJobSql('j', '?5')}
 		JOIN inventory_sources s ON s.source_id = j.source_id AND s.user_id = l.user_id AND s.tracking_enabled = 1
 		WHERE l.user_id = ?1 AND l.origin = 'market' AND l.origin_ref = ?4 AND l.type_id = ?3`
 	)
-		.bind(userId, target.jobId, target.typeId, `job:${target.jobId}`)
+		.bind(
+			userId,
+			target.jobId,
+			target.typeId,
+			`job:${target.jobId}`,
+			materialBlueprintIds(await getDataset(env))
+		)
 		.first<{ unit_cost: number | null }>();
 	if (lot?.unit_cost == null) return { ok: false, status: 404, message: NOT_FOUND };
 	if (lot.unit_cost <= 0) {
@@ -283,7 +290,9 @@ export async function confirmAllBuyValues(
 	typeId: number,
 	now = Date.now()
 ): Promise<{ ok: true; count: number; rebuilt: boolean } | { ok: false; status: 404; message: string }> {
-	const result = await env.DB.prepare(CONFIRM_ALL).bind(userId, typeId, CONFIRMED_NOTE, now).run();
+	const result = await env.DB.prepare(CONFIRM_ALL)
+		.bind(userId, typeId, CONFIRMED_NOTE, now, materialBlueprintIds(await getDataset(env)))
+		.run();
 	const count = result.meta.changes ?? 0;
 	if (count === 0)
 		return { ok: false, status: 404, message: 'There is no buy value left to use for this item.' };

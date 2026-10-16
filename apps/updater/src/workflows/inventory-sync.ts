@@ -402,15 +402,10 @@ async function deleteStaging(env: Env, runId: string): Promise<void> {
 }
 
 /** The published dataset (KV `dataset:v1`); throws when none is published yet. */
-async function publishedDataset(env: Env): Promise<Dataset> {
+export async function publishedDataset(env: Env): Promise<Dataset> {
 	const dataset = await env.CACHE.get<Dataset>(DATASET_KV_KEY, 'json');
 	if (!dataset) throw new Error(`no SDE dataset published yet (KV ${DATASET_KV_KEY})`);
 	return dataset;
-}
-
-/** Types worth storing: `inventoryTypeIds` of the published dataset (KV `dataset:v1`). */
-export async function relevantTypeIds(env: Env): Promise<ReadonlySet<number>> {
-	return inventoryTypeIds(await publishedDataset(env));
 }
 
 /** Asset page 1 read by `reader`; `notes` say why earlier readers were skipped. */

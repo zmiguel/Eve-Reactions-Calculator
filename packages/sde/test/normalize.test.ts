@@ -368,6 +368,59 @@ describe('normalize', () => {
 		expect(sde.types.map((t) => t.typeId)).toEqual([1, 500, 600]);
 	});
 
+	it('keeps published blueprints making a reaction material with every material, and tracks their types', () => {
+		const sde = normalize(
+			raw({
+				manufacturing: [
+					// Makes Moon Goo (a reaction material) from an ice product and a reaction product.
+					{
+						blueprintTypeId: 710,
+						materials: [
+							{ typeId: 901, quantity: 450 },
+							{ typeId: 600, quantity: 2 }
+						],
+						products: [{ typeId: 1, quantity: 40 }]
+					},
+					// Unpublished.
+					{
+						blueprintTypeId: 711,
+						materials: [{ typeId: 902, quantity: 1 }],
+						products: [{ typeId: 1, quantity: 40 }]
+					}
+				],
+				types: [
+					...raw().types,
+					type(710, 'Goo Blueprint', 100),
+					type(711, 'Old Goo Blueprint', 100, { published: false }),
+					type(901, 'Isotopes', 423),
+					type(902, 'Water', 423)
+				],
+				groups: [
+					...raw().groups,
+					{ groupId: 423, name: 'Ice Product', categoryId: 4 },
+					{ groupId: 100, name: 'Blueprints', categoryId: 9 }
+				]
+			})
+		);
+		expect(sde.dataset.manufacturing).toEqual([
+			{
+				blueprintTypeId: 710,
+				name: 'Goo Blueprint',
+				productTypeId: 1,
+				productName: 'Moon Goo',
+				productQuantity: 40,
+				makes: 'material',
+				materials: [
+					{ typeId: 901, quantity: 450 },
+					{ typeId: 600, quantity: 2 }
+				]
+			}
+		]);
+		expect(sde.types.map((t) => t.typeId)).toEqual([1, 500, 600, 710, 901]);
+		expect(sde.dataset.types[901]).toMatchObject({ name: 'Isotopes', groupId: 423 });
+		expect(sde.warnings.filter((w) => !w.startsWith('MISSING_CONSTANT'))).toEqual([]);
+	});
+
 	it('throws without SDE metadata', () => {
 		expect(() => normalize(raw({ build: null }))).toThrow(/_sde\.jsonl/);
 	});

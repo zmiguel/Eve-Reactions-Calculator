@@ -69,14 +69,24 @@ export async function upsertMany<TTable extends SQLiteTable>(
 	await db.batch([first!, ...rest]);
 }
 
+// D1 limits the terms of one compound SELECT (six fail with "too many terms"): two nested unions of three.
 const TRACKED_TYPE_IDS_SQL = sql`
-	SELECT blueprint_type_id AS type_id FROM reactions
-	UNION SELECT type_id FROM reaction_materials
-	UNION SELECT product_type_id FROM reactions
-	UNION SELECT material_type_id FROM reprocess_materials
+	SELECT type_id FROM (
+		SELECT blueprint_type_id AS type_id FROM reactions
+		UNION SELECT product_type_id FROM reactions
+		UNION SELECT type_id FROM reaction_materials
+	)
+	UNION SELECT type_id FROM (
+		SELECT material_type_id AS type_id FROM reprocess_materials
+		UNION SELECT blueprint_type_id FROM material_blueprint_materials
+		UNION SELECT type_id FROM material_blueprint_materials
+	)
 	ORDER BY type_id`;
 
-/** Union of reaction blueprint ids, material ids, product ids and reprocess output ids. */
+/**
+ * The engine's `trackedTypeIds` from the SDE tables: reaction blueprint ids, material ids, product ids,
+ * reprocess output ids, and the fuel block blueprints with their materials.
+ */
 export const trackedTypeIdsQuery = TRACKED_TYPE_IDS_SQL;
 
 export async function trackedTypeIds(db: AnyD1Db | CoreDb): Promise<number[]> {

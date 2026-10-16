@@ -12,12 +12,12 @@ import {
 	REACTORS,
 	Settings,
 	TrackingSettings,
-	inventoryTypeIds,
 	jobMaterialModifier,
 	manufacturingMaterialModifier,
 	parseRigIds,
 	profileFor,
 	resolveFacility,
+	trackedTypeIds,
 	type Dataset,
 	type EfficiencyProfile,
 	type FacilityFromEve,
@@ -324,8 +324,9 @@ export function facilitiesFromEve(
  * Jobs with their material modifier, from the facility as EVE describes it (`ctx.facilities`) with
  * `tracking.facilities` filling what EVE could not tell (`resolveFacility`), for the job's product.
  * Reactions: `jobMaterialModifier` with the account profile of the job's reactor (composite for a
- * formula not in the dataset) as the fallback. Manufacturing: `manufacturingMaterialModifier` with the
- * blueprint's ME read from EVE, else `tracking.blueprintMe`, else `DEFAULT_BLUEPRINT_ME`.
+ * formula not in the dataset) as the fallback. Manufacturing (fuel block jobs included):
+ * `manufacturingMaterialModifier` with the blueprint's ME read from EVE, else `tracking.blueprintMe`,
+ * else `DEFAULT_BLUEPRINT_ME`.
  */
 export function toLedgerJobs(jobs: readonly JobRow[], ctx: JobModifierContext): LedgerJob[] {
 	const reactions = new Map(ctx.dataset.reactions.map((r) => [r.blueprintTypeId, r]));
@@ -462,9 +463,10 @@ export const REFERENCE_LOOKBACK_DAYS = 7;
 
 /**
  * UTC days per type the ledger can ask a reference or buy price for: every tracked contract item
- * (`inventoryTypeIds`; untracked ones share what is left by quantity) at the contract's `date_issued`,
- * every material of a reaction job's formula and every reaction-product material of a manufacturing
- * job's blueprint at the job's `start_date`.
+ * (`trackedTypeIds`; untracked ones share what is left by quantity) at the contract's `date_issued`,
+ * every material of a reaction job's formula and every material of a manufacturing job's blueprint
+ * (`Dataset.manufacturing`: reaction products, or all materials of a fuel block blueprint) at the job's
+ * `start_date`.
  */
 export function referenceRequests(
 	rows: Pick<TrackedRows, 'contracts' | 'contractItems' | 'jobs'>,
@@ -477,7 +479,7 @@ export function referenceRequests(
 		days.add(utcDate(at));
 	};
 	const issued = new Map(rows.contracts.map((c) => [c.contract_id, c.date_issued]));
-	const tracked = inventoryTypeIds(dataset);
+	const tracked = trackedTypeIds(dataset);
 	for (const item of rows.contractItems) {
 		const at = issued.get(item.contract_id);
 		if (at !== undefined && tracked.has(item.type_id)) add(item.type_id, at);

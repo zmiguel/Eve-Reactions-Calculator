@@ -39,7 +39,7 @@ export interface OverviewKpis {
 	spent: number;
 	/** Market, contract and entered purchases in the period, fees included. */
 	purchases: number;
-	/** Job costs (installation and tax) of jobs started in the period. */
+	/** Job costs (installation and tax) of reaction and fuel block jobs started in the period. */
 	jobCosts: number;
 	/** `expected` ÷ the slot-days of the jobs counted in it; null without any. */
 	profitPerSlotDay: number | null;
