@@ -542,6 +542,21 @@ export function priceTrades(input: PriceTradesInput): {
 		);
 	}
 
+	// Stored journal span per wallet. A fee for an order issued inside it, before a trade the journal
+	// has reached, would be in it: no fee row near such an order means none was charged (an immediate
+	// order, filled when placed, pays no broker fee).
+	const journalSpan = new Map<string, { from: number; to: number }>();
+	for (const row of journal) {
+		const key = walletKey(row.sourceId, row.division);
+		const span = journalSpan.get(key);
+		if (span) span.to = row.date;
+		else journalSpan.set(key, { from: row.date, to: row.date });
+	}
+	const journalCovers = (tx: LedgerTransaction, order: LedgerOrder): boolean => {
+		const span = journalSpan.get(walletKey(tx.sourceId, tx.division));
+		return span !== undefined && span.from <= order.issued && span.to >= tx.date;
+	};
+
 	const transactionCorrections = new Map<string, number>();
 	for (const correction of input.corrections) {
 		if (correction.targetKind !== 'transaction') continue;
@@ -596,6 +611,7 @@ export function priceTrades(input: PriceTradesInput): {
 
 		let brokerFee: number;
 		let brokerFeeSource: FeeSource;
+		let feeText: string;
 		const order = matchedOrder.get(tx.transactionId);
 		const fees = order ? orderFees.get(order.orderId) : undefined;
 		if (order && fees !== undefined) {
@@ -605,24 +621,25 @@ export function priceTrades(input: PriceTradesInput): {
 			);
 			brokerFee = filled > 0 ? (fees * tx.quantity) / filled : 0;
 			brokerFeeSource = 'journal';
+			feeText = 'broker fee from the order';
+		} else if (order && journalCovers(tx, order)) {
+			brokerFee = 0;
+			brokerFeeSource = 'none';
+			feeText = 'no broker fee for its order in your wallet journal';
 		} else if (!order && input.ordersAvailable.has(tx.sourceId)) {
 			brokerFee = 0;
 			brokerFeeSource = 'none';
+			feeText = 'no broker fee (instant trade)';
 		} else {
 			brokerFee = roundCents((gross * input.brokerFeePct) / 100);
 			brokerFeeSource = 'estimated';
+			feeText = `broker fee estimated at ${formatPct(input.brokerFeePct)}`;
 		}
 
 		const netUnitPrice = tx.isBuy
 			? (gross + brokerFee) / tx.quantity
 			: (gross - tax - brokerFee) / tx.quantity;
 		const correction = isTracked ? transactionCorrections.get(ref) : undefined;
-		const feeText =
-			brokerFeeSource === 'journal'
-				? 'broker fee from the order'
-				: brokerFeeSource === 'none'
-					? 'no broker fee (instant trade)'
-					: `broker fee estimated at ${formatPct(input.brokerFeePct)}`;
 		const taxText = tx.isBuy
 			? ''
 			: taxSource === 'journal'
