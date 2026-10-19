@@ -256,7 +256,7 @@ Optional: watch the logs with `npx wrangler tail reactions-updater`, or in the d
    npx wrangler secret put TOKEN_ENCRYPTION_KEY
    ```
 
-   On Windows, if the build fails with `EPERM`, stop `npm run dev`, delete `apps/web/.svelte-kit/cloudflare` and build again.
+   On Windows, if the build fails with `EPERM`, stop `npm run dev`, delete `apps/web/.svelte-kit/cloudflare` and build again. Never deploy after a failed build: the server code in `.svelte-kit/output` is already new while `.svelte-kit/cloudflare` keeps the previous client files, so pages render but their scripts answer 404.
 
 3. Set the preview's secrets (Previews Base; every new Preview receives them):
 
@@ -561,6 +561,12 @@ Until now the tracking sync dropped wallet transactions of fuel block materials 
 5. Mark every ledger for a rebuild, so accounts whose sync did not run yet also get fuel block jobs and lose the "Not tracked" mark on their fuel block materials: `npx wrangler d1 execute reactions-core --remote --command "UPDATE ledger_state SET dirty = 1"`. The cron rebuilds them, `TRACKING_LEDGERS_PER_TICK` (10) per tick.
 6. Build and deploy the web preview; check with a character that built fuel blocks in the last 90 days: the fuel block job on Jobs with its inputs and its blocks, the materials bought in the last 30 days as purchases (not "Not tracked") on Ledger, a reaction job using the blocks at their cost, and materials without a purchase under Missing prices.
 7. Deploy the web production.
+
+### 3.2.3 (immediate orders) release order
+
+1. Deploy the updater: rebuilds stop estimating a broker fee for orders the wallet journal shows no fee for.
+2. Mark every ledger for a rebuild: `npx wrangler d1 execute reactions-core --remote --command "UPDATE ledger_state SET dirty = 1"`. The cron rebuilds them, `TRACKING_LEDGERS_PER_TICK` (10) per tick. Check: `SELECT broker_fee_source, COUNT(*) FROM ledger_prices WHERE ref GLOB 'transaction:*' GROUP BY 1` has few or no `estimated` rows.
+3. Build and deploy the web preview, then the web production (only the footer version changes).
 
 ### Rotating secrets
 

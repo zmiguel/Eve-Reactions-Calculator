@@ -76,8 +76,11 @@ export async function failJobRun(
 	await finishJobRun(env, runId, 'failed', { error: errorMessage(error) });
 }
 
+/** `Name: message`, followed by its causes (Drizzle's "Failed query" keeps the SQLite error there). */
 export function errorMessage(error: unknown): string {
-	return error instanceof Error ? `${error.name}: ${error.message}` : String(error);
+	if (!(error instanceof Error)) return String(error);
+	const message = `${error.name}: ${error.message}`;
+	return error.cause === undefined ? message : `${message}; cause: ${errorMessage(error.cause)}`;
 }
 
 /** The most recent run (by `started_at`) of every kind that has run at least once. */

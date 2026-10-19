@@ -756,6 +756,61 @@ describe('priceTrades', () => {
 		expect(trades[0]).toMatchObject({ brokerFee: 300, brokerFeeSource: 'journal' });
 	});
 
+	describe('a matched order without fee rows', () => {
+		// Corporation wallet (source 2, division 2): an immediate buy order of 35,000 at 16,800, issued at
+		// T and filled in the next second; the journal holds the payment (market escrow), no fee row.
+		const morphite = tx({
+			transactionId: 40,
+			sourceId: 2,
+			division: 2,
+			date: T + 1000,
+			quantity: 35_000,
+			unitPrice: 16_800
+		});
+		const immediate = order({
+			orderId: 40,
+			sourceId: 2,
+			division: 2,
+			price: 16_800,
+			volumeTotal: 35_000,
+			volumeRemain: 0,
+			issued: T,
+			state: 'expired'
+		});
+		const escrow = row(400, 'market_escrow', T + 1000, -588_000_000, 2, 2);
+		const earlier = row(401, 'industry_job_tax', T - 600_000, -4_931_231, 2, 2);
+		const run = (journalRows: LedgerJournalRow[]) =>
+			priceTrades({ ...input, transactions: [morphite], journal: journalRows, orders: [immediate] })
+				.trades[0];
+
+		it('pays no broker fee when the journal covers the order and the trade', () => {
+			expect(run([earlier, escrow])).toMatchObject({
+				brokerFee: 0,
+				brokerFeeSource: 'none',
+				netUnitPrice: 16_800
+			});
+		});
+
+		it('estimates the fee when the order was issued before the stored journal', () => {
+			// 1.5% of 588,000,000 = 8,820,000; net (588,000,000 + 8,820,000) / 35,000 = 17,052
+			const trade = run([escrow]);
+			expect(trade).toMatchObject({ brokerFee: 8_820_000, brokerFeeSource: 'estimated' });
+			expect(trade.netUnitPrice).toBeCloseTo(17_052, 9);
+		});
+
+		it('estimates the fee while the journal has not reached the trade', () => {
+			expect(run([earlier])).toMatchObject({ brokerFee: 8_820_000, brokerFeeSource: 'estimated' });
+		});
+
+		it("ignores another wallet's journal", () => {
+			const otherDivision = [
+				row(402, 'industry_job_tax', T - 600_000, -1, 2, 1),
+				row(403, 'market_escrow', T + 1000, -1, 2, 1)
+			];
+			expect(run(otherDivision)).toMatchObject({ brokerFeeSource: 'estimated' });
+		});
+	});
+
 	it('reports fee rows no matched order uses', () => {
 		const { unallocatedFees } = priceTrades(input);
 		expect(unallocatedFees).toEqual([
