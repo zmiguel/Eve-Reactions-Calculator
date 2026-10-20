@@ -102,7 +102,13 @@ describe('GET /api/v2/prices', () => {
 		]);
 		insertDaily(env.HISTORY_DB, '2026-10-02', 'jita', 34, 4, 5);
 		const exact = await callApi(prices, apiEvent(env, '/api/v2/prices?types=34&date=2026-10-02'));
+		// 16663 has no trade on 10-02 and carries 10-01's average, but it is not among the returned types.
 		expect(exact.body.approximate).toBe(false);
+		const carried = PricesResponse.parse(
+			(await callApi(prices, apiEvent(env, '/api/v2/prices?types=16663&date=2026-10-02'))).body
+		);
+		expect(carried).toMatchObject({ approximate: true });
+		expect(carried.prices[0]).toMatchObject({ typeId: 16663, buy: 777, sell: 777 });
 	});
 
 	it.each([

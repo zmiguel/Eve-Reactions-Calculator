@@ -6,7 +6,7 @@ import { PRICE_COLUMNS, PricesQuery } from '$lib/server/api/schemas';
 import { checkDate } from '$lib/server/api/settings';
 import { FALLBACK_HUB } from '$lib/server/hubs';
 import { trackedTypes } from '$lib/server/planner';
-import { getDailyPriceBook } from '$lib/server/prices';
+import { getDailyHubPrices } from '$lib/server/prices';
 import type { RequestHandler } from './$types';
 
 export const GET: RequestHandler = apiHandler(async (event) => {
@@ -26,10 +26,12 @@ export const GET: RequestHandler = apiHandler(async (event) => {
 	let quote: (typeId: number) => HubPrice | undefined;
 	if (q.date) {
 		// Daily averages carry no order-book volumes (left undefined → null).
-		const book = await getDailyPriceBook(env, q.date, [hub], dataset, market.adjusted);
-		const prices = book.hubs[hub.hubId] ?? {};
+		const day = (await getDailyHubPrices(env, q.date, q.date, [hub], dataset)).get(q.date);
+		const prices = day?.hubs[hub.hubId] ?? {};
+		const regional = day?.regional.get(hub.hubId);
 		asOf = q.date;
-		approximate = book.approximate;
+		// Only the returned types: another type's regional average does not make these approximate.
+		approximate = regional !== undefined && typeIds.some((typeId) => regional.has(typeId));
 		quote = (typeId) => prices[typeId];
 	} else {
 		const prices = market.prices[hub.hubId] ?? {};

@@ -164,6 +164,23 @@ describe('price books', () => {
 		expect(book.adjusted).toEqual({ 16663: 42 });
 	});
 
+	it('getDailyPriceBook carries a regional average over up to 7 days without trades', async () => {
+		const env = fakeEnv();
+		const sde = await loadSde();
+		const hubs = (await getAccessibleHubs(asEnv(env), null)).filter((h) => h.hubId === 'jita');
+		env.HISTORY_DB.sqlite.exec(`
+			INSERT INTO esi_market_history VALUES (10000002, 16643, '2026-09-24', 70, 70, 70, 10, 1);
+			INSERT INTO esi_market_history VALUES (10000002, 16663, '2026-09-23', 50, 50, 50, 10, 1);
+			INSERT INTO esi_market_history VALUES (10000002, 16647, '2026-10-01', 9, 9, 9, 10, 1);
+		`);
+		const book = await getDailyPriceBook(asEnv(env), '2026-10-01', hubs, sde.dataset, { 1: 1 });
+		// 16643 last traded 7 days before: carried; 16663 8 days before: too old.
+		expect(book.hubs.jita[16643]).toEqual({ buy: 70, sell: 70 });
+		expect(book.hubs.jita[16663]).toBeUndefined();
+		expect(book.hubs.jita[16647]).toEqual({ buy: 9, sell: 9 });
+		expect(book.approximate).toBe(true);
+	});
+
 	it('getDailyPriceBook is exact when every row comes from price_daily; adjusted falls back', async () => {
 		const env = fakeEnv();
 		const sde = await loadSde();

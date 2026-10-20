@@ -162,6 +162,48 @@ describe('getProfitSeries', () => {
 		]);
 	});
 
+	it("carries a type's regional average over days without trades for up to 7 days", async () => {
+		// The Ferrogel case: ESI history has no row for the product on a day nothing traded.
+		const { env, calc, bySlug } = await setup();
+		const reaction = bySlug('caesarium-cadmide');
+		const product = reaction.product.typeId;
+		const inputs = reaction.materials.map((m) => m.typeId);
+		const esi = env.HISTORY_DB.sqlite.prepare(
+			`INSERT INTO esi_market_history (region_id, type_id, date, average, highest, lowest, volume, order_count)
+			VALUES (10000002, ?, ?, ?, 1, 1, 1, 1)`
+		);
+		const day = (n: number) => isoDate(NOW - n * DAY);
+		// The product traded 12 and 3 days ago (before the 30-day window's first point too: 33 days ago);
+		// the inputs traded every day from 33 to 1 days ago.
+		for (let d = 1; d <= 33; d++) for (const t of inputs) esi.run(t, day(d), 10);
+		esi.run(product, day(33), 1000);
+		esi.run(product, day(12), 2000);
+		esi.run(product, day(3), 3000);
+		const series = await getProfitSeries(asEnv(env), reaction, calc.ctx, '30d', {
+			view: 'single',
+			outputMode: 'product',
+			now: NOW,
+			hubRegions: { jita: 10000002 }
+		});
+		// Units of product the day's job makes (the same every day: only prices change).
+		const made = calculateReaction(reaction, calc.ctx, { view: 'single', outputMode: 'product' }).outputs[0]
+			.quantity;
+		const unit = (date: string) => {
+			const point = series.find((p) => p.date === date)!;
+			return point.outputValue === null ? null : point.outputValue / made;
+		};
+		// 30 days ago: carried from 33 days ago (before the window, within 7 days).
+		expect(unit(day(30))).toBeCloseTo(1000, 6);
+		// 26 days ago is the 7th day after 33: still carried; 25 days ago is past it: no price.
+		expect(unit(day(26))).toBeCloseTo(1000, 6);
+		expect(unit(day(25))).toBeNull();
+		expect(unit(day(11))).toBeCloseTo(2000, 6);
+		expect(unit(day(5))).toBeCloseTo(2000, 6);
+		expect(unit(day(4))).toBeNull();
+		expect(unit(day(1))).toBeCloseTo(3000, 6);
+		expect(series.every((p) => p.approximate)).toBe(true);
+	});
+
 	it('chain view prices every chain type with a single bounded query', async () => {
 		const { env, calc, bySlug } = await setup();
 		const reaction = bySlug('titanium-carbide');

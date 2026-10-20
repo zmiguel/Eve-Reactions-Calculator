@@ -7,6 +7,7 @@ import type { MarketHistoryDay } from '@reactions/eve';
 import { eq } from 'drizzle-orm';
 import {
 	ESI_CONCURRENCY,
+	HISTORY_RETRY_WAITS,
 	JOB_RUN_RETENTION_DAYS,
 	PRICE_ARCHIVE_PREFIX,
 	SNAPSHOT_RETENTION_DAYS,
@@ -28,7 +29,9 @@ export interface HistoryCounts {
 	regionId: number;
 	types: number;
 	inserted: number;
+	/** Types whose history could not be fetched (after the retries, in the run's result). */
 	failed: number;
+	failedTypeIds: number[];
 	stats: number;
 }
 
@@ -36,6 +39,10 @@ export interface DailyResult {
 	date: string;
 	status: 'ok' | 'partial';
 	history: HistoryCounts[];
+	/** Types (over all regions) whose first fetch failed and that were retried. */
+	historyRetried: number;
+	/** Types still missing after the last retry round. */
+	historyFailed: number;
 	priceDaily: number;
 	adjusted: number;
 	costIndices: number;
@@ -146,12 +153,19 @@ export async function recomputeMarketStats(env: Env, regionId: number, now: numb
 }
 
 /**
- * Step `history-<regionId>`: ESI market history of every tracked non-formula type; only days newer
- * than the stored maximum for (region, type) are inserted (the first run stores the full history).
- * Then `market_stats` of the region is recomputed.
+ * Step `history-<regionId>`: ESI market history of every tracked non-formula type (or only `typeIds`,
+ * a retry); only days newer than the stored maximum for (region, type) are inserted (the first run
+ * stores the full history), so a type missed once gets its days on the next fetch. Types not fetched
+ * (an ESI error, or skipped once the ESI error limit runs low) are listed in `failedTypeIds`. Then
+ * `market_stats` of the region is recomputed.
  */
-export async function refreshRegionHistory(env: Env, regionId: number, now: number): Promise<HistoryCounts> {
-	const typeIds = await historyTypeIds(env);
+export async function refreshRegionHistory(
+	env: Env,
+	regionId: number,
+	now: number,
+	typeIds?: readonly number[]
+): Promise<HistoryCounts> {
+	const types = typeIds ?? (await historyTypeIds(env));
 	const stored = await env.HISTORY_DB.prepare(
 		'SELECT type_id AS typeId, MAX(date) AS lastDate FROM esi_market_history WHERE region_id = ? GROUP BY type_id'
 	)
@@ -161,10 +175,12 @@ export async function refreshRegionHistory(env: Env, regionId: number, now: numb
 
 	const client = esiClient(env);
 	let inserted = 0;
-	let failed = 0;
-	await forEachConcurrent(typeIds, ESI_CONCURRENCY, async (typeId) => {
+	const failedTypeIds: number[] = [];
+	let skipped = 0;
+	await forEachConcurrent(types, ESI_CONCURRENCY, async (typeId) => {
 		if (client.guard.tripped()) {
-			failed++;
+			failedTypeIds.push(typeId);
+			skipped++;
 			return;
 		}
 		let days: MarketHistoryDay[];
@@ -172,7 +188,7 @@ export async function refreshRegionHistory(env: Env, regionId: number, now: numb
 			days = await fetchMarketHistory(client, regionId, typeId);
 		} catch (error) {
 			console.error(`[daily] history region ${regionId} type ${typeId}: ${errorMessage(error)}`);
-			failed++;
+			failedTypeIds.push(typeId);
 			return;
 		}
 		const after = lastDate.get(typeId) ?? '';
@@ -185,9 +201,16 @@ export async function refreshRegionHistory(env: Env, regionId: number, now: numb
 		await env.HISTORY_DB.prepare(HISTORY_SQL).bind(JSON.stringify(rows)).run();
 		inserted += rows.length;
 	});
+	if (skipped > 0) {
+		const { errorLimitRemain, throttled } = client.guard;
+		console.warn(
+			`[daily] history region ${regionId}: ${skipped} types skipped (ESI error limit remain ${errorLimitRemain}, throttled ${throttled})`
+		);
+	}
 
+	failedTypeIds.sort((a, b) => a - b);
 	const stats = await recomputeMarketStats(env, regionId, now);
-	return { regionId, types: typeIds.length, inserted, failed, stats };
+	return { regionId, types: types.length, inserted, failed: failedTypeIds.length, failedTypeIds, stats };
 }
 
 /**
@@ -336,12 +359,31 @@ export class DailyWorkflow extends WorkflowEntrypoint<Env, DailyParams> {
 			// plan + one history step per region + rollup-prices, rollup-indices, archive-verify, retention, prune
 			steps.total = 1 + regionIds.length + 5;
 			const history: HistoryCounts[] = [];
+			let historyRetried = 0;
 			for (const regionId of regionIds)
 				history.push(
 					await steps.do(`history-${regionId}`, STEP_CONFIG, () =>
 						refreshRegionHistory(env, regionId, Date.now())
 					)
 				);
+			for (const counts of history) historyRetried += counts.failed;
+			// Types not fetched get up to one retry per wait; inserted rows add up, the last retry's
+			// failures are the run's.
+			for (const [round, wait] of HISTORY_RETRY_WAITS.entries()) {
+				const pending = history.filter((h) => h.failed > 0);
+				if (pending.length === 0) break;
+				await step.sleep(`history-wait-${round + 1}`, wait);
+				steps.total += pending.length;
+				for (const counts of pending) {
+					const retry = await steps.do(`history-${counts.regionId}-retry-${round + 1}`, STEP_CONFIG, () =>
+						refreshRegionHistory(env, counts.regionId, Date.now(), counts.failedTypeIds)
+					);
+					counts.inserted += retry.inserted;
+					counts.failed = retry.failed;
+					counts.failedTypeIds = retry.failedTypeIds;
+					counts.stats = retry.stats;
+				}
+			}
 			const priceDaily = await steps.do('rollup-prices', STEP_CONFIG, () => rollupPrices(env, yesterday));
 			const indices = await steps.do('rollup-indices', STEP_CONFIG, () => rollupIndices(env, date));
 			const archive = await steps.do('archive-verify', STEP_CONFIG, () =>
@@ -349,10 +391,13 @@ export class DailyWorkflow extends WorkflowEntrypoint<Env, DailyParams> {
 			);
 			const retention = await steps.do('retention', STEP_CONFIG, () => applyRetention(env, date));
 			const prune = await steps.do('prune', STEP_CONFIG, () => pruneCoreTables(env, Date.now()));
+			const historyFailed = history.reduce((sum, h) => sum + h.failed, 0);
 			const result: DailyResult = {
 				date,
-				status: history.some((h) => h.failed > 0) ? 'partial' : 'ok',
+				status: historyFailed > 0 ? 'partial' : 'ok',
 				history,
+				historyRetried,
+				historyFailed,
 				priceDaily,
 				...indices,
 				archive,
