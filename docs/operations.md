@@ -149,6 +149,8 @@ The next tick marks a terminated run `failed`. Then use Prices **Refresh now** i
 
 The ESI client tracks rate-limit and error-limit headers. When fewer than 10 % of the rate limit remain, fewer than 20 errors remain, or ESI answers 420 or 429, the remaining types of that region step are priced from Fuzzwork instead and the run ends `partial`. Requests that fail with 5xx, 420 or 429 are retried once, honouring `Retry-After` up to 30 seconds (`MAX_RETRY_WAIT_SECONDS` in `packages/eve/src/esi.ts`); a longer `Retry-After` is not waited out, the response goes straight to the guard and the Fuzzwork fallback.
 
+The daily job's market history works the same way, without a fallback: types it could not fetch (ESI errors, or skipped once fewer than 20 errors remain) are fetched again after 2, 5 and 15 minutes (ESI's error window resets every minute; the longer waits cover ESI's unstable minutes after downtime), and the run ends `partial` only when some are still missing after that; its detail lists them per region (`failedTypeIds`). The error limit counts errors per source IP, which Cloudflare Workers share, so other ESI users' errors can also lower it. Missed days are not lost: the next run stores every day newer than the newest stored one.
+
 Contingency: if more than half of the `prices` runs of a day end `partial`, lengthen the price cadence to 60 minutes:
 
 1. In `apps/updater/src/config.ts`, set `PRICE_REFRESH_MINUTES = 60`.

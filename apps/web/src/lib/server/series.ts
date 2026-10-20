@@ -11,7 +11,7 @@ import {
 	type View
 } from '@reactions/engine';
 import { and, asc, eq, gte, inArray } from 'drizzle-orm';
-import { isoDate } from './prices.ts';
+import { isoDate, REGIONAL_CARRY_DAYS, regionalAveragesByDate, shiftDate } from './prices.ts';
 
 export const SERIES_RANGES = ['30d', '90d', '1y', 'all'] as const;
 export type SeriesRange = (typeof SERIES_RANGES)[number];
@@ -90,8 +90,9 @@ function relevantTypes(reaction: Reaction, ctx: CalcContext, opts: SeriesOptions
 /**
  * Daily profit history of `reaction` (one bounded query per history table for the whole range).
  * Each day gets a price book of that day's `price_daily` hub averages; types a hub has no collected
- * prices for use the hub region's `esi_market_history` average as buy and sell price (approximate,
- * like `getDailyPriceBook`). Adjusted prices and cost indices stay current; the visitor's settings apply.
+ * prices for use the hub region's `esi_market_history` average as buy and sell price (a day without
+ * trades carries the latest average of the 7 days before; approximate, like `getDailyPriceBook`).
+ * Adjusted prices and cost indices stay current; the visitor's settings apply.
  */
 export async function getProfitSeries(
 	env: Pick<Env, 'HISTORY_DB'>,
@@ -108,7 +109,7 @@ export async function getProfitSeries(
 	const regionOf = new Map(Object.entries(opts.hubRegions ?? {}));
 	const regions = [...new Set(hubs.map((h) => regionOf.get(h)).filter((r) => r !== undefined))];
 	const esiFilters = [inArray(esiMarketHistory.regionId, regions), inArray(esiMarketHistory.typeId, types)];
-	if (start) esiFilters.push(gte(esiMarketHistory.date, start));
+	if (start) esiFilters.push(gte(esiMarketHistory.date, shiftDate(start, -REGIONAL_CARRY_DAYS)));
 	const [rows, esiRows] = await Promise.all([
 		db
 			.select({
@@ -139,15 +140,10 @@ export async function getProfitSeries(
 		if (!book) byDate.set(r.date, (book = {}));
 		(book[r.hubId] ??= {})[r.typeId] = { buy: r.buy, sell: r.sell };
 	}
-	const regionalByDate = new Map<string, Map<number, Map<number, number>>>();
-	for (const r of esiRows) {
-		let day = regionalByDate.get(r.date);
-		if (!day) regionalByDate.set(r.date, (day = new Map()));
-		let region = day.get(r.regionId);
-		if (!region) day.set(r.regionId, (region = new Map()));
-		region.set(r.typeId, r.average);
-	}
-	const dates = [...new Set([...byDate.keys(), ...regionalByDate.keys()])].sort();
+	const dates = [
+		...new Set([...byDate.keys(), ...esiRows.filter((r) => !start || r.date >= start).map((r) => r.date)])
+	].sort();
+	const regionalByDate = regionalAveragesByDate(esiRows, dates);
 
 	const adjusted = ctxBase.outputPrices.adjusted;
 	const points: SeriesPoint[] = [];

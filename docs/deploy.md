@@ -314,7 +314,7 @@ Fetches about 13 months of ESI market history for every hub region and computes 
 npx wrangler workflows trigger reactions-daily '{"date":"<FILL: today UTC, YYYY-MM-DD>"}' --id daily-<FILL: today>-manual-1
 ```
 
-This run is long (one ESI request per type and region). Done when the `daily` job is `ok` (or `partial` when some types failed).
+This run is long (one ESI request per type and region). Done when the `daily` job is `ok` (or `partial` when some types still failed after its retries, up to 22 minutes later).
 
 ### 9.4 Import market history
 

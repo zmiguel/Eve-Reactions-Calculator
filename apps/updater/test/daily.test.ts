@@ -49,7 +49,14 @@ describe('DailyWorkflow steps', () => {
 
 		const counts = await refreshRegionHistory(env, 10000002, 7777);
 
-		expect(counts).toEqual({ regionId: 10000002, types: 4, inserted: 17, failed: 0, stats: 4 });
+		expect(counts).toEqual({
+			regionId: 10000002,
+			types: 4,
+			inserted: 17,
+			failed: 0,
+			failedTypeIds: [],
+			stats: 4
+		});
 		// Formula (blueprint) types have no market history worth storing.
 		expect(
 			calls.map((c) => Number(new URL(c.url).searchParams.get('type_id'))).sort((a, b) => a - b)
@@ -86,6 +93,25 @@ describe('DailyWorkflow steps', () => {
 
 		// A second run finds nothing new.
 		expect(await refreshRegionHistory(env, 10000002, 8888)).toMatchObject({ inserted: 0, stats: 4 });
+	});
+
+	it('lists the types ESI failed for, and a retry fetches only those', async () => {
+		await seedTrackedReaction();
+		let down = true;
+		const calls = installFetch((url) =>
+			down && url.searchParams.get('type_id') === '16663'
+				? json({ error: 'Service Unavailable' }, { 'Retry-After': '0' }, 503)
+				: json(historyDays())
+		);
+
+		const first = await refreshRegionHistory(env, 10000002, 1);
+		expect(first).toMatchObject({ types: 4, inserted: 15, failed: 1, failedTypeIds: [16663] });
+
+		down = false;
+		calls.length = 0;
+		const retry = await refreshRegionHistory(env, 10000002, 2, first.failedTypeIds);
+		expect(retry).toMatchObject({ types: 1, inserted: 5, failed: 0, failedTypeIds: [] });
+		expect(calls.map((c) => new URL(c.url).searchParams.get('type_id'))).toEqual(['16663']);
 	});
 
 	it('rolls up a 3-sample day into avg, close, low and high', async () => {
@@ -248,5 +274,52 @@ describe('DailyWorkflow', () => {
 		).toEqual({ samples: 1 });
 		const job = await env.DB.prepare('SELECT kind, status FROM job_runs WHERE run_id = ?').bind(id).first();
 		expect(job).toEqual({ kind: 'daily', status: 'ok' });
+	});
+
+	describe('market history ESI could not answer', () => {
+		const VALE = '/markets/10000030/history';
+		/** Type 16663 in one region answers 503 for its first `failures` requests (2 per attempt). */
+		async function run(id: string, failures: number) {
+			await seedTrackedReaction();
+			let left = failures;
+			const calls = installFetch((url) => {
+				if (url.pathname === VALE && url.searchParams.get('type_id') === '16663' && left > 0) {
+					left--;
+					return json({ error: 'Service Unavailable' }, { 'Retry-After': '0' }, 503);
+				}
+				return url.pathname.endsWith('/history') ? json(historyDays()) : json([], {}, 404);
+			});
+			await using instance = await introspectWorkflowInstance(env.DAILY, id);
+			await instance.modify(async (m) => {
+				m.disableSleeps();
+				m.disableRetryDelays();
+			});
+			await env.DAILY.create({ id, params: { date: '2026-10-06' } });
+			await instance.waitForStatus('complete');
+			const output = (await instance.getOutput()) as DailyResult;
+			const job = await env.DB.prepare('SELECT status FROM job_runs WHERE run_id = ?').bind(id).first();
+			const valeCalls = calls.filter(
+				(c) => new URL(c.url).pathname === VALE && new URL(c.url).searchParams.get('type_id') === '16663'
+			).length;
+			return { output, job, valeCalls, region: output.history.find((h) => h.regionId === 10000030) };
+		}
+
+		it('retries them after a wait and ends ok when the retry gets them', async () => {
+			// The first pass fails (2 attempts); the first retry round gets its 5 days.
+			const { output, job, valeCalls, region } = await run('daily-2026-10-06', 2);
+			expect(output).toMatchObject({ status: 'ok', historyRetried: 1, historyFailed: 0 });
+			expect(job).toEqual({ status: 'ok' });
+			expect(region).toMatchObject({ types: 4, inserted: 4 * 5, failed: 0, failedTypeIds: [] });
+			expect(valeCalls).toBe(3);
+		});
+
+		it('is partial when every retry round fails too', async () => {
+			const { output, job, valeCalls, region } = await run('daily-2026-10-06', Infinity);
+			expect(output).toMatchObject({ status: 'partial', historyRetried: 1, historyFailed: 1 });
+			expect(job).toEqual({ status: 'partial' });
+			expect(region).toMatchObject({ types: 4, inserted: 3 * 5, failed: 1, failedTypeIds: [16663] });
+			// First pass and 3 retry rounds, 2 attempts each.
+			expect(valeCalls).toBe(4 * 2);
+		});
 	});
 });

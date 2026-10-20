@@ -21,6 +21,12 @@ export const MIRROR_CONCURRENCY = 3;
 
 /** The daily job starts at or after 11:20 UTC (ESI market history is updated after downtime). */
 export const DAILY_START_MINUTE_UTC = 11 * 60 + 20;
+/**
+ * Waits before the daily job retries the market history it could not fetch (ESI errors, or the ESI
+ * error limit running low, which skips the remaining types): one retry round after each wait. ESI's
+ * error window resets every minute; the longer waits ride out ESI's unstable minutes after downtime.
+ */
+export const HISTORY_RETRY_WAITS = ['2 minutes', '5 minutes', '15 minutes'] as const;
 
 /** `price_snapshots` older than this many days are deleted once archived and rolled up. */
 export const SNAPSHOT_RETENTION_DAYS = 90;

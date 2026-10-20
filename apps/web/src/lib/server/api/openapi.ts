@@ -291,7 +291,7 @@ export const openapi = {
 				tags: ['Market'],
 				summary: 'Prices at a hub',
 				description:
-					'Best buy/sell order prices and order volumes of the latest refresh (every 30 minutes), or the daily averages of a past day with date= (no volumes; approximate=true when regional ESI averages filled gaps).',
+					'Best buy/sell order prices and order volumes of the latest refresh (every 30 minutes), or the daily averages of a past day with date= (no volumes; approximate=true when a returned price is the regional ESI average, carried over up to 7 days without trades).',
 				parameters: params(PricesQuery.parameters, { hub: 'jita', types: '16663,16671' }),
 				responses: {
 					'200': ok('Prices', ref('Prices'), 'short', {

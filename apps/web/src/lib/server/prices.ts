@@ -11,8 +11,60 @@ import { and, eq, gte, inArray, lte, max } from 'drizzle-orm';
 import type { HubInfo } from './hubs.ts';
 
 const SNAPSHOT_LOOKBACK_MS = 36 * 3_600_000;
+const DAY_MS = 86_400_000;
 
 export const isoDate = (ms: number) => new Date(ms).toISOString().slice(0, 10);
+
+/**
+ * Days a regional ESI average stands in for the days after it without trades (ESI history lists only
+ * days with trades), like the ledger's reference prices (`REFERENCE_LOOKBACK_DAYS`).
+ */
+export const REGIONAL_CARRY_DAYS = 7;
+
+/** `date` (YYYY-MM-DD) moved by `days`. */
+export const shiftDate = (date: string, days: number) => isoDate(Date.parse(date) + days * DAY_MS);
+
+export interface RegionalRow {
+	date: string;
+	regionId: number;
+	typeId: number;
+	average: number;
+}
+
+/**
+ * Regional ESI averages for each of `dates`, by date, region and type: a type without trades that day
+ * takes its latest average of the {@link REGIONAL_CARRY_DAYS} days before (query the rows from that
+ * many days before the first date).
+ */
+export function regionalAveragesByDate(
+	rows: readonly RegionalRow[],
+	dates: readonly string[]
+): Map<string, Map<number, Map<number, number>>> {
+	const series = new Map<string, RegionalRow[]>();
+	for (const r of rows) {
+		const key = `${r.regionId}:${r.typeId}`;
+		const list = series.get(key);
+		if (list) list.push(r);
+		else series.set(key, [r]);
+	}
+	const sortedDates = [...dates].sort();
+	const result = new Map<string, Map<number, Map<number, number>>>();
+	for (const list of series.values()) {
+		list.sort((a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : 0));
+		let next = 0;
+		for (const date of sortedDates) {
+			while (next < list.length && list[next].date <= date) next++;
+			const latest = list[next - 1];
+			if (!latest || latest.date < shiftDate(date, -REGIONAL_CARRY_DAYS)) continue;
+			let regions = result.get(date);
+			if (!regions) result.set(date, (regions = new Map()));
+			let types = regions.get(latest.regionId);
+			if (!types) regions.set(latest.regionId, (types = new Map()));
+			types.set(latest.typeId, latest.average);
+		}
+	}
+	return result;
+}
 
 /**
  * Current prices: public hubs from the KV snapshot plus D1 prices of the visitor's private hubs, with
@@ -45,16 +97,19 @@ async function adjustedFor(env: Pick<Env, 'HISTORY_DB'>, date: string, fallback:
 	return rows.length > 0 ? Object.fromEntries(rows.map((r) => [r.typeId, r.price])) : fallback;
 }
 
-/** Hub prices of one day (`PriceBook.hubs`) and whether any of them came from the regional ESI average. */
+/** Hub prices of one day (`PriceBook.hubs`) and which of them came from the regional ESI average. */
 export interface DailyHubPrices {
 	hubs: PriceBook['hubs'];
 	approximate: boolean;
+	/** Hub id → types priced with the regional average that day. */
+	regional: Map<string, Set<number>>;
 }
 
 /**
  * Daily average prices of every day in `from`..`to` (YYYY-MM-DD) that has any data, by date. Hub/type
  * pairs without a `price_daily` row fall back to the ESI daily average of the hub's region (as both buy
- * and sell) and mark the day approximate.
+ * and sell; a day without trades carries the latest average of the 7 days before) and mark the day
+ * approximate.
  */
 export async function getDailyHubPrices(
 	env: Pick<Env, 'HISTORY_DB'>,
@@ -90,7 +145,7 @@ export async function getDailyHubPrices(
 					.from(esiMarketHistory)
 					.where(
 						and(
-							gte(esiMarketHistory.date, from),
+							gte(esiMarketHistory.date, shiftDate(from, -REGIONAL_CARRY_DAYS)),
 							lte(esiMarketHistory.date, to),
 							inArray(esiMarketHistory.regionId, regionIds)
 						)
@@ -104,19 +159,12 @@ export async function getDailyHubPrices(
 		return book;
 	};
 	for (const r of daily) (bookOf(r.date)[r.hubId] ??= {})[r.typeId] = { buy: r.buy, sell: r.sell };
-	const esiByDay = new Map<string, Map<number, Map<number, number>>>();
-	for (const r of esi) {
-		bookOf(r.date);
-		let regions = esiByDay.get(r.date);
-		if (!regions) esiByDay.set(r.date, (regions = new Map()));
-		let types = regions.get(r.regionId);
-		if (!types) regions.set(r.regionId, (types = new Map()));
-		types.set(r.typeId, r.average);
-	}
+	for (const r of esi) if (r.date >= from) bookOf(r.date);
+	const esiByDay = regionalAveragesByDate(esi, [...books.keys()]);
 	const typeIds = Object.keys(dataset.types).map(Number);
 	const result = new Map<string, DailyHubPrices>();
 	for (const [date, book] of books) {
-		let approximate = false;
+		const filled = new Map<string, Set<number>>();
 		for (const hub of hubs) {
 			const prices = (book[hub.hubId] ??= {});
 			const regional = esiByDay.get(date)?.get(hub.regionId);
@@ -125,10 +173,12 @@ export async function getDailyHubPrices(
 				const average = prices[typeId] ? undefined : regional.get(typeId);
 				if (average === undefined) continue;
 				prices[typeId] = { buy: average, sell: average };
-				approximate = true;
+				let types = filled.get(hub.hubId);
+				if (!types) filled.set(hub.hubId, (types = new Set()));
+				types.add(typeId);
 			}
 		}
-		result.set(date, { hubs: book, approximate });
+		result.set(date, { hubs: book, approximate: filled.size > 0, regional: filled });
 	}
 	return result;
 }
