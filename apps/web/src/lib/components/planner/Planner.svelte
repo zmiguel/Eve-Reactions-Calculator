@@ -133,7 +133,18 @@
 		dailyVolumes: dailyVolumes(volumes),
 		inputDailyVolumes: hubDailyVolumes(data)
 	});
-	const plan = $derived(planReactions(input));
+	const plan = $derived(planReactions({ ...input, horizonCycles: setup.shoppingCycles }));
+	/** The plan holds stock of a type it buys or makes: the shopping list may subtract it or not. */
+	const hasStock = $derived(
+		plan.reactions.some((r) =>
+			[r.product, ...r.materials].some((item) => (input.stock[item.typeId] ?? 0) > 0)
+		)
+	);
+	const useStock = $derived(setup.shoppingUseStock ?? true);
+	// The same cycles planned without the stock; computed only while the toggle is off.
+	const shoppingPlan = $derived(
+		hasStock && !useStock ? planReactions({ ...input, stock: {}, horizonCycles: plan.horizon.cycles }) : plan
+	);
 	const buildBuy = $derived(buildBuyItems(plan, setup.buy, data.dataset));
 	const formulaNames = $derived(
 		Object.fromEntries(data.dataset.reactions.map((r) => [r.blueprintTypeId, r.formulaName]))
@@ -795,6 +806,11 @@
 				inputMarket={inputMarket(data)}
 				profileWarnings={data.profileWarnings}
 				{fuelTypeIds}
+				{shoppingPlan}
+				{hasStock}
+				{useStock}
+				oncycles={(cycles) => (setup.shoppingCycles = cycles)}
+				onusestock={(on) => (setup.shoppingUseStock = on)}
 			/>
 		{:else}
 			<div

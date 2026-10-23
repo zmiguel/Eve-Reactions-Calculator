@@ -1,5 +1,5 @@
 import type { ChainAllocation } from './allocation.ts';
-import { fuelFirst } from './constants.ts';
+import { sortMaterials } from './constants.ts';
 import {
 	SECONDS_PER_DAY,
 	ZERO_JOB_COST,
@@ -526,7 +526,7 @@ export function calculateReaction(reaction: Reaction, ctx: CalcContext, opts: Ca
 		const materials: StepMaterial[] = [];
 		const ownSlotSeconds = rRuns * rt;
 		let slotSeconds = ownSlotSeconds;
-		for (const m of fuelFirst(r.materials, dataset)) {
+		for (const m of sortMaterials(r.materials, dataset)) {
 			const need = jobs.reduce((acc, jobRuns) => acc + requiredQuantity(jobRuns, m.quantity, mm), 0);
 			const type = dataset.types[m.typeId];
 			const name = type?.name ?? String(m.typeId);
@@ -693,8 +693,8 @@ export function calculateReaction(reaction: Reaction, ctx: CalcContext, opts: Ca
 	};
 	sumJobs(root.node);
 
-	const inputList = fuelFirst(sourcing.annotate(inputs.list()), dataset);
-	const outputList = outputs.list();
+	const inputList = sortMaterials(sourcing.annotate(inputs.list()), dataset);
+	const outputList = sortMaterials(outputs.list(), dataset);
 	const sum = (items: LineItem[], key: 'total' | 'fees' | 'shipping') =>
 		items.reduce((acc, i) => acc + i[key], 0);
 	const inputCost = sum(inputList, 'total');
@@ -723,7 +723,7 @@ export function calculateReaction(reaction: Reaction, ctx: CalcContext, opts: Ca
 		chain: chainView ? root.node : null,
 		viaUnrefined: [...applied].sort((a, b) => a - b),
 		outputs: outputList,
-		surplus: surplus.list(),
+		surplus: sortMaterials(surplus.list(), dataset),
 		jobCost: totalJob,
 		totals: {
 			inputCost,

@@ -21,7 +21,9 @@ export const POST: RequestHandler = apiHandler(async (event) => {
 	const hubs = await publicHubs(env);
 	await checkSettingsReferences(env, settings, hubs);
 	const { ctx } = await loadApiCalc(env, settings, { hubs });
-	return apiJson(planReactions(await buildPlanInput(env, ctx, hubs, body)), NO_STORE);
+	// The N-cycle shopping list is a planner page feature, not part of the API's plan.
+	const { horizon: _horizon, ...plan } = planReactions(await buildPlanInput(env, ctx, hubs, body));
+	return apiJson(plan, NO_STORE);
 });
 
 export const OPTIONS: RequestHandler = () => preflight(['POST']);

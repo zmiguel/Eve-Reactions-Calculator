@@ -35,8 +35,8 @@ describe('detail page (server-rendered)', () => {
 		const { data, body } = await ssr('/composite/titanium-carbide?view=chain');
 		expect(count(body, 'data-step=')).toBe(2);
 		expect(after(body, 'data-field="name"')).toEqual([
-			'Titanium Chromide',
 			'Silicon Diborite',
+			'Titanium Chromide',
 			'Titanium Carbide'
 		]);
 		expect(count(body, 'aria-label="Buy for step 1"')).toBe(1);

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { isFuelBlock } from '../src/constants.ts';
+import { isFuelBlock, sortMaterials } from '../src/constants.ts';
 import { materialModifier, requiredQuantity, runsPerCycle } from '../src/formulas.ts';
 import { stockUnitValue } from '../src/inventory.ts';
 import { planFromStock, type StockPlan, type StockPlanInput } from '../src/stockplan.ts';
@@ -141,17 +141,14 @@ function expectValid(plan: StockPlan, given: StockPlanInput) {
 			worth(Object.entries(given.stock).map(([k, q]) => [Number(k), q])),
 		produced - t.valueConsumed
 	);
-	// Every item list: fuel blocks first, then by name.
+	// Every item list follows the material order.
 	const lists = [
 		plan.leftover,
 		plan.unpricedStock,
 		plan.fuelToBuy,
 		...plan.cycles.flatMap((c) => [c.consumed, c.produced, c.fuel])
 	];
-	for (const list of lists) {
-		const key = (i: { typeId: number; name: string }) => `${isFuelBlock(dataset, i.typeId) ? 0 : 1}${i.name}`;
-		expect(list.map(key)).toEqual(list.map(key).sort((a, b) => a.localeCompare(b)));
-	}
+	for (const list of lists) expect(list).toEqual(sortMaterials(list, dataset));
 }
 
 describe('planFromStock', () => {

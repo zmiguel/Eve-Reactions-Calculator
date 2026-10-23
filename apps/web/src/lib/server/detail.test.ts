@@ -175,8 +175,8 @@ describe('loadDetail', () => {
 		expect(chain.chainable).toBe(true);
 		expect(chain.query.view).toBe('chain');
 		expect(chain.result.chain!.children.map((c) => [c.name, c.runs, c.surplus])).toEqual([
-			['Titanium Chromide', 60, 92],
-			['Silicon Diborite', 60, 92]
+			['Silicon Diborite', 60, 92],
+			['Titanium Chromide', 60, 92]
 		]);
 		expect(chain.result.runs).toBe(122);
 		expect(chain.root).toBe(chain.result.chain);
@@ -198,8 +198,8 @@ describe('loadDetail', () => {
 		expect(result.runs).toBe(244);
 		expect(result.chain!.runsPerSlot).toEqual([122, 122]);
 		expect(result.chain!.children.map((c) => [c.name, c.runs, c.runsPerSlot])).toEqual([
-			['Titanium Chromide', 120, [120]],
-			['Silicon Diborite', 120, [120]]
+			['Silicon Diborite', 120, [120]],
+			['Titanium Chromide', 120, [120]]
 		]);
 		expect(result.allocation).toMatchObject({ lines: 2, slotsUsed: 4 });
 		expect(result.allocation!.utilisation).toBeCloseTo(((244 + 240) * 4924.8) / (4 * 7 * 86400), 9);
