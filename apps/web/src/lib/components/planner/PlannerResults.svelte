@@ -1,5 +1,5 @@
 <script lang="ts">
-	import type { Dataset, PlanResult } from '@reactions/engine';
+	import { PLAN_MAX_HORIZON_CYCLES, type Dataset, type PlanResult } from '@reactions/engine';
 	import type { InputMarket, ProductVolume } from '$lib/planner/plan';
 	import InfoNote from '$lib/components/InfoNote.svelte';
 	import FlowDiagram from '$lib/components/detail/FlowDiagram.svelte';
@@ -42,6 +42,15 @@
 		inputMarket?: InputMarket | null;
 		/** Fuel block type ids: drawn at the top of the material flow, like every material list. */
 		fuelTypeIds?: ReadonlySet<number>;
+		/** Plan whose `horizon` the N-cycle shopping list shows (`plan`, or the same plan without stock). */
+		shoppingPlan?: PlanResult;
+		/** The plan has stock of a type it buys or makes: the shopping list offers "Subtract my stock". */
+		hasStock?: boolean;
+		/** The shopping list subtracts the stock. */
+		useStock?: boolean;
+		/** A new cycle count for the shopping list (1 to {@link PLAN_MAX_HORIZON_CYCLES}). */
+		oncycles?: (cycles: number) => void;
+		onusestock?: (on: boolean) => void;
 	}
 
 	let {
@@ -55,7 +64,12 @@
 		volumes = {},
 		purchaseVolumes = {},
 		inputMarket = null,
-		fuelTypeIds = new Set()
+		fuelTypeIds = new Set(),
+		shoppingPlan,
+		hasStock = false,
+		useStock = true,
+		oncycles,
+		onusestock
 	}: Props = $props();
 
 	const days = $derived(+cycleDays.toFixed(2));
@@ -145,6 +159,36 @@
 					plan.startup.mode === 'step0' && plan.startup.step0!.blueprintTypeIds.includes(r.blueprintTypeId)
 			}))
 	);
+	const shopping = $derived(shoppingPlan ?? plan);
+	const horizon = $derived(shopping.horizon);
+	const horizonCost = $derived(
+		horizon.purchases.some((i) => i.unitPrice === null)
+			? null
+			: horizon.purchases.reduce((a, i) => a + i.total + i.fees + i.shipping, 0)
+	);
+	/** The cycles the shopping list covers, by phase of the plan it comes from. */
+	const horizonNote = $derived.by(() => {
+		const n = horizon.cycles;
+		const steady = shopping.phases.at(-1)?.cycle ?? 1;
+		const span = (from: number, to: number) => (from === to ? `cycle ${from}` : `cycles ${from} to ${to}`);
+		const parts = [
+			...(shopping.startup.mode === 'step0' ? ['step 0'] : []),
+			...(steady > 1 ? [`build-up ${span(1, Math.min(n, steady - 1))}`] : []),
+			...(n >= steady ? [`steady ${span(steady, n)}`] : [])
+		];
+		const list = parts.length > 1 ? `${parts.slice(0, -1).join(', ')} and ${parts.at(-1)}` : parts[0];
+		return `Covers ${list}.`;
+	});
+
+	function setCycles(el: HTMLInputElement) {
+		const n = el.valueAsNumber;
+		const cycles = Number.isFinite(n)
+			? Math.min(PLAN_MAX_HORIZON_CYCLES, Math.max(1, Math.floor(n)))
+			: horizon.cycles;
+		el.value = String(cycles);
+		if (cycles !== horizon.cycles) oncycles?.(cycles);
+	}
+
 	const usedPct = $derived(Math.min(100, (plan.slotsUsed / Math.max(totalSlots, 1)) * 100));
 
 	type Tone = 'profit' | 'plain';
@@ -406,20 +450,71 @@
 				<MultibuyButton text={lineItemsMultibuy(phase.purchases)} />
 			</div>
 		{/each}
-		{#if plan.phases.length > 1 && plan.initialPurchases.length > 0}
-			<div class="flex flex-wrap items-center justify-end gap-2 text-sm" data-startup-all>
-				<span class="text-gray-600 dark:text-gray-300"
-					>All start-up purchases: <strong class="text-gray-900 tabular-nums dark:text-white"
-						>{formatIsk(
-							plan.initialPurchases.some((i) => i.unitPrice === null)
-								? null
-								: plan.initialPurchases.reduce((a, i) => a + i.total + i.fees + i.shipping, 0)
-						)}</strong
-					></span
-				>
-				<MultibuyButton text={lineItemsMultibuy(plan.initialPurchases)} />
-			</div>
-		{/if}
+	</section>
+
+	<section class="space-y-2" aria-labelledby="plan-shopping" data-plan-shopping>
+		<h3 id="plan-shopping" class={h3}>
+			Shopping list for {horizon.cycles}
+			{horizon.cycles === 1 ? 'cycle' : 'cycles'}
+		</h3>
+		<div class="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-gray-700 dark:text-gray-200">
+			<label class="flex items-center gap-2">
+				Cycles
+				<input
+					type="number"
+					min="1"
+					max={PLAN_MAX_HORIZON_CYCLES}
+					step="1"
+					class="focus:border-primary-500 focus:ring-primary-500 h-8 w-20 rounded-md border border-gray-300 bg-gray-50 px-2 py-1 text-sm text-gray-900 tabular-nums dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200"
+					value={horizon.cycles}
+					onchange={(e) => setCycles(e.currentTarget)}
+					data-field="shoppingCycles"
+				/>
+			</label>
+			{#if hasStock}
+				<label class="flex items-center gap-2">
+					<input
+						type="checkbox"
+						class="text-primary-600 focus:ring-primary-500 h-4 w-4 rounded border-gray-300 dark:border-gray-600 dark:bg-gray-800"
+						checked={useStock}
+						onchange={(e) => onusestock?.(e.currentTarget.checked)}
+						data-field="shoppingUseStock"
+					/>
+					Subtract my stock
+				</label>
+			{/if}
+		</div>
+		<p class="text-xs text-gray-500 dark:text-gray-400" data-shopping-note>
+			{horizonNote}
+			{#if hasStock && useStock}
+				Your stock is subtracted across all of them; intermediates you hold replace runs of the reactions that
+				make them, and those runs' inputs.
+			{/if}
+		</p>
+		<LineItemsTable
+			title={hasStock && useStock ? 'Purchases, minus stock' : 'Purchases'}
+			items={horizon.purchases}
+			level={4}
+			emptyText="Nothing to buy: stock or earlier reprocessing covers it."
+			sources={false}
+		/>
+		<div class="flex flex-wrap items-center justify-end gap-x-4 gap-y-2 text-sm" data-shopping-totals>
+			<span class="text-gray-600 dark:text-gray-300"
+				>Purchases: <strong
+					class="text-gray-900 tabular-nums dark:text-white"
+					title={formatIskFull(horizonCost)}
+					data-field="shoppingTotal">{formatIsk(horizonCost)}</strong
+				></span
+			>
+			<span class="text-gray-600 dark:text-gray-300"
+				>Job costs: <strong
+					class="text-gray-900 tabular-nums dark:text-white"
+					title={formatIskFull(horizon.jobCost)}
+					data-field="shoppingJobCost">{formatIsk(horizon.jobCost)}</strong
+				></span
+			>
+			<MultibuyButton text={lineItemsMultibuy(horizon.purchases)} />
+		</div>
 	</section>
 
 	{#if marketRows.length > 0}

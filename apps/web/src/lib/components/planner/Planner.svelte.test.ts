@@ -141,6 +141,44 @@ describe('Planner', () => {
 		);
 	});
 
+	it('shopping list for N cycles: the cycles input extends it, the toggle stops subtracting the stock', async () => {
+		// Crystallite Alloy buys 11,976 Cobalt per cycle (cycles 1 and 2 of the start-up, then every cycle).
+		const storage = stored(stateWith({ stockText: 'Cobalt\t20,000' }));
+		const { container } = await setup(storage);
+		const shopping = () => container.querySelector('[data-plan-shopping]')!;
+		const cobalt = () => {
+			const row = shopping().querySelector(`tr[data-type-id="${COBALT}"]`);
+			return row ? Number(text(row.children[1]).replace(/,/g, '')) : null;
+		};
+		const cycles = screen.getByRole('spinbutton', { name: 'Cycles' }) as HTMLInputElement;
+		expect(cycles.value).toBe('2');
+		expect(text(shopping().querySelector('h3'))).toBe('Shopping list for 2 cycles');
+		expect(cobalt()).toBe(2 * 11_976 - 20_000);
+
+		await fireEvent.change(cycles, { target: { value: '4' } });
+		expect(text(shopping().querySelector('h3'))).toBe('Shopping list for 4 cycles');
+		expect(cobalt()).toBe(4 * 11_976 - 20_000);
+		expect(listQuantity(container, 'Shopping list per cycle', COBALT)).toBe(11_976);
+
+		const toggle = screen.getByRole('checkbox', { name: 'Subtract my stock' }) as HTMLInputElement;
+		expect(toggle.checked).toBe(true);
+		await fireEvent.click(toggle);
+		expect(toggle.checked).toBe(false);
+		expect(cobalt()).toBe(4 * 11_976);
+		// The start-up tables keep subtracting it.
+		expect(startupQuantity(container, COBALT)).toBe(2 * 11_976 - 20_000);
+		expect(JSON.parse(storage.getItem(STORAGE_KEY)!)).toMatchObject({
+			shoppingCycles: 4,
+			shoppingUseStock: false
+		});
+	});
+
+	it('no stock toggle without stock the plan uses', async () => {
+		await setup(stored(stateWith({ stockText: 'Caesarium Cadmide\t5' })));
+		expect(screen.getByRole('spinbutton', { name: 'Cycles' })).toBeTruthy();
+		expect(screen.queryByRole('checkbox', { name: 'Subtract my stock' })).toBeNull();
+	});
+
 	it('owned formulas are not bought', async () => {
 		const { container } = await setup(stored(stateWith({})));
 		expect(container.querySelector('[data-formula="46205"]')).not.toBeNull();

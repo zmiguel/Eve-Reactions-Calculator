@@ -122,7 +122,9 @@
 				than without stock. Stock of a bought material covers the earliest start-up purchases. Stock is valued
 				at market price: it lowers the initial investment (start-up purchases and job costs up to the first
 				steady cycle, plus formulas) but not the profit per cycle. Stock the start-up does not use is listed
-				as not used.
+				as not used. The shopping list for a number of cycles (1 to 52) adds up everything those cycles buy;
+				with "Subtract my stock" on, your stock covers its earliest purchases over all those cycles, and stock
+				of an intermediate saves its reaction's runs (and their inputs) in later cycles too.
 			</li>
 			<li>
 				<strong>Use what I have</strong> (planner): plans 1 to 12 cycles of reactions (one cycle is one round of

@@ -75,8 +75,8 @@ describe('layoutChainFlow', () => {
 				.sort()
 		).toEqual(data.result.inputs.map((i) => i.typeId).sort());
 		expect(byColumn(1).map((n) => [n.kind, n.name, n.runs])).toEqual([
-			['intermediate', 'Titanium Chromide', 60],
-			['intermediate', 'Silicon Diborite', 60]
+			['intermediate', 'Silicon Diborite', 60],
+			['intermediate', 'Titanium Chromide', 60]
 		]);
 		expect(byColumn(2).map((n) => [n.kind, n.name, n.quantity])).toEqual([
 			['final', 'Titanium Carbide', 1_220_000]

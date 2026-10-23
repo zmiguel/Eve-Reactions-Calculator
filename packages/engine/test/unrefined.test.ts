@@ -302,16 +302,16 @@ describe('unrefined routes in full chains', () => {
 			['buy', D, 200]
 		]);
 		expect(r.chain!.materials.map((m) => [m.source, m.typeId, m.quantity])).toEqual([
-			['chain', X, 200],
-			['byproduct', D, 40]
+			['byproduct', D, 40],
+			['chain', X, 200]
 		]);
 		expect(r.inputs.map((i) => [i.typeId, i.quantity])).toEqual([
 			[C, 200],
 			[D, 200]
 		]);
 		expect(r.outputs.map((o) => [o.typeId, o.quantity, o.total])).toEqual([
-			[F, 400, 2000],
-			[D, 260, 520]
+			[D, 260, 520],
+			[F, 400, 2000]
 		]);
 		expect(r.totals.totalCost).toBe(1400);
 		expect(r.totals.profit).toBe(1120);
@@ -388,9 +388,9 @@ describe('unrefined routes in full chains', () => {
 			['buy', Q]
 		]);
 		expect(pFirst.r.outputs.map((o) => [o.typeId, o.quantity])).toEqual([
-			[F2, 200],
 			[P, 50],
-			[Q, 150]
+			[Q, 150],
+			[F2, 200]
 		]);
 		// Q is worth more: the other order.
 		const qFirst = run({ [P]: 2, [Q]: 10 });
@@ -559,8 +559,8 @@ describe('unrefined routes in full chains', () => {
 		// the D both jobs need is bought, 120 T of it reused from the previous cycle's reprocessing.
 		expect(top.product).toEqual({ typeId: F, name: 'Final', quantity: 200 * T });
 		expect(top.materials).toEqual([
-			{ typeId: X, name: 'Xite', quantity: 100 * T, producer: UNREFINED.blueprintTypeId },
-			{ typeId: D, name: 'D', quantity: 20 * T, producer: null }
+			{ typeId: D, name: 'D', quantity: 20 * T, producer: null },
+			{ typeId: X, name: 'Xite', quantity: 100 * T, producer: UNREFINED.blueprintTypeId }
 		]);
 		expect(unrefined.product).toEqual({ typeId: U, name: 'Unrefined Xite', quantity: T });
 		expect(unrefined.materials).toEqual([
@@ -570,8 +570,8 @@ describe('unrefined routes in full chains', () => {
 		expect(plan.startup.reused).toEqual([{ typeId: D, name: 'D', quantity: 120 * T }]);
 		expect(plan.purchasesPerCycle.map((p) => [p.typeId, p.quantity])).toEqual([[C, 100 * T]]);
 		expect(plan.outputsPerCycle.map((o) => [o.typeId, o.quantity])).toEqual([
-			[F, 200 * T],
-			[D, 30 * T]
+			[D, 30 * T],
+			[F, 200 * T]
 		]);
 		// Cycle 1 runs only the unrefined jobs and buys all their D; cycle 2 lives on cycle 1's 150 T.
 		expect(plan.initialPurchases.find((p) => p.typeId === D)!.quantity).toBe(100 * T);
@@ -604,12 +604,13 @@ const feeding: Dataset = {
 };
 
 describe('start-up of a plan whose unrefined job feeds another first-cycle job', () => {
-	const plan = (pPrice: number, lines = 2) =>
+	const plan = (pPrice: number, lines = 2, horizonCycles?: number) =>
 		planReactions({
 			...planInput(ctx(5, {}, { dataset: feeding, prices: { [P]: pPrice, [Q]: 2 } }), {
 				targets: [{ blueprintTypeId: FINAL_TWO.blueprintTypeId, lines }]
 			}),
-			viaUnrefined: [X]
+			viaUnrefined: [X],
+			horizonCycles
 		});
 	const runs = (p: PlanResult, id: number) => p.reactions.find((r) => r.blueprintTypeId === id)!.totalRuns;
 
@@ -651,6 +652,24 @@ describe('start-up of a plan whose unrefined job feeds another first-cycle job',
 				usedBy: [{ blueprintTypeId: PYITE.blueprintTypeId, fromCycle: 1 }]
 			})
 		]);
+	});
+
+	it('the horizon starts with step 0: its purchases and job cost count in every horizon', () => {
+		const p = plan(20);
+		expect(p.horizon.cycles).toBe(2);
+		expect(p.horizon.purchases).toEqual(p.initialPurchases);
+		expect(p.horizon.jobCost).toBeCloseTo(
+			p.phases.reduce((a, ph) => a + ph.jobCost, 0),
+			6
+		);
+		const one = plan(20, 2, 1);
+		const units = (lists: { typeId: number; quantity: number }[][]) =>
+			lists.flat().reduce<Record<number, number>>((acc, i) => {
+				acc[i.typeId] = (acc[i.typeId] ?? 0) + i.quantity;
+				return acc;
+			}, {});
+		expect(units([one.horizon.purchases])).toEqual(units([p.phases[0].purchases, p.phases[1].purchases]));
+		expect(one.horizon.jobCost).toBeCloseTo(p.phases[0].jobCost + p.phases[1].jobCost, 6);
 	});
 
 	it('buys for the first cycle when that is cheaper or costs the same; the steady cycle is unchanged', () => {

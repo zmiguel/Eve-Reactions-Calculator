@@ -91,6 +91,22 @@ describe('state schema', () => {
 		for (const stockSearchSeconds of [10, 60])
 			expect(parseState({ ...sample, stockSearchSeconds })?.stockSearchSeconds).toBe(stockSearchSeconds);
 	});
+
+	it('keeps the shopping list cycles and stock toggle in states and share codes', async () => {
+		const state = { ...sample, shoppingCycles: 12, shoppingUseStock: false };
+		expect(parseState(state)).toEqual(state);
+		expect((await decodeShare(await encodeShare(state)))?.state).toEqual(state);
+		const storage = new MemoryStorage();
+		saveState(storage, state);
+		expect(loadState(storage)).toEqual(state);
+
+		const old = parseState(firstRelease)!;
+		for (const field of ['shoppingCycles', 'shoppingUseStock']) expect(old).not.toHaveProperty(field);
+		for (const shoppingCycles of [0, 53, 2.5]) expect(parseState({ ...sample, shoppingCycles })).toBeNull();
+		for (const shoppingCycles of [1, 52])
+			expect(parseState({ ...sample, shoppingCycles })?.shoppingCycles).toBe(shoppingCycles);
+		expect(parseState({ ...sample, shoppingUseStock: 'yes' })).toBeNull();
+	});
 });
 
 describe('localStorage persistence', () => {

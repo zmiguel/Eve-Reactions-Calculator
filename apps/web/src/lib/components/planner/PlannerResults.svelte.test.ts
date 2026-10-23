@@ -1,8 +1,9 @@
 import { planReactions, type PlanInput } from '@reactions/engine';
-import { render, screen } from '@testing-library/svelte';
+import { fireEvent, render, screen } from '@testing-library/svelte';
 import { describe, expect, it } from 'vitest';
 import { makeCtx } from '../../../../../../packages/engine/test/fixtures/context';
 import { jitaPrices, priceBook } from '../../../../../../packages/engine/test/fixtures/dataset';
+import { formatIsk, formatIskFull } from '$lib/format';
 import PlannerResults from './PlannerResults.svelte';
 
 const CRYSTALLINE_CARBONIDE = 46205;
@@ -218,7 +219,7 @@ describe('PlannerResults', () => {
 		);
 	});
 
-	it('offers multibuy copies of the per-cycle list, each start-up cycle and all start-up purchases', () => {
+	it('offers multibuy copies of the per-cycle list, each start-up cycle and the N-cycle shopping list', () => {
 		const { container } = setup();
 		const lists = [...container.querySelectorAll('textarea')].map((t) => (t as HTMLTextAreaElement).value);
 		expect(lists).toHaveLength(4);
@@ -310,6 +311,51 @@ describe('PlannerResults', () => {
 		expect(
 			[...container.querySelectorAll('[data-plan-startup] [data-startup-phase] h4')].map((h) => text(h))
 		).toEqual(['Step 0, once before cycle 1', 'Cycle 1, start-up', 'Cycle 2, first steady cycle']);
+	});
+
+	it('shopping list for N cycles: the plan’s horizon with its cycles, totals and controls', async () => {
+		const p = plan({ horizonCycles: 3 });
+		const cycles: number[] = [];
+		const toggles: boolean[] = [];
+		const { container, rerender } = render(PlannerResults, {
+			props: {
+				plan: p,
+				dataset,
+				totalSlots: 150,
+				cycleDays: 7,
+				formulaNames,
+				oncycles: (n: number) => cycles.push(n),
+				onusestock: (on: boolean) => toggles.push(on)
+			}
+		});
+		const section = container.querySelector('[data-plan-shopping]')!;
+		expect(text(section.querySelector('h3'))).toBe('Shopping list for 3 cycles');
+		expect(text(section.querySelector('[data-shopping-note]'))).toBe(
+			'Covers build-up cycle 1 and steady cycles 2 to 3.'
+		);
+		const cost = p.horizon.purchases.reduce((a, i) => a + i.total + i.fees + i.shipping, 0);
+		expect(section.querySelector('[data-field="shoppingTotal"]')!.getAttribute('title')).toBe(
+			formatIskFull(cost)
+		);
+		expect(text(section.querySelector('[data-field="shoppingJobCost"]'))).toBe(formatIsk(p.horizon.jobCost));
+		expect(section.querySelectorAll('tbody tr[data-type-id]')).toHaveLength(p.horizon.purchases.length);
+		expect(section.querySelector('[data-field="shoppingUseStock"]')).toBeNull();
+
+		// Out-of-range entries are clamped to 1–52.
+		const input = section.querySelector('[data-field="shoppingCycles"]') as HTMLInputElement;
+		await fireEvent.change(input, { target: { value: '99' } });
+		await fireEvent.change(input, { target: { value: '1' } });
+		expect(cycles).toEqual([52, 1]);
+
+		// One cycle of the plan without stock, with the toggle.
+		const one = plan({ horizonCycles: 1 });
+		await rerender({ shoppingPlan: one, hasStock: true, useStock: false });
+		expect(text(section.querySelector('h3'))).toBe('Shopping list for 1 cycle');
+		expect(text(section.querySelector('[data-shopping-note]'))).toBe('Covers build-up cycle 1.');
+		const toggle = screen.getByRole('checkbox', { name: 'Subtract my stock' }) as HTMLInputElement;
+		expect(toggle.checked).toBe(false);
+		await fireEvent.click(toggle);
+		expect(toggles).toEqual([true]);
 	});
 
 	it('lists the stock the plan does not use by role, only when there is some', () => {

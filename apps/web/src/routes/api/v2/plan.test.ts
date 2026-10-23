@@ -64,7 +64,9 @@ describe('POST /api/v2/plan', () => {
 			ownedFormulas: { 46205: 1 },
 			dailyVolumes: { 16670: 3_588_569 }
 		});
-		expect(body).toEqual(JSON.parse(JSON.stringify(expected)));
+		const { horizon: _horizon, ...api } = expected;
+		expect(body).toEqual(JSON.parse(JSON.stringify(api)));
+		expect(body).not.toHaveProperty('horizon');
 		const result = PlanResultResponse.parse(body);
 		expect(result.outputsPerCycle.some((o) => o.dailyVolumeSharePct !== null)).toBe(true);
 		// Stock of a target product: the plan sells what it makes and leaves the stock unused.

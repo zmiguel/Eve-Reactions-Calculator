@@ -1,4 +1,4 @@
-import { DEFAULT_CONSTANTS } from '@reactions/engine';
+import { DEFAULT_CONSTANTS, MOON_MATERIAL_CLASS, MOON_MATERIAL_GROUP_ID } from '@reactions/engine';
 import type {
 	ManufacturingBlueprint,
 	Reaction,
@@ -279,6 +279,9 @@ export function normalize(raw: RawSde, industry?: IndustrySources): SdeDataset {
 			groupId: t.groupId
 		};
 		datasetTypes[typeId] = info;
+		// Material lists order raw moon materials by class; a new one would sort with the other raw materials.
+		if (t.groupId === MOON_MATERIAL_GROUP_ID && MOON_MATERIAL_CLASS[typeId] === undefined)
+			warnings.push(`UNCLASSIFIED_MOON_MATERIAL:${typeId}`);
 		types.push({
 			...info,
 			categoryId: group?.categoryId ?? 0,

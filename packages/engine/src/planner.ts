@@ -24,7 +24,7 @@ import {
 	splitIntoSlots,
 	type JobCostBreakdown
 } from './formulas.ts';
-import { fuelFirst } from './constants.ts';
+import { sortMaterials } from './constants.ts';
 import type { ResolvedProfile } from './settings.ts';
 import { InputSourcing } from './sourcing.ts';
 import type { Reaction, Tier } from './types.ts';
@@ -41,6 +41,9 @@ export interface PlanTarget {
 	 */
 	quantity?: number;
 }
+
+/** Most cycles {@link PlanInput.horizonCycles} may ask for. */
+export const PLAN_MAX_HORIZON_CYCLES = 52;
 
 export interface PlanInput {
 	ctx: CalcContext;
@@ -67,6 +70,11 @@ export interface PlanInput {
 	 * every target's own full-chain choice ({@link bestUnrefined}) combined; otherwise none.
 	 */
 	viaUnrefined?: readonly number[];
+	/**
+	 * Cycles `PlanResult.horizon` covers (1 to {@link PLAN_MAX_HORIZON_CYCLES}, rounded down). Default: the
+	 * first steady cycle.
+	 */
+	horizonCycles?: number;
 }
 
 /** A material and quantity (start-up savings and stock). */
@@ -199,6 +207,21 @@ export interface PlanResult {
 	 * cycle) does not use, fuel blocks first, then by name. Steady cycles never count on stock.
 	 */
 	unusedStock: PlanItem[];
+	/**
+	 * Everything cycles 1 to `cycles` buy (after step 0 when the chosen start-up has one), minus stock.
+	 * Stock counts over all these cycles: stock of a built type feeds its consumers' earliest demand, so
+	 * its producer runs less in any of them, down the chain; stock of a bought type covers the earliest
+	 * purchases.
+	 */
+	horizon: {
+		cycles: number;
+		/** Priced and sourced together, like `initialPurchases`; fuel blocks first. */
+		purchases: LineItem[];
+		/** Job costs of these cycles (and step 0). */
+		jobCost: number;
+		/** Stock of the types the plan buys or makes these cycles do not use, like `unusedStock`. */
+		unusedStock: PlanItem[];
+	};
 	formulasToBuy: { blueprintTypeId: number; count: number; unitPrice: number | null }[];
 	outputsPerCycle: (LineItem & { dailyVolumeSharePct: number | null })[];
 	surplusPerCycle: LineItem[];
@@ -376,7 +399,7 @@ export function planReactions(input: PlanInput): PlanResult {
 		const mm = materialModifier(profile, constants);
 		const purchases = new Map<number, number>();
 		const materials: NodeState['materials'] = [];
-		const inputs = fuelFirst(reaction.materials, dataset);
+		const inputs = sortMaterials(reaction.materials, dataset);
 		for (const m of inputs) {
 			const need = consumed(runsPerSlot, m.quantity, mm);
 			const producer = builtBy(m.typeId);
@@ -499,13 +522,14 @@ export function planReactions(input: PlanInput): PlanResult {
 		}
 
 	/**
-	 * Runs per node and cycle (index = cycle, 1 to `lastCycle`; 0 unused) with every target running from
-	 * cycle `start`, and the stock of each built type drawn per cycle. Stock of a built type covers its
+	 * Runs per node and cycle (index = cycle, 1 to `end`; 0 unused) with every target running from cycle
+	 * `start`, and the stock of each built type drawn per cycle. Stock of a built type covers its
 	 * consumers' earliest demand; a job runs just in time: in cycle c the runs its consumers need in c + 1
-	 * beyond that stock, capped at its steady runs. Null when cycle 1 needs a built type beyond its stock
-	 * (nothing is built before cycle 1); with `start = lastCycle` the first cycle needs none.
+	 * beyond that stock, capped at its steady runs; in cycle `end` its steady runs. Null when cycle 1 needs
+	 * a built type beyond its stock (nothing is built before cycle 1); with `start = lastCycle` the first
+	 * cycle needs none.
 	 */
-	const scheduleFrom = (start: number) => {
+	const scheduleFrom = (start: number, end = lastCycle) => {
 		const runs = new Map<NodeState, CycleRuns[]>();
 		const drawn = new Map<number, number[]>();
 		// Consumers sit at a lower depth than their producers: their runs are known first.
@@ -513,7 +537,7 @@ export function planReactions(input: PlanInput): PlanResult {
 			const product = n.reaction.product;
 			const supplies = n.productRuns > 0 ? [product.typeId, ...n.fed] : n.fed;
 			const left = new Map(supplies.map((typeId) => [typeId, input.stock[typeId] ?? 0]));
-			for (const typeId of supplies) drawn.set(typeId, Array<number>(lastCycle + 1).fill(0));
+			for (const typeId of supplies) drawn.set(typeId, Array<number>(end + 1).fill(0));
 			/** Draws stock for the demand of `cycle`; returns what the cycle before must make. */
 			const draw = (typeId: number, cycle: number) => {
 				const demand = consumersOf.get(typeId)!.reduce((acc, v) => {
@@ -528,7 +552,7 @@ export function planReactions(input: PlanInput): PlanResult {
 			const short = supplies.map((typeId) => draw(typeId, 1)).some((missing) => missing > 0);
 			if (short && start < lastCycle) return null;
 			const perCycle: CycleRuns[] = [{ total: 0, reprocess: 0 }];
-			for (let c = 1; c < lastCycle; c++) {
+			for (let c = 1; c < end; c++) {
 				const missing = new Map(supplies.map((typeId) => [typeId, draw(typeId, c + 1)]));
 				const productRuns =
 					n.productRuns === 0
@@ -552,34 +576,39 @@ export function planReactions(input: PlanInput): PlanResult {
 			perCycle.push({ total: n.totalRuns, reprocess: n.reprocessRuns });
 			runs.set(n, perCycle);
 		}
-		return { runs, drawn };
+		return { start, runs, drawn };
 	};
-	// The targets start together, in the first cycle the stock and the jobs before them can feed them.
-	const schedule = (() => {
-		for (let start = 1; ; start++) {
-			const found = scheduleFrom(start);
+	/** The schedule up to `end` whose targets start in the first cycle from `from` that can feed them. */
+	const scheduleUntil = (end: number, from = 1) => {
+		for (let start = from; ; start++) {
+			const found = scheduleFrom(start, end);
 			if (found) return found;
 		}
-	})();
+	};
+	// The targets start together, in the first cycle the stock and the jobs before them can feed them.
+	const schedule = scheduleUntil(lastCycle);
 	/** First cycle in which every job runs its steady runs. */
 	const steadyCycle =
 		Array.from({ length: lastCycle }, (_, i) => i + 1).find((c) =>
 			nodes.every((n) => schedule.runs.get(n)![c].total === n.totalRuns)
 		) ?? lastCycle;
 	const firstCycleOf = (n: NodeState) => schedule.runs.get(n)!.findIndex((r) => r.total > 0);
-	/** The jobs running in `cycle`, in plan order. */
-	const jobsIn = (cycle: number) =>
+	/** The jobs running in `cycle` of a schedule's `runs`, in plan order. */
+	const jobsOf = (runs: Map<NodeState, CycleRuns[]>, cycle: number) =>
 		nodes.flatMap((n) => {
-			const r = schedule.runs.get(n)![cycle];
+			const r = runs.get(n)![cycle];
 			return r.total > 0 ? [jobAt(n, r)] : [];
 		});
-	/** Stock left once the built types' draws up to the steady cycle are taken (bought types: all of it). */
-	const stockAfterBuilds = new Map(
-		Object.entries(input.stock).map(([key, qty]): [number, number] => {
-			const draws = schedule.drawn.get(Number(key))?.slice(1, steadyCycle + 1) ?? [];
-			return [Number(key), draws.reduce((acc, d) => acc - d, qty)];
-		})
-	);
+	const jobsIn = (cycle: number) => jobsOf(schedule.runs, cycle);
+	/** Stock left once the built types' draws of cycles 1 to `through` are taken (bought types: all of it). */
+	const stockAfterDraws = (drawn: Map<number, number[]>, through: number) =>
+		new Map(
+			Object.entries(input.stock).map(([key, qty]): [number, number] => {
+				const draws = drawn.get(Number(key))?.slice(1, through + 1) ?? [];
+				return [Number(key), draws.reduce((acc, d) => acc - d, qty)];
+			})
+		);
+	const stockAfterBuilds = stockAfterDraws(schedule.drawn, steadyCycle);
 
 	// Purchases are priced with the market settings of the first reaction (in plan order) that buys the type.
 	const pc: PricingContext = { ctx, missing: new Set() };
@@ -587,8 +616,8 @@ export function planReactions(input: PlanInput): PlanResult {
 	for (const n of nodes)
 		for (const typeId of n.purchases.keys())
 			if (!purchaseProfile.has(typeId)) purchaseProfile.set(typeId, n.profile);
-	// Every purchase list of the plan follows this order: fuel blocks first.
-	const typeOrder = fuelFirst(
+	// Every purchase list of the plan follows the material order (`sortMaterials`).
+	const typeOrder = sortMaterials(
 		[...purchaseProfile.keys()].map((typeId) => ({ typeId })),
 		dataset
 	).map((t) => t.typeId);
@@ -672,16 +701,25 @@ export function planReactions(input: PlanInput): PlanResult {
 		/** Stock left after the start-up. */
 		stockLeft: Map<number, number>;
 	}
-	const startupCycles = (step0: CycleJob[]) => {
+	/**
+	 * Step 0 (when it has jobs), then cycles 1 to `until` with the jobs `jobsAt` gives, each buying its
+	 * needs minus `stock`.
+	 */
+	const startupCycles = (
+		step0: CycleJob[],
+		until: number,
+		jobsAt: (cycle: number) => CycleJob[],
+		stock: Map<number, number>
+	) => {
 		const cycles: StartupCycle[] = [];
 		let before: CycleJob[] = [];
-		for (let cycle = step0.length > 0 ? 0 : 1; cycle <= steadyCycle; cycle++) {
-			const running = cycle === 0 ? step0 : jobsIn(cycle);
+		for (let cycle = step0.length > 0 ? 0 : 1; cycle <= until; cycle++) {
+			const running = cycle === 0 ? step0 : jobsAt(cycle);
 			cycles.push({ cycle, running, ...cycleNeeds(running, before) });
 			before = running;
 		}
 		// Stock of bought types covers the earliest purchases first.
-		const stockLeft = new Map(stockAfterBuilds);
+		const stockLeft = new Map(stock);
 		for (const c of cycles)
 			for (const [typeId, qty] of c.bought) {
 				const take = Math.min(qty, stockLeft.get(typeId) ?? 0);
@@ -693,9 +731,11 @@ export function planReactions(input: PlanInput): PlanResult {
 		return { cycles, stockLeft };
 	};
 
-	/** Prices a start-up's purchases together (input market depth shared, like one plan's purchases). */
-	const priceStartup = (jobs: CycleJob[]): PricedStartup => {
-		const { cycles, stockLeft } = startupCycles(jobs);
+	/** Prices cycles' purchases together (input market depth shared, like one plan's purchases). */
+	const priceCycles = (
+		jobs: CycleJob[],
+		{ cycles, stockLeft }: { cycles: StartupCycle[]; stockLeft: Map<number, number> }
+	): PricedStartup => {
 		const local: PricingContext = { ctx, missing: new Set() };
 		const entries = typeOrder.flatMap((typeId) =>
 			cycles.flatMap((c) =>
@@ -734,6 +774,8 @@ export function planReactions(input: PlanInput): PlanResult {
 			stockLeft
 		};
 	};
+	const priceStartup = (jobs: CycleJob[]) =>
+		priceCycles(jobs, startupCycles(jobs, steadyCycle, jobsIn, stockAfterBuilds));
 	const buyFirst = priceStartup([]);
 	// Every non-empty subset of the feeders (few: the unrefined jobs of one plan), fewest jobs first;
 	// the cheapest is the step 0 option.
@@ -773,12 +815,35 @@ export function planReactions(input: PlanInput): PlanResult {
 			...n.reprocessed.map((o) => o.typeId)
 		])
 	);
-	const unusedStock = fuelFirst(
-		items([...chosen.stockLeft].filter(([typeId]) => planTypes.has(typeId))).sort((a, b) =>
-			a.name.localeCompare(b.name)
-		),
-		dataset
+	/** Stock left of the plan's types, in the material order. */
+	const leftover = (stockLeft: Map<number, number>) =>
+		sortMaterials(items([...stockLeft].filter(([typeId]) => planTypes.has(typeId))), dataset);
+	const unusedStock = leftover(chosen.stockLeft);
+
+	// The horizon: the just-in-time schedule run on far enough that its cycles 1 to N see the demand of
+	// every later cycle they make for (a job at depth d in cycle c serves demand up to cycle c + d), so
+	// stock of built types keeps cutting runs past the start-up. Draws of cycle N + 1 count: they spare
+	// cycle N's runs.
+	const horizonCycles =
+		input.horizonCycles === undefined || !Number.isFinite(input.horizonCycles)
+			? steadyCycle
+			: Math.min(PLAN_MAX_HORIZON_CYCLES, Math.max(1, Math.floor(input.horizonCycles)));
+	const horizonSchedule = scheduleUntil(horizonCycles + maxDepth + 1, schedule.start);
+	const horizonRun = priceCycles(
+		chosen.jobs,
+		startupCycles(
+			chosen.jobs,
+			horizonCycles,
+			(cycle) => jobsOf(horizonSchedule.runs, cycle),
+			stockAfterDraws(horizonSchedule.drawn, horizonCycles + 1)
+		)
 	);
+	const horizon: PlanResult['horizon'] = {
+		cycles: horizonCycles,
+		purchases: horizonRun.initialPurchases,
+		jobCost: horizonRun.jobCosts.reduce((a, b) => a + b, 0),
+		unusedStock: leftover(horizonRun.stockLeft)
+	};
 	const startup: PlanStartup = {
 		mode: chosen === step0 ? 'step0' : 'buy',
 		reused: items(
@@ -876,7 +941,7 @@ export function planReactions(input: PlanInput): PlanResult {
 			countMissing: true,
 			withCosts: true
 		});
-	const outputsPerCycle = outputs.list().map((o) => {
+	const outputsPerCycle = sortMaterials(outputs.list(), dataset).map((o) => {
 		const daily = input.dailyVolumes[o.typeId];
 		return {
 			...o,
@@ -933,9 +998,10 @@ export function planReactions(input: PlanInput): PlanResult {
 		purchasesPerCycle,
 		initialPurchases: chosen.initialPurchases,
 		unusedStock,
+		horizon,
 		formulasToBuy,
 		outputsPerCycle,
-		surplusPerCycle: surplus.list(),
+		surplusPerCycle: sortMaterials(surplus.list(), dataset),
 		totals: {
 			recurringInvestment,
 			initialInvestment: chosen.investment + formulaCost,

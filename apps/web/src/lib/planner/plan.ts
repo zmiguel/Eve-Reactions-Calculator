@@ -258,10 +258,12 @@ export function targetFootprint(input: PlanInput, target: PlanTarget): TargetFoo
 		planReactions({ ...input, totalSlots: Number.POSITIVE_INFINITY, targets: [t] });
 	const line = alone({ blueprintTypeId: target.blueprintTypeId, lines: 1 });
 	const full = target.quantity === undefined && target.lines === 1 ? line : alone(target);
+	// The target's product among the outputs (byproducts of unrefined routes are listed with it).
+	const product = line.reactions.find((r) => r.blueprintTypeId === target.blueprintTypeId)?.product.typeId;
 	return {
 		perLine: line.slotsUsed,
 		total: full.slotsUsed,
 		finalSlots: full.reactions.find((r) => r.blueprintTypeId === target.blueprintTypeId)?.slots ?? 0,
-		unitsPerLine: line.outputsPerCycle[0]?.quantity ?? 0
+		unitsPerLine: line.outputsPerCycle.find((o) => o.typeId === product)?.quantity ?? 0
 	};
 }

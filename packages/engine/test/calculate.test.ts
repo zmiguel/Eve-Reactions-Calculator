@@ -56,8 +56,8 @@ describe('chain (Titanium Carbide)', () => {
 	it('builds both intermediates with 62 runs and 132 surplus each', () => {
 		expect(result.chain?.children.map((c) => [c.blueprintTypeId, c.runs, c.quantityUsed, c.surplus])).toEqual(
 			[
-				[46182, 62, 12268, 132],
-				[46179, 62, 12268, 132]
+				[46179, 62, 12268, 132],
+				[46182, 62, 12268, 132]
 			]
 		);
 		expect(result.chainDepth).toBe(2);
@@ -71,8 +71,8 @@ describe('chain (Titanium Carbide)', () => {
 
 	it('reports surplus at output price without adding it to revenue', () => {
 		expect(result.surplus.map((s) => [s.typeId, s.quantity, s.total])).toEqual([
-			[16654, 132, 132 * 66000],
-			[16658, 132, 132 * 66000]
+			[16658, 132, 132 * 66000],
+			[16654, 132, 132 * 66000]
 		]);
 		expect(result.totals.outputValue).toBeCloseTo(126 * 10000 * 1650, 4);
 	});
@@ -85,7 +85,7 @@ describe('chain (Titanium Carbide)', () => {
 
 	it('differs from buying the intermediates', () => {
 		const single = calculateReaction(byId(46204), makeCtx(), { view: 'single', outputMode: 'product' });
-		expect(single.inputs.map((i) => i.typeId)).toEqual([4312, 16654, 16658]);
+		expect(single.inputs.map((i) => i.typeId)).toEqual([4312, 16658, 16654]);
 		expect(single.totals.profit).not.toBeCloseTo(result.totals.profit!, 0);
 	});
 
@@ -109,14 +109,14 @@ describe('chain steps (Titanium Carbide)', () => {
 		expect(root.productTypeId).toBe(16671);
 		expect(root.materials.map((m) => [m.typeId, m.source])).toEqual([
 			[4312, 'buy'],
-			[16654, 'chain'],
-			[16658, 'chain']
+			[16658, 'chain'],
+			[16654, 'chain']
 		]);
 		expect(root.materials.filter((m) => m.source === 'chain')).toEqual([
-			expect.objectContaining({ quantity: 12268, blueprintTypeId: 46182 }),
-			expect.objectContaining({ quantity: 12268, blueprintTypeId: 46179 })
+			expect.objectContaining({ quantity: 12268, blueprintTypeId: 46179 }),
+			expect.objectContaining({ quantity: 12268, blueprintTypeId: 46182 })
 		]);
-		expect(root.children.map((c) => c.productTypeId)).toEqual([16654, 16658]);
+		expect(root.children.map((c) => c.productTypeId)).toEqual([16658, 16654]);
 	});
 
 	it('per-step bought materials sum to the aggregated inputs', () => {
@@ -154,7 +154,7 @@ describe('chain steps (Titanium Carbide)', () => {
 		const single = calculateReaction(byId(46204), ctx, { view: 'single', outputMode: 'product' });
 		expect(single.chain).toBeNull();
 		expect(result.chainDepth).toBe(2);
-		expect(result.inputs.map((i) => i.typeId)).toEqual([4312, 16638, 16641, 16635, 16636]);
+		expect(result.inputs.map((i) => i.typeId)).toEqual([4312, 16635, 16636, 16638, 16641]);
 	});
 
 	it('step subtotals reflect an input shipping discount', () => {

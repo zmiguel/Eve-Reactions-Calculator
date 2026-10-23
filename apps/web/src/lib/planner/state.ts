@@ -1,4 +1,11 @@
-import { STOCK_PLAN_MAX_CYCLES, Settings, decodeJson, encodeJson, storedSettings } from '@reactions/engine';
+import {
+	PLAN_MAX_HORIZON_CYCLES,
+	STOCK_PLAN_MAX_CYCLES,
+	Settings,
+	decodeJson,
+	encodeJson,
+	storedSettings
+} from '@reactions/engine';
 import { z } from 'zod';
 import { FILL_SCOPE_IDS } from './plan';
 
@@ -56,7 +63,11 @@ const PlannerStateSchema = z.object({
 	/** "Use what I have" cycles to plan; absent = the engine's default. */
 	stockCycles: z.number().int().min(1).max(STOCK_PLAN_MAX_CYCLES).optional(),
 	/** "Use what I have" search time in whole seconds; absent = {@link DEFAULT_STOCK_SEARCH_SECONDS}. */
-	stockSearchSeconds: z.number().int().min(MIN_STOCK_SEARCH_SECONDS).max(MAX_STOCK_SEARCH_SECONDS).optional()
+	stockSearchSeconds: z.number().int().min(MIN_STOCK_SEARCH_SECONDS).max(MAX_STOCK_SEARCH_SECONDS).optional(),
+	/** "Plan targets" shopping list: cycles it covers; absent = up to the first steady cycle. */
+	shoppingCycles: z.number().int().min(1).max(PLAN_MAX_HORIZON_CYCLES).optional(),
+	/** The shopping list subtracts the stock; absent = on. */
+	shoppingUseStock: z.boolean().optional()
 });
 
 export type PlannerState = z.infer<typeof PlannerStateSchema>;

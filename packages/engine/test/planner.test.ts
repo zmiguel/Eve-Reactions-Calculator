@@ -337,6 +337,109 @@ describe('stock of built types feeds the earliest cycles', () => {
 	});
 });
 
+describe('horizon: purchases over N cycles', () => {
+	// Titanium Carbide, 2 lines, as above: per cycle the two final jobs buy 2 × 614 = 1,228 Oxygen Fuel
+	// Blocks and the two intermediate jobs (123 runs each) 2 × 599 = 1,198 plus 11,976 of each of their
+	// four moon materials. Without stock: cycle 1 runs the intermediates, cycle 2 is steady.
+	const TIC = 46204;
+	const SIDI = 46179;
+	const TICR = 46182;
+	const perCycle = 24_536;
+	const MOON = [16635, 16636, 16638, 16641];
+	const carbide = (stock: Record<number, number>, horizonCycles?: number) =>
+		planReactions(input({ targets: [{ blueprintTypeId: TIC, lines: 2 }], stock, horizonCycles }));
+	const quantities = (items: { typeId: number; quantity: number }[]) =>
+		Object.fromEntries(items.map((i) => [i.typeId, i.quantity]));
+	const moon = (quantity: number) => Object.fromEntries(MOON.map((typeId) => [typeId, quantity]));
+	const cost = (items: { total: number; fees: number; shipping: number }[]) =>
+		items.reduce((a, i) => a + i.total + i.fees + i.shipping, 0);
+	const phaseJobCost = (plan: PlanResult) => plan.phases.reduce((a, p) => a + p.jobCost, 0);
+	const base = carbide({});
+
+	it('defaults to the first steady cycle: the start-up purchases and job costs', () => {
+		expect(base.horizon.cycles).toBe(2);
+		expect(base.horizon.purchases).toEqual(base.initialPurchases);
+		expect(base.horizon.jobCost).toBeCloseTo(phaseJobCost(base), 6);
+		expect(base.horizon.unusedStock).toEqual([]);
+		const booster = planReactions(input({ targets: [{ blueprintTypeId: 46235, lines: 1 }] }));
+		expect(booster.horizon.cycles).toBe(3);
+		expect(booster.horizon.purchases).toEqual(booster.initialPurchases);
+	});
+
+	it('without stock, every cycle past the first steady one adds a steady cycle of purchases', () => {
+		const plan = carbide({}, 5);
+		// Fuel: 1,198 + 2 × (1,228 + 1,198) start-up, then 3 × 2,426; moon materials: 5 × 11,976.
+		expect(quantities(plan.horizon.purchases)).toEqual({ 4312: 10_902, ...moon(59_880) });
+		expect(cost(plan.horizon.purchases)).toBeCloseTo(
+			cost(base.initialPurchases) + 3 * cost(base.purchasesPerCycle),
+			4
+		);
+		expect(plan.horizon.jobCost).toBeCloseTo(phaseJobCost(base) + 3 * base.totals.jobCostPerCycle, 6);
+		// Every other field is the plan's own.
+		expect({ ...plan, horizon: base.horizon }).toEqual(base);
+	});
+
+	it('fewer cycles than the start-up: only those cycles', () => {
+		const booster = (horizonCycles: number) =>
+			planReactions(input({ targets: [{ blueprintTypeId: 46235, lines: 1 }], horizonCycles }));
+		const summed = (lists: { typeId: number; quantity: number }[][]) =>
+			lists.flat().reduce<Record<number, number>>((acc, i) => {
+				acc[i.typeId] = (acc[i.typeId] ?? 0) + i.quantity;
+				return acc;
+			}, {});
+		const phases = booster(3).phases;
+		expect(quantities(booster(1).horizon.purchases)).toEqual(summed([phases[0].purchases]));
+		expect(quantities(booster(2).horizon.purchases)).toEqual(
+			summed([phases[0].purchases, phases[1].purchases])
+		);
+		expect(booster(1).horizon.jobCost).toBeCloseTo(phases[0].jobCost, 6);
+		expect(quantities(carbide({}, 1).horizon.purchases)).toEqual({ 4312: 1198, ...moon(11_976) });
+	});
+
+	it('takes whole cycles from 1 to 52', () => {
+		expect([0, 2.7, 99].map((n) => carbide({}, n).horizon.cycles)).toEqual([1, 2, 52]);
+	});
+
+	it('stock of a bought type covers the earliest purchases of all N cycles', () => {
+		// 4 cycles need 4 × 11,976 = 47,904 Evaporite Deposits; 30,000 in stock leave 17,904 to buy.
+		const plan = carbide({ 16635: 30_000 }, 4);
+		expect(quantities(plan.horizon.purchases)[16635]).toBe(17_904);
+		expect(plan.horizon.unusedStock).toEqual([]);
+		// The start-up alone uses 2 × 11,976 = 23,952.
+		expect(plan.unusedStock).toEqual([{ typeId: 16635, name: 'Evaporite Deposits', quantity: 6048 }]);
+		expect(carbide({ 16635: 30_000 }, 2).horizon.unusedStock).toEqual(plan.unusedStock);
+	});
+
+	it('stock of a built intermediate cuts its reactions’ runs and their inputs in later cycles too', () => {
+		// Three cycles of both intermediates feed the final jobs in cycles 1 to 3: the intermediates first
+		// run in cycle 3, for cycle 4. Cycle 2 is the first steady cycle of the start-up, which keeps them
+		// running there and leaves a cycle of stock over.
+		const stock = { 16654: 3 * perCycle, 16658: 3 * perCycle };
+		const two = carbide(stock);
+		expect(two.horizon.cycles).toBe(2);
+		expect(quantities(two.horizon.purchases)).toEqual({ 4312: 2 * 1228 });
+		expect(two.horizon.jobCost).toBeCloseTo(2 * reaction(two, TIC).jobCost, 6);
+		expect(two.horizon.unusedStock).toEqual([]);
+		expect(two.unusedStock).toHaveLength(2);
+
+		const three = carbide(stock, 3);
+		expect(quantities(three.horizon.purchases)).toEqual({ 4312: 3 * 1228 + 2 * 599, ...moon(11_976) });
+		expect(three.horizon.jobCost).toBeCloseTo(
+			3 * reaction(three, TIC).jobCost + reaction(three, SIDI).jobCost + reaction(three, TICR).jobCost,
+			6
+		);
+
+		// Two and a half cycles: cycle 2 makes the other half of cycle 3 in 62 runs per intermediate,
+		// buying ⌈62 × 100 × 0.9736⌉ = 6,037 of each moon material and 2 × 302 fuel blocks; cycle 3 runs
+		// the full 123 for cycle 4.
+		const half = carbide({ 16654: 2.5 * perCycle, 16658: 2.5 * perCycle }, 3);
+		expect(quantities(half.horizon.purchases)).toEqual({
+			4312: 3 * 1228 + 2 * 302 + 2 * 599,
+			...moon(6037 + 11_976)
+		});
+	});
+});
+
 describe('formulas to buy', () => {
 	it('owned formulas reduce the count; fully owned reactions disappear', () => {
 		const plan = planReactions(

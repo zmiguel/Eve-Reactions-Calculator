@@ -202,7 +202,7 @@ describe('StockPlanResults', () => {
 		expect(text(empty.container.querySelector('[data-metric="Profit / slot / day"] dd'))).toBe('n/a');
 	});
 
-	it('groups item lists by role: fuel, raw, intermediate, product, then other; by name within', () => {
+	it('groups item lists by role: fuel, raw, intermediate, product, then other; moon class, then name within', () => {
 		const { container } = setup(
 			stockPlan({
 				leftover: [
@@ -232,8 +232,8 @@ describe('StockPlanResults', () => {
 		]);
 		expect([...section.querySelectorAll('tr[data-type-id]')].map((r) => text(r.children[0]))).toEqual([
 			'Oxygen Fuel Block',
-			'Cobalt',
 			'Hydrocarbons',
+			'Cobalt',
 			'Carbon Polymers',
 			'Crystalline Carbonide',
 			'Mystery Goo'

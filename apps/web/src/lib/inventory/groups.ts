@@ -1,4 +1,4 @@
-import { inventoryRole, type Dataset } from '@reactions/engine';
+import { compareMaterials, inventoryRole, type Dataset } from '@reactions/engine';
 import type { InventoryRole } from './types';
 
 /** Material groups in display order. */
@@ -17,7 +17,8 @@ export interface RoleGroup<T> {
 
 /**
  * `items` grouped by their role among the reactions ({@link MATERIAL_GROUPS} order), then "Other" for
- * types without one; by name within a group. Empty groups are left out.
+ * types without one; within a group in the material order (raw moon materials by class R4 to R64, each
+ * class and everything else by name). Empty groups are left out.
  */
 export function groupByRole<T extends { typeId: number; name: string }>(
 	dataset: Dataset,
@@ -31,6 +32,6 @@ export function groupByRole<T extends { typeId: number; name: string }>(
 		const role = inventoryRole(dataset, item.typeId);
 		(groups.find((g) => g.role === role) ?? groups[groups.length - 1]).items.push(item);
 	}
-	for (const g of groups) g.items.sort((a, b) => a.name.localeCompare(b.name));
+	for (const g of groups) g.items.sort((a, b) => compareMaterials(dataset, a.typeId, b.typeId));
 	return groups.filter((g) => g.items.length > 0);
 }

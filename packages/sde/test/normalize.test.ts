@@ -12,6 +12,9 @@ import {
 	type RawTypeDogma
 } from '../src/index.ts';
 
+/** A real raw moon material (Hydrocarbons, R4), so the fixtures raise no UNCLASSIFIED_MOON_MATERIAL warning. */
+const MOON_GOO = 16633;
+
 function type(typeId: number, name: string, groupId: number, extra: Partial<RawType> = {}): RawType {
 	return { typeId, name, groupId, volume: 1, portionSize: 1, published: true, basePrice: null, ...extra };
 }
@@ -25,7 +28,7 @@ function blueprint(
 		blueprintTypeId,
 		maxProductionLimit: 1000,
 		time: 10800,
-		materials: [{ typeId: 1, quantity: 100 }],
+		materials: [{ typeId: MOON_GOO, quantity: 100 }],
 		products: [{ typeId: productTypeId, quantity: 200 }],
 		skills: [{ typeId: 45746, level: 2 }],
 		...extra
@@ -48,7 +51,11 @@ function raw(overrides: Partial<RawSde> = {}): RawSde {
 		releaseDate: '2026-01-01T00:00:00Z',
 		blueprints: [blueprint(500, 600)],
 		manufacturing: [],
-		types: [type(1, 'Moon Goo', 427), type(500, 'Thing Reaction Formula', 1888), type(600, 'Thing', 428)],
+		types: [
+			type(MOON_GOO, 'Moon Goo', 427),
+			type(500, 'Thing Reaction Formula', 1888),
+			type(600, 'Thing', 428)
+		],
 		groups: [
 			{ groupId: 427, name: 'Moon Materials', categoryId: 4 },
 			{ groupId: 428, name: 'Intermediate Materials', categoryId: 4 },
@@ -82,11 +89,11 @@ describe('normalize', () => {
 				maxRuns: 1000,
 				requiredSkillLevel: 2,
 				product: { typeId: 600, quantity: 200 },
-				materials: [{ typeId: 1, quantity: 100 }]
+				materials: [{ typeId: MOON_GOO, quantity: 100 }]
 			}
 		]);
-		expect(sde.types.map((t) => t.typeId)).toEqual([1, 500, 600]);
-		expect(sde.types[1]).toEqual({
+		expect(sde.types.map((t) => t.typeId)).toEqual([500, 600, MOON_GOO]);
+		expect(sde.types[0]).toEqual({
 			typeId: 500,
 			name: 'Thing Reaction Formula',
 			volume: 1,
@@ -96,7 +103,7 @@ describe('normalize', () => {
 			published: true,
 			basePrice: null
 		});
-		expect(Object.keys(sde.dataset.types).map(Number)).toEqual([1, 500, 600]);
+		expect(Object.keys(sde.dataset.types).map(Number)).toEqual([500, 600, MOON_GOO]);
 		expect(sde.dataset.sdeBuild).toBe(42);
 	});
 
@@ -132,7 +139,7 @@ describe('normalize', () => {
 			raw({
 				blueprints: [blueprint(502, 602), blueprint(501, 601)],
 				types: [
-					type(1, 'Moon Goo', 427),
+					type(MOON_GOO, 'Moon Goo', 427),
 					type(501, 'A Formula', 1888),
 					type(502, 'B Formula', 1888),
 					type(601, 'Foo Bar', 428),
@@ -164,7 +171,7 @@ describe('normalize', () => {
 			raw({
 				blueprints: cases.map((_, i) => blueprint(1000 + i, 2000 + i)),
 				types: [
-					type(1, 'Moon Goo', 427),
+					type(MOON_GOO, 'Moon Goo', 427),
 					...cases.flatMap(([formulaGroup, name, productGroup], i) => [
 						type(1000 + i, `${name} Reaction Formula`, formulaGroup),
 						type(2000 + i, name, productGroup)
@@ -195,10 +202,10 @@ describe('normalize', () => {
 					type(34, 'Tritanium', 18)
 				],
 				typeMaterials: [
-					{ typeId: 600, materials: [{ materialTypeId: 1, quantity: 5 }], randomizedMaterials: [] },
+					{ typeId: 600, materials: [{ materialTypeId: MOON_GOO, quantity: 5 }], randomizedMaterials: [] },
 					{
 						typeId: 601,
-						materials: [{ materialTypeId: 1, quantity: 36 }],
+						materials: [{ materialTypeId: MOON_GOO, quantity: 36 }],
 						randomizedMaterials: [{ materialTypeId: 34, quantityMin: 10, quantityMax: 20 }]
 					}
 				]
@@ -209,7 +216,7 @@ describe('normalize', () => {
 				typeId: 601,
 				portionSize: 1,
 				materials: [
-					{ typeId: 1, quantity: 36, quantityMin: null, quantityMax: null },
+					{ typeId: MOON_GOO, quantity: 36, quantityMin: null, quantityMax: null },
 					{ typeId: 34, quantity: null, quantityMin: 10, quantityMax: 20 }
 				]
 			}
@@ -219,10 +226,25 @@ describe('normalize', () => {
 
 	it('warns when an unrefined product has no reprocess data', () => {
 		const sde = normalize(
-			raw({ types: [type(1, 'Moon Goo', 427), type(500, 'F', 1888), type(600, 'Unrefined Thing', 428)] })
+			raw({
+				types: [type(MOON_GOO, 'Moon Goo', 427), type(500, 'F', 1888), type(600, 'Unrefined Thing', 428)]
+			})
 		);
 		expect(sde.dataset.reprocess).toEqual({});
 		expect(sde.warnings).toContain('MISSING_REPROCESS:600');
+	});
+
+	it('warns about a tracked moon material without a class', () => {
+		const sde = normalize(
+			raw({
+				blueprints: [blueprint(500, 600, { materials: [{ typeId: 1, quantity: 100 }] })],
+				types: [type(1, 'New Goo', 427), type(500, 'Thing Reaction Formula', 1888), type(600, 'Thing', 428)]
+			})
+		);
+		expect(sde.dataset.reactions.map((r) => r.blueprintTypeId)).toEqual([500]);
+		expect(sde.warnings.filter((w) => !w.startsWith('MISSING_CONSTANT'))).toEqual([
+			'UNCLASSIFIED_MOON_MATERIAL:1'
+		]);
 	});
 
 	it('falls back to DEFAULT_CONSTANTS with a warning per missing dogma value', () => {
@@ -365,7 +387,7 @@ describe('normalize', () => {
 		]);
 		expect(sde.warnings.filter((w) => /:70\d$/.test(w))).toEqual(['MISSING_TYPE:706', 'NO_PRODUCT:707']);
 		// Blueprint and product types are not added to the type tables.
-		expect(sde.types.map((t) => t.typeId)).toEqual([1, 500, 600]);
+		expect(sde.types.map((t) => t.typeId)).toEqual([500, 600, MOON_GOO]);
 	});
 
 	it('keeps published blueprints making a reaction material with every material, and tracks their types', () => {
@@ -379,13 +401,13 @@ describe('normalize', () => {
 							{ typeId: 901, quantity: 450 },
 							{ typeId: 600, quantity: 2 }
 						],
-						products: [{ typeId: 1, quantity: 40 }]
+						products: [{ typeId: MOON_GOO, quantity: 40 }]
 					},
 					// Unpublished.
 					{
 						blueprintTypeId: 711,
 						materials: [{ typeId: 902, quantity: 1 }],
-						products: [{ typeId: 1, quantity: 40 }]
+						products: [{ typeId: MOON_GOO, quantity: 40 }]
 					}
 				],
 				types: [
@@ -406,7 +428,7 @@ describe('normalize', () => {
 			{
 				blueprintTypeId: 710,
 				name: 'Goo Blueprint',
-				productTypeId: 1,
+				productTypeId: MOON_GOO,
 				productName: 'Moon Goo',
 				productQuantity: 40,
 				makes: 'material',
@@ -416,7 +438,7 @@ describe('normalize', () => {
 				]
 			}
 		]);
-		expect(sde.types.map((t) => t.typeId)).toEqual([1, 500, 600, 710, 901]);
+		expect(sde.types.map((t) => t.typeId)).toEqual([500, 600, 710, 901, MOON_GOO]);
 		expect(sde.dataset.types[901]).toMatchObject({ name: 'Isotopes', groupId: 423 });
 		expect(sde.warnings.filter((w) => !w.startsWith('MISSING_CONSTANT'))).toEqual([]);
 	});

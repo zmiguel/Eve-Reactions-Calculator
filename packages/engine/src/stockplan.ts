@@ -5,7 +5,7 @@ import {
 	type PricingContext,
 	type Warning
 } from './calculate.ts';
-import { fuelFirst, isFuelBlock } from './constants.ts';
+import { isFuelBlock, sortMaterials } from './constants.ts';
 import {
 	eiv,
 	inputUnitPrice,
@@ -521,13 +521,9 @@ export function planFromStock(input: StockPlanInput): StockPlan {
 		[...entries]
 			.filter(([, quantity]) => quantity > 0)
 			.map(([typeId, quantity]) => ({ typeId, name: typeName(typeId), quantity }));
-	/** List order of every item list: fuel blocks first, then by name. */
-	const byName = <T extends { typeId: number; name: string }>(list: T[]) =>
-		fuelFirst(
-			list.sort((a, b) => a.name.localeCompare(b.name)),
-			dataset
-		);
-	const unpricedStock = byName(
+	/** Every item list in the material order (`sortMaterials`). */
+	const inMaterialOrder = <T extends { typeId: number }>(list: T[]) => sortMaterials(list, dataset);
+	const unpricedStock = inMaterialOrder(
 		items(
 			[...held].filter(([typeId]) => {
 				const role = inventoryRole(dataset, typeId);
@@ -581,7 +577,7 @@ export function planFromStock(input: StockPlanInput): StockPlan {
 			for (const c of modelled) {
 				const col = c.columns[cycle];
 				if (!col) continue;
-				const inputs = fuelFirst(c.reaction.materials, dataset);
+				const inputs = sortMaterials(c.reaction.materials, dataset);
 				const needs = (runs: number) => {
 					const runsPerSlot = splitIntoSlots(runs, c.capacity);
 					return inputs.map((m) => ({
@@ -657,14 +653,14 @@ export function planFromStock(input: StockPlanInput): StockPlan {
 			fuelBag.addItem(item);
 		}
 		if (sourcing.short) warnings.add('INPUT_VOLUME_SHORT');
-		const fuelToBuy = byName(sourcing.annotate(fuelBag.list()));
+		const fuelToBuy = inMaterialOrder(sourcing.annotate(fuelBag.list()));
 
 		const cycles: StockPlanCycle[] = rawCycles.map((c) => ({
 			cycle: c.cycle,
 			jobs: c.jobs,
-			fuel: byName(perCycle.get(c.cycle)!.list()),
-			consumed: byName(items(c.consumed)),
-			produced: byName(items(c.made)),
+			fuel: inMaterialOrder(perCycle.get(c.cycle)!.list()),
+			consumed: inMaterialOrder(items(c.consumed)),
+			produced: inMaterialOrder(items(c.made)),
 			slotsUsed: c.jobs.reduce((acc, j) => acc + j.slots, 0),
 			jobCost: c.jobs.reduce((acc, j) => acc + j.jobCost, 0)
 		}));
@@ -702,7 +698,7 @@ export function planFromStock(input: StockPlanInput): StockPlan {
 			cycles,
 			fuelToBuy,
 			formulasToBuy,
-			leftover: byName(items(pool)),
+			leftover: inMaterialOrder(items(pool)),
 			unpricedStock,
 			totals: {
 				valueConsumed,
