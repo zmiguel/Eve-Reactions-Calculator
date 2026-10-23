@@ -19,7 +19,7 @@
 		"@reactions/engine": "*",
 		"@reactions/eve": "*",
 		"@reactions/sde": "*",
-		"@scalar/api-reference": "^1.73.0",
+		"@scalar/api-reference": "^1.75.0",
 		"zod": "^4.6.7"
 	},
 	"devDependencies": {
