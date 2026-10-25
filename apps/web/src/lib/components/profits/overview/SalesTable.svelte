@@ -34,7 +34,7 @@
 		</tr>
 	{/snippet}
 	{#snippet row(s: SaleTableRow)}
-		<tr class="border-t border-gray-200 dark:border-gray-700" data-sale={s.ref}>
+		<tr class="border-t border-gray-200 dark:border-gray-600" data-sale={s.ref}>
 			<td class="{cell} whitespace-nowrap">
 				{formatUtc(s.at)}
 				<span class={muted}>{formatRelative(s.at, now)}</span>

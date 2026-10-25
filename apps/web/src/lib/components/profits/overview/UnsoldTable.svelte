@@ -27,7 +27,7 @@
 		</tr>
 	{/snippet}
 	{#snippet row(u: UnsoldTableRow)}
-		<tr class="border-t border-gray-200 dark:border-gray-700" data-unsold={u.typeId}>
+		<tr class="border-t border-gray-200 dark:border-gray-600" data-unsold={u.typeId}>
 			<td class={cell}>
 				<a href="/profits/ledger/{u.typeId}" class="inline-flex items-center gap-2 {link}">
 					<img

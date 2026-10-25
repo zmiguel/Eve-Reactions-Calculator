@@ -158,7 +158,7 @@ export const SEED_INVENTORY = {
  * Job facilities of the seed pilot as the updater detects them (`tracked_facilities`): the refinery of
  * the Titanium Chromide and Titanium Carbide jobs, a lowsec Tatara whose L-Set Reactor Efficiency II the
  * corporation assets showed (2.4 %, as the default reactor profile); the factory of the manufacturing
- * job, a Raitaru found by the lookup whose rigs were not read (the site asks for them); and the
+ * jobs, a Raitaru found by the lookup whose rigs were not read (the site asks for them); and the
  * structure of the Silicon Diborite job, whose lookup was refused (the site asks for type and rigs; the
  * reactor profile applies meanwhile).
  */
@@ -448,10 +448,11 @@ export function seedDailyPrice(market: MarketFixture, factor: number, typeId: nu
  * rule); day 8 market buys of Titanium Chromide, Silicon Diborite and Oxygen Isotopes through buy orders
  * (broker fee rows) and the two intermediate jobs (they use 294 of the 300 blocks); day 7 a fuel block
  * job; day 6 a Titanium Carbide job that uses the bought and the made intermediates and the last 6
- * bought blocks plus 141 made ones; days 4–3 a partial sale of Titanium Carbide through a sell order
- * (journal sales tax and broker fee); day 2 a manufacturing job (blueprint ME 10 read from EVE) that
- * takes part of the Titanium Carbide; day 1 a contract purchase of Platinum with an untracked module,
- * and a purchase the pilot entered by hand.
+ * bought blocks plus 141 made ones; day 5 a market buy of Zydrine; days 4–3 a partial sale of Titanium
+ * Carbide through a sell order (journal sales tax and broker fee); day 3 a capital component job that
+ * uses part of the Zydrine (a quantity only); day 2 a manufacturing job (blueprint ME 10 read from EVE)
+ * that takes part of the Titanium Carbide; day 1 a contract purchase of Platinum with an untracked
+ * module, and a purchase the pilot entered by hand.
  */
 export const SEED_TRACKING = {
 	streams: ['jobs', 'contracts', 'orders', 'transactions', 'journal', 'blueprints'],
@@ -501,6 +502,25 @@ export const SEED_TRACKING = {
 		cost: 95_000,
 		startDay: 7,
 		isotopes: 1_604
+	},
+	/**
+	 * Capital Construction Parts Blueprint (Zydrine 413 per run, other minerals and Reinforced Carbon Fiber
+	 * not held) at ME 10 (read from EVE) in the Raitaru (role bonus 1 %, rigs not read): 1 run takes
+	 * 413 × 0.9 × 0.99 = 367.98 → 368 of the 1,000 Zydrine bought on day 5, as a quantity only (no value).
+	 */
+	consumption: {
+		name: 'Zydrine',
+		transactionId: 6100000005,
+		bought: 1_000,
+		buyDay: 5,
+		jobId: 610000006,
+		blueprintTypeId: 21038,
+		blueprintId: 1060000000003,
+		runs: 1,
+		me: 10,
+		cost: 310_000,
+		startDay: 3,
+		consumed: 368
 	},
 	/** Entered on the Ledger tab: Titanium Carbide bought outside the tracked wallets. */
 	manual: {
@@ -662,6 +682,16 @@ function trackingSql(sde: SdeDataset, market: MarketFixture, now: number): strin
 		{ issued: at(8, 8), total: t.fuel.isotopes, remain: 0, state: 'expired' },
 		at(8, 10),
 		t.fuel.isotopes
+	);
+	const z = t.consumption;
+	trade(
+		z.transactionId,
+		z.name,
+		true,
+		jita[typeId(z.name)]!.buy,
+		{ issued: at(z.buyDay, 8), total: z.bought, remain: 0, state: 'expired' },
+		at(z.buyDay, 9),
+		z.bought
 	);
 
 	// Contracts: issued day 9 10:00 by a seller, accepted by the pilot at 11:00.
@@ -825,6 +855,42 @@ function trackingSql(sde: SdeDataset, market: MarketFixture, now: number): strin
 		end_date: fuelStart + 3_600_000,
 		completed_date: fuelStart + 2 * 3_600_000
 	});
+	const consumer = sde.manufacturingBlueprints.find((b) => b.blueprintTypeId === z.blueprintTypeId);
+	if (!consumer) throw new Error(`the SDE fixture has no consuming blueprint ${z.blueprintTypeId}`);
+	const consumerStart = at(z.startDay, 10);
+	jobs.push({
+		job_id: z.jobId,
+		source_id: SEED_TRACKING_SOURCE,
+		installer_id: pilot,
+		activity_id: 1,
+		blueprint_id: z.blueprintId,
+		blueprint_me: z.me,
+		blueprint_type_id: consumer.blueprintTypeId,
+		product_type_id: consumer.productTypeId,
+		runs: z.runs,
+		status: 'delivered',
+		cost: z.cost,
+		facility_id: SEED_FACILITIES.factory.facilityId,
+		output_location_id: SEED_FACILITIES.factory.facilityId,
+		start_date: consumerStart,
+		end_date: consumerStart + 4 * 3_600_000,
+		completed_date: consumerStart + 5 * 3_600_000
+	});
+	// What the rebuild loads from `manufacturing_blueprints` for the blueprints of the manufacturing jobs.
+	const jobBlueprints = new Set(jobs.filter((j) => j.activity_id === 1).map((j) => j.blueprint_type_id));
+	const manufacturingMaterials = sde.manufacturingBlueprints
+		.filter((b) => jobBlueprints.has(b.blueprintTypeId))
+		.flatMap((b) =>
+			[...b.materials]
+				.sort((x, y) => x.typeId - y.typeId)
+				.map((m) => ({
+					blueprint_type_id: b.blueprintTypeId,
+					product_type_id: b.productTypeId,
+					product_filters_json: JSON.stringify(b.productFilters),
+					type_id: m.typeId,
+					quantity: m.quantity
+				}))
+		);
 	const manualEntries = [
 		{
 			entry_id: t.manual.entryId,
@@ -844,6 +910,7 @@ function trackingSql(sde: SdeDataset, market: MarketFixture, now: number): strin
 		contracts,
 		contractItems,
 		jobs,
+		manufacturingMaterials,
 		corrections: [],
 		manualEntries
 	};
@@ -971,6 +1038,8 @@ export function buildSeedSql(
 		'DELETE FROM reaction_materials;',
 		'DELETE FROM reprocess_materials;',
 		'DELETE FROM material_blueprint_materials;',
+		'DELETE FROM manufacturing_blueprint_materials;',
+		'DELETE FROM manufacturing_blueprints;',
 		'DELETE FROM reactions;',
 		'DELETE FROM types;',
 		'DELETE FROM systems;',
@@ -1085,6 +1154,24 @@ export function buildSeedSql(
 			(dataset.manufacturing ?? [])
 				.filter((b) => b.makes === 'material')
 				.flatMap((b) => b.materials.map((m) => [b.blueprintTypeId, m.typeId, m.quantity]))
+		),
+		...insert(
+			'manufacturing_blueprints',
+			['blueprint_type_id', 'name', 'product_type_id', 'product_name', 'product_filters_json'],
+			sde.manufacturingBlueprints.map((b) => [
+				b.blueprintTypeId,
+				b.name,
+				b.productTypeId,
+				b.productName,
+				JSON.stringify(b.productFilters)
+			])
+		),
+		...insert(
+			'manufacturing_blueprint_materials',
+			['blueprint_type_id', 'type_id', 'quantity'],
+			sde.manufacturingBlueprints.flatMap((b) =>
+				b.materials.map((m) => [b.blueprintTypeId, m.typeId, m.quantity])
+			)
 		),
 		...insert(
 			'sde_state',

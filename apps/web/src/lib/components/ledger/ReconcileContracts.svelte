@@ -41,7 +41,7 @@
 	{/snippet}
 	{#snippet row(r: ReconcileContractRow)}
 		{@const badge = DIRECTION_BADGE[r.incoming ? 'in' : 'out']}
-		<tr class="border-t border-gray-200 dark:border-gray-700" data-contract-item={r.ref}>
+		<tr class="border-t border-gray-200 dark:border-gray-600" data-contract-item={r.ref}>
 			<td class="{cell} whitespace-nowrap" data-contract-label>
 				<span class="text-gray-900 dark:text-gray-100">Contract of {formatUtc(r.at)}</span>
 				{#if r.title}<span class="block max-w-xs truncate {muted}" title={r.title}>{r.title}</span>{/if}

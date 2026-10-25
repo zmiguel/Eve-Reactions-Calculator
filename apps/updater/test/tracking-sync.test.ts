@@ -3,6 +3,7 @@ import { env } from 'cloudflare:workers';
 import { DATASET_KV_KEY } from '@reactions/db';
 import { ESI_FEATURES, encryptToken } from '@reactions/eve';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { setContractJanice } from '../src/contract-janice.ts';
 import { fetchTrackingJanice } from '../src/workflows/tracking-sync.ts';
 import { installFetch, json, resetState } from './helpers.ts';
 import type { RecordedCall } from './helpers.ts';
@@ -797,6 +798,42 @@ describe('TrackingSyncWorkflow', () => {
 			]);
 		});
 
+		it('stores jobs of blueprints consuming tracked materials, and the rebuild takes those materials', async () => {
+			await seedConnection(1, 'u1', 'character');
+			// A ship-like blueprint taking 2 Oxygen Isotopes (tracked) per run; blueprint 999 is in no table.
+			await env.DB.batch([
+				env.DB.prepare(
+					`INSERT INTO manufacturing_blueprints (blueprint_type_id, name, product_type_id, product_name, product_filters_json)
+					VALUES (691, 'Ship Blueprint', 587, 'Ship', '[]')`
+				),
+				env.DB.prepare(
+					'INSERT INTO manufacturing_blueprint_materials (blueprint_type_id, type_id, quantity) VALUES (691, 17887, 2)'
+				)
+			]);
+			const state: EveState = {
+				...emptyState(),
+				// 30 isotopes bought before the jobs started.
+				transactions: [{ ...tx(203, 17887, true), quantity: 30, date: '2026-10-12T07:00:00Z' }],
+				jobs: [job(8, 1, 'active', 691), job(9, 1, 'delivered', 999)],
+				blueprints: [[blueprint(9008, 10)]]
+			};
+			installEve(state);
+
+			expect(await runSync('tracking-1-1', 1)).toMatchObject({ ok: true, status: 'ok', ledgerRebuilt: true });
+
+			expect(await jobsOf()).toEqual([
+				{ job_id: 8, activity_id: 1, blueprint_id: 9008, blueprint_me: 10, status: 'active' }
+			]);
+			// 10 runs × 2 × 0.9 (ME 10; the structure is unknown: no bonus) = 18 of the 30, without a value.
+			expect(
+				await rows(
+					`SELECT u.use_kind, u.use_ref, u.quantity, u.unit_value, l.remaining FROM ledger_uses u
+					JOIN ledger_lots l USING (user_id, lot_id)`
+				)
+			).toEqual([{ use_kind: 'consumed', use_ref: 'job:8', quantity: 18, unit_value: null, remaining: 12 }]);
+			expect(await rows('SELECT job_id FROM job_results')).toEqual([]);
+		});
+
 		it('fetches material transactions and fuel block jobs again after the 3.2.2 stream reset', async () => {
 			await seedConnection(1, 'u1', 'character');
 			const withoutFuel = {
@@ -917,8 +954,56 @@ describe('TrackingSyncWorkflow', () => {
 				last_error: 'ESI denied access'
 			});
 		});
+
+		it('clears an earlier blueprints error once no job waits for its blueprint', async () => {
+			await seedConnection(1, 'u1', 'character');
+			// An earlier attempt failed, and the job it read for has since been delivered.
+			await env.DB.prepare(
+				`INSERT INTO tracking_streams (source_id, stream, user_id, status, last_error)
+				VALUES (1, 'blueprints', 'u1', 'error', 'Something went wrong on our side; it will be retried.')`
+			).run();
+			const calls = installEve({ ...emptyState(), jobs: [job(3, 1, 'delivered', MFG_BLUEPRINT)] });
+			await runSync('tracking-1-1', 1);
+			expect(esiCalls(calls, /blueprints$/)).toEqual([]);
+			expect(await streams(1)).toContainEqual({
+				stream: 'blueprints',
+				status: 'ok',
+				cursor: null,
+				last_error: null
+			});
+		});
 	});
 });
+
+/**
+ * Janice answering every code with `typeIds` (10 of each), except `failing` ones (404) and `invalid`
+ * ones (a non-numeric price).
+ */
+function installJanice(
+	failing: readonly string[] = [],
+	invalid: readonly string[] = [],
+	typeIds: readonly number[] = [4312]
+) {
+	return installFetch((url) => {
+		const code = url.pathname.split('/').at(-1)!;
+		if (failing.includes(code)) return json({ error: 'not found' }, {}, 404);
+		return json({
+			code,
+			created: '2026-10-11T00:00:00Z',
+			datasetTime: '2026-10-11T00:00:00Z',
+			market: { id: 2, name: 'Jita 4-4' },
+			pricing: 'split',
+			pricingVariant: 'immediate',
+			items: typeIds.map((eid) => ({
+				amount: 10,
+				itemType: { eid, name: `Type ${eid}` },
+				effectivePrices: { buyPrice: invalid.includes(code) ? 'n/a' : 1, splitPrice: 2, sellPrice: 3 }
+			}))
+		});
+	});
+}
+
+const keyed = () => Object.create(env, { JANICE_API_KEY: { value: 'key-1' } }) as Env;
 
 describe('fetchTrackingJanice', () => {
 	beforeEach(resetState);
@@ -938,30 +1023,6 @@ describe('fetchTrackingJanice', () => {
 		await env.DB.batch(codes.map((code, i) => insert(i + 1, code)));
 	}
 
-	/** Janice answering every code, except `failing` ones (404) and `invalid` ones (a non-numeric price). */
-	function installJanice(failing: readonly string[] = [], invalid: readonly string[] = []) {
-		return installFetch((url) => {
-			const code = url.pathname.split('/').at(-1)!;
-			if (failing.includes(code)) return json({ error: 'not found' }, {}, 404);
-			return json({
-				code,
-				created: '2026-10-11T00:00:00Z',
-				datasetTime: '2026-10-11T00:00:00Z',
-				market: { id: 2, name: 'Jita 4-4' },
-				pricing: 'split',
-				pricingVariant: 'immediate',
-				items: [
-					{
-						amount: 10,
-						itemType: { eid: 4312, name: 'Oxygen Fuel Block' },
-						effectivePrices: { buyPrice: invalid.includes(code) ? 'n/a' : 1, splitPrice: 2, sellPrice: 3 }
-					}
-				]
-			});
-		});
-	}
-
-	const keyed = () => Object.create(env, { JANICE_API_KEY: { value: 'key-1' } }) as Env;
 	const requested = (calls: RecordedCall[]) => calls.map((c) => new URL(c.url).pathname.split('/').at(-1));
 	const T0 = Date.UTC(2026, 9, 12, 8);
 
@@ -1037,5 +1098,95 @@ describe('fetchTrackingJanice', () => {
 		calls = installJanice(failing);
 		expect(await fetchTrackingJanice(keyed(), 1, 'run-1', T0 + HOUR)).toEqual({ fetched: 1, failed: 0 });
 		expect(requested(calls)).toEqual(['ZZZ']);
+	});
+});
+
+describe('setContractJanice', () => {
+	beforeEach(async () => {
+		await resetState();
+		await env.CACHE.put(DATASET_KV_KEY, JSON.stringify(DATASET));
+	});
+	afterEach(() => vi.unstubAllGlobals());
+
+	/** `personalState` with contract 701 (title link AbC123) selling two tracked types. */
+	function twoTypeState(): EveState {
+		const state = personalState();
+		state.items[701] = [
+			{ record_id: 1, type_id: 4312, quantity: 10, is_included: true, is_singleton: false },
+			{ record_id: 2, type_id: 16643, quantity: 10, is_included: true, is_singleton: false }
+		];
+		return state;
+	}
+
+	const contract701 = () =>
+		env.DB.prepare('SELECT janice_code, janice_json FROM tracked_contracts WHERE contract_id = 701').first<{
+			janice_code: string | null;
+			janice_json: string | null;
+		}>();
+	const pricesOf701 = () =>
+		rows(
+			"SELECT type_id, source_kind, source_text FROM ledger_prices WHERE ref = 'contract:701' ORDER BY type_id"
+		);
+
+	it('stores the appraisal on that contract, prices it by Janice, and later syncs keep it', async () => {
+		await seedConnection(1, 'u1', 'character');
+		const state = twoTypeState();
+		installEve(state);
+		await runSync('tracking-1-1', 1);
+		expect(await contract701()).toEqual({ janice_code: 'AbC123', janice_json: null });
+
+		const calls = installJanice([], [], [4312, 16643]);
+		expect(await setContractJanice(keyed(), 'u1', 701, 'XyZ789')).toEqual({ rebuilt: true });
+		expect(calls.map((c) => new URL(c.url).pathname)).toEqual(['/api/rest/v2/appraisal/XyZ789']);
+		const stored = await contract701();
+		expect(stored!.janice_code).toBe('XyZ789');
+		expect(JSON.parse(stored!.janice_json!)).toMatchObject({ code: 'XyZ789', marketName: 'Jita 4-4' });
+		const janicePrices = [
+			{ type_id: 4312, source_kind: 'janice', source_text: expect.stringContaining('XyZ789') },
+			{ type_id: 16643, source_kind: 'janice', source_text: expect.stringContaining('XyZ789') }
+		];
+		expect(await pricesOf701()).toEqual(janicePrices);
+
+		// A later sync reads the contract again: the user's appraisal stays, and so do the prices.
+		await env.DB.prepare('UPDATE tracking_streams SET expires_at = 0 WHERE source_id = 1').run();
+		installEve(state);
+		await runSync('tracking-1-2', 1);
+		expect(await contract701()).toEqual(stored);
+		expect(await pricesOf701()).toEqual(janicePrices);
+
+		// The `janice` step has nothing to fetch for it.
+		await env.DB.prepare(
+			"UPDATE inventory_sources SET tracking_status = 'running', tracking_run_id = 'run-3'"
+		).run();
+		const step = installJanice();
+		expect(await fetchTrackingJanice(keyed(), 1, 'run-3', Date.now())).toEqual({ fetched: 0, failed: 0 });
+		expect(step).toEqual([]);
+		expect(await contract701()).toEqual(stored);
+	});
+
+	it.each([
+		['an unknown contract', 'u1', 999, keyed, [] as string[], 'missing'],
+		["another user's contract", 'u2', 701, keyed, [], 'missing'],
+		['no Janice API key', 'u1', 701, () => env, [], 'unavailable'],
+		['a code Janice does not know', 'u1', 701, keyed, ['XyZ789'], 'unknown']
+	])('stores nothing for %s', async (_case, userId, contractId, envOf, failing, error) => {
+		await seedConnection(1, 'u1', 'character');
+		await seedConnection(2, 'u2', 'character');
+		installEve(twoTypeState());
+		await runSync('tracking-1-1', 1);
+		vi.spyOn(console, 'error').mockImplementation(() => {});
+		installJanice(failing);
+		expect(await setContractJanice(envOf(), userId, contractId, 'XyZ789')).toEqual({ error });
+		expect(await contract701()).toEqual({ janice_code: 'AbC123', janice_json: null });
+	});
+
+	it('reports an invalid answer as failed', async () => {
+		await seedConnection(1, 'u1', 'character');
+		installEve(twoTypeState());
+		await runSync('tracking-1-1', 1);
+		vi.spyOn(console, 'error').mockImplementation(() => {});
+		installJanice([], ['XyZ789']);
+		expect(await setContractJanice(keyed(), 'u1', 701, 'XyZ789')).toEqual({ error: 'failed' });
+		expect(await contract701()).toEqual({ janice_code: 'AbC123', janice_json: null });
 	});
 });

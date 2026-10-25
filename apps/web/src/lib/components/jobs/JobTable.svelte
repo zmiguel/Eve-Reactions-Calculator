@@ -54,7 +54,7 @@
 		</tr>
 	{/snippet}
 	{#snippet row(job: JobRow)}
-		<tr class="border-t border-gray-200 dark:border-gray-700" data-job={job.jobId}>
+		<tr class="border-t border-gray-200 dark:border-gray-600" data-job={job.jobId}>
 			<td class={cell}>
 				<a href="/profits/jobs/{job.jobId}" class="inline-flex items-center gap-2 {link}" data-job-link>
 					<img

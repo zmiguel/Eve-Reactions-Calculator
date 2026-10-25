@@ -295,4 +295,37 @@ describe('/profits/ledger/[typeId] page', () => {
 		expect(container.querySelector('[data-lot="6"]')?.textContent).not.toMatch(/800[12]/);
 		expect(container.querySelector('[data-use="job:8001"] [data-isk="130"]')).not.toBeNull();
 	});
+
+	it('words materials manufacturing jobs consumed, with the units and no value', () => {
+		const consumed = {
+			kind: 'consumed' as const,
+			formula: null,
+			at: NOW - HOUR,
+			saleUnitPrice: null,
+			unitValue: null,
+			quantity: 368,
+			unitCost: 100
+		};
+		const bought = lot(7, {
+			quantity: 1000,
+			remaining: 632,
+			uses: [
+				{
+					...consumed,
+					ref: 'job:8101',
+					jobId: 8101,
+					product: { typeId: 21037, name: 'Capital Construction Parts' }
+				},
+				{ ...consumed, ref: 'job:8102', jobId: 8102, product: null }
+			]
+		});
+		const container = renderPage(data({ batches: paginate([bought], 1) }));
+		const used = (jobId: number) => container.querySelector(`[data-consumed="${jobId}"]`)?.textContent;
+		expect(used(8101)?.trim()).toBe('Used in manufacturing: Capital Construction Parts');
+		expect(used(8102)?.trim()).toBe('Used in a manufacturing job');
+		const use = container.querySelector('[data-use="job:8101"]')!;
+		expect(use.textContent).toContain('368 units');
+		expect(use.querySelector('[data-isk]')).toBeNull();
+		expect(container.querySelector('[data-lot="7"]')?.textContent).not.toMatch(/810[12]/);
+	});
 });

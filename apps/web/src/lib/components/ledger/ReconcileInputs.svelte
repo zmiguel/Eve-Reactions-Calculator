@@ -103,7 +103,7 @@
 				</td>
 			</tr>
 		{/if}
-		<tr class="border-t border-gray-200 dark:border-gray-700" data-input={r.ref}>
+		<tr class="border-t border-gray-200 dark:border-gray-600" data-input={r.ref}>
 			<td class="{cell} whitespace-nowrap">
 				<a
 					href="/profits/jobs/{r.jobId}"

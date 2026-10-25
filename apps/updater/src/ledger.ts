@@ -19,6 +19,7 @@ import {
 	type CorrectionRow,
 	type JobRow,
 	type ManualEntryRow,
+	type ManufacturingMaterialRow,
 	type JournalRow,
 	type OrderRow,
 	type SqlValue,
@@ -72,9 +73,19 @@ const LOAD_SQL = {
 		FROM tracked_contract_items i
 		JOIN tracked_contracts c ON c.user_id = i.user_id AND c.contract_id = i.contract_id
 		WHERE i.user_id = ?1 AND c.${TRACKED_SOURCES} ORDER BY i.contract_id, i.record_id`,
-	/** Reaction jobs and manufacturing jobs (`activity_id` 1: fuel block jobs, and jobs taking reaction output). */
+	/**
+	 * Reaction jobs and manufacturing jobs (`activity_id` 1: fuel block jobs, jobs taking reaction output
+	 * and jobs consuming other tracked materials).
+	 */
 	jobs: `SELECT job_id, activity_id, blueprint_type_id, blueprint_me, runs, status, cost, facility_id, start_date, end_date
 		FROM tracked_jobs WHERE user_id = ?1 AND ${TRACKED_SOURCES} ORDER BY job_id`,
+	/** The tracked materials (not reaction products) the blueprints of those manufacturing jobs consume. */
+	manufacturingMaterials: `SELECT b.blueprint_type_id, b.product_type_id, b.product_filters_json, m.type_id, m.quantity
+		FROM manufacturing_blueprints b
+		JOIN manufacturing_blueprint_materials m ON m.blueprint_type_id = b.blueprint_type_id
+		WHERE b.blueprint_type_id IN (SELECT blueprint_type_id FROM tracked_jobs
+			WHERE user_id = ?1 AND activity_id = 1 AND ${TRACKED_SOURCES})
+		ORDER BY b.blueprint_type_id, m.type_id`,
 	corrections: 'SELECT target_kind, target_ref, unit_price FROM price_corrections WHERE user_id = ?1',
 	manualEntries: `SELECT entry_id, date, type_id, quantity, unit_price FROM manual_entries
 		WHERE user_id = ?1 ORDER BY entry_id`,
@@ -172,6 +183,7 @@ export async function rebuildLedger(env: Env, userId: string, now: number): Prom
 		contracts,
 		contractItems,
 		jobs,
+		manufacturingMaterials,
 		corrections,
 		manualEntries,
 		locations,
@@ -191,6 +203,7 @@ export async function rebuildLedger(env: Env, userId: string, now: number): Prom
 		contracts: contracts!.results as unknown as ContractRow[],
 		contractItems: contractItems!.results as unknown as ContractItemRow[],
 		jobs: jobs!.results as unknown as JobRow[],
+		manufacturingMaterials: manufacturingMaterials!.results as unknown as ManufacturingMaterialRow[],
 		corrections: corrections!.results as unknown as CorrectionRow[],
 		manualEntries: manualEntries!.results as unknown as ManualEntryRow[]
 	};

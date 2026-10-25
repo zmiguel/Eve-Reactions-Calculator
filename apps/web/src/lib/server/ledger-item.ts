@@ -5,6 +5,7 @@ import {
 	ledgerLots,
 	ledgerPrices,
 	ledgerUses,
+	manufacturingBlueprints,
 	trackedContractItems,
 	trackedContracts,
 	trackedJobs
@@ -143,6 +144,8 @@ async function itemLots(
 				blueprintTypeId: trackedJobs.blueprintTypeId,
 				productTypeId: trackedJobs.productTypeId,
 				startDate: trackedJobs.startDate,
+				consumedProductTypeId: manufacturingBlueprints.productTypeId,
+				consumedProductName: manufacturingBlueprints.productName,
 				saleAt: ledgerPrices.at,
 				saleUnitPrice: ledgerPrices.unitPrice
 			})
@@ -154,9 +157,17 @@ async function itemLots(
 			.leftJoin(
 				trackedJobs,
 				and(
-					inArray(ledgerUses.useKind, ['job', 'manufacturing']),
+					inArray(ledgerUses.useKind, ['job', 'manufacturing', 'consumed']),
 					eq(trackedJobs.userId, ledgerUses.userId),
 					sql`${trackedJobs.jobId} = CAST(substr(${ledgerUses.useRef}, 5) AS INTEGER)`
+				)
+			)
+			// The product of a manufacturing job consuming a tracked material.
+			.leftJoin(
+				manufacturingBlueprints,
+				and(
+					eq(ledgerUses.useKind, 'consumed'),
+					eq(manufacturingBlueprints.blueprintTypeId, trackedJobs.blueprintTypeId)
 				)
 			)
 			.leftJoin(
@@ -173,7 +184,7 @@ async function itemLots(
 				and(
 					eq(ledgerUses.userId, userId),
 					eq(ledgerLots.typeId, typeId),
-					inArray(ledgerUses.useKind, ['job', 'sale', 'manufacturing']),
+					inArray(ledgerUses.useKind, ['job', 'sale', 'manufacturing', 'consumed']),
 					trackedRef(userId, ledgerLots.originRef),
 					trackedRef(userId, ledgerUses.useRef)
 				)
@@ -189,25 +200,30 @@ async function itemLots(
 	};
 	const usesByLot = new Map<number, LedgerItemLotUse[]>();
 	for (const u of useRows) {
-		const kind = u.kind === 'job' || u.kind === 'manufacturing' ? u.kind : 'sale';
+		const kind = u.kind === 'job' || u.kind === 'manufacturing' || u.kind === 'consumed' ? u.kind : 'sale';
 		const job = kind !== 'sale';
 		const name = kind === 'job' && u.blueprintTypeId !== null ? jobName(u.blueprintTypeId) : null;
-		const productName =
-			kind !== 'manufacturing'
-				? undefined
-				: u.blueprintTypeId !== null
+		let product: LedgerItemLotUse['product'] = null;
+		if (kind === 'consumed') {
+			const typeId = u.consumedProductTypeId ?? u.productTypeId;
+			if (typeId !== null && u.consumedProductName !== null)
+				product = { typeId, name: u.consumedProductName };
+		} else if (kind === 'manufacturing') {
+			const productName =
+				u.blueprintTypeId !== null
 					? (manufacturingNames(dataset, u.blueprintTypeId).product ??
 						(u.productTypeId !== null ? dataset.types[u.productTypeId]?.name : undefined))
 					: u.productTypeId !== null
 						? dataset.types[u.productTypeId]?.name
 						: undefined;
+			if (u.productTypeId !== null && productName) product = { typeId: u.productTypeId, name: productName };
+		}
 		const use: LedgerItemLotUse = {
 			kind,
 			ref: u.ref,
 			jobId: job ? refId(u.ref, 'job:') : null,
 			formula: u.blueprintTypeId !== null && name ? { blueprintTypeId: u.blueprintTypeId, name } : null,
-			product:
-				u.productTypeId !== null && productName ? { typeId: u.productTypeId, name: productName } : null,
+			product,
 			at: job ? u.startDate : u.saleAt,
 			saleUnitPrice: job ? null : u.saleUnitPrice,
 			unitValue: kind === 'manufacturing' ? (u.unitValue ?? u.unitCost) : null,

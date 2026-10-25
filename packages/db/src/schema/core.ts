@@ -25,8 +25,11 @@ export const LEDGER_LOT_ORIGINS = [
 	'correction',
 	'manual'
 ] as const;
-/** `ledger_uses.use_kind`. `manufacturing`: taken by one of the user's manufacturing jobs. */
-export const LEDGER_USE_KINDS = ['job', 'sale', 'transfer_out', 'manufacturing'] as const;
+/**
+ * `ledger_uses.use_kind`. `manufacturing`: reaction output taken by one of the user's manufacturing
+ * jobs (valued); `consumed`: another tracked material taken by one (a quantity only, no value).
+ */
+export const LEDGER_USE_KINDS = ['job', 'sale', 'transfer_out', 'manufacturing', 'consumed'] as const;
 
 export const sdeState = sqliteTable('sde_state', {
 	id: integer('id').primaryKey(),
@@ -91,6 +94,32 @@ export const reprocessMaterials = sqliteTable(
  */
 export const materialBlueprintMaterials = sqliteTable(
 	'material_blueprint_materials',
+	{
+		blueprintTypeId: integer('blueprint_type_id').notNull(),
+		typeId: integer('type_id').notNull(),
+		quantity: integer('quantity').notNull()
+	},
+	(t) => [primaryKey({ columns: [t.blueprintTypeId, t.typeId] })]
+);
+
+/**
+ * The published manufacturing blueprints, other than the fuel block blueprints, that take a tracked
+ * material other than a reaction product (`SdeManufacturingBlueprint`: ships, modules, ammunition, …),
+ * with their product and its industry target filters (`product_filters_json`, a JSON array of filter
+ * ids: which rig bonuses apply). Replaced with the reactions at each SDE import; kept out of KV
+ * `dataset:v1` (thousands of rows). Read by the ledger rebuild, the tracking sync and the tracking pages.
+ */
+export const manufacturingBlueprints = sqliteTable('manufacturing_blueprints', {
+	blueprintTypeId: integer('blueprint_type_id').primaryKey(),
+	name: text('name').notNull(),
+	productTypeId: integer('product_type_id').notNull(),
+	productName: text('product_name').notNull(),
+	productFiltersJson: text('product_filters_json').notNull()
+});
+
+/** Those tracked materials of each `manufacturing_blueprints` row, per run at base (ME 0, no bonus). */
+export const manufacturingBlueprintMaterials = sqliteTable(
+	'manufacturing_blueprint_materials',
 	{
 		blueprintTypeId: integer('blueprint_type_id').notNull(),
 		typeId: integer('type_id').notNull(),

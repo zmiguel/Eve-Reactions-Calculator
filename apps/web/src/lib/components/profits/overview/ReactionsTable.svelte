@@ -34,7 +34,7 @@
 		</tr>
 	{/snippet}
 	{#snippet row(r: ReactionTableRow)}
-		<tr class="border-t border-gray-200 dark:border-gray-700" data-reaction={r.blueprintTypeId}>
+		<tr class="border-t border-gray-200 dark:border-gray-600" data-reaction={r.blueprintTypeId}>
 			<td class={cell}>
 				<a
 					href="/profits/jobs?reaction={r.blueprintTypeId}{period === defaultPeriod

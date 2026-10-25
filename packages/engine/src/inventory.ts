@@ -12,6 +12,8 @@ interface InventoryIndex {
 	consumed: ReadonlySet<number>;
 	/** Material type id → first consuming reaction (lowest blueprint id). */
 	firstConsumer: ReadonlyMap<number, Reaction>;
+	/** Reprocessed output type id → first unrefined reaction whose product yields it (lowest blueprint id). */
+	firstReprocessor: ReadonlyMap<number, Reaction>;
 }
 
 const inventoryCache = new WeakMap<Dataset, InventoryIndex>();
@@ -23,8 +25,13 @@ function inventoryIndex(dataset: Dataset): InventoryIndex {
 		const formulas = new Set<number>();
 		const consumed = new Set<number>();
 		const firstConsumer = new Map<number, Reaction>();
-		for (const r of [...dataset.reactions].sort((a, b) => a.blueprintTypeId - b.blueprintTypeId))
+		const firstReprocessor = new Map<number, Reaction>();
+		for (const r of [...dataset.reactions].sort((a, b) => a.blueprintTypeId - b.blueprintTypeId)) {
 			for (const m of r.materials) if (!firstConsumer.has(m.typeId)) firstConsumer.set(m.typeId, r);
+			if (UNREFINED_TIERS.includes(r.tier))
+				for (const m of dataset.reprocess[r.product.typeId]?.materials ?? [])
+					if (!firstReprocessor.has(m.typeId)) firstReprocessor.set(m.typeId, r);
+		}
 		for (const r of dataset.reactions) {
 			formulas.add(r.blueprintTypeId);
 			relevant.add(r.blueprintTypeId);
@@ -37,7 +44,7 @@ function inventoryIndex(dataset: Dataset): InventoryIndex {
 				for (const m of dataset.reprocess[r.product.typeId]?.materials ?? []) relevant.add(m.typeId);
 			}
 		}
-		index = { relevant, formulas, consumed, firstConsumer };
+		index = { relevant, formulas, consumed, firstConsumer, firstReprocessor };
 		inventoryCache.set(dataset, index);
 	}
 	return index;
@@ -100,12 +107,17 @@ export function inventoryRole(dataset: Dataset, typeId: number): InventoryRole |
 /**
  * Net realisable value of one unit of `typeId`: its output price (output hub, sell method, price %) minus
  * sell fees, tax and output shipping, with the profile of the reaction making it, else of the first
- * reaction consuming it. Null when no reaction makes or consumes the type, or when it has no price.
+ * reaction consuming it, else of the first unrefined reaction whose product reprocesses into it, else
+ * the composite profile (a type no reaction touches, like a fuel block ingredient). Null when the type
+ * has no price.
  */
 export function stockUnitValue(ctx: CalcContext, typeId: number): number | null {
+	const index = inventoryIndex(ctx.dataset);
 	const reaction =
-		producerIndex(ctx.dataset).get(typeId) ?? inventoryIndex(ctx.dataset).firstConsumer.get(typeId);
-	const profile = reaction && ctx.profiles[reaction.reactor];
+		producerIndex(ctx.dataset).get(typeId) ??
+		index.firstConsumer.get(typeId) ??
+		index.firstReprocessor.get(typeId);
+	const profile = ctx.profiles[reaction?.reactor ?? 'composite'];
 	if (!profile) return null;
 	const bag = new LineItemBag();
 	sellLine(bag, { ctx, missing: new Set() }, profile, typeId, 1, { countMissing: false, withCosts: true });

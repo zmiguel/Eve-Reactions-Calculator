@@ -14,10 +14,12 @@ import {
 	TrackingSettings,
 	jobMaterialModifier,
 	manufacturingMaterialModifier,
+	parseFilterIds,
 	parseRigIds,
 	profileFor,
 	resolveFacility,
 	trackedTypeIds,
+	withProductFilters,
 	type Dataset,
 	type EfficiencyProfile,
 	type FacilityFromEve,
@@ -32,6 +34,7 @@ import {
 	type LedgerOrder,
 	type LedgerResult,
 	type LedgerTransaction,
+	type Material,
 	type ReferencePrice,
 	type ReferencePriceFn,
 	type RunLedgerInput,
@@ -132,6 +135,19 @@ export interface ManualEntryRow {
 	unit_price: number;
 }
 
+/**
+ * A `manufacturing_blueprints` row joined with one of its `manufacturing_blueprint_materials` (a
+ * tracked material, not a reaction product, the blueprint's jobs consume).
+ */
+export interface ManufacturingMaterialRow {
+	blueprint_type_id: number;
+	product_type_id: number;
+	/** JSON array of the product's industry target filter ids. */
+	product_filters_json: string;
+	type_id: number;
+	quantity: number;
+}
+
 /** One user's raw tracking rows (connections with Profit tracking on only) and manual purchases. */
 export interface TrackedRows {
 	transactions: readonly TransactionRow[];
@@ -140,6 +156,8 @@ export interface TrackedRows {
 	contracts: readonly ContractRow[];
 	contractItems: readonly ContractItemRow[];
 	jobs: readonly JobRow[];
+	/** Of the blueprints of the user's manufacturing jobs. */
+	manufacturingMaterials: readonly ManufacturingMaterialRow[];
 	corrections: readonly CorrectionRow[];
 	manualEntries: readonly ManualEntryRow[];
 }
@@ -320,18 +338,56 @@ export function facilitiesFromEve(
 	return facilities;
 }
 
+/** A manufacturing blueprint's product and the tracked materials its jobs consume (no value). */
+export interface ConsumingBlueprint {
+	productTypeId: number;
+	/** Industry target filter ids of the product (which rig bonuses apply). */
+	productFilters: number[];
+	materials: Material[];
+}
+
+/** {@link ManufacturingMaterialRow}s → per blueprint type id, materials in row order. */
+export function toConsumingBlueprints(
+	rows: readonly ManufacturingMaterialRow[]
+): Map<number, ConsumingBlueprint> {
+	const blueprints = new Map<number, ConsumingBlueprint>();
+	for (const row of rows) {
+		let bp = blueprints.get(row.blueprint_type_id);
+		if (!bp) {
+			bp = {
+				productTypeId: row.product_type_id,
+				productFilters: parseFilterIds(row.product_filters_json),
+				materials: []
+			};
+			blueprints.set(row.blueprint_type_id, bp);
+		}
+		bp.materials.push({ typeId: row.type_id, quantity: row.quantity });
+	}
+	return blueprints;
+}
+
 /**
  * Jobs with their material modifier, from the facility as EVE describes it (`ctx.facilities`) with
  * `tracking.facilities` filling what EVE could not tell (`resolveFacility`), for the job's product.
  * Reactions: `jobMaterialModifier` with the account profile of the job's reactor (composite for a
  * formula not in the dataset) as the fallback. Manufacturing (fuel block jobs included):
  * `manufacturingMaterialModifier` with the blueprint's ME read from EVE, else `tracking.blueprintMe`,
- * else `DEFAULT_BLUEPRINT_ME`.
+ * else `DEFAULT_BLUEPRINT_ME`; the product (and its filters) of a blueprint outside
+ * `Dataset.manufacturing` comes from `consuming`.
  */
-export function toLedgerJobs(jobs: readonly JobRow[], ctx: JobModifierContext): LedgerJob[] {
+export function toLedgerJobs(
+	jobs: readonly JobRow[],
+	ctx: JobModifierContext,
+	consuming: ReadonlyMap<number, ConsumingBlueprint> = new Map()
+): LedgerJob[] {
 	const reactions = new Map(ctx.dataset.reactions.map((r) => [r.blueprintTypeId, r]));
 	const manufacturing = new Map((ctx.dataset.manufacturing ?? []).map((b) => [b.blueprintTypeId, b]));
 	const { industry } = ctx.dataset;
+	// The dataset only lists the filters of its own products.
+	const manufacturingIndustry = withProductFilters(
+		industry,
+		[...consuming.values()].map((bp) => [bp.productTypeId, bp.productFilters] as const)
+	);
 	return jobs.map((j): LedgerJob => {
 		const job = {
 			jobId: j.job_id,
@@ -350,11 +406,14 @@ export function toLedgerJobs(jobs: readonly JobRow[], ctx: JobModifierContext): 
 		if (j.activity_id === MANUFACTURING_ACTIVITY_ID) {
 			const me =
 				j.blueprint_me ?? ctx.tracking.blueprintMe[String(j.blueprint_type_id)] ?? DEFAULT_BLUEPRINT_ME;
-			const product = manufacturing.get(j.blueprint_type_id)?.productTypeId ?? 0;
+			const product =
+				manufacturing.get(j.blueprint_type_id)?.productTypeId ??
+				consuming.get(j.blueprint_type_id)?.productTypeId ??
+				0;
 			return {
 				...job,
 				activity: 'manufacturing',
-				materialModifier: manufacturingMaterialModifier(me, industry, product, facility)
+				materialModifier: manufacturingMaterialModifier(me, manufacturingIndustry, product, facility)
 			};
 		}
 		const reaction = reactions.get(j.blueprint_type_id);
@@ -395,6 +454,7 @@ export interface LedgerContext extends JobModifierContext {
 
 /** The `runLedger` input of one user. */
 export function toRunLedgerInput(rows: TrackedRows, ctx: LedgerContext): RunLedgerInput {
+	const consuming = toConsumingBlueprints(rows.manufacturingMaterials);
 	return {
 		dataset: ctx.dataset,
 		own: { characterIds: new Set(ctx.characterIds), corporationIds: new Set(ctx.corporationIds) },
@@ -437,7 +497,8 @@ export function toRunLedgerInput(rows: TrackedRows, ctx: LedgerContext): RunLedg
 			state: r.state as LedgerOrder['state']
 		})),
 		contracts: toLedgerContracts(rows.contracts, rows.contractItems),
-		jobs: toLedgerJobs(rows.jobs, ctx),
+		jobs: toLedgerJobs(rows.jobs, ctx, consuming),
+		consumingMaterials: new Map([...consuming].map(([id, bp]) => [id, bp.materials])),
 		corrections: rows.corrections.map((r): LedgerCorrection => ({
 			targetKind: r.target_kind as LedgerCorrection['targetKind'],
 			targetRef: r.target_ref,

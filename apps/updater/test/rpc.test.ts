@@ -257,4 +257,10 @@ describe('UpdaterRpc', () => {
 			{ run_id: expect.stringMatching(/^market_snapshot-manual-\d+$/), status: 'ok' }
 		]);
 	});
+
+	it('setContractJanice answers for an unknown contract without asking Janice', async () => {
+		const calls = installFetch(() => json({}));
+		expect(await exports.UpdaterRpc.setContractJanice('u1', 701, 'XyZ789')).toEqual({ error: 'missing' });
+		expect(calls).toEqual([]);
+	});
 });

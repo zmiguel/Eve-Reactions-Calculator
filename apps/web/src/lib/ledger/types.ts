@@ -78,6 +78,10 @@ export interface LedgerContractRow {
 	direction: 'buy' | 'sell' | 'swap' | 'transfer';
 	title: string | null;
 	janiceCode: string | null;
+	/** `janiceCode` is an appraisal the user gave on the ledger (not the title's link): it can be removed. */
+	janiceOwn: boolean;
+	/** The title links a Janice appraisal: removing the user's one prices the contract by it again. */
+	titleJanice: boolean;
 	/** Contract price less reward, as a positive amount of ISK. */
 	total: number;
 	itemCount: number;
@@ -167,30 +171,38 @@ export interface LedgerPageData {
 	connections: LedgerConnectionOption[];
 }
 
-/** Result of the `correct` and `undo` actions (`ref` = the price the form was for). */
+/**
+ * Result of the `correct` and `undo` actions (`ref` = the price the form was for) and of the
+ * `contractJanice` and `removeContractJanice` actions (`ref` = `contract:<contractId>`).
+ */
 export interface LedgerActionResult {
-	action: 'correct' | 'undo';
+	action: 'correct' | 'undo' | 'contractJanice' | 'removeContractJanice';
 	ref: string;
 	notice?: string;
 	error?: string;
 	/** A rejected `correct`: the values typed, shown again in the form. */
 	values?: { unitPrice: string; note: string };
+	/** A rejected `contractJanice`: the link typed, shown again in the form. */
+	link?: string;
 }
 
 // ---- Item page ----
 
 export type LedgerLotOrigin = 'transaction' | 'contract' | 'job' | 'market' | 'correction' | 'manual';
 
-/** One quantity a job, a manufacturing job or a sale took from a batch. */
+/**
+ * One quantity a job, a manufacturing job or a sale took from a batch. `consumed`: a manufacturing job
+ * used it as a material (a quantity only: no value, no profit).
+ */
 export interface LedgerItemLotUse {
-	kind: 'job' | 'sale' | 'manufacturing';
+	kind: 'job' | 'sale' | 'manufacturing' | 'consumed';
 	/** `job:<id>`, or the sale's `transaction:<id>` / `contract:<id>`. */
 	ref: string;
-	/** Job and manufacturing uses. */
+	/** Job, manufacturing and consumed uses. */
 	jobId: number | null;
 	/** Formula (or fuel block blueprint) of a job use (name from the dataset; null when unknown). */
 	formula: { blueprintTypeId: number; name: string } | null;
-	/** Product of a manufacturing use (name from the dataset; null when unknown). */
+	/** Product of a manufacturing or consumed use (null when unknown). */
 	product: { typeId: number; name: string } | null;
 	/** Job start or sale date; null when unknown. */
 	at: number | null;

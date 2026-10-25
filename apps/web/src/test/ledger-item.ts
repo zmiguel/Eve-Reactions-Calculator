@@ -45,7 +45,7 @@ export function insertUse(
 	userId: string,
 	use: {
 		lotId: number;
-		kind: 'job' | 'sale' | 'manufacturing';
+		kind: 'job' | 'sale' | 'manufacturing' | 'consumed';
 		ref: string;
 		quantity: number;
 		unitCost: number;

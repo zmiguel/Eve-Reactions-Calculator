@@ -464,7 +464,7 @@
 									</thead>
 									<tbody>
 										{#each input.lots as lot (lot.lotId)}
-											<tr class="border-t border-gray-200 dark:border-gray-700" data-lot={lot.lotId}>
+											<tr class="border-t border-gray-200 dark:border-gray-600" data-lot={lot.lotId}>
 												<td class="{cell} whitespace-nowrap {muted}" title={formatUtc(lot.acquiredAt)}
 													>{formatRelative(lot.acquiredAt, d.now)}</td
 												>
@@ -552,7 +552,7 @@
 									</thead>
 									<tbody>
 										{#each output.sales as sale (sale.ref)}
-											<tr class="border-t border-gray-200 dark:border-gray-700" data-sale={sale.ref}>
+											<tr class="border-t border-gray-200 dark:border-gray-600" data-sale={sale.ref}>
 												<td class="{cell} whitespace-nowrap" title={formatUtc(sale.at)}>
 													{formatRelative(sale.at, d.now)}
 													<span class="block text-xs {muted}"
@@ -609,7 +609,7 @@
 										<tbody>
 											{#each output.manufacturing as m (m.jobId)}
 												<tr
-													class="border-t border-gray-200 dark:border-gray-700"
+													class="border-t border-gray-200 dark:border-gray-600"
 													data-manufacturing-job={m.jobId}
 												>
 													<td class={cell}>

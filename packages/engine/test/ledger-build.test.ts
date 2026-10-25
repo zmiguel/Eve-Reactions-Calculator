@@ -15,7 +15,7 @@ import {
 	type PricedTrade,
 	type ReferencePriceFn
 } from '../src/ledger/types.ts';
-import type { Dataset } from '../src/types.ts';
+import type { Dataset, Material } from '../src/types.ts';
 import { dataset as baseDataset } from './fixtures/dataset.ts';
 import {
 	AZBEL,
@@ -168,6 +168,7 @@ const noPrices: ReferencePriceFn = () => null;
 
 function build(input: {
 	jobs?: LedgerJob[];
+	consumingMaterials?: ReadonlyMap<number, readonly Material[]>;
 	trades?: PricedTrade[];
 	contracts?: PricedContract[];
 	corrections?: LedgerCorrection[];
@@ -180,6 +181,7 @@ function build(input: {
 		dataset,
 		settings: TrackingSettings.parse({ manufacturingUse: input.manufacturingUse }),
 		jobs: input.jobs ?? [],
+		consumingMaterials: input.consumingMaterials,
 		trades: input.trades ?? [],
 		contracts: input.contracts ?? [],
 		corrections: input.corrections ?? [],
@@ -886,6 +888,143 @@ describe('buildLedger with fuel block jobs', () => {
 		expect(build({ ...input, trades: [...input.trades].reverse(), jobs: [...input.jobs].reverse() })).toEqual(
 			expected
 		);
+	});
+});
+
+describe('buildLedger with manufacturing jobs consuming other tracked materials', () => {
+	const TRITANIUM = 34;
+	const PYERITE = 35;
+	/** A ship-like blueprint outside `Dataset.manufacturing`: 6000 Tritanium and 2000 Pyerite per run. */
+	const SHIP_BLUEPRINT = 90_101;
+	/** ME 10 in a Raitaru (1 % role bonus, no rigs): 0.9 × 0.99 = 0.891. */
+	const mm = manufacturingMaterialModifier(10, industry, 90_102, {
+		structureTypeId: RAITARU,
+		rigs: [],
+		band: 'lowsec'
+	});
+	const consumingMaterials = new Map<number, Material[]>([
+		[
+			SHIP_BLUEPRINT,
+			[
+				{ typeId: TRITANIUM, quantity: 6000 },
+				{ typeId: PYERITE, quantity: 2000 }
+			]
+		],
+		// Titanium Chromide is valued by `Dataset.manufacturing`; Chromium (a reaction material) is consumed.
+		[TEST_COMPONENT_BLUEPRINT, [{ typeId: CHROMIUM, quantity: 4 }]]
+	]);
+
+	it('takes the oldest lots held at the job start, scaled by ME and the structure bonus, without value', () => {
+		expect(mm).toBeCloseTo(0.891, 12);
+		const result = build({
+			trades: [
+				trade(1, 0, TRITANIUM, 10_000, true, 4),
+				trade(2, 100, TRITANIUM, 10_000, true, 5),
+				// Bought after the job started: kept.
+				trade(3, 2000, TRITANIUM, 5000, true, 6)
+			],
+			jobs: [manufacturingJob(40, SHIP_BLUEPRINT, 3, 1000, 'delivered', mm)],
+			consumingMaterials
+		});
+		// 3 × 6000 × 0.891 = 16,038: 10,000 from the first lot, 6,038 from the second. The 3 × 2000 × 0.891
+		// = 5346 Pyerite are not held: ignored, no lot made for them.
+		expect(result.uses).toEqual([
+			{ lotId: 1, useKind: 'consumed', useRef: 'job:40', quantity: 10_000, unitCost: 4 },
+			{ lotId: 2, useKind: 'consumed', useRef: 'job:40', quantity: 6038, unitCost: 5 }
+		]);
+		expect(result.lots.map((l) => [l.originRef, l.remaining])).toEqual([
+			['transaction:1', 0],
+			['transaction:2', 3962],
+			['transaction:3', 5000]
+		]);
+		expect(result.jobs).toEqual([]);
+	});
+
+	it('takes nothing without consuming materials or for a job of a blueprint not listed', () => {
+		const trades = [trade(1, 0, TRITANIUM, 10_000, true, 4)];
+		for (const result of [
+			build({ trades, jobs: [manufacturingJob(40, SHIP_BLUEPRINT, 3, 1000, 'delivered', mm)] }),
+			build({ trades, jobs: [manufacturingJob(41, 90_103, 3, 1000)], consumingMaterials })
+		]) {
+			expect(result.uses).toEqual([]);
+			expect(result.lots[0].remaining).toBe(10_000);
+		}
+	});
+
+	/**
+	 * 150 Chromium bought at 0: the Titanium Chromide job 1 takes 100 at 1000; manufacturing job 2
+	 * (10 runs) takes 130 Titanium Chromide (valued) and 10 × 4 = 40 Chromium (consumed) at 3000.
+	 */
+	function chromiumScenario() {
+		return {
+			trades: [
+				trade(1, 0, OXYGEN_FUEL_BLOCK, 5, true, 20),
+				trade(2, 0, TITANIUM, 100, true, 10),
+				trade(3, 0, CHROMIUM, 150, true, 5)
+			],
+			jobs: [
+				job(1, TITANIUM_CHROMIDE_FORMULA, 1, 1000, 2000, 'delivered', 1000),
+				manufacturingJob(2, TEST_COMPONENT_BLUEPRINT, 10, 3000)
+			],
+			buyPrice: (typeId: number) =>
+				typeId === TITANIUM_CHROMIDE ? { unitPrice: 20, label: 'Jita 4-4 buy' } : null
+		};
+	}
+
+	it('leaves job results and the valued use of reaction output as they were', () => {
+		const without = build(chromiumScenario());
+		const result = build({ ...chromiumScenario(), consumingMaterials });
+		expect(result.jobs).toEqual(without.jobs);
+		// 100 + 1000 + 500 = 1600 inputs, 200 made at 13; 130 counted at 20: 130 × (20 − 13) = 910.
+		expect(result.jobs[0]).toMatchObject({
+			inputCost: 1600,
+			unitCost: 13,
+			manufacturedQty: 130,
+			manufacturedValue: 2600,
+			unsoldQty: 70,
+			realizedProfit: 910
+		});
+		expect(expectedProfit(result.jobs[0], 25)).toBe(expectedProfit(without.jobs[0], 25));
+		expect(result.uses.filter((u) => u.useKind === 'manufacturing')).toEqual(
+			without.uses.filter((u) => u.useKind === 'manufacturing')
+		);
+	});
+
+	it('takes from a lot a reaction job used before', () => {
+		const result = build({ ...chromiumScenario(), consumingMaterials });
+		const chromium = result.lots.find((l) => l.typeId === CHROMIUM)!;
+		expect(chromium.remaining).toBe(10);
+		expect(result.uses.filter((u) => u.lotId === chromium.lotId)).toEqual([
+			{ lotId: chromium.lotId, useKind: 'job', useRef: 'job:1', quantity: 100, unitCost: 5 },
+			{ lotId: chromium.lotId, useKind: 'consumed', useRef: 'job:2', quantity: 40, unitCost: 5 }
+		]);
+	});
+
+	it('keeps units of a fuel block batch it took in that fuel block job’s unsold output', () => {
+		const FUEL_CONSUMER = 90_104;
+		const fuelMm = manufacturingMaterialModifier(10, industry, OXYGEN_FUEL_BLOCK, {
+			structureTypeId: RAITARU,
+			rigs: [],
+			band: 'lowsec'
+		});
+		const input = {
+			trades: [trade(1, 0, OXYGEN_ISOTOPES, 450, true, 2), trade(2, 0, HEAVY_WATER, 170, true, 4)],
+			jobs: [
+				{
+					...job(30, OXYGEN_FUEL_BLOCK_BLUEPRINT, 1, 1000, 2000, 'delivered', 400, fuelMm),
+					activity: 'manufacturing'
+				},
+				manufacturingJob(41, FUEL_CONSUMER, 1, 3000)
+			] satisfies LedgerJob[],
+			buyPrice: (typeId: number) => (typeId === COOLANT ? { unitPrice: 100, label: 'Jita 4-4 buy' } : null)
+		};
+		const consuming = new Map([[FUEL_CONSUMER, [{ typeId: OXYGEN_FUEL_BLOCK, quantity: 16 }]]]);
+		const without = build(input);
+		const result = build({ ...input, consumingMaterials: consuming });
+		// 16 of the 40 blocks taken: the batch holds 24, the fuel block job's figures do not change.
+		expect(result.lots.find((l) => l.typeId === OXYGEN_FUEL_BLOCK)!.remaining).toBe(24);
+		expect(result.jobs).toEqual(without.jobs);
+		expect(result.jobs[0]).toMatchObject({ outputQty: 40, unsoldQty: 40, usedQty: 0, realizedProfit: 0 });
 	});
 });
 

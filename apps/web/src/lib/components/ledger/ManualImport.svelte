@@ -96,7 +96,7 @@
 						</thead>
 						<tbody>
 							{#each preview.rows as row (row.line)}
-								<tr class="border-t border-gray-200 dark:border-gray-700" data-preview-row={row.line}>
+								<tr class="border-t border-gray-200 dark:border-gray-600" data-preview-row={row.line}>
 									<td class="{cell} {muted}">{row.line}</td>
 									<td class="{cell} whitespace-nowrap">{formatUtc(row.at)}</td>
 									<td class={cell}>{row.name}</td>

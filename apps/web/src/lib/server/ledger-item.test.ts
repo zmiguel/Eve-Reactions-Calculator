@@ -343,6 +343,52 @@ describe('purchases entered by the user and manufacturing uses', () => {
 	});
 });
 
+describe('materials consumed by manufacturing jobs', () => {
+	/**
+	 * On top of the scenario: manufacturing job 7003 (a ship blueprint of `manufacturing_blueprints`)
+	 * took 30 of lot 1, job 7004 (a blueprint missing from the table) 10 more.
+	 */
+	async function scenario() {
+		const s = await ledgerItemScenario();
+		const db = s.env.DB;
+		const mine = db.rows<{ source_id: number }>(
+			"SELECT source_id FROM inventory_sources WHERE user_id = 'u1' AND tracking_enabled = 1"
+		)[0].source_id;
+		db.sqlite
+			.prepare(
+				`INSERT INTO manufacturing_blueprints (blueprint_type_id, name, product_type_id, product_name, product_filters_json)
+				VALUES (691, 'Rifter Blueprint', 587, 'Rifter', '[]')`
+			)
+			.run();
+		insertJob(db, 'u1', mine, 7003, 691, { activityId: 1, productTypeId: 587 });
+		insertJob(db, 'u1', mine, 7004, 692, { activityId: 1, productTypeId: 588 });
+		insertUse(db, 'u1', { lotId: 1, kind: 'consumed', ref: 'job:7003', quantity: 30, unitCost: 10 });
+		insertUse(db, 'u1', { lotId: 1, kind: 'consumed', ref: 'job:7004', quantity: 10, unitCost: 10 });
+		return s;
+	}
+
+	it('lists the use with the product made and without a value', async () => {
+		const { env, typeId } = await scenario();
+		const page = (await ledgerItemBatches(asEnv(env), 'u1', typeId, 1))!;
+		const uses = page.rows.find((l) => l.lotId === 1)!.uses.filter((u) => u.kind === 'consumed');
+		expect(uses).toEqual([
+			{
+				kind: 'consumed',
+				ref: 'job:7003',
+				jobId: 7003,
+				formula: null,
+				product: { typeId: 587, name: 'Rifter' },
+				at: JOB_START,
+				saleUnitPrice: null,
+				unitValue: null,
+				quantity: 30,
+				unitCost: 10
+			},
+			expect.objectContaining({ kind: 'consumed', jobId: 7004, product: null, unitValue: null, quantity: 10 })
+		]);
+	});
+});
+
 describe('fuel blocks the user built', () => {
 	const BLUEPRINT = { blueprintTypeId: FUEL.blueprint, name: 'Nitrogen Fuel Block Blueprint' };
 

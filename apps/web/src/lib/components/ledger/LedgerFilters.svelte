@@ -48,7 +48,7 @@
 	);
 
 	const field =
-		'rounded-md border border-gray-300 bg-gray-50 px-2 py-1.5 text-sm text-gray-900 focus:border-primary-500 focus:ring-primary-500 dark:border-gray-600 dark:bg-gray-800 dark:text-white';
+		'rounded-md border border-gray-300 bg-gray-50 py-1.5 pr-8 pl-2 text-sm text-gray-900 focus:border-primary-500 focus:ring-primary-500 dark:border-gray-600 dark:bg-gray-800 dark:text-white';
 	const label = 'flex flex-col gap-1 text-xs text-gray-600 dark:text-gray-400';
 	const chip =
 		'cursor-pointer px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-100 has-[:checked]:bg-primary-600 has-[:checked]:text-white has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-primary-500 dark:text-gray-200 dark:hover:bg-gray-600 dark:has-[:checked]:bg-primary-600';

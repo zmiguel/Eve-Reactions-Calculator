@@ -2,6 +2,7 @@ import {
 	getCoreDb,
 	inventorySources,
 	ledgerState,
+	manufacturingBlueprints,
 	trackedContracts,
 	trackedJobs,
 	users
@@ -13,8 +14,10 @@ import {
 	facilityMaterialBonus,
 	jobMaterialBonus,
 	manufacturingNames,
+	parseFilterIds,
 	profileFor,
 	resolveFacility,
+	withProductFilters,
 	type Dataset,
 	type IndustryActivity,
 	type IndustryData,
@@ -162,6 +165,7 @@ function productKind(industry: IndustryData, activity: IndustryActivity, product
  * EVE told about it ({@link facilityPlaces}), the choices for what it could not tell, the stored
  * settings, and the material bonus its job products get. A reaction facility in the system of the
  * account reactor settings takes what is not known from them (as the ledger does). Most jobs first.
+ * Products of `manufacturing_blueprints` (not in the dataset) take their target filters from there.
  */
 export async function listFacilities(
 	env: Pick<Env, 'DB'>,
@@ -171,9 +175,11 @@ export async function listFacilities(
 ): Promise<FacilitiesData> {
 	const [{ results }, places, [account]] = await Promise.all([
 		env.DB.prepare(
-			`SELECT j.facility_id, j.activity_id, j.blueprint_type_id, j.product_type_id, COUNT(*) AS jobs
+			`SELECT j.facility_id, j.activity_id, j.blueprint_type_id, j.product_type_id, COUNT(*) AS jobs,
+				b.product_type_id AS consumer_product_type_id, b.product_filters_json
 			FROM tracked_jobs j
 			JOIN inventory_sources s ON s.source_id = j.source_id AND s.user_id = j.user_id
+			LEFT JOIN manufacturing_blueprints b ON j.activity_id = 1 AND b.blueprint_type_id = j.blueprint_type_id
 			WHERE j.user_id = ?1 AND s.tracking_enabled = 1 AND j.activity_id IN (1, 9, 11)
 			GROUP BY j.facility_id, j.activity_id, j.blueprint_type_id, j.product_type_id`
 		)
@@ -184,6 +190,8 @@ export async function listFacilities(
 				blueprint_type_id: number;
 				product_type_id: number | null;
 				jobs: number;
+				consumer_product_type_id: number | null;
+				product_filters_json: string | null;
 			}>(),
 		facilityPlaces(env, userId),
 		getCoreDb(env.DB).select({ json: users.settingsJson }).from(users).where(eq(users.userId, userId))
@@ -191,7 +199,14 @@ export async function listFacilities(
 	// The account reactor settings, as the ledger reads them (missing or invalid = the defaults).
 	const accountSettings = parseStoredSettings(account?.json ?? null) ?? DEFAULT_SETTINGS;
 	const { profiles } = await resolveProfiles(env, accountSettings, new Set());
-	const industry = dataset?.industry;
+	const industry = withProductFilters(
+		dataset?.industry,
+		results.flatMap((r) =>
+			r.consumer_product_type_id === null || r.product_filters_json === null
+				? []
+				: [[r.consumer_product_type_id, parseFilterIds(r.product_filters_json)] as const]
+		)
+	);
 	const reactions = new Map(dataset?.reactions.map((r) => [r.blueprintTypeId, r]) ?? []);
 	const reactionsByProduct = new Map(dataset?.reactions.map((r) => [r.product.typeId, r]) ?? []);
 	const byFacility = new Map<
@@ -225,7 +240,9 @@ export async function listFacilities(
 		const product =
 			activity === 'reaction'
 				? (reaction?.product.typeId ?? r.product_type_id)
-				: (manufacturingNames(dataset, r.blueprint_type_id).productTypeId ?? r.product_type_id);
+				: (manufacturingNames(dataset, r.blueprint_type_id).productTypeId ??
+					r.consumer_product_type_id ??
+					r.product_type_id);
 		if (product !== null) f.products[activity].add(product);
 		if (product !== null && reaction) f.reactors.set(product, reaction.reactor);
 	}
@@ -437,23 +454,27 @@ export function facilitySettingsFromForm(
 	return { ok: true, facilities };
 }
 
-/** Name of a manufacturing blueprint (`manufacturingNames` of the engine). */
-function blueprintName(dataset: Dataset | null, blueprintTypeId: number): string {
-	return manufacturingNames(dataset, blueprintTypeId).blueprint;
-}
-
 /**
  * Blueprints of the user's manufacturing jobs (tracking-on connections) whose ME could not be read from
- * EVE on at least one job (`blueprint_me` null), with the count of those jobs, by name.
+ * EVE on at least one job (`blueprint_me` null), with the count of those jobs, by name
+ * (`manufacturing_blueprints`, else `manufacturingNames` of the engine).
  */
 export async function listUnreadBlueprints(
 	env: Pick<Env, 'DB' | 'CACHE'>,
 	userId: string
 ): Promise<TrackingBlueprintView[]> {
 	const rows = await getCoreDb(env.DB)
-		.select({ blueprintTypeId: trackedJobs.blueprintTypeId, jobs: count() })
+		.select({
+			blueprintTypeId: trackedJobs.blueprintTypeId,
+			jobs: count(),
+			name: manufacturingBlueprints.name
+		})
 		.from(trackedJobs)
 		.innerJoin(inventorySources, eq(inventorySources.sourceId, trackedJobs.sourceId))
+		.leftJoin(
+			manufacturingBlueprints,
+			eq(manufacturingBlueprints.blueprintTypeId, trackedJobs.blueprintTypeId)
+		)
 		.where(
 			and(
 				eq(trackedJobs.userId, userId),
@@ -468,7 +489,7 @@ export async function listUnreadBlueprints(
 	return rows
 		.map((r) => ({
 			blueprintTypeId: String(r.blueprintTypeId),
-			name: blueprintName(dataset, r.blueprintTypeId),
+			name: r.name ?? manufacturingNames(dataset, r.blueprintTypeId).blueprint,
 			jobs: r.jobs
 		}))
 		.sort((a, b) => a.name.localeCompare(b.name) || Number(a.blueprintTypeId) - Number(b.blueprintTypeId));

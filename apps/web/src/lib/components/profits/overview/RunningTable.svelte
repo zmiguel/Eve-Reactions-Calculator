@@ -28,7 +28,7 @@
 		</tr>
 	{/snippet}
 	{#snippet row(j: RunningTableRow)}
-		<tr class="border-t border-gray-200 dark:border-gray-700" data-running={j.jobId}>
+		<tr class="border-t border-gray-200 dark:border-gray-600" data-running={j.jobId}>
 			<td class={cell}>
 				<a href="/profits/jobs/{j.jobId}" class="inline-flex items-center gap-2 {link}">
 					<img

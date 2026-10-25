@@ -819,6 +819,26 @@ describe('priceTrades', () => {
 		]);
 	});
 
+	it("leaves out fee rows of untracked items' orders; an open tracked order's fee stays", () => {
+		// The production case: sell orders of a ship (untracked), still open, so no trade matches them.
+		const SHIP_AT = T + 6_000_000;
+		const ORE_AT = T + 8_000_000;
+		const { unallocatedFees } = priceTrades({
+			...input,
+			transactions: [],
+			journal: [
+				row(500, 'brokers_fee', SHIP_AT, -100_275_000),
+				row(501, 'market_provider_tax', SHIP_AT + 300, -33_425_000),
+				row(502, 'brokers_fee', ORE_AT, -1_500)
+			],
+			orders: [
+				order({ orderId: 50, typeId: SHIP, isBuy: false, issued: SHIP_AT, price: 4_000_000_000 }),
+				order({ orderId: 51, typeId: TRITANIUM, isBuy: false, issued: ORE_AT, price: 5 })
+			]
+		});
+		expect(unallocatedFees).toEqual([{ refId: 502, date: ORE_AT, amount: 1_500 }]);
+	});
+
 	it('marks trades with own parties as transfers without fees', () => {
 		const { trades } = priceTrades(input);
 		for (const ref of ['transaction:13', 'transaction:14']) {

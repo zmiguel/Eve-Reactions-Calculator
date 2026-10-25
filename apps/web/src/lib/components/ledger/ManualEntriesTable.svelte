@@ -52,7 +52,7 @@
 		</tr>
 	{/snippet}
 	{#snippet row(entry: ManualEntryView)}
-		<tr class="border-t border-gray-200 dark:border-gray-700" data-entry={entry.entryId}>
+		<tr class="border-t border-gray-200 dark:border-gray-600" data-entry={entry.entryId}>
 			<td class="{cell} whitespace-nowrap">{formatUtc(entry.at)}</td>
 			<td class={cell}>
 				<a

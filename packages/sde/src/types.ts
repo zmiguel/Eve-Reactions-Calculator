@@ -216,6 +216,24 @@ export interface SdeRegion {
 	name: string;
 }
 
+/**
+ * A published manufacturing blueprint that takes a tracked material (`trackedTypeIds` of the dataset)
+ * other than a reaction product, and does not make a reaction material (the fuel block blueprints are
+ * `Dataset.manufacturing` entries with `makes: 'material'`). Thousands of them (ships, modules,
+ * ammunition), so they stay out of `Dataset`: the SDE import stores them in `manufacturing_blueprints`
+ * and `manufacturing_blueprint_materials`, which only the ledger rebuild and the tracking pages read.
+ */
+export interface SdeManufacturingBlueprint {
+	blueprintTypeId: number;
+	name: string;
+	productTypeId: number;
+	productName: string;
+	/** Industry target filter ids of the product (which rig bonuses apply); empty without industry data. */
+	productFilters: number[];
+	/** Only those tracked materials, per run at base (ME 0, no structure bonus). */
+	materials: Material[];
+}
+
 export interface SdeDataset {
 	build: number;
 	releaseDate: string;
@@ -225,5 +243,7 @@ export interface SdeDataset {
 	regions: SdeRegion[];
 	/** All systems with `regionId < 12000000`. */
 	systems: SdeSystem[];
+	/** By blueprint type id. */
+	manufacturingBlueprints: SdeManufacturingBlueprint[];
 	warnings: string[];
 }

@@ -164,7 +164,8 @@
 			<li>
 				<strong>Contracts</strong> with one kind of item give it the contract price. A contract with several kinds
 				of items is split by the Janice appraisal linked in its title, or else by the contract price rule of your
-				profit tracking settings, and is flagged for a check when its total looks off.
+				profit tracking settings, and is flagged for a check when its total looks off. On the ledger you can give
+				a contract a Janice appraisal link of your own to split it by that appraisal instead.
 			</li>
 			<li>
 				<strong>Inputs without a purchase</strong> (for example bought before tracking started) count at their buy
@@ -172,7 +173,8 @@
 			</li>
 			<li>
 				<strong>Manufacturing:</strong> reaction products used by your manufacturing jobs count either at their
-				buy value on the day the job started or at what they cost you (no profit, no loss), as you choose.
+				buy value on the day the job started or at what they cost you (no profit, no loss), as you choose. Other
+				tracked materials they use, like minerals, leave your batches without counting for any profit or cost.
 			</li>
 			<li>
 				<strong>Fuel blocks you build:</strong> a fuel block job uses its ingredients like a reaction uses its inputs,
