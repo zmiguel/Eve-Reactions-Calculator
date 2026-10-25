@@ -27,7 +27,7 @@
 		"@lhci/cli": "^0.15.1",
 		"@playwright/test": "^1.63.0",
 		"@sveltejs/adapter-cloudflare": "^7.2.9",
-		"@sveltejs/kit": "^2.70.3",
+		"@sveltejs/kit": "^3.0.0",
 		"@sveltejs/vite-plugin-svelte": "^7.3.1",
 		"@tailwindcss/vite": "^4.3.3",
 		"flowbite": "^4.0.2",
