@@ -241,18 +241,36 @@ export function buildIndustryData(
 		});
 	}
 
+	return {
+		filters: sources.filters,
+		rigs,
+		structures,
+		productFilters: productFilterMap(raw, sources.filters, products)
+	};
+}
+
+/**
+ * Target filter ids of every type of `products` (the filters listing its group or its category), by
+ * type id; types missing from the SDE are left out.
+ */
+export function productFilterMap(
+	raw: Pick<RawSde, 'types' | 'groups'>,
+	filters: readonly IndustryFilter[],
+	products: Iterable<number>
+): Record<number, number[]> {
+	const typesById = new Map<number, RawType>(raw.types.map((t) => [t.typeId, t]));
+	const categoryOfGroup = new Map<number, number>(raw.groups.map((g) => [g.groupId, g.categoryId]));
 	const productFilters: Record<number, number[]> = {};
 	for (const typeId of [...new Set(products)].sort((a, b) => a - b)) {
 		const type = typesById.get(typeId);
 		if (!type) continue;
-		const category = categoryOf(type);
-		productFilters[typeId] = sources.filters
+		const category = categoryOfGroup.get(type.groupId);
+		productFilters[typeId] = filters
 			.filter(
 				(f) =>
 					f.groupIds.includes(type.groupId) || (category !== undefined && f.categoryIds.includes(category))
 			)
 			.map((f) => f.filterId);
 	}
-
-	return { filters: sources.filters, rigs, structures, productFilters };
+	return productFilters;
 }

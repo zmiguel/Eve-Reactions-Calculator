@@ -31,9 +31,15 @@ export interface BuildLedgerInput {
 	/**
 	 * Reaction jobs (`activity` absent or `reaction`) and manufacturing jobs: those of a blueprint making
 	 * a reaction material (`makes: 'material'`, fuel blocks) produce like reactions; the others only take
-	 * reaction output.
+	 * reaction output and the tracked materials of `consumingMaterials`.
 	 */
 	jobs: readonly LedgerJob[];
+	/**
+	 * Per manufacturing blueprint (not a fuel block blueprint): its tracked materials other than reaction
+	 * products, per run at base. Its jobs take them FIFO at their start as a quantity only (`consumed`
+	 * uses: no value, no profit; a shortfall is ignored). Absent = none.
+	 */
+	consumingMaterials?: ReadonlyMap<number, readonly Material[]>;
 	trades: readonly PricedTrade[];
 	contracts: readonly PricedContract[];
 	corrections: readonly LedgerCorrection[];
@@ -114,7 +120,10 @@ type LedgerEvent =
 			order: number;
 			kind: 'manufacturingStart';
 			job: LedgerJob;
-			blueprint: ManufacturingBlueprint;
+			/** Reaction-product materials (`Dataset.manufacturing`), valued. */
+			valued: readonly Material[];
+			/** Other tracked materials (`consumingMaterials`), a quantity only. */
+			consumed: readonly Material[];
 	  };
 
 interface JobState {
@@ -161,8 +170,9 @@ function isFinished(job: LedgerJob, now: number): boolean {
  * their jobs. Events run in time order; at one time acquisitions come before uses, then by ref, so any
  * input order gives the same result. Reaction jobs and fuel block manufacturing jobs (blueprints with
  * `makes: 'material'`) take their inputs at their start and add their output when they end; other
- * manufacturing jobs only take reaction output (and any other lot of their blueprint's reaction-product
- * materials) at their start, and that use is realized at once.
+ * manufacturing jobs only take materials at their start: reaction output (and any other lot of their
+ * blueprint's reaction-product materials), realized at once, and their other tracked materials
+ * (`consumingMaterials`) as a quantity only.
  */
 export function buildLedger(input: BuildLedgerInput): BuildLedgerResult {
 	const { dataset, now, buyPrice } = input;
@@ -274,10 +284,11 @@ export function buildLedger(input: BuildLedgerInput): BuildLedgerResult {
 	}
 
 	for (const job of input.jobs) {
-		if (job.activity !== 'manufacturing') continue;
-		const blueprint = consumingBlueprints.get(job.blueprintTypeId);
+		if (job.activity !== 'manufacturing' || materialRecipes.has(job.blueprintTypeId)) continue;
+		const valued = consumingBlueprints.get(job.blueprintTypeId)?.materials ?? [];
+		const consumed = input.consumingMaterials?.get(job.blueprintTypeId) ?? [];
 		// Materials are taken when the job is installed, whatever happened to it later.
-		if (blueprint) {
+		if (valued.length > 0 || consumed.length > 0) {
 			events.push({
 				at: job.startDate,
 				phase: USE,
@@ -285,7 +296,8 @@ export function buildLedger(input: BuildLedgerInput): BuildLedgerResult {
 				order: 0,
 				kind: 'manufacturingStart',
 				job,
-				blueprint
+				valued,
+				consumed
 			});
 		}
 	}
@@ -400,8 +412,8 @@ export function buildLedger(input: BuildLedgerInput): BuildLedgerResult {
 				break;
 			}
 			case 'manufacturingStart': {
-				const { job, blueprint } = e;
-				for (const material of blueprint.materials) {
+				const { job } = e;
+				for (const material of e.valued) {
 					const needed = requiredQuantity(job.runs, material.quantity, job.materialModifier);
 					const buy = buyValueUse ? buyPrice(material.typeId, job.startDate) : null;
 					// A shortfall is untracked stock: ignored, no fallback lot.
@@ -413,6 +425,11 @@ export function buildLedger(input: BuildLedgerInput): BuildLedgerResult {
 						(lot) => (buy ? buy.unitPrice : lot.unitCost),
 						() => {}
 					);
+				}
+				for (const material of e.consumed) {
+					const needed = requiredQuantity(job.runs, material.quantity, job.materialModifier);
+					// No value; a shortfall is untracked stock: ignored.
+					consume(material.typeId, needed, 'consumed', e.ref, null, () => {});
 				}
 				break;
 			}
@@ -497,12 +514,26 @@ export function buildLedger(input: BuildLedgerInput): BuildLedgerResult {
 	// Sales, later producing jobs and manufacturing per output lot.
 	const lotOutcome = new Map<
 		number,
-		{ soldQty: number; salesNet: number; usedQty: number; manufacturedQty: number; manufacturedValue: number }
+		{
+			soldQty: number;
+			salesNet: number;
+			usedQty: number;
+			manufacturedQty: number;
+			manufacturedValue: number;
+			consumedQty: number;
+		}
 	>();
 	uses.forEach((use, i) => {
 		let outcome = lotOutcome.get(use.lotId);
 		if (!outcome) {
-			outcome = { soldQty: 0, salesNet: 0, usedQty: 0, manufacturedQty: 0, manufacturedValue: 0 };
+			outcome = {
+				soldQty: 0,
+				salesNet: 0,
+				usedQty: 0,
+				manufacturedQty: 0,
+				manufacturedValue: 0,
+				consumedQty: 0
+			};
 			lotOutcome.set(use.lotId, outcome);
 		}
 		if (use.useKind === 'sale') {
@@ -511,6 +542,8 @@ export function buildLedger(input: BuildLedgerInput): BuildLedgerResult {
 		} else if (use.useKind === 'manufacturing') {
 			outcome.manufacturedQty += use.quantity;
 			outcome.manufacturedValue += use.quantity * useValues[i]!;
+		} else if (use.useKind === 'consumed') {
+			outcome.consumedQty += use.quantity;
 		} else {
 			outcome.usedQty += use.quantity;
 		}
@@ -554,7 +587,7 @@ export function buildLedger(input: BuildLedgerInput): BuildLedgerResult {
 				usedQty: outcome?.usedQty ?? 0,
 				manufacturedQty,
 				manufacturedValue,
-				unsoldQty: lot ? lot.remaining : 0,
+				unsoldQty: lot ? lot.remaining + (outcome?.consumedQty ?? 0) : 0,
 				unitCost,
 				realizedProfit,
 				flags: FLAG_ORDER.filter((f) => flags.has(f))
@@ -576,6 +609,8 @@ export interface RunLedgerInput {
 	orders: readonly LedgerOrder[];
 	contracts: readonly LedgerContract[];
 	jobs: readonly LedgerJob[];
+	/** See `BuildLedgerInput.consumingMaterials`. */
+	consumingMaterials?: ReadonlyMap<number, readonly Material[]>;
 	corrections: readonly LedgerCorrection[];
 	manualEntries: readonly LedgerManualEntry[];
 	/** Contract rule reference prices (hub and basis): splits multi-item contracts. */
@@ -619,6 +654,7 @@ export function runLedger(input: RunLedgerInput): LedgerResult {
 		dataset: input.dataset,
 		settings: input.settings,
 		jobs: input.jobs,
+		consumingMaterials: input.consumingMaterials,
 		trades,
 		contracts,
 		corrections: input.corrections,

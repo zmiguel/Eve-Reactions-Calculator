@@ -18,13 +18,14 @@ import {
 	TATARA_TYPE_ID,
 	WORMHOLE_REGION_ID_MIN
 } from './constants.ts';
-import { buildIndustryData } from './industry.ts';
+import { buildIndustryData, productFilterMap } from './industry.ts';
 import type {
 	IndustrySources,
 	RawGroup,
 	RawSde,
 	RawType,
 	SdeDataset,
+	SdeManufacturingBlueprint,
 	SdeSystem,
 	SdeType,
 	SystemSecurityBand
@@ -261,6 +262,36 @@ export function normalize(raw: RawSde, industry?: IndustrySources): SdeDataset {
 		for (const m of bp.materials) trackedIds.add(m.typeId);
 	}
 
+	// Published manufacturing blueprints, other than the material-making ones, that take a tracked
+	// material other than a reaction product (reaction products keep their `Dataset.manufacturing` use).
+	const consuming: Omit<SdeManufacturingBlueprint, 'productFilters'>[] = [];
+	for (const bp of [...raw.manufacturing].sort((a, b) => a.blueprintTypeId - b.blueprintTypeId)) {
+		const product = bp.products[0];
+		if (!product || reactionMaterials.has(product.typeId)) continue;
+		const materials = bp.materials.filter((m) => trackedIds.has(m.typeId) && !reactionProducts.has(m.typeId));
+		if (materials.length === 0) continue;
+		const blueprint = typesById.get(bp.blueprintTypeId);
+		if (!blueprint?.published) continue;
+		consuming.push({
+			blueprintTypeId: bp.blueprintTypeId,
+			name: blueprint.name,
+			productTypeId: product.typeId,
+			productName: typesById.get(product.typeId)?.name ?? `Type ${product.typeId}`,
+			materials: materials.map((m) => ({ typeId: m.typeId, quantity: m.quantity }))
+		});
+	}
+	const consumingFilters = industry
+		? productFilterMap(
+				raw,
+				industry.filters,
+				consuming.map((bp) => bp.productTypeId)
+			)
+		: {};
+	const manufacturingBlueprints: SdeManufacturingBlueprint[] = consuming.map((bp) => ({
+		...bp,
+		productFilters: consumingFilters[bp.productTypeId] ?? []
+	}));
+
 	const types: SdeType[] = [];
 	const datasetTypes: Record<number, TypeInfo> = {};
 	for (const typeId of [...trackedIds].sort((a, b) => a - b)) {
@@ -329,6 +360,7 @@ export function normalize(raw: RawSde, industry?: IndustrySources): SdeDataset {
 		types,
 		regions,
 		systems,
+		manufacturingBlueprints,
 		warnings: [...new Set(warnings)]
 	};
 }

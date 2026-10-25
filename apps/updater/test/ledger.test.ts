@@ -919,6 +919,61 @@ describe('rebuildLedger', () => {
 			expect(job!.realized_profit).toBeCloseTo(500 * 38.56 + 433 * 50 - 933 * job!.unit_cost!, 6);
 		});
 
+		it('takes the other tracked materials of manufacturing jobs as quantities, job results as they were', async () => {
+			const tracking = {
+				facilities: { [MFG_FACILITY]: { structureTypeId: AZBEL, rigs: [COMPONENT_RIG, SHIP_RIG] } }
+			};
+			await seedManufacturing(tracking);
+			await rebuildLedger(env, 'u1', NOW);
+			const results = await jobResultsOf('u1');
+			const valued = (await usesOf('u1')).filter((u) => u.use_kind === 'manufacturing');
+
+			// The component blueprint also takes 2 Chromium per run; a ship blueprint (filter Ships, from the
+			// table) 100 Titanium per run.
+			await env.DB.batch([
+				prepare(
+					`INSERT INTO manufacturing_blueprints (blueprint_type_id, name, product_type_id, product_name, product_filters_json)
+					VALUES (?, 'Component Blueprint', ?, 'Component', '[14]'), (691, 'Ship Blueprint', 587, 'Ship', '[3]')`,
+					MFG_BLUEPRINT,
+					MFG_PRODUCT
+				),
+				prepare(
+					`INSERT INTO manufacturing_blueprint_materials (blueprint_type_id, type_id, quantity)
+					VALUES (?, ?, 2), (691, ?, 100)`,
+					MFG_BLUEPRINT,
+					CHROMIUM,
+					TITANIUM
+				),
+				insertJob('u1', 11, 21, {
+					activityId: 1,
+					blueprintTypeId: 691,
+					runs: 1,
+					blueprintMe: 10,
+					start: MFG_START,
+					facilityId: MFG_FACILITY
+				})
+			]);
+			await rebuildLedger(env, 'u1', NOW + 1);
+
+			expect(await jobResultsOf('u1')).toEqual(results);
+			expect((await usesOf('u1')).filter((u) => u.use_kind === 'manufacturing')).toEqual(valued);
+			const lots = (await lotsOf('u1')) as { lot_id: number; type_id: number; remaining: number }[];
+			const typeOf = (lotId: number) => lots.find((l) => l.lot_id === lotId)!.type_id;
+			// Job 21: 100 × 0.9 × 0.99 × (1 − 0.024 × 2.1) (ME 10, Azbel, the ship rig in nullsec) = 84.6 → 85
+			// of the Titanium the reaction left (1000 + 500 entered − 976). Job 20: 5 × 2 × 0.86489568 = 8.65 → 9
+			// of the 24 Chromium left.
+			expect(
+				(await usesOf('u1'))
+					.filter((u) => u.use_kind === 'consumed')
+					.map((u) => [typeOf(u.lot_id as number), u.use_ref, u.quantity, u.unit_value])
+			).toEqual([
+				[TITANIUM, 'job:21', 85, null],
+				[CHROMIUM, 'job:20', 9, null]
+			]);
+			expect(lots.filter((l) => l.type_id === CHROMIUM).map((l) => l.remaining)).toEqual([15]);
+			expect(lots.filter((l) => l.type_id === TITANIUM).map((l) => l.remaining)).toEqual([0, 439]);
+		});
+
 		it("counts manufacturing use at cost with manufacturingUse 'zero'", async () => {
 			const tracking = { ...FACILITIES, manufacturingUse: 'zero' };
 			await seedManufacturing(tracking);

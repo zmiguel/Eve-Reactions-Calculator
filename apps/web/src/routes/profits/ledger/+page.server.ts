@@ -2,7 +2,7 @@ import { redirect } from '@sveltejs/kit';
 import { hasEmptyParams, withoutEmptyParams } from '$lib/ledger/forms';
 import type { LedgerPageData } from '$lib/ledger/types';
 import { emptyLedgerPage, ledgerPage, parseLedgerQuery } from '$lib/server/ledger';
-import { correctionAction } from '$lib/server/ledger-actions';
+import { contractJaniceAction, correctionAction } from '$lib/server/ledger-actions';
 import { profitsContext } from '$lib/server/profits-access';
 import type { Actions, PageServerLoad } from './$types';
 
@@ -22,5 +22,7 @@ const KINDS = ['transaction', 'contract_item'] as const;
 
 export const actions: Actions = {
 	correct: (event) => correctionAction(event, 'correct', KINDS),
-	undo: (event) => correctionAction(event, 'undo', KINDS)
+	undo: (event) => correctionAction(event, 'undo', KINDS),
+	contractJanice: (event) => contractJaniceAction(event, 'contractJanice'),
+	removeContractJanice: (event) => contractJaniceAction(event, 'removeContractJanice')
 };

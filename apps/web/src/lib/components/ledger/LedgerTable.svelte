@@ -18,6 +18,7 @@
 	} from '$lib/ledger/types';
 	import type { Paged } from '$lib/paging';
 	import { blueprintIconUrl, typeIconUrl } from '$lib/site';
+	import ContractJaniceForm from './ContractJaniceForm.svelte';
 	import CorrectionForm from './CorrectionForm.svelte';
 	import PriceSource from './PriceSource.svelte';
 
@@ -66,7 +67,7 @@
 	const num = `${cell} text-right tabular-nums whitespace-nowrap`;
 	const muted = 'text-xs text-gray-500 dark:text-gray-400';
 	const link = 'text-primary-700 hover:underline dark:text-primary-400';
-	const rowClass = 'border-t border-gray-200 dark:border-gray-700';
+	const rowClass = 'border-t border-gray-200 dark:border-gray-600';
 </script>
 
 {#snippet icon(t: LedgerItemType)}
@@ -181,7 +182,7 @@
 					class="block text-xs {link}"
 					rel="noopener noreferrer"
 					target="_blank"
-					data-janice>Janice appraisal {row.janiceCode}</a
+					data-janice>{row.janiceOwn ? 'Your Janice appraisal' : 'Janice appraisal'} {row.janiceCode}</a
 				>
 			{/if}
 		</td>
@@ -207,7 +208,8 @@
 	<tr data-contract-items={row.contractId}>
 		<td colspan={COLUMNS} class="px-3 pb-2">
 			<details
-				open={row.items.some((i) => i.price && form?.ref === i.price.ref && Boolean(form.error))}
+				open={form?.ref === `contract:${row.contractId}` ||
+					row.items.some((i) => i.price && form?.ref === i.price.ref && Boolean(form.error))}
 				class="rounded-md bg-gray-50 dark:bg-gray-900/40"
 				data-items
 			>
@@ -270,6 +272,9 @@
 						</tbody>
 					</table>
 				</div>
+				{#if row.items.some((i) => i.price && i.price.sourceKind !== UNTRACKED)}
+					<ContractJaniceForm contract={row} {form} />
+				{/if}
 			</details>
 		</td>
 	</tr>

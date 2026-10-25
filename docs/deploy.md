@@ -568,6 +568,24 @@ Until now the tracking sync dropped wallet transactions of fuel block materials 
 2. Mark every ledger for a rebuild: `npx wrangler d1 execute reactions-core --remote --command "UPDATE ledger_state SET dirty = 1"`. The cron rebuilds them, `TRACKING_LEDGERS_PER_TICK` (10) per tick. Check: `SELECT broker_fee_source, COUNT(*) FROM ledger_prices WHERE ref GLOB 'transaction:*' GROUP BY 1` has few or no `estimated` rows.
 3. Build and deploy the web preview, then the web production (only the footer version changes).
 
+### 3.2.7 (manufacturing use of materials) release order
+
+Until now manufacturing jobs of blueprints that use no reaction product were not stored, and their materials stayed in the batches as held. ESI returns about 90 days of industry jobs, so do step 4 soon after the release.
+
+1. Core migration 0013 (`npx wrangler d1 migrations apply reactions-core --remote`, as above). It only creates the tables `manufacturing_blueprints` and `manufacturing_blueprint_materials`; the running code does not read them.
+2. Deploy the updater: the SDE import fills both tables, the tracking sync also stores manufacturing jobs of those blueprints, and rebuilds take their tracked materials from the batches as a quantity only (`ledger_uses.use_kind` `consumed`, no value). Nothing changes before step 3.
+3. On `/admin`, SDE sync **Re-import (force)**. Done when the `sde` job is `ok`. Check: `npx wrangler d1 execute reactions-core --remote --command "SELECT (SELECT COUNT(*) FROM manufacturing_blueprints) AS blueprints, (SELECT COUNT(*) FROM manufacturing_blueprint_materials) AS materials"` gives about 2,300 blueprints and 8,400 materials (2,344 and 8,462 for SDE build 3421648).
+4. Make the jobs streams due, so every connection reads again every job ESI still returns (90 days) and stores the new manufacturing jobs; the blueprints stream then reads the ME of those still installed:
+
+   ```bash
+   npx wrangler d1 execute reactions-core --remote --command "UPDATE tracking_streams SET expires_at = NULL WHERE stream = 'jobs'"
+   ```
+
+   The cron syncs the due connections, `TRACKING_SYNCS_PER_TICK` (20) per tick, only of accounts seen in the last 30 days; each sync rebuilds its account's ledger. Wait until the `tracking` job rows show no more due connections.
+
+5. Mark every ledger for a rebuild after that resync: `npx wrangler d1 execute reactions-core --remote --command "UPDATE ledger_state SET dirty = 1"`. The cron rebuilds them, `TRACKING_LEDGERS_PER_TICK` (10) per tick. Check: `SELECT COUNT(*) FROM ledger_uses WHERE use_kind = 'consumed'` is above 0 when users built ships, modules or ammunition from tracked materials.
+6. Build and deploy the web preview; check the item page of a mineral or moon material a manufacturing job used: the batch shows "Used in manufacturing: <product>" without a value and fewer remaining units; Overview and Jobs figures are as before. Then deploy the web production.
+
 ### Rotating secrets
 
 | Secret                                                  | How                                                                                                                                                                                                                                                                              | Effect                                                                                                                               |

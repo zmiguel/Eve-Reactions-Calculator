@@ -443,6 +443,94 @@ describe('normalize', () => {
 		expect(sde.warnings.filter((w) => !w.startsWith('MISSING_CONSTANT'))).toEqual([]);
 	});
 
+	it('lists published blueprints consuming tracked materials other than reaction products, outside the dataset', () => {
+		const sde = normalize(
+			raw({
+				manufacturing: [
+					// Moon Goo (tracked, not a reaction product) and Thing (a reaction product) and an untracked type.
+					{
+						blueprintTypeId: 721,
+						materials: [
+							{ typeId: 34, quantity: 1000 },
+							{ typeId: 600, quantity: 5 },
+							{ typeId: MOON_GOO, quantity: 20 }
+						],
+						products: [{ typeId: 821, quantity: 1 }]
+					},
+					// Isotopes, tracked as a material of the Goo blueprint below.
+					{
+						blueprintTypeId: 720,
+						materials: [{ typeId: 901, quantity: 7 }],
+						products: [{ typeId: 820, quantity: 100 }]
+					},
+					// Makes Moon Goo: a fuel block-like blueprint, kept in the dataset only.
+					{
+						blueprintTypeId: 710,
+						materials: [{ typeId: 901, quantity: 450 }],
+						products: [{ typeId: MOON_GOO, quantity: 40 }]
+					},
+					// Only a reaction product or untracked types; unpublished; no product.
+					{
+						blueprintTypeId: 722,
+						materials: [{ typeId: 600, quantity: 1 }],
+						products: [{ typeId: 822, quantity: 1 }]
+					},
+					{
+						blueprintTypeId: 723,
+						materials: [{ typeId: 34, quantity: 1 }],
+						products: [{ typeId: 823, quantity: 1 }]
+					},
+					{
+						blueprintTypeId: 724,
+						materials: [{ typeId: MOON_GOO, quantity: 1 }],
+						products: [{ typeId: 824, quantity: 1 }]
+					},
+					{ blueprintTypeId: 725, materials: [{ typeId: MOON_GOO, quantity: 1 }], products: [] }
+				],
+				types: [
+					...raw().types,
+					type(710, 'Goo Blueprint', 100),
+					type(720, 'Charge Blueprint', 100),
+					type(721, 'Frigate Blueprint', 100),
+					type(722, 'Thing Part Blueprint', 100),
+					type(723, 'Plate Blueprint', 100),
+					type(724, 'Old Blueprint', 100, { published: false }),
+					type(725, 'Empty Blueprint', 100),
+					type(820, 'Charge', 83),
+					type(901, 'Isotopes', 423)
+				],
+				groups: [
+					...raw().groups,
+					{ groupId: 423, name: 'Ice Product', categoryId: 4 },
+					{ groupId: 100, name: 'Blueprints', categoryId: 9 },
+					{ groupId: 83, name: 'Projectile Ammo', categoryId: 8 }
+				]
+			})
+		);
+		// Only those materials; the product name falls back to "Type <id>" when the type is unknown.
+		expect(sde.manufacturingBlueprints).toEqual([
+			{
+				blueprintTypeId: 720,
+				name: 'Charge Blueprint',
+				productTypeId: 820,
+				productName: 'Charge',
+				productFilters: [],
+				materials: [{ typeId: 901, quantity: 7 }]
+			},
+			{
+				blueprintTypeId: 721,
+				name: 'Frigate Blueprint',
+				productTypeId: 821,
+				productName: 'Type 821',
+				productFilters: [],
+				materials: [{ typeId: MOON_GOO, quantity: 20 }]
+			}
+		]);
+		// Blueprint 721 takes a reaction product, so the dataset keeps it for that one; nothing else is added.
+		expect(sde.dataset.manufacturing?.map((b) => b.blueprintTypeId)).toEqual([710, 721, 722]);
+		expect(sde.types.map((t) => t.typeId)).toEqual([500, 600, 710, 901, MOON_GOO]);
+	});
+
 	it('throws without SDE metadata', () => {
 		expect(() => normalize(raw({ build: null }))).toThrow(/_sde\.jsonl/);
 	});
@@ -666,6 +754,27 @@ describe('normalize with industry sources', () => {
 	it('maps reaction and manufacturing products to the filters of their group or category', () => {
 		const { industry } = normalize(industryRaw(), sources).dataset;
 		expect(industry?.productFilters).toEqual({ 600: [18], 801: [14, 20] });
+	});
+
+	it('gives consuming blueprints the filters of their product, outside the dataset filters', () => {
+		const base = industryRaw();
+		const sde = normalize(
+			{
+				...base,
+				manufacturing: [
+					...base.manufacturing,
+					{
+						blueprintTypeId: 730,
+						materials: [{ typeId: MOON_GOO, quantity: 4 }],
+						products: [{ typeId: 830, quantity: 1 }]
+					}
+				],
+				types: [...base.types, type(730, 'Plate Blueprint', 100), type(830, 'Plate', 334)]
+			},
+			sources
+		);
+		expect(sde.manufacturingBlueprints).toMatchObject([{ blueprintTypeId: 730, productFilters: [14, 20] }]);
+		expect(sde.dataset.industry?.productFilters).toEqual({ 600: [18], 801: [14, 20] });
 	});
 
 	it('warns about bonuses it cannot derive and skips unpublished types silently', () => {

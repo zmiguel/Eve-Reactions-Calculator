@@ -476,6 +476,8 @@ describe('/profits/ledger load', () => {
 			direction: 'buy',
 			title: 'Moon goo https://janice.e-351.com/a/AbC',
 			janiceCode: 'AbC',
+			janiceOwn: false,
+			titleJanice: true,
 			total: 1_000_000,
 			itemCount: 2,
 			needsReview: true
@@ -949,5 +951,149 @@ describe('/profits/ledger purchases entered by the user', () => {
 			originRef: 'job:77'
 		});
 		expect((await pageData(env, user)).missingCount).toBe(1);
+	});
+});
+
+describe('/profits/ledger Janice link of a contract', () => {
+	const APPRAISAL = JSON.stringify({ code: 'AbC', items: [] });
+
+	/** `ledgerAccounts` plus contract 204 (title link AbC, appraised) and u2's contract 301. */
+	async function janiceAccounts(setContractJanice = vi.fn(async () => ({ rebuilt: true }))) {
+		const UPDATER = { ...updaterStub(), setContractJanice };
+		const setup = await ledgerAccounts({ UPDATER });
+		const db = setup.env.DB;
+		insertContract(db, {
+			userId: 'u1',
+			sourceId: setup.personal,
+			contractId: 204,
+			title: 'More https://janice.e-351.com/a/AbC',
+			janiceCode: 'AbC',
+			items: [[X, 1]]
+		});
+		insertContract(db, { userId: 'u2', sourceId: setup.theirs, contractId: 301, items: [[X, 1]] });
+		db.sqlite
+			.prepare("UPDATE tracked_contracts SET janice_json = ? WHERE janice_code = 'AbC'")
+			.run(APPRAISAL);
+		return { ...setup, UPDATER };
+	}
+
+	const stored = (env: FakeEnv, contractId: number) =>
+		env.DB.sqlite
+			.prepare('SELECT janice_code, janice_json FROM tracked_contracts WHERE contract_id = ?')
+			.get(contractId);
+	const contractRow = async (env: FakeEnv, user: SessionUser, contractId: number) =>
+		(await pageData(env, user, '?kind=contract')).rows.rows.find(
+			(r) => r.kind === 'contract' && r.contractId === contractId
+		);
+
+	it('asks the updater for the first appraisal linked in the text and confirms', async () => {
+		const { env, user, UPDATER } = await janiceAccounts();
+		const fields = { ref: 'contract:201', link: 'see https://janice.e-351.com/a/XyZ9 and /a/Other' };
+		expect(await settle(actions.contractJanice(event(env, user, '?review=1', fields)))).toEqual({
+			data: { action: 'contractJanice', ref: 'contract:201', notice: expect.any(String) }
+		});
+		expect(UPDATER.setContractJanice.mock.calls).toEqual([['u1', 201, 'XyZ9']]);
+	});
+
+	it.each([
+		["another user's contract", 'contract:301'],
+		['an unknown contract', 'contract:999'],
+		['a malformed reference', 'contract:abc']
+	])('answers 404 for %s without asking the updater', async (_case, ref) => {
+		const { env, user, UPDATER } = await janiceAccounts();
+		const fields = { ref, link: 'https://janice.e-351.com/a/XyZ9' };
+		expect(await settle(actions.contractJanice(event(env, user, '', fields)))).toMatchObject({
+			status: 404,
+			data: { action: 'contractJanice', ref, error: expect.any(String) }
+		});
+		expect(UPDATER.setContractJanice).not.toHaveBeenCalled();
+	});
+
+	it.each([['nothing'], ['XyZ9'], ['https://example.com/a/XyZ9']])(
+		'answers 400 to "%s" (not a Janice link), giving it back',
+		async (link) => {
+			const { env, user, UPDATER } = await janiceAccounts();
+			const outcome = await settle(
+				actions.contractJanice(event(env, user, '', { ref: 'contract:201', link }))
+			);
+			expect(outcome).toMatchObject({
+				status: 400,
+				data: { ref: 'contract:201', error: expect.any(String), link }
+			});
+			expect(UPDATER.setContractJanice).not.toHaveBeenCalled();
+		}
+	);
+
+	it.each([
+		['Janice has no such appraisal', async () => ({ error: 'unknown' }), 400],
+		['the fetch failed', async () => ({ error: 'failed' }), 502],
+		['the updater has no Janice key', async () => ({ error: 'unavailable' }), 503],
+		['the updater does not answer', () => Promise.reject(new Error('down')), 502]
+	])('shows an error when %s', async (_case, answer, status) => {
+		vi.spyOn(console, 'error').mockImplementation(() => {});
+		const { env, user } = await janiceAccounts(vi.fn(answer) as never);
+		const fields = { ref: 'contract:201', link: 'https://janice.e-351.com/a/XyZ9' };
+		expect(await settle(actions.contractJanice(event(env, user, '', fields)))).toMatchObject({
+			status,
+			data: { action: 'contractJanice', ref: 'contract:201', error: expect.any(String) }
+		});
+	});
+
+	it('is rate limited like the other ledger actions', async () => {
+		const limit = vi.fn(async (_options: { key: string }) => ({ success: false }));
+		const setContractJanice = vi.fn(async () => ({ rebuilt: true }));
+		const setup = await ledgerAccounts({
+			ACCOUNT_RATE_LIMITER: { limit },
+			UPDATER: { ...updaterStub(), setContractJanice }
+		});
+		const fields = { ref: 'contract:201', link: 'https://janice.e-351.com/a/XyZ9' };
+		expect(await settle(actions.contractJanice(event(setup.env, setup.user, '', fields)))).toMatchObject({
+			status: 429
+		});
+		expect(setContractJanice).not.toHaveBeenCalled();
+	});
+
+	it("marks the user's appraisal and removing it restores the title's link with its appraisal", async () => {
+		const { env, user, UPDATER } = await janiceAccounts();
+		env.DB.sqlite
+			.prepare(
+				"UPDATE tracked_contracts SET janice_code = 'XyZ9', janice_json = '{}' WHERE contract_id = 201"
+			)
+			.run();
+		expect(await contractRow(env, user, 201)).toMatchObject({ janiceCode: 'XyZ9', janiceOwn: true });
+
+		const outcome = await settle(actions.removeContractJanice(event(env, user, '', { ref: 'contract:201' })));
+		expect(outcome).toEqual({
+			data: { action: 'removeContractJanice', ref: 'contract:201', notice: expect.any(String) }
+		});
+		// Contract 204 has the title's appraisal: 201 takes it again at once.
+		expect(stored(env, 201)).toEqual({ janice_code: 'AbC', janice_json: APPRAISAL });
+		expect(UPDATER.rebuildLedger).toHaveBeenCalledWith('u1');
+		expect(await contractRow(env, user, 201)).toMatchObject({ janiceCode: 'AbC', janiceOwn: false });
+	});
+
+	it('removing it from a contract without a title link leaves no appraisal', async () => {
+		const { env, user } = await janiceAccounts();
+		env.DB.sqlite
+			.prepare(
+				"UPDATE tracked_contracts SET janice_code = 'XyZ9', janice_json = '{}' WHERE contract_id = 203"
+			)
+			.run();
+		await settle(actions.removeContractJanice(event(env, user, '', { ref: 'contract:203' })));
+		expect(stored(env, 203)).toEqual({ janice_code: null, janice_json: null });
+	});
+
+	it("answers 404 to removing the title's appraisal or another user's", async () => {
+		const { env, user, UPDATER } = await janiceAccounts();
+		env.DB.sqlite.prepare("UPDATE tracked_contracts SET janice_code = 'XyZ9' WHERE contract_id = 301").run();
+		for (const ref of ['contract:201', 'contract:301']) {
+			expect(await settle(actions.removeContractJanice(event(env, user, '', { ref })))).toMatchObject({
+				status: 404,
+				data: { action: 'removeContractJanice', ref }
+			});
+		}
+		expect(stored(env, 201)).toEqual({ janice_code: 'AbC', janice_json: APPRAISAL });
+		expect(stored(env, 301)).toEqual({ janice_code: 'XyZ9', janice_json: null });
+		expect(UPDATER.rebuildLedger).not.toHaveBeenCalled();
 	});
 });

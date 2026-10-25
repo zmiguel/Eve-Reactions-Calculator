@@ -266,6 +266,34 @@ describe('parseSdeZip on the sde-mini fixture', () => {
 		});
 	});
 
+	it('lists the capital components consuming minerals, with only those materials', () => {
+		// The fixture keeps only blueprints that take a reaction product or make a reaction material.
+		expect(sde.manufacturingBlueprints).toHaveLength(202);
+		expect(sde.manufacturingBlueprints.find((b) => b.blueprintTypeId === 21038)).toEqual({
+			blueprintTypeId: 21038,
+			name: 'Capital Construction Parts Blueprint',
+			productTypeId: 21037,
+			productName: 'Capital Construction Parts',
+			// Capital Components: which rig bonuses apply.
+			productFilters: [13],
+			// Its Reinforced Carbon Fiber (a reaction product) stays a `Dataset.manufacturing` material.
+			materials: [
+				{ typeId: 40, quantity: 210 },
+				{ typeId: 39, quantity: 413 },
+				{ typeId: 38, quantity: 750 },
+				{ typeId: 37, quantity: 9000 },
+				{ typeId: 34, quantity: 30000 },
+				{ typeId: 36, quantity: 30000 },
+				{ typeId: 35, quantity: 105000 }
+			]
+		});
+		// No fuel block blueprint and no material-making blueprint.
+		const makers = new Set(
+			sde.dataset.manufacturing?.filter((b) => b.makes === 'material').map((b) => b.blueprintTypeId)
+		);
+		expect(sde.manufacturingBlueprints.some((b) => makers.has(b.blueprintTypeId))).toBe(false);
+	});
+
 	it('keeps the fixture systems with their regions', () => {
 		expect(sde.systems).toHaveLength(10);
 		expect(sde.systems.find((s) => s.systemId === 30002647)).toEqual({

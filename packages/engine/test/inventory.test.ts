@@ -164,7 +164,28 @@ describe('stockUnitValue', () => {
 		expect(stockUnitValue(ctx, TITANIUM_CARBIDE)).toBeNull();
 	});
 
-	it('is null for a type no reaction makes or consumes', () => {
-		expect(stockUnitValue(makeCtx({ profile: { market } }), RIFTER)).toBeNull();
+	it('values a type only reached by reprocessing with the profile of the unrefined reaction yielding it', () => {
+		// Tritanium: no reaction makes or uses it; Unrefined Tritanium (composite) reprocesses into it.
+		const elsewhere = resolved({ market: { ...market, outputHub: 'nowhere' } });
+		const profiles: Record<Reactor, ResolvedProfile> = {
+			biochemical: elsewhere,
+			hybrid: elsewhere,
+			composite: resolved({ market, shipping: { output: off } })
+		};
+		// Sell order at 4.5, less 3 % broker fee and 4 % sales tax.
+		expect(stockUnitValue(makeCtx({ profiles }), TRITANIUM)).toBeCloseTo(4.5 * 0.93, 6);
+	});
+
+	it('values a type no reaction touches with the composite profile; null while it has no price', () => {
+		const elsewhere = resolved({ market: { ...market, outputHub: 'nowhere' } });
+		const profiles: Record<Reactor, ResolvedProfile> = {
+			biochemical: elsewhere,
+			hybrid: elsewhere,
+			composite: resolved({ market, shipping: { output: off } })
+		};
+		const prices = { ...jitaPrices, [RIFTER]: { buy: 300000, sell: 350000 } };
+		const priced = makeCtx({ profiles, outputPrices: priceBook({ jita: prices }) });
+		expect(stockUnitValue(priced, RIFTER)).toBeCloseTo(350000 * 0.93, 6);
+		expect(stockUnitValue(makeCtx({ profiles }), RIFTER)).toBeNull();
 	});
 });

@@ -9,19 +9,19 @@
 	let { data, form } = $props();
 
 	const result = $derived(form as LedgerActionResult | null);
-	/** Prices with a correction form on this page: their errors show next to the form. */
-	const correctionRefs = $derived(
+	/** Prices with a correction form and contracts with a Janice form on this page: their errors show next to the form. */
+	const formRefs = $derived(
 		new Set(
 			data.rows.rows.flatMap((r) =>
 				r.kind === 'market'
 					? [r.price.ref]
 					: r.kind === 'contract'
-						? r.items.flatMap((i) => (i.price ? [i.price.ref] : []))
+						? [`contract:${r.contractId}`, ...r.items.flatMap((i) => (i.price ? [i.price.ref] : []))]
 						: []
 			)
 		)
 	);
-	const pageError = $derived(result?.error && !correctionRefs.has(result.ref) ? result.error : null);
+	const pageError = $derived(result?.error && !formRefs.has(result.ref) ? result.error : null);
 	const now = Date.now();
 
 	const card = 'rounded-lg bg-white p-4 text-sm dark:bg-gray-700';

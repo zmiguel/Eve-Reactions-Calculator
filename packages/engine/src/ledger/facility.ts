@@ -44,6 +44,16 @@ export function parseRigIds(json: string | null): number[] | null {
 	}
 }
 
+/** Stored target filter ids (`product_filters_json`, a JSON array) → the ids; anything else → none. */
+export function parseFilterIds(json: string): number[] {
+	try {
+		const value: unknown = JSON.parse(json);
+		return Array.isArray(value) && value.every((v) => Number.isSafeInteger(v)) ? (value as number[]) : [];
+	} catch {
+		return [];
+	}
+}
+
 export function resolveFacility(
 	eve: FacilityFromEve | null,
 	setting: TrackingSettings['facilities'][string] | undefined
@@ -103,6 +113,24 @@ export function facilityMaterialBonus(
 		}
 	}
 	return { multiplier: parts.reduce((m, p) => m * (1 - p.reduction), 1), parts };
+}
+
+/**
+ * `industry` with the target filters of more products (`[productTypeId, filterIds]`): the products of
+ * `manufacturing_blueprints`, which `Dataset.industry` does not list. The dataset's own entries win.
+ */
+export function withProductFilters(
+	industry: IndustryData | undefined,
+	products: Iterable<readonly [number, readonly number[]]>
+): IndustryData | undefined {
+	if (!industry) return industry;
+	let productFilters: Record<number, number[]> | null = null;
+	for (const [typeId, filters] of products) {
+		if (industry.productFilters[typeId] !== undefined) continue;
+		productFilters ??= { ...industry.productFilters };
+		productFilters[typeId] = [...filters];
+	}
+	return productFilters ? { ...industry, productFilters } : industry;
 }
 
 /**

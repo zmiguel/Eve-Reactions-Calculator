@@ -4,7 +4,7 @@ import type { JobFilters } from '$lib/jobs/types';
 import type { ProfitPeriod } from '$lib/profits/types';
 import { asEnv, type FakeEnv } from '../../test/fakes';
 import { NOW, defaults } from '../../test/fixtures';
-import { ALPHA, FUEL, GAMMA, JOB, addFuelBlocks, addManufacturing } from '../../test/jobs';
+import { ALPHA, FUEL, GAMMA, JOB, addFuelBlocks, addManufacturing, insertTrackedJob } from '../../test/jobs';
 import { DAY, insertLot, insertUse } from '../../test/ledger-item';
 import { insertManualEntry, insertPrice, insertTransaction } from '../../test/ledger';
 import { overviewScenario } from '../../test/profits';
@@ -475,6 +475,36 @@ describe('items no reaction uses', () => {
 		expect(after.charts).toEqual(before.charts);
 		expect(after.sales).toEqual(before.sales);
 		expect(after.attention).toEqual(before.attention);
+	});
+});
+
+describe('materials consumed by manufacturing jobs', () => {
+	it('leave every total, chart and table of the overview and the jobs tab unchanged', async () => {
+		const s = await overviewScenario();
+		const filters: JobFilters = {
+			period: '7',
+			status: null,
+			formula: null,
+			connection: null,
+			sort: 'newest'
+		};
+		const before = await overview(s.env, '?period=7');
+		const jobsBefore = await jobsPage(asEnv(s.env), u1, filters, 1, NOW);
+		// A ship job of u1 yesterday took 20 of the bought material (lot 1) and 10 of the unsold intermediate.
+		insertTrackedJob(s.env.DB, 'u1', {
+			jobId: 7101,
+			sourceId: s.mine,
+			blueprintTypeId: 691,
+			productTypeId: 587,
+			activityId: 1,
+			startDate: NOW - DAY,
+			endDate: NOW
+		});
+		insertUse(s.env.DB, 'u1', { lotId: 1, kind: 'consumed', ref: 'job:7101', quantity: 20, unitCost: 8 });
+		insertUse(s.env.DB, 'u1', { lotId: 3, kind: 'consumed', ref: 'job:7101', quantity: 10, unitCost: 5.5 });
+		const after = await overview(s.env, '?period=7');
+		expect(after).toEqual(before);
+		expect(await jobsPage(asEnv(s.env), u1, filters, 1, NOW)).toEqual(jobsBefore);
 	});
 });
 

@@ -53,6 +53,8 @@ const contract = (overrides: Partial<LedgerContractRow> = {}): LedgerContractRow
 	direction: 'buy',
 	title: 'Moon goo',
 	janiceCode: 'AbC',
+	janiceOwn: false,
+	titleJanice: true,
 	total: 1_000_000,
 	itemCount: 2,
 	needsReview: true,
@@ -87,6 +89,7 @@ const transfer = contract({
 	direction: 'transfer',
 	title: null,
 	janiceCode: null,
+	titleJanice: false,
 	itemCount: 1,
 	needsReview: false,
 	items: [
@@ -264,6 +267,43 @@ describe('LedgerTable', () => {
 		expect(
 			container.querySelector<HTMLDetailsElement>('[data-contract-item="16634"] [data-correct]')?.open
 		).toBe(false);
+	});
+
+	it('offers a Janice link form on a priced contract that works without JS', () => {
+		const container = renderTable([contract()]);
+		const box = container.querySelector('[data-contract-items="201"] [data-contract-janice]')!;
+		const apply = box.querySelector<HTMLFormElement>('form[data-janice-apply]')!;
+		expect(apply.method).toBe('post');
+		expect(apply.getAttribute('action')).toBe('?/contractJanice&type=16634&page=2');
+		const fields = Object.fromEntries([...new FormData(apply)].map(([k, v]) => [k, String(v)]));
+		expect(fields).toEqual({ ref: 'contract:201', link: '' });
+		// The appraisal comes from the title: nothing of the user's to remove.
+		expect(box.querySelector('form[data-janice-remove]')).toBeNull();
+	});
+
+	it("offers to remove the user's appraisal and names it on the contract", () => {
+		const container = renderTable([contract({ janiceCode: 'XyZ9', janiceOwn: true })]);
+		const remove = container.querySelector<HTMLFormElement>('form[data-janice-remove]')!;
+		expect(remove.getAttribute('action')).toBe('?/removeContractJanice&type=16634&page=2');
+		expect(new FormData(remove).get('ref')).toBe('contract:201');
+		expect(container.querySelector('[data-contract="201"] [data-janice]')?.getAttribute('href')).toBe(
+			'https://janice.e-351.com/a/XyZ9'
+		);
+	});
+
+	it('opens the items of a contract whose Janice link was rejected, with the error and the link typed', () => {
+		const container = renderTable([contract()], {
+			action: 'contractJanice',
+			ref: 'contract:201',
+			error: 'Not a link',
+			link: 'janice?'
+		});
+		expect(container.querySelector<HTMLDetailsElement>('[data-contract-items="201"] details')?.open).toBe(
+			true
+		);
+		const box = container.querySelector('[data-contract-janice="201"]')!;
+		expect(box.querySelector('[data-form-error]')?.textContent).toBe('Not a link');
+		expect(box.querySelector<HTMLInputElement>('input[name="link"]')?.value).toBe('janice?');
 	});
 
 	it('shows transfer contracts without prices or forms', () => {

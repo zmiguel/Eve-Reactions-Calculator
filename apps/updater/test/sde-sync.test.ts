@@ -122,6 +122,30 @@ describe('SdeSyncWorkflow', () => {
 		// Their blueprints and materials are tracked: names and prices.
 		const tracked = await trackedTypeIds(getCoreDb(env.DB));
 		for (const typeId of [4316, 9832, 17889]) expect(tracked).toContain(typeId);
+		// The fixture's manufacturing blueprints consuming other tracked materials, kept out of KV.
+		expect(await count('manufacturing_blueprints')).toBe(202);
+		expect(await count('manufacturing_blueprint_materials')).toBe(318);
+		expect(
+			await env.DB.prepare(
+				`SELECT b.name, b.product_type_id, b.product_name, b.product_filters_json, m.quantity
+				FROM manufacturing_blueprints b JOIN manufacturing_blueprint_materials m USING (blueprint_type_id)
+				WHERE b.blueprint_type_id = 21038 AND m.type_id = 39`
+			).first()
+		).toEqual({
+			name: 'Capital Construction Parts Blueprint',
+			product_type_id: 21037,
+			product_name: 'Capital Construction Parts',
+			product_filters_json: '[13]',
+			quantity: 413
+		});
+		// Only tracked materials, never a reaction product (its Reinforced Carbon Fiber).
+		expect(
+			await env.DB.prepare(
+				`SELECT COUNT(*) AS n FROM manufacturing_blueprint_materials m
+				WHERE m.type_id IN (SELECT product_type_id FROM reactions)
+					OR m.type_id NOT IN (SELECT type_id FROM types)`
+			).first('n')
+		).toBe(0);
 		expect(await count('types')).toBe(322);
 		expect(
 			await env.DB.prepare('SELECT name, security_band FROM systems WHERE system_id = 30002647').first()

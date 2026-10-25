@@ -39,9 +39,22 @@ export interface UpdaterApi {
 	): Promise<{ instanceId: string } | { busy: true } | { notBefore: number }>;
 	/** Rebuilds the user's ledger now; `{ error: 'unavailable' }` when it failed (the ledger is marked dirty). */
 	rebuildLedger(userId: string): Promise<LedgerRebuildSummary | { error: 'unavailable' }>;
+	/**
+	 * Prices the user's contract by the Janice appraisal `code` the user gave, then rebuilds the ledger
+	 * (`setContractJanice` in `apps/updater/src/contract-janice.ts`); nothing is stored on an error.
+	 */
+	setContractJanice(userId: string, contractId: number, code: string): Promise<ContractJaniceResult>;
 	publishMarketSnapshot(): Promise<{ snapshotAt: number; hubIds: string[] }>;
 	workflowStatus(runs: { kind: string; runId: string }[]): Promise<Record<string, WorkflowStatus>>;
 }
+
+/**
+ * Result of `setContractJanice` (`ContractJaniceResult` in `apps/updater/src/contract-janice.ts`):
+ * `missing` no such contract of the user, `unavailable` no Janice API key, `unknown` Janice has no
+ * appraisal with that code, `failed` any other failure of the fetch.
+ */
+export type ContractJaniceResult =
+	{ rebuilt: boolean } | { error: 'missing' | 'unavailable' | 'unknown' | 'failed' };
 
 /** Result of a ledger rebuild (`rebuildLedger` in `apps/updater/src/ledger.ts`). */
 export interface LedgerRebuildSummary {

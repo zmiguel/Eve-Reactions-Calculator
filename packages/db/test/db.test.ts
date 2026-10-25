@@ -68,6 +68,8 @@ describe('migrations', () => {
 			'ledger_unallocated_fees',
 			'ledger_uses',
 			'manual_entries',
+			'manufacturing_blueprint_materials',
+			'manufacturing_blueprints',
 			'market_hubs',
 			'market_stats',
 			'material_blueprint_materials',
@@ -173,7 +175,8 @@ describe('migrations', () => {
 		expect(after.map((m) => m.name)).toEqual([
 			'0010_tracking.sql',
 			'0011_tracking_manufacturing.sql',
-			'0012_fuel_blocks.sql'
+			'0012_fuel_blocks.sql',
+			'0013_manufacturing_materials.sql'
 		]);
 		await applyD1Migrations(db, before);
 		await db.batch([

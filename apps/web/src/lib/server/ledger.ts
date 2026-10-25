@@ -1,4 +1,5 @@
 import type { Dataset } from '@reactions/engine';
+import { parseJaniceCodes } from '@reactions/eve';
 import type {
 	LedgerConnectionOption,
 	LedgerContractItemRow,
@@ -17,6 +18,7 @@ import type {
 } from '$lib/ledger/types';
 import { LEDGER_PERIODS } from '$lib/ledger/types';
 import { pageParam, paginate, type Paged } from '$lib/paging';
+import { isUserJanice } from './contract-janice.ts';
 import { getDataset } from './data.ts';
 import { reconcileCounts } from './ledger-reconcile.ts';
 
@@ -388,6 +390,8 @@ async function hydrate(
 					direction: !prices.length ? 'transfer' : hasIn && hasOut ? 'swap' : hasIn ? 'buy' : 'sell',
 					title: c.title || null,
 					janiceCode: c.janice_code,
+					janiceOwn: isUserJanice(c.title, c.janice_code),
+					titleJanice: parseJaniceCodes(c.title).length > 0,
 					total: Math.abs((c.price ?? 0) - (c.reward ?? 0)),
 					itemCount: items.length,
 					needsReview: items.some((i) => i.price?.needsReview),

@@ -180,6 +180,10 @@ const JOBS_SQL = jsonInsertSql(
 		activity_id = excluded.activity_id, blueprint_id = excluded.blueprint_id`
 );
 
+/** Which of the blueprint type ids `?1` (JSON array) consume tracked materials (`manufacturing_blueprints`). */
+const CONSUMING_BLUEPRINTS_SQL = `SELECT blueprint_type_id FROM manufacturing_blueprints
+	WHERE blueprint_type_id IN (SELECT value FROM json_each(?1))`;
+
 /** Stream of the blueprints of manufacturing jobs (their material efficiency); see `syncBlueprints`. */
 export const BLUEPRINTS_STREAM = 'blueprints';
 
@@ -569,8 +573,8 @@ async function allPages<T>(
 
 /**
  * Reaction jobs, and manufacturing jobs whose blueprint uses reaction products (they take reaction
- * output; never shown as jobs) or makes a reaction material (fuel blocks). Rows keep their stored
- * `blueprint_me`.
+ * output; never shown as jobs), makes a reaction material (fuel blocks) or consumes another tracked
+ * material (`manufacturing_blueprints`). Rows keep their stored `blueprint_me`.
  */
 async function syncJobs({ env, client, source, token }: StreamContext): Promise<StreamFetch> {
 	const corporation = source.kind === 'corporation';
@@ -586,6 +590,19 @@ async function syncJobs({ env, client, source, token }: StreamContext): Promise<
 	const manufacturing = new Set(
 		((await publishedDataset(env)).manufacturing ?? []).map((b) => b.blueprintTypeId)
 	);
+	const others = [
+		...new Set(
+			res.items
+				.filter((j) => j.activityId === MANUFACTURING_ACTIVITY_ID && !manufacturing.has(j.blueprintTypeId))
+				.map((j) => j.blueprintTypeId)
+		)
+	];
+	if (others.length > 0) {
+		const { results } = await env.DB.prepare(CONSUMING_BLUEPRINTS_SQL)
+			.bind(JSON.stringify(others))
+			.all<{ blueprint_type_id: number }>();
+		for (const r of results) manufacturing.add(r.blueprint_type_id);
+	}
 	const rows = res.items
 		.filter(
 			(j: IndustryJobRow) =>
@@ -863,7 +880,8 @@ function deniedMessage(kind: string, source: TrackingSource, reader: Reader): st
  * Step `stream-<name>`: fetches one stream with a fresh access token of the reader and stores its rows;
  * the stream becomes `ok` with the latest `Expires` of its requests and the newest id as cursor. 403 → the stream
  * is `denied` with the role it needs; other ESI failures throw (step retried). `blueprints` with no
- * manufacturing job waiting for its ME is skipped (null): no request, no stream row change.
+ * manufacturing job waiting for its ME is skipped (null): no request; an error of an earlier attempt is
+ * cleared, since nothing is left to read.
  */
 export async function syncTrackingStream(
 	env: Env,
@@ -878,7 +896,14 @@ export async function syncTrackingStream(
 	const fetcher = STREAM_FETCHERS[kind];
 	if (!fetcher) throw new NonRetryableError(`unknown tracking stream ${stream}`);
 	const wanted = kind === BLUEPRINTS_STREAM ? await wantedBlueprints(env, source) : [];
-	if (kind === BLUEPRINTS_STREAM && wanted.length === 0) return null;
+	if (kind === BLUEPRINTS_STREAM && wanted.length === 0) {
+		await env.DB.prepare(
+			"UPDATE tracking_streams SET status = 'ok', last_error = NULL WHERE source_id = ? AND stream = ? AND status = 'error'"
+		)
+			.bind(sourceId, stream)
+			.run();
+		return null;
+	}
 	const reader = await loadReader(env, source, readerId);
 	const token = await accessToken(env, source, reader, runId);
 	const [, row] = await env.DB.batch<{ cursor: number | null }>([

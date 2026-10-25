@@ -3,6 +3,7 @@
 	import { enhance } from '$app/forms';
 	import FacilityEditor from '$lib/components/account/FacilityEditor.svelte';
 	import { formatNumber, formatUtc } from '$lib/format';
+	import { blueprintIconUrl } from '$lib/site';
 	import Seo from '$lib/seo/Seo.svelte';
 
 	let { data, form } = $props();
@@ -276,13 +277,23 @@
 					could not be read.
 				</p>
 				{#if data.blueprints.length}
-					<ul class="space-y-2">
+					<ul class="divide-y divide-gray-200 dark:divide-gray-600">
 						{#each data.blueprints as b (b.blueprintTypeId)}
-							<li class="flex flex-wrap items-end gap-3" data-blueprint={b.blueprintTypeId}>
-								<div class="min-w-48 flex-1">
-									<div class="font-semibold text-gray-900 dark:text-gray-100">{b.name}</div>
-									<div class="text-xs {muted}">
-										{b.jobs === 1 ? '1 job' : `${formatNumber(b.jobs)} jobs`} without a readable ME
+							<li class="flex flex-wrap items-end gap-3 py-2" data-blueprint={b.blueprintTypeId}>
+								<div class="flex min-w-48 flex-1 items-center gap-2">
+									<img
+										src={blueprintIconUrl(Number(b.blueprintTypeId))}
+										alt=""
+										width="32"
+										height="32"
+										loading="lazy"
+										class="h-8 w-8 shrink-0 rounded"
+									/>
+									<div>
+										<div class="font-semibold text-gray-900 dark:text-gray-100">{b.name}</div>
+										<div class="text-xs {muted}">
+											{b.jobs === 1 ? '1 job' : `${formatNumber(b.jobs)} jobs`} without a readable ME
+										</div>
 									</div>
 								</div>
 								<label class={label}>

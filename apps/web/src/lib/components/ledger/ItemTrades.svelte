@@ -75,7 +75,7 @@
 		{@const badge = DIRECTION_BADGE[trade.direction]}
 		{@const untracked = trade.sourceKind === UNTRACKED}
 		<tr
-			class="border-t border-gray-200 dark:border-gray-700"
+			class="border-t border-gray-200 dark:border-gray-600"
 			data-trade={trade.ref}
 			data-untracked={untracked || undefined}
 		>

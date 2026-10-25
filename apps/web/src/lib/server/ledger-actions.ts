@@ -1,6 +1,12 @@
 import { error, fail, redirect, type RequestEvent } from '@sveltejs/kit';
 import type { LedgerActionResult } from '$lib/ledger/types';
 import {
+	applyContractJanice,
+	contractJaniceNotice,
+	parseContractRef,
+	removeContractJanice
+} from './contract-janice.ts';
+import {
 	correctionNotice,
 	parseCorrectionTarget,
 	saveCorrection,
@@ -22,6 +28,7 @@ export async function throttled(env: Env, userId: string): Promise<boolean> {
 
 export const TOO_MANY = 'Too many requests. Wait a minute and try again.';
 const UNKNOWN_PRICE = 'That price is not in your ledger.';
+const UNKNOWN_CONTRACT = 'That contract is not in your ledger.';
 
 /** Added to the notice of a contract item: the other items of the contract share the rest of its total. */
 const RESPLIT: Record<'correct' | 'undo', string> = {
@@ -84,6 +91,49 @@ export async function correctionAction(
 		action,
 		ref,
 		notice: target.kind === 'contract_item' ? `${notice} ${RESPLIT[action]}` : notice
+	} satisfies LedgerActionResult;
+}
+
+/**
+ * The `contractJanice` / `removeContractJanice` form actions of the ledger (fields `ref` =
+ * `contract:<contractId>`, `link`): prices the user's contract by the Janice appraisal of the link, or
+ * removes the one the user gave. A contract that is not the user's is a 404, a text without a Janice
+ * link a 400 (the link typed comes back). Limited like the other ledger actions.
+ */
+export async function contractJaniceAction(
+	event: RequestEvent,
+	action: 'contractJanice' | 'removeContractJanice'
+) {
+	const { env, user } = await profitsActionContext(event);
+	const form = await event.request.formData();
+	const rawRef = form.get('ref');
+	const ref = typeof rawRef === 'string' ? rawRef : '';
+	const rawLink = form.get('link');
+	const link = typeof rawLink === 'string' ? rawLink : '';
+	const typed = action === 'contractJanice' ? { link } : {};
+	const contractId = parseContractRef(rawRef);
+	if (contractId === null) {
+		return fail(404, { action, ref, error: UNKNOWN_CONTRACT, ...typed } satisfies LedgerActionResult);
+	}
+	if (await throttled(env, user.userId)) {
+		return fail(429, { action, ref, error: TOO_MANY, ...typed } satisfies LedgerActionResult);
+	}
+	const outcome =
+		action === 'contractJanice'
+			? await applyContractJanice(env, user.userId, contractId, link)
+			: await removeContractJanice(env, user.userId, contractId);
+	if (!outcome.ok) {
+		return fail(outcome.status, {
+			action,
+			ref,
+			error: outcome.message,
+			...typed
+		} satisfies LedgerActionResult);
+	}
+	return {
+		action,
+		ref,
+		notice: contractJaniceNotice(action === 'contractJanice', outcome.rebuilt)
 	} satisfies LedgerActionResult;
 }
 

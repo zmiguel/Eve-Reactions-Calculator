@@ -103,6 +103,8 @@ const RESET_SQL = [
 	'DELETE FROM reaction_materials',
 	'DELETE FROM reprocess_materials',
 	'DELETE FROM material_blueprint_materials',
+	'DELETE FROM manufacturing_blueprint_materials',
+	'DELETE FROM manufacturing_blueprints',
 	'DELETE FROM reactions',
 	'DELETE FROM types',
 	'DELETE FROM systems',

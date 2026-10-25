@@ -521,15 +521,29 @@ export function priceTrades(input: PriceTradesInput): {
 		if (group) group.push(order);
 		else ordersByWallet.set(key, [order]);
 	}
+	// Every order per wallet, for fee rows no matched order takes: a row whose orders (issued within
+	// 1 s) are all of untracked types is a fee of something the ledger does not track and counts nowhere.
+	const allOrdersByWallet = new Map<string, LedgerOrder[]>();
+	for (const order of input.orders) {
+		const key = walletKey(order.sourceId, order.division);
+		const group = allOrdersByWallet.get(key);
+		if (group) group.push(order);
+		else allOrdersByWallet.set(key, [order]);
+	}
 	const orderFees = new Map<number, number>();
 	const unallocatedFees: UnallocatedFee[] = [];
 	for (const row of journal) {
 		if (FEE_REF_TYPES[row.refType] !== true) continue;
 		const amount = Math.abs(row.amount ?? 0);
-		const near = (ordersByWallet.get(walletKey(row.sourceId, row.division)) ?? []).filter(
+		const key = walletKey(row.sourceId, row.division);
+		const near = (ordersByWallet.get(key) ?? []).filter(
 			(order) => Math.abs(row.date - order.issued) <= SECOND_MS
 		);
 		if (near.length === 0) {
+			const placed = (allOrdersByWallet.get(key) ?? []).filter(
+				(order) => Math.abs(row.date - order.issued) <= SECOND_MS
+			);
+			if (placed.length > 0 && placed.every((order) => !input.tracked.has(order.typeId))) continue;
 			unallocatedFees.push({ refId: row.refId, date: row.date, amount });
 			continue;
 		}

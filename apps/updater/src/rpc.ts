@@ -1,6 +1,7 @@
 import { WorkerEntrypoint } from 'cloudflare:workers';
 import type { JobRunRow } from '@reactions/db';
 import { fetchSdeLatest } from '@reactions/eve';
+import { setContractJanice, type ContractJaniceResult } from './contract-janice.ts';
 import { refreshAdjustedPrices } from './cron/adjusted-prices.ts';
 import { refreshAffiliations } from './cron/affiliations.ts';
 import { refreshCostIndices } from './cron/cost-indices.ts';
@@ -204,6 +205,14 @@ export class UpdaterRpc extends WorkerEntrypoint<Env> {
 			await markLedgerDirty(this.env, userId);
 			return { error: 'unavailable' };
 		}
+	}
+
+	/**
+	 * Prices the user's contract by the Janice appraisal `code` the user gave (`setContractJanice`):
+	 * fetched with `JANICE_API_KEY`, stored on that contract, then the ledger is rebuilt.
+	 */
+	async setContractJanice(userId: string, contractId: number, code: string): Promise<ContractJaniceResult> {
+		return setContractJanice(this.env, userId, contractId, code);
 	}
 
 	/**

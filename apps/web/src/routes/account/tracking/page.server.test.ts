@@ -580,6 +580,41 @@ describe('/account/tracking facilities', () => {
 		]);
 	});
 
+	it('names blueprints consuming tracked materials and gives their products the filters stored with them', async () => {
+		const { env, user, mine } = await facilityAccounts();
+		// A module blueprint outside the dataset (its product is Equipment), made in the Workshop.
+		const MODULE_BLUEPRINT = 99_010;
+		env.DB.sqlite
+			.prepare(
+				`INSERT INTO manufacturing_blueprints (blueprint_type_id, name, product_type_id, product_name, product_filters_json)
+				VALUES (?, 'Afterburner Blueprint', 99_011, 'Afterburner', '[2]')`
+			)
+			.run(MODULE_BLUEPRINT);
+		insertJob(env.DB, 'u1', mine, WORKSHOP, { blueprintTypeId: MODULE_BLUEPRINT, blueprintMe: null }, 99_011);
+		const data = await pageData(env, user);
+		expect(data.blueprints).toContainEqual({
+			blueprintTypeId: String(MODULE_BLUEPRINT),
+			name: 'Afterburner Blueprint',
+			jobs: 1
+		});
+		// The Raitaru's role bonus for the component and for the module, each under its filter.
+		expect(view(data, WORKSHOP).bonus).toEqual([
+			{
+				activity: 'manufacturing',
+				label: 'Components',
+				reduction: expect.closeTo(0.01, 10),
+				fromReactorSettings: false
+			},
+			{
+				activity: 'manufacturing',
+				label: 'Equipment',
+				reduction: expect.closeTo(0.01, 10),
+				fromReactorSettings: false
+			}
+		]);
+		expect(view(data, WORKSHOP).jobs).toEqual({ reaction: 0, manufacturing: 3 });
+	});
+
 	it('without industry data: no rigs, the Upwell structures to pick, reactions on the reactor settings', async () => {
 		const { env, user } = await facilityAccounts(undefined, false);
 		const data = await pageData(env, user);

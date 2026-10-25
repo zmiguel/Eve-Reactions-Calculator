@@ -50,7 +50,7 @@
 	{/snippet}
 	{#snippet row(lot: LedgerItemLot)}
 		{@const used = lot.quantity - lot.remaining}
-		<tr class="border-t border-gray-200 dark:border-gray-700" data-lot={lot.lotId}>
+		<tr class="border-t border-gray-200 dark:border-gray-600" data-lot={lot.lotId}>
 			<td class="{cell} whitespace-nowrap">
 				<span class="cursor-help text-gray-800 dark:text-gray-200" title={formatUtc(lot.acquiredAt)}
 					>{formatRelative(lot.acquiredAt, now)}</span
@@ -135,6 +135,16 @@
 										{#if use.unitValue !== null}
 											<span class={muted}>counted at <Isk value={use.unitValue} /> each</span>
 										{/if}
+									{:else if use.kind === 'consumed' && use.jobId !== null}
+										<span data-consumed={use.jobId}
+											>{use.product
+												? `Used in manufacturing: ${use.product.name}`
+												: 'Used in a manufacturing job'}</span
+										>
+										{#if use.at !== null}<span class={muted} title={formatUtc(use.at)}
+												>{formatRelative(use.at, now)}</span
+											>{/if}
+										<span class={muted}>{formatNumber(use.quantity)} units</span>
 									{:else}
 										<span>Sold</span>
 										{#if use.at !== null}<span class={muted} title={formatUtc(use.at)}

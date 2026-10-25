@@ -123,6 +123,10 @@ describe('buildSeedSql', () => {
 		expect(count(db, 'reactions')).toBe(119);
 		expect(count(db, 'types')).toBe(TYPES);
 		expect(count(db, 'material_blueprint_materials')).toBe(36);
+		expect(count(db, 'manufacturing_blueprints')).toBe(sde.manufacturingBlueprints.length);
+		expect(count(db, 'manufacturing_blueprint_materials')).toBe(
+			sde.manufacturingBlueprints.reduce((n, b) => n + b.materials.length, 0)
+		);
 		expect(count(db, 'systems')).toBe(sde.systems.length);
 		expect(count(db, 'regions')).toBe(sde.regions.length);
 		expect(count(db, 'reaction_materials')).toBe(
@@ -413,6 +417,13 @@ describe('buildSeedSql', () => {
 				FROM tracked_jobs j JOIN ledger_uses u ON u.user_id = j.user_id AND u.use_ref = 'job:' || j.job_id
 				WHERE j.activity_id = 1 AND u.use_kind = 'manufacturing'`
 			),
+			consumed: all(
+				`SELECT j.job_id, j.blueprint_type_id, u.use_kind, u.quantity, u.unit_value, l.type_id, l.origin_ref,
+					l.quantity AS lot_quantity, l.remaining
+				FROM tracked_jobs j JOIN ledger_uses u ON u.user_id = j.user_id AND u.use_ref = 'job:' || j.job_id
+				JOIN ledger_lots l ON l.user_id = u.user_id AND l.lot_id = u.lot_id
+				WHERE u.use_kind = 'consumed' ORDER BY u.rowid`
+			),
 			fuel: all(
 				`SELECT u.use_ref, l.origin_ref, l.type_id, u.quantity FROM ledger_uses u JOIN ledger_lots l USING (user_id, lot_id)
 				WHERE l.type_id IN (4312, 17887) ORDER BY u.rowid`
@@ -439,13 +450,14 @@ describe('buildSeedSql', () => {
 			[...SEED_TRACKING.streams].sort().map((stream) => ({ stream, status: 'ok' }))
 		);
 		// The day-1 mixed contract adds a contract, two items and its contract_price journal row; the
-		// Oxygen Isotopes buy a transaction, an order and two journal rows; the fuel block job a job.
-		expect(first.counts).toEqual([4, 12, 4, 3, 8, 5, 1]);
+		// Oxygen Isotopes and Zydrine buys a transaction, an order and two journal rows each; the fuel block
+		// job and the capital component job a job each.
+		expect(first.counts).toEqual([5, 14, 5, 3, 8, 6, 1]);
 		// The refinery with its rig read from assets, the Raitaru without rigs read, a refused lookup.
 		const { refinery, factory, unknown } = SEED_FACILITIES;
 		expect(first.facilities).toEqual([
 			{ facility_id: refinery.facilityId, kind: 'structure', type_id: 35836, rigs_json: '[46497]', jobs: 2 },
-			{ facility_id: factory.facilityId, kind: 'structure', type_id: 35825, rigs_json: null, jobs: 2 },
+			{ facility_id: factory.facilityId, kind: 'structure', type_id: 35825, rigs_json: null, jobs: 3 },
 			{ facility_id: unknown.facilityId, kind: 'unknown', type_id: null, rigs_json: null, jobs: 1 }
 		]);
 		const janice = db
@@ -533,6 +545,21 @@ describe('buildSeedSql', () => {
 		]);
 		const unitValue = Number(first.manufacturing[0]!.unit_value);
 		expect(c.manufactured_value).toBeCloseTo(manufactured * unitValue, 4);
+		// The capital component job took 368 of the 1,000 Zydrine bought on day 5 (1 run × 413 × 0.9 ×
+		// 0.99 = 367.98), with no value; its other minerals and its Reinforced Carbon Fiber were not held.
+		expect(first.consumed).toEqual([
+			{
+				job_id: SEED_TRACKING.consumption.jobId,
+				blueprint_type_id: SEED_TRACKING.consumption.blueprintTypeId,
+				use_kind: 'consumed',
+				quantity: SEED_TRACKING.consumption.consumed,
+				unit_value: null,
+				type_id: 39,
+				origin_ref: `transaction:${SEED_TRACKING.consumption.transactionId}`,
+				lot_quantity: SEED_TRACKING.consumption.bought,
+				remaining: SEED_TRACKING.consumption.bought - SEED_TRACKING.consumption.consumed
+			}
+		]);
 		expect(first.manual).toEqual([
 			{
 				type_id: 16671,
@@ -575,7 +602,8 @@ describe('buildSeedSql', () => {
 				[16654, 'none'],
 				[16658, 'none'],
 				[16671, 'journal'],
-				[17887, 'none']
+				[17887, 'none'],
+				[39, 'none']
 			].map(([typeId, tax], i) => ({
 				ref: `transaction:${6100000001 + i}`,
 				type_id: typeId,
@@ -617,6 +645,14 @@ describe('buildSeedSql', () => {
 			contracts: all(core, 'SELECT * FROM tracked_contracts ORDER BY contract_id'),
 			contractItems: all(core, 'SELECT * FROM tracked_contract_items ORDER BY contract_id, record_id'),
 			jobs: all(core, 'SELECT * FROM tracked_jobs ORDER BY job_id'),
+			manufacturingMaterials: all(
+				core,
+				`SELECT b.blueprint_type_id, b.product_type_id, b.product_filters_json, m.type_id, m.quantity
+				FROM manufacturing_blueprints b
+				JOIN manufacturing_blueprint_materials m ON m.blueprint_type_id = b.blueprint_type_id
+				WHERE b.blueprint_type_id IN (SELECT blueprint_type_id FROM tracked_jobs WHERE activity_id = 1)
+				ORDER BY b.blueprint_type_id, m.type_id`
+			),
 			corrections: [],
 			manualEntries: all(core, 'SELECT * FROM manual_entries ORDER BY entry_id')
 		};

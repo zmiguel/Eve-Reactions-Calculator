@@ -201,8 +201,9 @@ export interface LedgerJob {
 	/**
 	 * `manufacturing` jobs of a blueprint making a reaction material (`makes: 'material'`, fuel blocks)
 	 * produce like reaction jobs: inputs at `startDate`, output and a job result at the end. Other
-	 * `manufacturing` jobs only take reaction output (their blueprint's reaction-product materials from
-	 * `Dataset.manufacturing`) at `startDate`; they have no job result, output or cost in the ledger.
+	 * `manufacturing` jobs only take materials at `startDate`: reaction output (their blueprint's
+	 * reaction-product materials from `Dataset.manufacturing`, valued) and other tracked materials
+	 * (`consumingMaterials`, a quantity only); they have no job result, output or cost in the ledger.
 	 * Absent = `reaction`.
 	 */
 	activity?: LedgerJobActivity;
@@ -300,7 +301,12 @@ export interface UnallocatedFee {
 // ---- Ledger output (build.ts) ----
 
 export type LotOrigin = 'transaction' | 'contract' | 'job' | 'market' | 'correction' | 'manual';
-export type UseKind = 'job' | 'sale' | 'manufacturing';
+/**
+ * `manufacturing`: reaction output (or another lot of a reaction product) taken by a manufacturing job,
+ * realized at once; `consumed`: any other tracked material a manufacturing job took, a quantity only
+ * (no value, no profit).
+ */
+export type UseKind = 'job' | 'sale' | 'manufacturing' | 'consumed';
 
 export interface LedgerLot {
 	/** 1-based, in creation order (deterministic). */
@@ -363,7 +369,11 @@ export interface JobResult {
 	manufacturedQty: number;
 	/** What those units counted for: buy value at the manufacturing job's start, or their unit cost. */
 	manufacturedValue: number;
-	/** Output units still held (not sold, used or manufactured). */
+	/**
+	 * Output units not sold, used by own reaction or fuel block jobs or manufactured. Units another
+	 * manufacturing job consumed (`consumed`, no value) count here too, so that use changes no figure
+	 * of the job; the lot's `remaining` leaves them out.
+	 */
 	unsoldQty: number;
 	/** (inputCost + jobCost) ÷ outputQty; null without output. */
 	unitCost: number | null;

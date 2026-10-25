@@ -92,6 +92,13 @@
       "when": 1792093562352,
       "tag": "0012_fuel_blocks",
       "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "6",
+      "when": 1792874552090,
+      "tag": "0013_manufacturing_materials",
+      "breakpoints": true
     }
   ]
 }
