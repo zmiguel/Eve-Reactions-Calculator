@@ -1,4 +1,4 @@
-import { handleCallback } from '$lib/server/auth/sso';
+import { handleCallback } from '#lib/server/auth/sso.js';
 import type { PageServerLoad } from './$types';
 
 /** `GET /auth/callback` (EVE SSO redirect target): always redirects or renders the auth error page. */

@@ -25,7 +25,7 @@ export function apiEvent(
 	return {
 		url,
 		params: opts.params ?? {},
-		platform: { env },
+		locals: { env },
 		request: new Request(url, { ...opts.init, headers })
 	} as unknown as RequestEvent;
 }

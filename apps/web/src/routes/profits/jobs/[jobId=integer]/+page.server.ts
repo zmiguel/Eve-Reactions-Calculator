@@ -1,15 +1,15 @@
 import { error, fail, type RequestEvent } from '@sveltejs/kit';
-import type { JobActionResult, JobDetailData } from '$lib/jobs/types';
-import { isTrackedJob, jobDetailPage } from '$lib/server/jobs';
-import { TOO_MANY, profitsActionContext, throttled, typedValues } from '$lib/server/ledger-actions';
+import type { JobActionResult, JobDetailData } from '#lib/jobs/types.js';
+import { isTrackedJob, jobDetailPage } from '#lib/server/jobs.js';
+import { TOO_MANY, profitsActionContext, throttled, typedValues } from '#lib/server/ledger-actions.js';
 import {
 	correctionNotice,
 	parseCorrectionTarget,
 	saveCorrection,
 	undoCorrection,
 	type CorrectionOutcome
-} from '$lib/server/price-corrections';
-import { profitsContext } from '$lib/server/profits-access';
+} from '#lib/server/price-corrections.js';
+import { profitsContext } from '#lib/server/profits-access.js';
 import type { Actions, PageServerLoad } from './$types';
 
 const UNKNOWN_INPUT = 'That price is not in your ledger.';

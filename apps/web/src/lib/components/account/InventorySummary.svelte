@@ -1,8 +1,8 @@
 <script lang="ts">
-	import { formatIsk, formatIskFull, formatNumber } from '$lib/format';
-	import { MATERIAL_GROUPS } from '$lib/inventory/groups';
-	import type { InventorySummaryView } from '$lib/inventory/types';
-	import { blueprintIconUrl, typeIconUrl } from '$lib/site';
+	import { formatIsk, formatIskFull, formatNumber } from '#lib/format.js';
+	import { MATERIAL_GROUPS } from '#lib/inventory/groups.js';
+	import type { InventorySummaryView } from '#lib/inventory/types.js';
+	import { blueprintIconUrl, typeIconUrl } from '#lib/site.js';
 
 	let { summary }: { summary: InventorySummaryView } = $props();
 

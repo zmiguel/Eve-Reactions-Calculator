@@ -1,11 +1,11 @@
 <script lang="ts">
-	import Isk from '$lib/components/profits/Isk.svelte';
-	import PagedTable from '$lib/components/profits/PagedTable.svelte';
-	import { formatNumber, formatRelative, formatUtc } from '$lib/format';
-	import { ORIGIN_TEXT } from '$lib/ledger/source';
-	import type { LedgerActionResult, LedgerItemLot } from '$lib/ledger/types';
-	import type { Paged } from '$lib/paging';
-	import { blueprintIconUrl } from '$lib/site';
+	import Isk from '#lib/components/profits/Isk.svelte';
+	import PagedTable from '#lib/components/profits/PagedTable.svelte';
+	import { formatNumber, formatRelative, formatUtc } from '#lib/format.js';
+	import { ORIGIN_TEXT } from '#lib/ledger/source.js';
+	import type { LedgerActionResult, LedgerItemLot } from '#lib/ledger/types.js';
+	import type { Paged } from '#lib/paging.js';
+	import { blueprintIconUrl } from '#lib/site.js';
 	import CorrectionForm from './CorrectionForm.svelte';
 
 	interface Props {

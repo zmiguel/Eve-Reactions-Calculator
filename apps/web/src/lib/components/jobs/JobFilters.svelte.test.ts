@@ -1,6 +1,6 @@
 import { fireEvent, render } from '@testing-library/svelte';
 import { afterEach, describe, expect, it } from 'vitest';
-import type { JobFilters as Filters } from '$lib/jobs/types';
+import type { JobFilters as Filters } from '#lib/jobs/types.js';
 import { gotoCalls, resetNavigation } from '../../../test/shims/app/navigation';
 import JobFilters, { jobsHref } from './JobFilters.svelte';
 

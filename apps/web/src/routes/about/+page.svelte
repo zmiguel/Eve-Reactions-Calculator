@@ -1,5 +1,5 @@
 <script lang="ts">
-	import Seo from '$lib/seo/Seo.svelte';
+	import Seo from '#lib/seo/Seo.svelte';
 
 	const faq = [
 		{

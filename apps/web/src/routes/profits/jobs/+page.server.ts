@@ -1,6 +1,6 @@
-import type { JobsPageData } from '$lib/jobs/types';
-import { emptyJobsPage, jobsPage, parseJobsQuery, userJobsQuery } from '$lib/server/jobs';
-import { profitsContext } from '$lib/server/profits-access';
+import type { JobsPageData } from '#lib/jobs/types.js';
+import { emptyJobsPage, jobsPage, parseJobsQuery, userJobsQuery } from '#lib/server/jobs.js';
+import { profitsContext } from '#lib/server/profits-access.js';
 import type { PageServerLoad } from './$types';
 
 /**

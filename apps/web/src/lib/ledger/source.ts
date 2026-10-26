@@ -1,5 +1,5 @@
 /** Short labels and colors of the ledger pages' badges (prices, directions, batch origins). */
-import type { PillTone } from '$lib/components/profits/Pill.svelte';
+import type { PillTone } from '#lib/components/profits/Pill.svelte';
 import type { LedgerLotOrigin } from './types';
 
 export interface Badge {

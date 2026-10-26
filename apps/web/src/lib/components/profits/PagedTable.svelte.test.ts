@@ -1,7 +1,7 @@
 import { fireEvent, render } from '@testing-library/svelte';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { paginate, pageParam, withPage } from '$lib/paging';
-import { replaceStateCalls, resetNavigation } from '../../../test/shims/app/navigation';
+import { paginate, pageParam, withPage } from '#lib/paging.js';
+import { resetNavigation, shallowUrls } from '../../../test/shims/app/navigation';
 import { resetPage, setPage } from '../../../test/shims/app/state';
 import Harness from '../../../test/PagedTableHarness.svelte';
 
@@ -52,7 +52,7 @@ describe('PagedTable', () => {
 		expect(fetch).toHaveBeenCalledWith('/profits/data/test?period=30&p=3', {
 			headers: { accept: 'application/json' }
 		});
-		expect(replaceStateCalls).toEqual(['/profits?period=30&p=3']);
+		expect(shallowUrls).toEqual(['/profits?period=30&p=3']);
 		expect(container.querySelector('a[rel="next"]')).toBeNull();
 	});
 
@@ -63,10 +63,10 @@ describe('PagedTable', () => {
 		const a = render(Harness, { data: paginate(items, 1), param: 'a' });
 		const b = render(Harness, { data: paginate(items, 1), param: 'b' });
 		await fireEvent.click(a.container.querySelector('a[rel="next"]')!);
-		await vi.waitFor(() => expect(replaceStateCalls).toEqual(['/profits?period=30&a=2']));
+		await vi.waitFor(() => expect(shallowUrls).toEqual(['/profits?period=30&a=2']));
 		await fireEvent.click(b.container.querySelector('a[rel="next"]')!);
-		await vi.waitFor(() => expect(replaceStateCalls).toHaveLength(2));
-		expect(replaceStateCalls[1]).toBe('/profits?period=30&a=2&b=2');
+		await vi.waitFor(() => expect(shallowUrls).toHaveLength(2));
+		expect(shallowUrls[1]).toBe('/profits?period=30&a=2&b=2');
 		expect(fetch).toHaveBeenLastCalledWith('/profits/data/test?period=30&a=2&b=2', {
 			headers: { accept: 'application/json' }
 		});

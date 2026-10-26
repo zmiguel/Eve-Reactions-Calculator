@@ -1,6 +1,6 @@
 import type { ServerLoadEvent } from '@sveltejs/kit';
 import { beforeEach, describe, expect, it } from 'vitest';
-import { clearDataMemo } from '$lib/server/data';
+import { clearDataMemo } from '#lib/server/data.js';
 import { asEnv, fakeEnv, type FakeEnv } from '../../test/fakes';
 import { NOW, defaults, insertSystems, insertUser, loadSde, putKv } from '../../test/fixtures';
 import { insertItems, insertSource, selectBucket, typesByRole } from '../../test/inventory';
@@ -22,8 +22,12 @@ async function run(path: string, env: FakeEnv | null = null, userId: string | nu
 	const event = {
 		params: {},
 		url: new URL(`https://reactions.coalition.space${path}`),
-		platform: { env: asEnv(env ?? (await seededEnv()).env) },
-		locals: { settings: defaults(), user: userId ? { userId, characterId: null } : null, theme: 'dark' }
+		locals: {
+			settings: defaults(),
+			user: userId ? { userId, characterId: null } : null,
+			theme: 'dark',
+			env: asEnv(env ?? (await seededEnv()).env)
+		}
 	} as unknown as ServerLoadEvent;
 	return (await load(event as Parameters<typeof load>[0])) as Record<string, unknown>;
 }

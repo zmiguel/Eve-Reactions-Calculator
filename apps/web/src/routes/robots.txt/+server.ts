@@ -1,4 +1,4 @@
-import { ROBOTS_TXT } from '$lib/server/sitemap';
+import { ROBOTS_TXT } from '#lib/server/sitemap.js';
 import type { RequestHandler } from './$types';
 
 export const GET: RequestHandler = () =>

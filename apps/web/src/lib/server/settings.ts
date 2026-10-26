@@ -49,11 +49,11 @@ export async function writeAccountSettings(env: Env, userId: string, settings: S
  * cookies (`legacy`), written to `rc_settings` unless they equal the defaults.
  */
 async function browserSettings(
-	env: Env | undefined,
+	env: Env,
 	cookies: Cookies,
 	legacy: ReadonlyMap<string, string>
 ): Promise<Settings | null> {
-	if (!env || legacy.size === 0 || cookies.get(SETTINGS_COOKIE)) return cookieSettings(cookies);
+	if (legacy.size === 0 || cookies.get(SETTINGS_COOKIE)) return cookieSettings(cookies);
 	const converted = await convertLegacySettings(env, legacy);
 	if (isDefaultSettings(converted)) return null;
 	setSettingsCookie(cookies, await encodeSettings(converted));
@@ -67,13 +67,13 @@ async function browserSettings(
  * browser has no `rc_settings` cookie and no account settings apply.
  */
 export async function resolveSettings(
-	env: Env | undefined,
+	env: Env,
 	cookies: Cookies,
 	session: LoadedSession | null,
 	now = Date.now()
 ): Promise<Settings> {
 	const legacy = takeLegacyCookies(cookies);
-	if (env && session) {
+	if (session) {
 		const stored = parseStoredSettings(session.settingsJson);
 		if (stored) return stored;
 		const adopted = (await browserSettings(env, cookies, legacy)) ?? DEFAULT_SETTINGS;
@@ -98,14 +98,14 @@ async function writeSettingsCookie(cookies: Cookies, settings: Settings): Promis
  * needs no consent banner. It carries the sparse diff from the defaults only.
  */
 export async function persistSettings(
-	env: Env | undefined,
+	env: Env,
 	cookies: Cookies,
 	userId: string | null,
 	settings: Settings,
 	now = Date.now()
 ): Promise<void> {
 	await writeSettingsCookie(cookies, settings);
-	if (env && userId) await writeAccountSettings(env, userId, settings, now);
+	if (userId) await writeAccountSettings(env, userId, settings, now);
 }
 
 /**

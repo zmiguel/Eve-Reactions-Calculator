@@ -1,7 +1,7 @@
 import type { ChainNode } from '@reactions/engine';
 import { beforeEach, describe, expect, it } from 'vitest';
-import { clearDataMemo } from '$lib/server/data';
-import { loadDetail, type DetailData } from '$lib/server/detail';
+import { clearDataMemo } from '#lib/server/data.js';
+import { loadDetail, type DetailData } from '#lib/server/detail.js';
 import { asEnv, fakeEnv } from '../../../test/fakes';
 import { NOW, defaults, insertSystems, loadSde, putKv } from '../../../test/fixtures';
 import { unrefinedChain } from '../../../test/chain';

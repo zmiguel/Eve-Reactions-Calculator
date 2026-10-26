@@ -1,18 +1,22 @@
 import { getCoreDb, users } from '@reactions/db';
-import { error, fail, redirect, type RequestEvent } from '@sveltejs/kit';
+import { fail, redirect, type RequestEvent } from '@sveltejs/kit';
 import { eq } from 'drizzle-orm';
-import { FEATURE_LABELS, OFFERED_FEATURES, parseFeatureList } from '$lib/account/features';
-import { deleteAccount, listCharacters, removeCharacter, type CharacterRow } from '$lib/server/auth/accounts';
-import { heldFeatures } from '$lib/server/auth/feature-change';
-import { SESSION_COOKIE, deleteCookie } from '$lib/server/cookies';
+import { FEATURE_LABELS, OFFERED_FEATURES, parseFeatureList } from '#lib/account/features.js';
+import {
+	deleteAccount,
+	listCharacters,
+	removeCharacter,
+	type CharacterRow
+} from '#lib/server/auth/accounts.js';
+import { heldFeatures } from '#lib/server/auth/feature-change.js';
+import { SESSION_COOKIE, deleteCookie } from '#lib/server/cookies.js';
 import type { Actions, PageServerLoad } from './$types';
 
 const LOGIN_URL = '/auth/login?purpose=login&returnTo=%2Faccount';
 
-function requireAccount({ locals, platform }: Pick<RequestEvent, 'locals' | 'platform'>) {
+function requireAccount({ locals }: Pick<RequestEvent, 'locals'>) {
 	if (!locals.user) redirect(303, LOGIN_URL);
-	if (!platform) error(503, 'Your account is not available right now.');
-	return { env: platform.env, user: locals.user };
+	return { env: locals.env, user: locals.user };
 }
 
 /** The success notice named by the query string (`notice=removed|permissions`), else null. */

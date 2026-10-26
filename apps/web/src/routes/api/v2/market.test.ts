@@ -4,9 +4,9 @@ import {
 	ErrorResponse,
 	PriceHistoryResponse,
 	PricesResponse
-} from '$lib/server/api/schemas';
-import { clearDataMemo } from '$lib/server/data';
-import { trackedTypes } from '$lib/server/planner';
+} from '#lib/server/api/schemas.js';
+import { clearDataMemo } from '#lib/server/data.js';
+import { trackedTypes } from '#lib/server/planner.js';
 import { apiEvent, callApi, invalidParams, seededEnv } from '../../../test/api';
 import type { FakeD1 } from '../../../test/fakes';
 import { NOW, insertStructureHub } from '../../../test/fixtures';

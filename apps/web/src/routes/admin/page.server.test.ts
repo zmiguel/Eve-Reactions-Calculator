@@ -2,9 +2,9 @@ import { DEFAULT_SETTINGS } from '@reactions/engine';
 import { isActionFailure, isHttpError, type RequestEvent } from '@sveltejs/kit';
 import { render } from 'svelte/server';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import type { SessionUser } from '$lib/server/session';
-import { JOBS } from '$lib/admin/jobs';
-import type { InlineRunResult, WorkflowStatus } from '$lib/server/updater';
+import type { SessionUser } from '#lib/server/session.js';
+import { JOBS } from '#lib/admin/jobs.js';
+import type { InlineRunResult, WorkflowStatus } from '#lib/server/updater.js';
 import { FakeCookies, fakeEnv, type FakeEnv } from '../../test/fakes';
 import { NOW, insertLatestPrice, insertStructureHub } from '../../test/fixtures';
 import { resetPage, setPage } from '../../test/shims/app/state';
@@ -107,8 +107,7 @@ function event(env: FakeEnv, user: SessionUser | null, path = '/admin') {
 		url,
 		request: new Request(url, { method: 'POST', body: new FormData() }),
 		cookies: new FakeCookies().asCookies(),
-		platform: { env },
-		locals: { user, settings: DEFAULT_SETTINGS, theme: 'dark' }
+		locals: { user, settings: DEFAULT_SETTINGS, theme: 'dark', env }
 	} as unknown as RequestEvent as never;
 }
 

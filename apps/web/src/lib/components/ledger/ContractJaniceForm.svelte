@@ -1,8 +1,8 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
 	import { page } from '$app/state';
-	import { actionHref } from '$lib/ledger/forms';
-	import type { LedgerActionResult, LedgerContractRow } from '$lib/ledger/types';
+	import { actionHref } from '#lib/ledger/forms.js';
+	import type { LedgerActionResult, LedgerContractRow } from '#lib/ledger/types.js';
 
 	interface Props {
 		contract: LedgerContractRow;
@@ -18,8 +18,8 @@
 	let saving = $state(false);
 	const submit = () => {
 		saving = true;
-		return async ({ update }: { update: (o?: { reset?: boolean }) => Promise<void> }) => {
-			await update({ reset: false });
+		return async ({ update }: { update: (o?: { reset?: boolean; navigate?: boolean }) => Promise<void> }) => {
+			await update({ reset: false, navigate: false });
 			saving = false;
 		};
 	};

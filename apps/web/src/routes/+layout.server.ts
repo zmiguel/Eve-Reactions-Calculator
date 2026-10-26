@@ -1,6 +1,6 @@
-import type { NavUser } from '$lib/components/AccountMenu.svelte';
-import { defaultTabsOf } from '$lib/components/listing/links';
-import { analyticsIdentity } from '$lib/server/analytics';
+import type { NavUser } from '#lib/components/AccountMenu.svelte';
+import { defaultTabsOf } from '#lib/components/listing/links.js';
+import { analyticsIdentity } from '#lib/server/analytics.js';
 import type { LayoutServerLoad } from './$types';
 
 /**
@@ -8,7 +8,7 @@ import type { LayoutServerLoad } from './$types';
  * and Rybbit traits (`analyticsIdentity`). Plus the visitor's preferred reaction tabs that every
  * reaction link follows.
  */
-export const load: LayoutServerLoad = async ({ locals, platform }) => {
+export const load: LayoutServerLoad = async ({ locals }) => {
 	const user = locals.user;
 	const character = user?.characters.find((c) => c.characterId === user.characterId) ?? user?.characters[0];
 	const navUser: NavUser | null =
@@ -17,7 +17,7 @@ export const load: LayoutServerLoad = async ({ locals, platform }) => {
 			: null;
 	return {
 		user: navUser,
-		analytics: await analyticsIdentity(platform?.env, user, locals.account, locals.settings),
+		analytics: await analyticsIdentity(locals.env, user, locals.account, locals.settings),
 		defaultTabs: defaultTabsOf(locals.settings)
 	};
 };

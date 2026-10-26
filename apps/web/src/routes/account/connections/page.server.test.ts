@@ -1,10 +1,10 @@
 import { DEFAULT_SETTINGS } from '@reactions/engine';
 import { isActionFailure, isRedirect, type RequestEvent } from '@sveltejs/kit';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import type { ConnectionsPageData } from '$lib/inventory/types';
-import { clearDataMemo } from '$lib/server/data';
-import { INVENTORY_SOURCE_LIMIT } from '$lib/server/inventory';
-import type { SessionUser } from '$lib/server/session';
+import type { ConnectionsPageData } from '#lib/inventory/types.js';
+import { clearDataMemo } from '#lib/server/data.js';
+import { INVENTORY_SOURCE_LIMIT } from '#lib/server/inventory.js';
+import type { SessionUser } from '#lib/server/session.js';
 import { seededEnv } from '../../../test/api';
 import { FakeCookies, type FakeEnv } from '../../../test/fakes';
 import { NOW, insertUser } from '../../../test/fixtures';
@@ -85,8 +85,7 @@ function event(
 		request: new Request(url, body ? { method: 'POST', body } : undefined),
 		cookies: new FakeCookies().asCookies(),
 		fetch,
-		platform: { env },
-		locals: { user, settings: DEFAULT_SETTINGS, theme: 'dark' }
+		locals: { user, settings: DEFAULT_SETTINGS, theme: 'dark', env }
 	} as unknown as RequestEvent as never;
 }
 

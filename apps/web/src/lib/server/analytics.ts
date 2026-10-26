@@ -1,6 +1,6 @@
 import { REACTORS, isDefaultSettings, type Settings } from '@reactions/engine';
 import { affiliationTraits } from '@reactions/eve';
-import type { AnalyticsIdentity } from '$lib/analytics';
+import type { AnalyticsIdentity } from '#lib/analytics.js';
 import { getSystems } from './profiles.ts';
 import type { AccountFacts, SessionUser } from './session.ts';
 

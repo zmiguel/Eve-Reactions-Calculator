@@ -1,5 +1,5 @@
 <script lang="ts">
-	import type { PasteResult } from '$lib/planner/parsePaste';
+	import type { PasteResult } from '#lib/planner/parsePaste.js';
 
 	interface Props {
 		label: string;
@@ -40,8 +40,7 @@
 			aria-describedby="{id}-hint"
 			spellcheck="false"
 			{placeholder}
-			bind:value={text}
-		></textarea>
+			bind:value={text}></textarea>
 		<p id="{id}-hint" class="text-xs text-gray-500 dark:text-gray-400">{hint}</p>
 		{#if result.errors.length > 0}
 			<ul class="space-y-0.5 text-xs text-red-600 dark:text-red-400" aria-label="{label} errors">

@@ -1,7 +1,7 @@
 import type { PlanTarget } from '@reactions/engine';
 import { fireEvent, render, screen } from '@testing-library/svelte';
 import { describe, expect, it } from 'vitest';
-import { plannerContext, targetFootprint } from '$lib/planner/plan';
+import { plannerContext, targetFootprint } from '#lib/planner/plan.js';
 import { dataset } from '../../../../../../packages/engine/test/fixtures/dataset';
 import { plannerData } from '../../../test/planner';
 import PlannerTargets from './PlannerTargets.svelte';

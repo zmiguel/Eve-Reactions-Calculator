@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { ErrorResponse, ProfitsResponse, ReactionResultResponse } from '$lib/server/api/schemas';
-import { clearDataMemo } from '$lib/server/data';
+import { ErrorResponse, ProfitsResponse, ReactionResultResponse } from '#lib/server/api/schemas.js';
+import { clearDataMemo } from '#lib/server/data.js';
 import { apiEvent, callApi, invalidParams, seededEnv } from '../../../test/api';
 import { NOW, insertStructureHub } from '../../../test/fixtures';
 import { GET as detail } from './profits/[slug]/+server';

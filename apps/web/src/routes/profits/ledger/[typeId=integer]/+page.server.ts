@@ -1,9 +1,9 @@
 import { error } from '@sveltejs/kit';
-import type { LedgerItemPageData } from '$lib/ledger/types';
-import { pageParam } from '$lib/paging';
-import { correctionAction } from '$lib/server/ledger-actions';
-import { emptyItemPage, ledgerItemPage } from '$lib/server/ledger-item';
-import { profitsContext } from '$lib/server/profits-access';
+import type { LedgerItemPageData } from '#lib/ledger/types.js';
+import { pageParam } from '#lib/paging.js';
+import { correctionAction } from '#lib/server/ledger-actions.js';
+import { emptyItemPage, ledgerItemPage } from '#lib/server/ledger-item.js';
+import { profitsContext } from '#lib/server/profits-access.js';
 import type { Actions, PageServerLoad } from './$types';
 
 export const load: PageServerLoad = async (event): Promise<LedgerItemPageData> => {

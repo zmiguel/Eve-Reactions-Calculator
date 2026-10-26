@@ -1,8 +1,8 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { goto } from '$app/navigation';
-	import { withoutEmptyParams } from '$lib/ledger/forms';
-	import type { LedgerConnectionOption, LedgerFilters, LedgerItemType } from '$lib/ledger/types';
+	import { withoutEmptyParams } from '#lib/ledger/forms.js';
+	import type { LedgerConnectionOption, LedgerFilters, LedgerItemType } from '#lib/ledger/types.js';
 
 	interface Props {
 		filters: LedgerFilters;
@@ -18,10 +18,7 @@
 
 	/** Applies the form with JS, leaving its empty fields out of the address. */
 	function apply(form: HTMLFormElement) {
-		void goto(withoutEmptyParams('/profits/ledger', new FormData(form)), {
-			keepFocus: true,
-			noScroll: true
-		});
+		void goto(withoutEmptyParams('/profits/ledger', new FormData(form)), { reset: false });
 	}
 
 	const PERIODS = [

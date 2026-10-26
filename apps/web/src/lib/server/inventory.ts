@@ -12,7 +12,7 @@ import {
 import { inventoryRole, stockUnitValue, type CalcContext, type Dataset } from '@reactions/engine';
 import { hasFeature, type FetchFn, type InventoryBucket } from '@reactions/eve';
 import { and, asc, count, eq, inArray, isNull, lte, or } from 'drizzle-orm';
-import { formatUtc } from '$lib/format';
+import { formatUtc } from '#lib/format.js';
 import type {
 	ConnectionFeature,
 	InventoryAddGroup,
@@ -27,7 +27,7 @@ import type {
 	InventorySourcePlacesView,
 	InventorySourceStatus,
 	InventorySummaryView
-} from '$lib/inventory/types';
+} from '#lib/inventory/types.js';
 import type { CharacterRow } from './auth/accounts.ts';
 import { handOverPreferredReader } from './auth/accounts.ts';
 import { lookUpAffiliations } from './affiliations.ts';

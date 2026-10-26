@@ -1,5 +1,5 @@
 <script lang="ts">
-	import SplitBar from '$lib/components/profits/SplitBar.svelte';
+	import SplitBar from '#lib/components/profits/SplitBar.svelte';
 
 	/**
 	 * Where a job's output went: sold (green), used by later jobs (blue), used in manufacturing (amber),

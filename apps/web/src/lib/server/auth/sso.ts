@@ -1,4 +1,4 @@
-import { buildAuthorizeUrl, exchangeCode, verifyAccessToken } from '@reactions/eve';
+import { SSO_AUTHORIZE_URL, buildAuthorizeUrl, exchangeCode, verifyAccessToken } from '@reactions/eve';
 import { error, redirect, type Cookies, type RequestEvent } from '@sveltejs/kit';
 import { OAUTH_COOKIE, OAUTH_MAX_AGE, deleteCookie, setOauthCookie } from '../cookies.ts';
 import { randomToken } from '../crypto.ts';
@@ -9,6 +9,8 @@ import { readOauthState, signOauthState, type LoginFlow } from './oauth.ts';
 
 export const LOGIN_EXPIRED = 'Login expired, try again.';
 export const SSO_NOT_CONFIGURED = 'Logging in with EVE Online is not configured on this server.';
+/** `redirect(...)` options for the authorize URL from `startSso`: SvelteKit only redirects off-site when allowed. */
+export const SSO_REDIRECT = { external: [new URL(SSO_AUTHORIZE_URL).origin] };
 
 export interface SsoConfig {
 	clientId: string;
@@ -67,13 +69,13 @@ const defaultDeps: SsoDeps = { fetch: (input, init) => fetch(input, init) };
  * the daily job). Failures render the auth error page; success redirects to the flow's `returnTo`.
  */
 export async function handleCallback(
-	event: Pick<RequestEvent, 'url' | 'cookies' | 'locals' | 'platform'>,
+	event: Pick<RequestEvent, 'url' | 'cookies' | 'locals'>,
 	deps: SsoDeps = defaultDeps
 ): Promise<never> {
-	const { url, cookies, locals, platform } = event;
-	const env = platform?.env;
-	const config = env ? ssoConfig(env) : null;
-	if (!env || !config) error(503, SSO_NOT_CONFIGURED);
+	const { url, cookies, locals } = event;
+	const env = locals.env;
+	const config = ssoConfig(env);
+	if (!config) error(503, SSO_NOT_CONFIGURED);
 	const now = deps.now?.() ?? Date.now();
 
 	const raw = cookies.get(OAUTH_COOKIE);

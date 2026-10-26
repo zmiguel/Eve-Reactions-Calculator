@@ -1,13 +1,13 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
 	import { page } from '$app/state';
-	import Isk from '$lib/components/profits/Isk.svelte';
-	import PagedTable from '$lib/components/profits/PagedTable.svelte';
-	import { formatNumber, formatUtc } from '$lib/format';
-	import type { ManualActionResult, ManualEntryView } from '$lib/ledger/types';
-	import { actionHref } from '$lib/ledger/forms';
-	import type { Paged } from '$lib/paging';
-	import { typeIconUrl } from '$lib/site';
+	import Isk from '#lib/components/profits/Isk.svelte';
+	import PagedTable from '#lib/components/profits/PagedTable.svelte';
+	import { formatNumber, formatUtc } from '#lib/format.js';
+	import type { ManualActionResult, ManualEntryView } from '#lib/ledger/types.js';
+	import { actionHref } from '#lib/ledger/forms.js';
+	import type { Paged } from '#lib/paging.js';
+	import { typeIconUrl } from '#lib/site.js';
 
 	interface Props {
 		data: Paged<ManualEntryView>;
@@ -89,7 +89,7 @@
 					use:enhance={() => {
 						removing = entry.entryId;
 						return async ({ update }) => {
-							await update();
+							await update({ navigate: false });
 							removing = null;
 						};
 					}}

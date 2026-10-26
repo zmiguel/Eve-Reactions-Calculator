@@ -7,7 +7,7 @@ afterEach(() => resetPage());
 
 describe('site error page', () => {
 	it('names a missing page, shows the reason, is not indexed and links back into the site', () => {
-		setPage({ url: '/composite/nope', status: 404, error: { message: 'Reaction not found' } });
+		setPage({ url: '/composite/nope', status: 404, error: { status: 404, message: 'Reaction not found' } });
 		render(ErrorPage);
 		expect(screen.getByRole('heading').textContent?.trim()).toBe('Page not found');
 		expect(screen.getByText('Reaction not found').hasAttribute('data-error-message')).toBe(true);
@@ -24,18 +24,18 @@ describe('site error page', () => {
 	});
 
 	it('shows no message box when the message only repeats the heading', () => {
-		setPage({ url: '/nope', status: 404, error: { message: 'Not Found' } });
+		setPage({ url: '/nope', status: 404, error: { status: 404, message: 'Not Found' } });
 		const { container } = render(ErrorPage);
 		expect(screen.getByRole('heading').textContent?.trim()).toBe('Page not found');
 		expect(container.querySelector('[data-error-message]')).toBeNull();
 	});
 
 	it('distinguishes bad requests from server errors', () => {
-		setPage({ url: '/composite?date=x', status: 400, error: { message: 'Invalid date' } });
+		setPage({ url: '/composite?date=x', status: 400, error: { status: 400, message: 'Invalid date' } });
 		const { unmount } = render(ErrorPage);
 		expect(screen.getByRole('heading').textContent?.trim()).toBe('Bad request');
 		unmount();
-		setPage({ url: '/', status: 500, error: { message: 'Internal Error' } });
+		setPage({ url: '/', status: 500, error: { status: 500, message: 'Internal Error' } });
 		render(ErrorPage);
 		expect(screen.getByRole('heading').textContent?.trim()).toBe('Something went wrong');
 	});

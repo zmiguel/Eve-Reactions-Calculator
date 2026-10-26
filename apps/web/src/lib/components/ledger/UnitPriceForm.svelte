@@ -1,8 +1,8 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
 	import { page } from '$app/state';
-	import { actionHref } from '$lib/ledger/forms';
-	import type { ReconcileActionResult } from '$lib/ledger/types';
+	import { actionHref } from '#lib/ledger/forms.js';
+	import type { ReconcileActionResult } from '#lib/ledger/types.js';
 
 	interface Props {
 		/** `correct` form fields: a job input or a contract item price. */
@@ -31,7 +31,7 @@
 	use:enhance={() => {
 		saving = true;
 		return async ({ update }) => {
-			await update({ reset: false });
+			await update({ reset: false, navigate: false });
 			saving = false;
 		};
 	}}

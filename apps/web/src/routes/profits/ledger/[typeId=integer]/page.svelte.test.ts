@@ -1,7 +1,7 @@
 import { render } from '@testing-library/svelte';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import type { LedgerItemLot, LedgerItemPageData, LedgerItemTrade } from '$lib/ledger/types';
-import { paginate } from '$lib/paging';
+import type { LedgerItemLot, LedgerItemPageData, LedgerItemTrade } from '#lib/ledger/types.js';
+import { paginate } from '#lib/paging.js';
 import { resetPage, setPage } from '../../../../test/shims/app/state';
 import Page from './+page.svelte';
 

@@ -10,15 +10,14 @@ import {
 	parseParams,
 	parseQuery,
 	preflight,
-	readJsonBody,
-	requireEnv
+	readJsonBody
 } from './http';
 
-const event = (platform?: unknown) =>
+const event = () =>
 	({
 		url: new URL('https://reactions.coalition.space/api/v2/x'),
 		request: new Request('https://reactions.coalition.space/api/v2/x'),
-		platform
+		locals: { env: {} }
 	}) as unknown as RequestEvent;
 
 describe('API v2 helpers', () => {
@@ -63,13 +62,9 @@ describe('API v2 helpers', () => {
 		expect(crash.headers.get('Access-Control-Allow-Origin')).toBe('*');
 	});
 
-	it('apiHandler skips rate limiting without a limiter binding and requireEnv needs a platform', async () => {
-		const ok = await apiHandler(async (e) => apiJson(requireEnv(e) ? 'env' : null, CACHE_SHORT))(
-			event({ env: {} })
-		);
-		expect(await ok.json()).toBe('env');
-		const missing = await apiHandler(async (e) => apiJson(requireEnv(e), CACHE_SHORT))(event());
-		expect(missing.status).toBe(500);
+	it('apiHandler skips rate limiting without a limiter binding', async () => {
+		const ok = await apiHandler(async () => apiJson('ok', CACHE_SHORT))(event());
+		expect(await ok.json()).toBe('ok');
 	});
 
 	it('parseParams names root-level issues "body" and invalidParam builds a one-param 400', () => {

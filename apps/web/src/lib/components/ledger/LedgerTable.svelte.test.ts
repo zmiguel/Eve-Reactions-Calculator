@@ -6,8 +6,8 @@ import type {
 	LedgerPriceView,
 	LedgerRow,
 	LedgerTradeRow
-} from '$lib/ledger/types';
-import { paginate } from '$lib/paging';
+} from '#lib/ledger/types.js';
+import { paginate } from '#lib/paging.js';
 import { resetPage, setPage } from '../../../test/shims/app/state';
 import LedgerTable from './LedgerTable.svelte';
 import PriceSource from './PriceSource.svelte';

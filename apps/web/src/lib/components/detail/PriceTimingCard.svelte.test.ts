@@ -1,6 +1,6 @@
 import { render } from '@testing-library/svelte';
 import { describe, expect, it } from 'vitest';
-import type { PriceTiming } from '$lib/server/detail';
+import type { PriceTiming } from '#lib/server/detail.js';
 import PriceTimingCard from './PriceTimingCard.svelte';
 
 const timing = (then: number | null, now: number | null, approximate = false): PriceTiming => ({

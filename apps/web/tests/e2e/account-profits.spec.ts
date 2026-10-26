@@ -18,7 +18,7 @@ const RUNNING_JOBS = 8;
 const TITANIUM_CARBIDE_JOB = 610000003;
 /** `SEED_FACILITIES.unknown`: the structure EVE refused to tell. */
 const UNKNOWN_FACILITY = 1045000000003;
-/** Pager page size of every profits table (`PAGE_SIZE` in `$lib/paging`). */
+/** Pager page size of every profits table (`PAGE_SIZE` in `#lib/paging.js`). */
 const PAGE_SIZE = 10;
 
 const jobRows = (page: Page) => page.getByRole('table', { name: 'Jobs', exact: true }).locator('tbody tr');

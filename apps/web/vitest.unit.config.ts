@@ -1,5 +1,5 @@
 import { defineProject } from 'vitest/config';
-import { sveltePlugin, webAliases } from './vitest.shared.ts';
+import { inlineDeps, sveltePlugin, webAliases } from './vitest.shared.ts';
 
 export default defineProject({
 	plugins: [sveltePlugin()],
@@ -9,6 +9,7 @@ export default defineProject({
 		environment: 'node',
 		include: ['src/**/*.test.ts'],
 		exclude: ['src/**/*.svelte.test.ts'],
-		passWithNoTests: true
+		passWithNoTests: true,
+		server: { deps: { inline: inlineDeps } }
 	}
 });

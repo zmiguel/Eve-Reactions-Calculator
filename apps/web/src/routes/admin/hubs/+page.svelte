@@ -1,7 +1,7 @@
 <script lang="ts">
-	import HubsAdminTable from '$lib/components/admin/HubsAdminTable.svelte';
-	import PendingHubsTable from '$lib/components/admin/PendingHubsTable.svelte';
-	import Seo from '$lib/seo/Seo.svelte';
+	import HubsAdminTable from '#lib/components/admin/HubsAdminTable.svelte';
+	import PendingHubsTable from '#lib/components/admin/PendingHubsTable.svelte';
+	import Seo from '#lib/seo/Seo.svelte';
 
 	let { data, form } = $props();
 

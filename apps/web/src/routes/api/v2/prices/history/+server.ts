@@ -1,25 +1,24 @@
 import { esiMarketHistory, getHistoryDb, priceDaily, priceSnapshots } from '@reactions/db';
 import { and, asc, between, eq, gte, lt } from 'drizzle-orm';
-import { apiCsv } from '$lib/server/api/csv';
-import { publicHubs, requireDataset, requireHub } from '$lib/server/api/data';
+import { apiCsv } from '#lib/server/api/csv.js';
+import { publicHubs, requireDataset, requireHub } from '#lib/server/api/data.js';
 import {
 	ApiError,
 	CACHE_SHORT,
 	apiHandler,
 	apiJson,
 	invalidParam,
-	parseQuery,
-	requireEnv
-} from '$lib/server/api/http';
+	parseQuery
+} from '#lib/server/api/http.js';
 import {
 	HISTORY_COLUMNS,
 	MAX_HISTORY_SPAN_DAYS,
 	PriceHistoryQuery,
 	SNAPSHOT_HISTORY_DAYS
-} from '$lib/server/api/schemas';
-import { FALLBACK_HUB } from '$lib/server/hubs';
-import { DAY_MS } from '$lib/server/listing';
-import { isoDate } from '$lib/server/prices';
+} from '#lib/server/api/schemas.js';
+import { FALLBACK_HUB } from '#lib/server/hubs.js';
+import { DAY_MS } from '#lib/server/listing.js';
+import { isoDate } from '#lib/server/prices.js';
 import type { RequestHandler } from './$types';
 
 const dayMs = (date: string) => Date.parse(`${date}T00:00:00Z`);
@@ -50,7 +49,7 @@ export const GET: RequestHandler = apiHandler(async (event) => {
 			`resolution=snapshot only covers the last ${SNAPSHOT_HISTORY_DAYS} days (from ≥ ${oldestSnapshotDay})`
 		);
 
-	const env = requireEnv(event);
+	const env = event.locals.env;
 	const [dataset, hubs] = await Promise.all([requireDataset(env), publicHubs(env)]);
 	const hub = requireHub(hubs, q.hub ?? FALLBACK_HUB);
 	const name = dataset.types[q.type]?.name;

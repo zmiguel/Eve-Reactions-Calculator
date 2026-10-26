@@ -1,4 +1,4 @@
-import type { PlannerData } from '$lib/planner/plan';
+import type { PlannerData } from '#lib/planner/plan.js';
 import { makeCtx } from '../../../../packages/engine/test/fixtures/context';
 
 /**

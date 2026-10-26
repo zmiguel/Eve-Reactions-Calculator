@@ -2,9 +2,9 @@
 	import { Button } from 'flowbite-svelte';
 	import { enhance } from '$app/forms';
 	import { page } from '$app/state';
-	import SettingsForm from '$lib/components/settings/SettingsForm.svelte';
-	import ShareLink from '$lib/components/settings/ShareLink.svelte';
-	import Seo from '$lib/seo/Seo.svelte';
+	import SettingsForm from '#lib/components/settings/SettingsForm.svelte';
+	import ShareLink from '#lib/components/settings/ShareLink.svelte';
+	import Seo from '#lib/seo/Seo.svelte';
 
 	let { data, form } = $props();
 

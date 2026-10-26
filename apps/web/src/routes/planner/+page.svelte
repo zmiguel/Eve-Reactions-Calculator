@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { page } from '$app/state';
-	import Planner from '$lib/components/planner/Planner.svelte';
-	import Seo from '$lib/seo/Seo.svelte';
+	import Planner from '#lib/components/planner/Planner.svelte';
+	import Seo from '#lib/seo/Seo.svelte';
 	import type { PageProps } from './$types';
 
 	let { data }: PageProps = $props();

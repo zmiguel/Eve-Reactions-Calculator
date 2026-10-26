@@ -1,6 +1,6 @@
 <script lang="ts">
-	import { formatNumber, formatPct } from '$lib/format';
-	import type { AttentionItem } from '$lib/profits/types';
+	import { formatNumber, formatPct } from '#lib/format.js';
+	import type { AttentionItem } from '#lib/profits/types.js';
 
 	/** What needs the user's attention; each item links to where it is fixed. Nothing renders without items. */
 	let { items }: { items: AttentionItem[] } = $props();

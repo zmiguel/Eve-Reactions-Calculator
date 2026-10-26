@@ -1,13 +1,13 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
 	import { page } from '$app/state';
-	import Isk from '$lib/components/profits/Isk.svelte';
-	import PagedTable from '$lib/components/profits/PagedTable.svelte';
-	import { formatIsk, formatNumber, formatUtc } from '$lib/format';
-	import { actionHref } from '$lib/ledger/forms';
-	import type { Paged } from '$lib/paging';
-	import type { ReconcileActionResult, ReconcileInputRow } from '$lib/ledger/types';
-	import { blueprintIconUrl, typeIconUrl } from '$lib/site';
+	import Isk from '#lib/components/profits/Isk.svelte';
+	import PagedTable from '#lib/components/profits/PagedTable.svelte';
+	import { formatIsk, formatNumber, formatUtc } from '#lib/format.js';
+	import { actionHref } from '#lib/ledger/forms.js';
+	import type { Paged } from '#lib/paging.js';
+	import type { ReconcileActionResult, ReconcileInputRow } from '#lib/ledger/types.js';
+	import { blueprintIconUrl, typeIconUrl } from '#lib/site.js';
 	import UnitPriceForm from './UnitPriceForm.svelte';
 
 	interface Props {
@@ -22,8 +22,8 @@
 	let busy = $state<string | null>(null);
 	const submit = (key: string) => () => {
 		busy = key;
-		return async ({ update }: { update: (o?: { reset?: boolean }) => Promise<void> }) => {
-			await update({ reset: false });
+		return async ({ update }: { update: (o?: { reset?: boolean; navigate?: boolean }) => Promise<void> }) => {
+			await update({ reset: false, navigate: false });
 			busy = null;
 		};
 	};

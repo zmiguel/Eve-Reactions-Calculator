@@ -1,5 +1,5 @@
 import type { PlanItem, PlanPhase, PlanStartup } from '@reactions/engine';
-import { formatIsk, formatNumber } from '$lib/format';
+import { formatIsk, formatNumber } from '#lib/format.js';
 
 const list = (items: PlanItem[]) => items.map((i) => `${formatNumber(i.quantity)} ${i.name}`).join(', ');
 

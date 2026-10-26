@@ -5,8 +5,8 @@ import type {
 	ReconcileContractRow,
 	ReconcileInputRow,
 	ReconcilePageData
-} from '$lib/ledger/types';
-import { paginate } from '$lib/paging';
+} from '#lib/ledger/types.js';
+import { paginate } from '#lib/paging.js';
 import { resetPage, setPage } from '../../../../test/shims/app/state';
 import Page from './+page.svelte';
 

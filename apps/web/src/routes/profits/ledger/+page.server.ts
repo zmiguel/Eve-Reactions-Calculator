@@ -1,9 +1,9 @@
 import { redirect } from '@sveltejs/kit';
-import { hasEmptyParams, withoutEmptyParams } from '$lib/ledger/forms';
-import type { LedgerPageData } from '$lib/ledger/types';
-import { emptyLedgerPage, ledgerPage, parseLedgerQuery } from '$lib/server/ledger';
-import { contractJaniceAction, correctionAction } from '$lib/server/ledger-actions';
-import { profitsContext } from '$lib/server/profits-access';
+import { hasEmptyParams, withoutEmptyParams } from '#lib/ledger/forms.js';
+import type { LedgerPageData } from '#lib/ledger/types.js';
+import { emptyLedgerPage, ledgerPage, parseLedgerQuery } from '#lib/server/ledger.js';
+import { contractJaniceAction, correctionAction } from '#lib/server/ledger-actions.js';
+import { profitsContext } from '#lib/server/profits-access.js';
 import type { Actions, PageServerLoad } from './$types';
 
 export const load: PageServerLoad = async (event): Promise<LedgerPageData> => {

@@ -1,8 +1,8 @@
 import { TrackingSettings } from '@reactions/engine';
-import { error, fail, redirect, type RequestEvent } from '@sveltejs/kit';
-import { getDataset } from '$lib/server/data';
-import { getAccessibleHubs } from '$lib/server/hubs';
-import { requestLedgerRebuild } from '$lib/server/ledger-rebuild';
+import { fail, redirect, type RequestEvent } from '@sveltejs/kit';
+import { getDataset } from '#lib/server/data.js';
+import { getAccessibleHubs } from '#lib/server/hubs.js';
+import { requestLedgerRebuild } from '#lib/server/ledger-rebuild.js';
 import {
 	facilitySettingsFromForm,
 	getTrackingSettings,
@@ -11,15 +11,14 @@ import {
 	saveTrackingSettings,
 	trackingSettingsPage,
 	type TrackingSettingsPageData
-} from '$lib/server/tracking-settings';
+} from '#lib/server/tracking-settings.js';
 import type { Actions, PageServerLoad } from './$types';
 
 const LOGIN_URL = '/auth/login?purpose=login&returnTo=%2Faccount%2Ftracking';
 
-function requireAccount({ locals, platform }: Pick<RequestEvent, 'locals' | 'platform'>) {
+function requireAccount({ locals }: Pick<RequestEvent, 'locals'>) {
 	if (!locals.user) redirect(303, LOGIN_URL);
-	if (!platform) error(503, 'Your account is not available right now.');
-	return { env: platform.env, user: locals.user };
+	return { env: locals.env, user: locals.user };
 }
 
 /**

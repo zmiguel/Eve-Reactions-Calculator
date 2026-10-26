@@ -3,8 +3,8 @@ import { ESI_FEATURES, formatScopes } from '@reactions/eve';
 import { isHttpError, isRedirect, type RequestEvent } from '@sveltejs/kit';
 import { render } from 'svelte/server';
 import { afterEach, describe, expect, it } from 'vitest';
-import { readOauthState } from '$lib/server/auth/oauth';
-import type { SessionUser } from '$lib/server/session';
+import { readOauthState } from '#lib/server/auth/oauth.js';
+import type { SessionUser } from '#lib/server/session.js';
 import { FakeCookies, type FakeEnv } from '../../../../test/fakes';
 import { insertUser } from '../../../../test/fixtures';
 import { resetPage, setPage } from '../../../../test/shims/app/state';
@@ -27,8 +27,7 @@ function event(
 		params: { characterId },
 		request: new Request(url, { method: 'POST', body: new URLSearchParams(body) }),
 		cookies: cookies.asCookies(),
-		platform: { env },
-		locals: { user, settings: DEFAULT_SETTINGS, theme: 'dark' }
+		locals: { user, settings: DEFAULT_SETTINGS, theme: 'dark', env }
 	} as unknown as RequestEvent as never;
 }
 

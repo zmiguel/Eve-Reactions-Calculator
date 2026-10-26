@@ -1,14 +1,14 @@
 <script lang="ts">
-	import AttentionBar from '$lib/components/profits/overview/AttentionBar.svelte';
-	import KpiCards from '$lib/components/profits/overview/KpiCards.svelte';
-	import OverviewCharts from '$lib/components/profits/overview/OverviewCharts.svelte';
-	import PeriodSwitch, { periodWords } from '$lib/components/profits/overview/PeriodSwitch.svelte';
-	import ReactionsTable from '$lib/components/profits/overview/ReactionsTable.svelte';
-	import RunningTable from '$lib/components/profits/overview/RunningTable.svelte';
-	import SalesTable from '$lib/components/profits/overview/SalesTable.svelte';
-	import UnsoldTable from '$lib/components/profits/overview/UnsoldTable.svelte';
-	import { formatRelative, formatUtc } from '$lib/format';
-	import Seo from '$lib/seo/Seo.svelte';
+	import AttentionBar from '#lib/components/profits/overview/AttentionBar.svelte';
+	import KpiCards from '#lib/components/profits/overview/KpiCards.svelte';
+	import OverviewCharts from '#lib/components/profits/overview/OverviewCharts.svelte';
+	import PeriodSwitch, { periodWords } from '#lib/components/profits/overview/PeriodSwitch.svelte';
+	import ReactionsTable from '#lib/components/profits/overview/ReactionsTable.svelte';
+	import RunningTable from '#lib/components/profits/overview/RunningTable.svelte';
+	import SalesTable from '#lib/components/profits/overview/SalesTable.svelte';
+	import UnsoldTable from '#lib/components/profits/overview/UnsoldTable.svelte';
+	import { formatRelative, formatUtc } from '#lib/format.js';
+	import Seo from '#lib/seo/Seo.svelte';
 
 	let { data } = $props();
 

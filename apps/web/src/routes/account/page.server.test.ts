@@ -2,7 +2,7 @@ import { DEFAULT_SETTINGS, Settings } from '@reactions/engine';
 import { STRUCTURE_SCOPES } from '@reactions/eve';
 import { isActionFailure, isRedirect, type RequestEvent } from '@sveltejs/kit';
 import { describe, expect, it } from 'vitest';
-import type { SessionUser } from '$lib/server/session';
+import type { SessionUser } from '#lib/server/session.js';
 import { FakeCookies, fakeEnv, type FakeEnv } from '../../test/fakes';
 import { NOW, insertStructureHub, insertUser, linkStructure } from '../../test/fixtures';
 import { sessionUser } from '../../test/sso';
@@ -24,8 +24,7 @@ function event(
 		url,
 		request: new Request(url, form ? { method: 'POST', body: form } : undefined),
 		cookies: cookies.asCookies(),
-		platform: { env },
-		locals: { user, settings: DEFAULT_SETTINGS, theme: 'dark' }
+		locals: { user, settings: DEFAULT_SETTINGS, theme: 'dark', env }
 	} as unknown as RequestEvent as never;
 }
 

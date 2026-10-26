@@ -1,6 +1,6 @@
 <script lang="ts">
-	import PagedTable from '$lib/components/profits/PagedTable.svelte';
-	import type { Paged } from '$lib/paging';
+	import PagedTable from '#lib/components/profits/PagedTable.svelte';
+	import type { Paged } from '#lib/paging.js';
 
 	let {
 		data,

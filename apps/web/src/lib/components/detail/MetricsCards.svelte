@@ -1,6 +1,6 @@
 <script lang="ts">
 	import type { ReactionResult } from '@reactions/engine';
-	import { formatDuration, formatIsk, formatIskFull, formatNumber, formatPct } from '$lib/format';
+	import { formatDuration, formatIsk, formatIskFull, formatNumber, formatPct } from '#lib/format.js';
 
 	interface Props {
 		result: Pick<ReactionResult, 'totals' | 'runs' | 'runTimeSeconds' | 'allocation'> &

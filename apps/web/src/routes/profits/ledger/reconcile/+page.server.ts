@@ -1,16 +1,16 @@
 import { fail } from '@sveltejs/kit';
-import { formatNumber } from '$lib/format';
-import type { ReconcileActionResult, ReconcilePageData } from '$lib/ledger/types';
-import { pageParam } from '$lib/paging';
-import { TOO_MANY, correctionAction, profitsActionContext, throttled } from '$lib/server/ledger-actions';
+import { formatNumber } from '#lib/format.js';
+import type { ReconcileActionResult, ReconcilePageData } from '#lib/ledger/types.js';
+import { pageParam } from '#lib/paging.js';
+import { TOO_MANY, correctionAction, profitsActionContext, throttled } from '#lib/server/ledger-actions.js';
 import {
 	confirmAllBuyValues,
 	confirmBuyValue,
 	emptyReconcilePage,
 	reconcilePage
-} from '$lib/server/ledger-reconcile';
-import { correctionNotice, parseCorrectionTarget } from '$lib/server/price-corrections';
-import { profitsContext } from '$lib/server/profits-access';
+} from '#lib/server/ledger-reconcile.js';
+import { correctionNotice, parseCorrectionTarget } from '#lib/server/price-corrections.js';
+import { profitsContext } from '#lib/server/profits-access.js';
 import type { Actions, PageServerLoad } from './$types';
 
 export const load: PageServerLoad = async (event): Promise<ReconcilePageData> => {

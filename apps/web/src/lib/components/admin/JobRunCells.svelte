@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { formatDuration, formatRelative, formatUtc } from '$lib/format';
+	import { formatDuration, formatRelative, formatUtc } from '#lib/format.js';
 	import {
 		ENDED_WORKFLOW,
 		isPossiblyStuck,

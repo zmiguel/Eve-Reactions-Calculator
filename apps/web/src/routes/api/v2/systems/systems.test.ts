@@ -1,6 +1,6 @@
 import type { RequestEvent } from '@sveltejs/kit';
 import { describe, expect, it, vi } from 'vitest';
-import { ErrorResponse, SystemResponse, SystemsResponse } from '$lib/server/api/schemas';
+import { ErrorResponse, SystemResponse, SystemsResponse } from '#lib/server/api/schemas.js';
 import { fakeEnv, type FakeEnv } from '../../../../test/fakes';
 import { insertSystems } from '../../../../test/fixtures';
 import { GET as getById } from './[id]/+server';
@@ -22,7 +22,7 @@ function event(env: FakeEnv, path: string, params: Record<string, string> = {}, 
 	return {
 		url,
 		params,
-		platform: { env },
+		locals: { env },
 		request: new Request(url, { headers: { 'cf-connecting-ip': ip } })
 	} as unknown as Parameters<typeof search>[0] & RequestEvent;
 }

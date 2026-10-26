@@ -18,13 +18,10 @@ export async function hasTrackingConnection(env: Pick<Env, 'DB'>, userId: string
 	return row !== null;
 }
 
-export async function profitsAccess(
-	event: Pick<RequestEvent, 'locals' | 'platform'>
-): Promise<ProfitsAccess> {
+export async function profitsAccess(event: Pick<RequestEvent, 'locals'>): Promise<ProfitsAccess> {
 	const user = event.locals.user;
 	if (!user) return 'login';
-	if (!event.platform) return 'enable';
-	return (await hasTrackingConnection(event.platform.env, user.userId)) ? 'ok' : 'enable';
+	return (await hasTrackingConnection(event.locals.env, user.userId)) ? 'ok' : 'enable';
 }
 
 /**
@@ -32,10 +29,10 @@ export async function profitsAccess(
  * shows the login / enable message and the page returns its empty data.
  */
 export async function profitsContext(
-	event: Pick<RequestEvent, 'locals' | 'platform'>
+	event: Pick<RequestEvent, 'locals'>
 ): Promise<{ env: Env; user: SessionUser } | null> {
 	if ((await profitsAccess(event)) !== 'ok') return null;
-	return { env: event.platform!.env, user: event.locals.user! };
+	return { env: event.locals.env, user: event.locals.user! };
 }
 
 /**
@@ -43,12 +40,12 @@ export async function profitsContext(
  * anonymous visitor, 403 when no connection has Profit tracking on.
  */
 export async function profitsApiContext(
-	event: Pick<RequestEvent, 'locals' | 'platform'>
+	event: Pick<RequestEvent, 'locals'>
 ): Promise<{ env: Env; user: SessionUser }> {
 	const access = await profitsAccess(event);
 	if (access === 'login') error(401, 'Log in to see your profits.');
 	if (access === 'enable') error(403, 'Switch Profit tracking on for a connection first.');
-	return { env: event.platform!.env, user: event.locals.user! };
+	return { env: event.locals.env, user: event.locals.user! };
 }
 /** `/auth/login` returning to `url` (path and query). */
 export const profitsLoginHref = (url: URL) =>

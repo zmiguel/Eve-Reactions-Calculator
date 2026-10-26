@@ -1,11 +1,11 @@
 <script lang="ts">
-	import JobStatusPill from '$lib/components/jobs/JobStatusPill.svelte';
-	import Isk from '$lib/components/profits/Isk.svelte';
-	import PagedTable from '$lib/components/profits/PagedTable.svelte';
-	import { formatNumber } from '$lib/format';
-	import type { Paged } from '$lib/paging';
-	import type { RunningTableRow } from '$lib/profits/types';
-	import { blueprintIconUrl } from '$lib/site';
+	import JobStatusPill from '#lib/components/jobs/JobStatusPill.svelte';
+	import Isk from '#lib/components/profits/Isk.svelte';
+	import PagedTable from '#lib/components/profits/PagedTable.svelte';
+	import { formatNumber } from '#lib/format.js';
+	import type { Paged } from '#lib/paging.js';
+	import type { RunningTableRow } from '#lib/profits/types.js';
+	import { blueprintIconUrl } from '#lib/site.js';
 
 	let { data, now }: { data: Paged<RunningTableRow>; now: number } = $props();
 

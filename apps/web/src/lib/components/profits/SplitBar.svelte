@@ -9,7 +9,7 @@
 </script>
 
 <script lang="ts">
-	import { formatNumber } from '$lib/format';
+	import { formatNumber } from '#lib/format.js';
 
 	/**
 	 * A thin stacked bar of parts of a whole (sold / used by later jobs / unsold); segments of 0 are left

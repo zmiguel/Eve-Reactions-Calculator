@@ -1,5 +1,5 @@
 <script lang="ts" module>
-	import type { ProfitPeriod } from '$lib/profits/types';
+	import type { ProfitPeriod } from '#lib/profits/types.js';
 
 	/** Periods of the overview in switch order: short label and the words used in sentences. */
 	export const PERIODS: readonly { value: ProfitPeriod; short: string; words: string }[] = [

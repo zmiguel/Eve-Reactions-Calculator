@@ -1,9 +1,9 @@
 import type { SdeDataset } from '@reactions/sde';
 import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
-import type { ManualActionResult, ManualAddPageData, ManualEntryView } from '$lib/ledger/types';
-import type { Paged } from '$lib/paging';
-import { clearDataMemo } from '$lib/server/data';
-import { MESSAGES } from '$lib/server/manual-entries';
+import type { ManualActionResult, ManualAddPageData, ManualEntryView } from '#lib/ledger/types.js';
+import type { Paged } from '#lib/paging.js';
+import { clearDataMemo } from '#lib/server/data.js';
+import { MESSAGES } from '#lib/server/manual-entries.js';
 import { requestEvent, settle } from '../../../../test/actions';
 import { fakeEnv } from '../../../../test/fakes';
 import { NOW, insertUser, loadSde, putKv } from '../../../../test/fixtures';

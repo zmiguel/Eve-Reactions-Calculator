@@ -1,7 +1,7 @@
 import { listReactions, rankRows } from '@reactions/engine';
 import { error } from '@sveltejs/kit';
-import { formatIsk } from '$lib/format';
-import { loadCalc } from '$lib/server/context';
+import { formatIsk } from '#lib/format.js';
+import { loadCalc } from '#lib/server/context.js';
 import {
 	MAX_HISTORY_DAYS,
 	buildTierSections,
@@ -9,11 +9,11 @@ import {
 	formatAge,
 	isValidDateParam,
 	summarizeSettings
-} from '$lib/server/listing';
-import { REACTOR_LABEL } from '$lib/site';
+} from '#lib/server/listing.js';
+import { REACTOR_LABEL } from '#lib/site.js';
 import type { PageServerLoad } from './$types';
 
-export const load: PageServerLoad = async ({ params, url, platform, locals }) => {
+export const load: PageServerLoad = async ({ params, url, locals }) => {
 	const reactor = params.reactor;
 	const bounds = dateBounds(Date.now());
 	const date = url.searchParams.get('date') || null;
@@ -24,7 +24,7 @@ export const load: PageServerLoad = async ({ params, url, platform, locals }) =>
 		);
 	}
 	const page = { reactor, date, bounds, noindex: date !== null };
-	const calc = platform ? await loadCalc(platform.env, locals, { date }) : null;
+	const calc = await loadCalc(locals.env, locals, { date });
 	if (!calc) return { ...page, listing: null };
 
 	const { ctx, dataset, market, hubs } = calc;

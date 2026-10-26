@@ -1,9 +1,9 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
 	import { page } from '$app/state';
-	import { formatIskFull } from '$lib/format';
-	import { actionHref } from '$lib/ledger/forms';
-	import type { LedgerActionResult, LedgerCorrectionView } from '$lib/ledger/types';
+	import { formatIskFull } from '#lib/format.js';
+	import { actionHref } from '#lib/ledger/forms.js';
+	import type { LedgerActionResult, LedgerCorrectionView } from '#lib/ledger/types.js';
 
 	interface Props {
 		/** `correct` / `undo` form fields: what the price is (`transaction`, `contract_item`, `job_input`). */
@@ -28,8 +28,8 @@
 	let saving = $state(false);
 	const submit = () => {
 		saving = true;
-		return async ({ update }: { update: (o?: { reset?: boolean }) => Promise<void> }) => {
-			await update({ reset: false });
+		return async ({ update }: { update: (o?: { reset?: boolean; navigate?: boolean }) => Promise<void> }) => {
+			await update({ reset: false, navigate: false });
 			saving = false;
 		};
 	};

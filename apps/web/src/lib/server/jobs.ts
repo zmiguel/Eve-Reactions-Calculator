@@ -43,8 +43,8 @@ import type {
 	JobStatusCounts,
 	JobTotalsView,
 	JobsPageData
-} from '$lib/jobs/types';
-import { paginate, type Paged } from '$lib/paging';
+} from '#lib/jobs/types.js';
+import { paginate, type Paged } from '#lib/paging.js';
 import { loadCalc } from './context.ts';
 import { getDataset } from './data.ts';
 import { facilityEve, facilityPlaces, type FacilityPlace } from './facilities.ts';

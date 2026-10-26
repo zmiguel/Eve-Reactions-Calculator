@@ -10,12 +10,12 @@
 		type StockPlanInput
 	} from '@reactions/engine';
 	import { onMount, untrack } from 'svelte';
-	import { replaceState } from '$app/navigation';
+	import { goto } from '$app/navigation';
 	import { page } from '$app/state';
-	import SettingsSummary from '$lib/components/listing/SettingsSummary.svelte';
-	import InfoNote from '$lib/components/InfoNote.svelte';
-	import { formatNumber } from '$lib/format';
-	import { formulaNameIndex, parsePaste, typeNameIndex } from '$lib/planner/parsePaste';
+	import SettingsSummary from '#lib/components/listing/SettingsSummary.svelte';
+	import InfoNote from '#lib/components/InfoNote.svelte';
+	import { formatNumber } from '#lib/format.js';
+	import { formulaNameIndex, parsePaste, typeNameIndex } from '#lib/planner/parsePaste.js';
 	import {
 		buildBuyItems,
 		dailyVolumes,
@@ -27,8 +27,8 @@
 		productVolumes,
 		targetFootprint,
 		type PlannerData
-	} from '$lib/planner/plan';
-	import { reactionSlots, MAX_SKILL_LEVEL } from '$lib/planner/slots';
+	} from '#lib/planner/plan.js';
+	import { reactionSlots, MAX_SKILL_LEVEL } from '#lib/planner/slots.js';
 	import {
 		DEFAULT_STOCK_SEARCH_SECONDS,
 		MAX_STOCK_SEARCH_SECONDS,
@@ -40,8 +40,8 @@
 		loadState,
 		saveState,
 		type PlannerState
-	} from '$lib/planner/state';
-	import { planOnThread, workerStockPlanner, type StockPlanner } from '$lib/planner/stockPlanner';
+	} from '#lib/planner/state.js';
+	import { planOnThread, workerStockPlanner, type StockPlanner } from '#lib/planner/stockPlanner.js';
 	import AutoFillButton from './AutoFillButton.svelte';
 	import PlannerPaste from './PlannerPaste.svelte';
 	import PlannerInventory from './PlannerInventory.svelte';
@@ -104,9 +104,9 @@
 		saveState(store, setup);
 		if (fromShare) {
 			fromShare = false;
-			const url = new URL(page.url);
+			const url = new URL(page.url.href);
 			url.searchParams.delete('s');
-			replaceState(url, page.state);
+			void goto(url, { shallow: true, replace: true, state: page.state });
 		}
 	});
 
@@ -231,6 +231,7 @@
 	const stockCyclesShown = $derived(
 		setup.stockCycles ?? stockPlan?.maxCycles ?? STOCK_PLAN_DEFAULT_MAX_CYCLES
 	);
+
 	const fuelTypeIds = $derived(
 		new Set(
 			Object.values(data.dataset.types)
@@ -299,7 +300,7 @@
 
 	/** The current URL with `?s=` set to `code`, or removed (the stored plan opens). */
 	function withShare(code: string | null): string {
-		const url = new URL(page.url);
+		const url = new URL(page.url.href);
 		if (code === null) url.searchParams.delete('s');
 		else url.searchParams.set('s', code);
 		return url.pathname + url.search;
@@ -432,10 +433,8 @@
 				type="button"
 				class="inline-flex items-center rounded-md border border-gray-200 bg-white px-2 py-0.5 text-xs font-medium text-gray-700 hover:bg-gray-100 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 dark:hover:bg-gray-600"
 				title="Use as total slots"
-				onclick={() => (setup.slots = Math.min(MAX_SLOTS, helperSlots))}
+				onclick={() => (setup.slots = Math.min(MAX_SLOTS, helperSlots))}>Use {helperSlots}</button
 			>
-				Use {helperSlots}
-			</button>
 		</fieldset>
 
 		{#if mode === 'stock'}
@@ -635,7 +634,7 @@
 			{/if}
 		</div>
 
-		<form method="GET" action="/planner" class="space-y-1" data-sveltekit-noscroll data-sveltekit-keepfocus>
+		<form method="GET" action="/planner" class="space-y-1" data-sveltekit-reset="false">
 			{#if fromShare && share}
 				<!-- An unedited shared plan is not stored yet; keep it (and its settings) open. -->
 				<input type="hidden" name="s" value={share} />
@@ -657,8 +656,7 @@
 				{#if data.inputsDaysAgo > 0}
 					<a
 						href={fromShare && share ? `/planner?s=${share}` : '/planner'}
-						class="text-primary-700 dark:text-primary-400 hover:underline"
-						data-sveltekit-noscroll>Now</a
+						class="text-primary-700 dark:text-primary-400 hover:underline">Now</a
 					>
 				{/if}
 			</div>
@@ -690,10 +688,9 @@
 						cycleDays: setup.cycleDays,
 						stockSource: setup.stockSource,
 						mode: setup.mode
-					})}
+					})}>Clear</button
 			>
-				Clear
-			</button>
+
 			<span class="text-xs text-gray-500 dark:text-gray-400" role="status">
 				{#if shareInvalid}
 					The shared plan could not be opened; your saved plan is shown.
@@ -752,8 +749,13 @@
 				aria-live="polite"
 				data-stock-status
 			>
-				{#if planning && incumbentShown}Looking for a better plan…{:else if planning || (!stockPlan && !stockFailed)}Planning…{:else if stockFailed}Planning
-					failed: change an input to try again.{/if}
+				{#if planning && incumbentShown}
+					Looking for a better plan…
+				{:else if planning || (!stockPlan && !stockFailed)}
+					Planning…
+				{:else if stockFailed}
+					Planning failed: change an input to try again.
+				{/if}
 			</p>
 			{#if stockPlan}
 				<div

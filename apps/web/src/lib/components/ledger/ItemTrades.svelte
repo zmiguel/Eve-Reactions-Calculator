@@ -1,11 +1,11 @@
 <script lang="ts">
-	import Isk from '$lib/components/profits/Isk.svelte';
-	import PagedTable from '$lib/components/profits/PagedTable.svelte';
-	import Pill from '$lib/components/profits/Pill.svelte';
-	import { formatNumber, formatRelative, formatUtc } from '$lib/format';
-	import { DIRECTION_BADGE, UNTRACKED, UNTRACKED_TEXT } from '$lib/ledger/source';
-	import type { LedgerItemTrade, LedgerLotOrigin } from '$lib/ledger/types';
-	import type { Paged } from '$lib/paging';
+	import Isk from '#lib/components/profits/Isk.svelte';
+	import PagedTable from '#lib/components/profits/PagedTable.svelte';
+	import Pill from '#lib/components/profits/Pill.svelte';
+	import { formatNumber, formatRelative, formatUtc } from '#lib/format.js';
+	import { DIRECTION_BADGE, UNTRACKED, UNTRACKED_TEXT } from '#lib/ledger/source.js';
+	import type { LedgerItemTrade, LedgerLotOrigin } from '#lib/ledger/types.js';
+	import type { Paged } from '#lib/paging.js';
 	import PriceSource from './PriceSource.svelte';
 
 	interface Props {

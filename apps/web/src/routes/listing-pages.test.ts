@@ -2,9 +2,9 @@ import type { MarketSnapshot } from '@reactions/db';
 import { Settings, type Reaction } from '@reactions/engine';
 import { isHttpError } from '@sveltejs/kit';
 import { beforeEach, describe, expect, it } from 'vitest';
-import { clearDataMemo } from '$lib/server/data';
-import { DAY_MS } from '$lib/server/listing';
-import { isoDate } from '$lib/server/prices';
+import { clearDataMemo } from '#lib/server/data.js';
+import { DAY_MS } from '#lib/server/listing.js';
+import { isoDate } from '#lib/server/prices.js';
 import { asEnv, fakeEnv, type FakeEnv } from '../test/fakes';
 import { NOW, insertSystems, loadSde, marketFor, putKv } from '../test/fixtures';
 import type { PageServerData as HomeData, PageServerLoadEvent as HomeEvent } from './$types';
@@ -17,20 +17,24 @@ import { load as reactorLoad } from './[reactor=reactor]/+page.server';
 
 beforeEach(() => clearDataMemo());
 
-const locals = (settings = Settings.parse({})) => ({ settings, user: null, theme: 'dark' as const });
+const locals = (env: FakeEnv, settings = Settings.parse({})) => ({
+	settings,
+	user: null,
+	theme: 'dark' as const,
+	env: asEnv(env)
+});
 
-async function home(env: FakeEnv | null): Promise<HomeData> {
-	const event = { platform: env ? { env: asEnv(env) } : undefined, locals: locals() };
+async function home(env: FakeEnv): Promise<HomeData> {
+	const event = { locals: locals(env) };
 	return (await homeLoad(event as unknown as HomeEvent)) as HomeData;
 }
 
-async function reactorPage(env: FakeEnv | null, path: string, settings?: Settings): Promise<ReactorData> {
+async function reactorPage(env: FakeEnv, path: string, settings?: Settings): Promise<ReactorData> {
 	const url = new URL(`https://reactions.coalition.space${path}`);
 	const event = {
 		params: { reactor: url.pathname.slice(1) },
 		url,
-		platform: env ? { env: asEnv(env) } : undefined,
-		locals: locals(settings)
+		locals: locals(env, settings)
 	};
 	return (await reactorLoad(event as unknown as ReactorEvent)) as ReactorData;
 }
@@ -64,7 +68,6 @@ const daysAgo = (n: number) => isoDate(NOW - n * DAY_MS);
 describe('home loader', () => {
 	it('returns the data-missing state without KV data', async () => {
 		expect(await home(fakeEnv())).toEqual({ home: null });
-		expect(await home(null)).toEqual({ home: null });
 	});
 
 	it('returns status and empty boards without price history or market statistics', async () => {

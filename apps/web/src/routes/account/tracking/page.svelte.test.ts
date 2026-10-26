@@ -1,7 +1,7 @@
 import { render } from '@testing-library/svelte';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import type { FacilityView } from '$lib/account/facilities';
-import type { TrackingSettingsPageData } from '$lib/server/tracking-settings';
+import type { FacilityView } from '#lib/account/facilities.js';
+import type { TrackingSettingsPageData } from '#lib/server/tracking-settings.js';
 import { resetPage, setPage } from '../../../test/shims/app/state';
 import Page from './+page.svelte';
 

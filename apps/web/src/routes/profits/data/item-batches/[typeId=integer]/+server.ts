@@ -1,7 +1,7 @@
-import { error, json } from '@sveltejs/kit';
-import { pageParam } from '$lib/paging';
-import { ledgerItemBatches } from '$lib/server/ledger-item';
-import { profitsApiContext } from '$lib/server/profits-access';
+import { error } from '@sveltejs/kit';
+import { pageParam } from '#lib/paging.js';
+import { ledgerItemBatches } from '#lib/server/ledger-item.js';
+import { profitsApiContext } from '#lib/server/profits-access.js';
 import type { RequestHandler } from './$types';
 
 /** One page (`batches`) of the batches table of `/profits/ledger/<typeId>`. */
@@ -14,5 +14,5 @@ export const GET: RequestHandler = async (event) => {
 		pageParam(event.url, 'batches')
 	);
 	if (!page) error(404, 'Not Found');
-	return json(page);
+	return Response.json(page);
 };

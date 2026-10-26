@@ -11,8 +11,8 @@
 		"generate": "drizzle-kit generate --config drizzle.core.config.ts && drizzle-kit generate --config drizzle.history.config.ts"
 	},
 	"dependencies": {
-		"drizzle-orm": "^0.45.3",
-		"@reactions/engine": "*"
+		"@reactions/engine": "*",
+		"drizzle-orm": "^0.45.4"
 	},
 	"devDependencies": {
 		"drizzle-kit": "^0.31.11"
