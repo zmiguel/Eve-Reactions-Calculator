@@ -1,6 +1,6 @@
 import { render } from '@testing-library/svelte';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import type { JobDetailData, JobInputLot, JobLink } from '$lib/jobs/types';
+import type { JobDetailData, JobInputLot, JobLink } from '#lib/jobs/types.js';
 import { resetPage, setPage } from '../../../../test/shims/app/state';
 import Page from './+page.svelte';
 

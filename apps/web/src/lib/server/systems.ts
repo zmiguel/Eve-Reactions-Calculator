@@ -2,7 +2,7 @@ import { costIndices, getCoreDb, regions, systems } from '@reactions/db';
 import { fetchConstellationInfo, fetchRegionInfo, fetchSystemInfo, type EsiClient } from '@reactions/eve';
 import { MAX_REGION_ID_EXCLUSIVE, securityBand } from '@reactions/sde';
 import { and, asc, eq, gte, inArray, lt, ne, sql, type SQL } from 'drizzle-orm';
-import type { SystemSummary } from '$lib/settings/fields';
+import type { SystemSummary } from '#lib/settings/fields.js';
 
 const lowerName = sql`lower(${systems.name})`;
 

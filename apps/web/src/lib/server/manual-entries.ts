@@ -1,13 +1,13 @@
 import type { Dataset } from '@reactions/engine';
-import { formatNumber } from '$lib/format';
+import { formatNumber } from '#lib/format.js';
 import type {
 	ManualEntryView,
 	ManualImportError,
 	ManualImportPreview,
 	ManualImportRow,
 	ManualItemChoice
-} from '$lib/ledger/types';
-import { PAGE_SIZE, type Paged } from '$lib/paging';
+} from '#lib/ledger/types.js';
+import { PAGE_SIZE, type Paged } from '#lib/paging.js';
 import { getDataset } from './data.ts';
 import { requestLedgerRebuild } from './ledger-rebuild.ts';
 import { MAX_CORRECTION_PRICE, MAX_NOTE_LENGTH } from './price-corrections.ts';

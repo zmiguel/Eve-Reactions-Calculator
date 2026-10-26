@@ -1,6 +1,6 @@
 {
 	"name": "@reactions/web",
-	"version": "3.2.8",
+	"version": "3.2.9",
 	"private": true,
 	"type": "module",
 	"scripts": {
@@ -26,16 +26,19 @@
 		"@flowbite-svelte-plugins/chart": "^0.2.4",
 		"@lhci/cli": "^0.15.1",
 		"@playwright/test": "^1.64.1",
-		"@sveltejs/adapter-cloudflare": "^7.2.9",
-		"@sveltejs/kit": "^2.70.3",
+		"@sveltejs/adapter-cloudflare": "^8.0.1",
+		"@sveltejs/kit": "^3.1.0",
 		"@sveltejs/vite-plugin-svelte": "^7.3.1",
 		"@tailwindcss/vite": "^4.3.3",
 		"flowbite": "^4.0.2",
 		"flowbite-svelte": "^1.33.1",
 		"flowbite-svelte-icons": "^3.1.0",
-		"svelte": "^5.57.1",
+		"svelte": "^5.57.2",
 		"svelte-check": "^4.7.7",
 		"tailwindcss": "^4.3.3",
 		"vite": "^8.3.5"
+	},
+	"imports": {
+		"#lib/*": "./src/lib/*"
 	}
 }

@@ -1,7 +1,7 @@
 import { fireEvent, render, screen } from '@testing-library/svelte';
 import { afterEach, describe, expect, it } from 'vitest';
-import type { BuildItem, ReactorBoard } from '$lib/components/home/types';
-import type { TierSectionData } from '$lib/components/listing/types';
+import type { BuildItem, ReactorBoard } from '#lib/components/home/types.js';
+import type { TierSectionData } from '#lib/components/listing/types.js';
 import HomePage from './+page.svelte';
 import ReactorPage from './[reactor=reactor]/+page.svelte';
 

@@ -1,10 +1,10 @@
 <script lang="ts">
-	import Isk from '$lib/components/profits/Isk.svelte';
-	import PagedTable from '$lib/components/profits/PagedTable.svelte';
-	import { formatNumber, formatPct } from '$lib/format';
-	import type { Paged } from '$lib/paging';
-	import type { ProfitPeriod, ReactionTableRow } from '$lib/profits/types';
-	import { blueprintIconUrl } from '$lib/site';
+	import Isk from '#lib/components/profits/Isk.svelte';
+	import PagedTable from '#lib/components/profits/PagedTable.svelte';
+	import { formatNumber, formatPct } from '#lib/format.js';
+	import type { Paged } from '#lib/paging.js';
+	import type { ProfitPeriod, ReactionTableRow } from '#lib/profits/types.js';
+	import { blueprintIconUrl } from '#lib/site.js';
 
 	let {
 		data,

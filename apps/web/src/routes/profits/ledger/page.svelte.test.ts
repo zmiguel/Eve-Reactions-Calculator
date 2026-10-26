@@ -6,8 +6,8 @@ import type {
 	LedgerPageData,
 	LedgerSummary,
 	LedgerTradeRow
-} from '$lib/ledger/types';
-import { paginate } from '$lib/paging';
+} from '#lib/ledger/types.js';
+import { paginate } from '#lib/paging.js';
 import { gotoCalls, resetNavigation } from '../../../test/shims/app/navigation';
 import { resetPage, setPage } from '../../../test/shims/app/state';
 import Page from './+page.svelte';

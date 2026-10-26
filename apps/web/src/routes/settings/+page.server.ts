@@ -6,31 +6,31 @@ import {
 	encodeSettings,
 	type Settings
 } from '@reactions/engine';
-import { error, fail, redirect, type Cookies } from '@sveltejs/kit';
+import { fail, redirect, type Cookies } from '@sveltejs/kit';
 import { eq } from 'drizzle-orm';
-import { getDataset } from '$lib/server/data';
-import { getAccessibleHubs } from '$lib/server/hubs';
-import { requestLedgerRebuild } from '$lib/server/ledger-rebuild';
-import { persistSettings } from '$lib/server/settings';
+import { getDataset } from '#lib/server/data.js';
+import { getAccessibleHubs } from '#lib/server/hubs.js';
+import { requestLedgerRebuild } from '#lib/server/ledger-rebuild.js';
+import { persistSettings } from '#lib/server/settings.js';
 import {
 	normalizeSettings,
 	parseSettingsForm,
 	profilesInUse,
 	referenceErrors,
 	systemsFor
-} from '$lib/server/settingsForm';
-import { describePath, settingsChanges, type SettingsChange, type SystemSummary } from '$lib/settings/fields';
+} from '#lib/server/settingsForm.js';
+import {
+	describePath,
+	settingsChanges,
+	type SettingsChange,
+	type SystemSummary
+} from '#lib/settings/fields.js';
 import type { Actions, PageServerLoad } from './$types';
 
 const NOTICES = ['saved', 'reset', 'imported'] as const;
 type Notice = (typeof NOTICES)[number];
 
 const INVALID_IMPORT = 'This share link is not valid (it may be truncated). Your settings were not changed.';
-
-function requireEnv(platform: App.Platform | undefined): Env {
-	if (!platform) error(503, 'Settings cannot be saved right now.');
-	return platform.env;
-}
 
 /**
  * Saves the settings; for an account also recalculates its profit tracking, which uses the account's
@@ -49,27 +49,25 @@ function importProblems(errors: Record<string, string>): string[] {
 	});
 }
 
-export const load: PageServerLoad = async ({ locals, platform, url }) => {
-	const env = platform?.env;
+export const load: PageServerLoad = async ({ locals, url }) => {
+	const env = locals.env;
 	const settings = locals.settings;
 	const importCode = url.searchParams.get('import');
 	const decoded = importCode ? await decodeSettings(importCode) : null;
 	const imported = decoded ? normalizeSettings(decoded) : null;
 
-	const [hubs, systems, dataset, account] = env
-		? await Promise.all([
-				getAccessibleHubs(env, locals.user),
-				systemsFor(env, imported ? [settings, imported] : [settings]),
-				getDataset(env),
-				locals.user
-					? getCoreDb(env.DB)
-							.select({ updatedAt: users.settingsUpdatedAt })
-							.from(users)
-							.where(eq(users.userId, locals.user.userId))
-							.then(([row]) => ({ updatedAt: row?.updatedAt ?? null }))
-					: null
-			])
-		: [[], new Map<number, SystemSummary>(), null, null];
+	const [hubs, systems, dataset, account] = await Promise.all([
+		getAccessibleHubs(env, locals.user),
+		systemsFor(env, imported ? [settings, imported] : [settings]),
+		getDataset(env),
+		locals.user
+			? getCoreDb(env.DB)
+					.select({ updatedAt: users.settingsUpdatedAt })
+					.from(users)
+					.where(eq(users.userId, locals.user.userId))
+					.then(([row]) => ({ updatedAt: row?.updatedAt ?? null }))
+			: null
+	]);
 
 	let importPreview: { code: string; changes: SettingsChange[]; problems: string[] } | null = null;
 	if (importCode && imported) {
@@ -98,8 +96,8 @@ export const load: PageServerLoad = async ({ locals, platform, url }) => {
 };
 
 export const actions: Actions = {
-	save: async ({ request, locals, platform, cookies }) => {
-		const env = requireEnv(platform);
+	save: async ({ request, locals, cookies }) => {
+		const env = locals.env;
 		const hubs = await getAccessibleHubs(env, locals.user);
 		const result = await parseSettingsForm(
 			env,
@@ -115,14 +113,14 @@ export const actions: Actions = {
 		redirect(303, '/settings?notice=saved');
 	},
 
-	reset: async ({ locals, platform, cookies }) => {
-		const env = requireEnv(platform);
+	reset: async ({ locals, cookies }) => {
+		const env = locals.env;
 		await saveSettings(env, cookies, locals.user?.userId ?? null, DEFAULT_SETTINGS);
 		redirect(303, '/settings?notice=reset');
 	},
 
-	import: async ({ request, locals, platform, cookies }) => {
-		const env = requireEnv(platform);
+	import: async ({ request, locals, cookies }) => {
+		const env = locals.env;
 		const code = (await request.formData()).get('code');
 		const decoded = typeof code === 'string' ? await decodeSettings(code) : null;
 		if (!decoded) return fail(400, { importError: INVALID_IMPORT });

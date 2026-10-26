@@ -1,8 +1,8 @@
 <script lang="ts">
 	import '../app.css';
-	import Navbar from '$lib/components/Navbar.svelte';
-	import Footer from '$lib/components/Footer.svelte';
-	import { syncAnalyticsIdentity } from '$lib/analytics';
+	import Navbar from '#lib/components/Navbar.svelte';
+	import Footer from '#lib/components/Footer.svelte';
+	import { syncAnalyticsIdentity } from '#lib/analytics.js';
 
 	let { children, data } = $props();
 

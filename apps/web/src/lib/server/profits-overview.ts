@@ -5,7 +5,7 @@
  * the page load and the `/profits/data/*` table endpoints share them.
  */
 import type { Dataset } from '@reactions/engine';
-import { paginate, pageParam, type Paged } from '$lib/paging';
+import { paginate, pageParam, type Paged } from '#lib/paging.js';
 import type {
 	AttentionItem,
 	InputSourceKind,
@@ -20,8 +20,8 @@ import type {
 	RunningTableRow,
 	SaleTableRow,
 	UnsoldTableRow
-} from '$lib/profits/types';
-import type { JobRow } from '$lib/jobs/types';
+} from '#lib/profits/types.js';
+import type { JobRow } from '#lib/jobs/types.js';
 import { listJobRows, type JobListRow, type JobsLocals } from './jobs.ts';
 import { getDataset } from './data.ts';
 import { ledgerReviewCount } from './ledger.ts';

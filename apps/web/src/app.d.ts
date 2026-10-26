@@ -1,6 +1,6 @@
 // See https://svelte.dev/docs/kit/types#app.d.ts
 import type { Settings } from '@reactions/engine';
-import type { AccountFacts, SessionUser } from '$lib/server/session';
+import type { AccountFacts, SessionUser } from '#lib/server/session.js';
 
 declare global {
 	/** Secrets and optional vars not present in wrangler.jsonc `vars` (see `.dev.vars.example`). */
@@ -21,10 +21,8 @@ declare global {
 			user: SessionUser | null;
 			/** Analytics facts of the session's account (null when anonymous). */
 			account: AccountFacts | null;
-		}
-		interface Platform {
+			/** The Worker bindings, set by the `handle` hook on every request. */
 			env: Env;
-			ctx: ExecutionContext;
 		}
 	}
 }

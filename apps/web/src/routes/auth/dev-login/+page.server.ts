@@ -1,15 +1,15 @@
 import { error, redirect } from '@sveltejs/kit';
-import { completeLogin, getCharacter } from '$lib/server/auth/accounts';
-import { safeReturnTo } from '$lib/server/auth/oauth';
+import { completeLogin, getCharacter } from '#lib/server/auth/accounts.js';
+import { safeReturnTo } from '#lib/server/auth/oauth.js';
 import type { PageServerLoad } from './$types';
 
 /**
  * `GET /auth/dev-login?characterId=&name=&purpose=login|add_character&returnTo=` — local/e2e only
  * (`DEV_LOGIN=1`, else 404): the SSO login steps without EVE SSO. Scope-less like a real login.
  */
-export const load: PageServerLoad = async ({ url, locals, platform, cookies }) => {
-	const env = platform?.env;
-	if (env?.DEV_LOGIN !== '1') error(404, 'Not Found');
+export const load: PageServerLoad = async ({ url, locals, cookies }) => {
+	const env = locals.env;
+	if (env.DEV_LOGIN !== '1') error(404, 'Not Found');
 	const params = url.searchParams;
 	const characterId = Number(params.get('characterId'));
 	if (!Number.isSafeInteger(characterId) || characterId <= 0)

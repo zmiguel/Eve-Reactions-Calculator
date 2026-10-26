@@ -1,7 +1,7 @@
 import { DEFAULT_CONSTANTS, DEFAULT_SETTINGS } from '@reactions/engine';
 import { fireEvent, render } from '@testing-library/svelte';
 import { describe, expect, it } from 'vitest';
-import type { SystemSummary } from '$lib/settings/fields';
+import type { SystemSummary } from '#lib/settings/fields.js';
 import ProfileFields from './ProfileFields.svelte';
 
 const system = (securityBand: string): SystemSummary => ({

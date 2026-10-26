@@ -1,5 +1,5 @@
 import { error, fail, redirect, type RequestEvent } from '@sveltejs/kit';
-import type { LedgerActionResult } from '$lib/ledger/types';
+import type { LedgerActionResult } from '#lib/ledger/types.js';
 import {
 	applyContractJanice,
 	contractJaniceNotice,

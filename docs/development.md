@@ -78,7 +78,7 @@ Without one, use `/auth/dev-login` (below) and leave the SSO values empty; `/aut
 Both workers and the SvelteKit dev server share one local state directory, `.wrangler/state` at the repo root:
 
 - `wrangler` commands use `--persist-to ../../.wrangler/state` (wrangler appends `v3`).
-- `vite dev` reads `../../.wrangler/state/v3` through `platformProxy` in `apps/web/svelte.config.js`; `WRANGLER_PERSIST=<path>/v3` points it at another state, for example a copy of `.wrangler/state` to experiment without touching yours.
+- `vite dev` reads `../../.wrangler/state/v3` through the adapter's `platformProxy` in `apps/web/vite.config.ts`; `WRANGLER_PERSIST=<path>/v3` points it at another state, for example a copy of `.wrangler/state` to experiment without touching yours.
 - `npm run e2e:server` (and `npm run test:e2e`) builds with a generated `apps/web/wrangler.e2e.jsonc` (`WRANGLER_CONFIG`): output in `.svelte-kit/cloudflare-e2e`, so a running `npm run dev` cannot block the build, and the `UPDATER` binding pointing at `reactions-updater-e2e`, so e2e admin actions never reach your local updater. To try admin jobs on the e2e state, start an updater under that name: `cd apps/updater && npx wrangler dev --name reactions-updater-e2e --port 8791 --persist-to ../../.wrangler/e2e`.
 
 This directory holds your local D1 databases, KV and R2 data, including whatever live data the local updater fetched. Treat it as yours: nothing in the test suite touches it (end-to-end tests use `.wrangler/e2e`).

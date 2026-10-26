@@ -1,4 +1,3 @@
-import { json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 
 const V1_GONE_BODY = {
@@ -10,7 +9,7 @@ const V1_GONE_BODY = {
 };
 
 const gone: RequestHandler = () =>
-	json(V1_GONE_BODY, { status: 410, headers: { 'Access-Control-Allow-Origin': '*' } });
+	Response.json(V1_GONE_BODY, { status: 410, headers: { 'Access-Control-Allow-Origin': '*' } });
 
 export const GET = gone;
 export const POST = gone;

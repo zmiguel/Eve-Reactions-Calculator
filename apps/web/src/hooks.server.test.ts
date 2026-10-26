@@ -3,17 +3,25 @@ import { STRUCTURE_SCOPES } from '@reactions/eve';
 import type { RequestEvent } from '@sveltejs/kit';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { MAX_FORM_BYTES, handle } from './hooks.server';
-import { sha256Hex } from '$lib/server/crypto';
-import { V2_COOKIES } from '$lib/server/legacy-cookies';
+import { sha256Hex } from '#lib/server/crypto.js';
+import { V2_COOKIES } from '#lib/server/legacy-cookies.js';
 import { FakeCookies, fakeEnv, type FakeEnv } from './test/fakes';
 import { NOW, V2_DEFAULT_COOKIES, insertSystems, insertUser } from './test/fixtures';
 
 const DAY = 86_400_000;
 
-async function run(cookies: FakeCookies, env: FakeEnv | null = fakeEnv(), path = '/') {
+/** The bindings the hook reads from `cloudflare:workers`; each run sets them. */
+const workers = vi.hoisted(() => ({ env: undefined as unknown }));
+vi.mock('cloudflare:workers', () => ({
+	get env() {
+		return workers.env;
+	}
+}));
+
+async function run(cookies: FakeCookies, env: FakeEnv = fakeEnv(), path = '/') {
+	workers.env = env;
 	const event = {
 		cookies: cookies.asCookies(),
-		platform: env ? { env } : undefined,
 		locals: {},
 		url: new URL(`https://reactions.coalition.space${path}`),
 		request: new Request(`https://reactions.coalition.space${path}`)
@@ -89,9 +97,9 @@ describe('form post size', () => {
 			...(body instanceof ReadableStream ? { duplex: 'half' } : {})
 		} as RequestInit);
 		const resolve = vi.fn(async () => new Response('ok'));
+		workers.env = fakeEnv();
 		const event = {
 			cookies: new FakeCookies().asCookies(),
-			platform: { env: fakeEnv() },
 			locals: {},
 			url: new URL(request.url),
 			request
@@ -138,12 +146,6 @@ describe('anonymous settings', () => {
 		const { locals } = await run(cookies);
 		expect(locals.settings).toEqual(DEFAULT_SETTINGS);
 		expect(cookies.deleted).toContain('rc_settings');
-	});
-
-	it('uses defaults without platform (prerendering)', async () => {
-		const { locals } = await run(new FakeCookies(), null);
-		expect(locals.settings).toEqual(DEFAULT_SETTINGS);
-		expect(locals.user).toBeNull();
 	});
 });
 

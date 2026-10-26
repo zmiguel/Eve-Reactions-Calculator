@@ -18,7 +18,7 @@ import type {
 	HomeWindow,
 	InputMove,
 	ReactorBoard
-} from '$lib/components/home/types';
+} from '#lib/components/home/types.js';
 import type { HubInfo } from './hubs.ts';
 import { DAY_MS } from './listing.ts';
 import type { MarketStat } from './planner.ts';

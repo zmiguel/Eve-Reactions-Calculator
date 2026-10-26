@@ -6,7 +6,7 @@
  */
 
 /**
- * Rybbit user traits (`$lib/server/analytics.ts` builds them). Every key is always sent and never `null`:
+ * Rybbit user traits (`#lib/server/analytics.ts` builds them). Every key is always sent and never `null`:
  * Rybbit drops the whole trait update when any value is `null` (it still answers `success`), so absent
  * values are sent as words instead, which also overwrite what Rybbit stored earlier.
  */

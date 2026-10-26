@@ -36,9 +36,8 @@
 </script>
 
 <script lang="ts">
-	import type { SubmitFunction } from '@sveltejs/kit';
-	import { enhance } from '$app/forms';
-	import { formatRelative, formatUtc } from '$lib/format';
+	import { enhance, type SubmitFunction } from '$app/forms';
+	import { formatRelative, formatUtc } from '#lib/format.js';
 	import { userFacingError } from '@reactions/eve/errors';
 
 	interface Props {
@@ -95,7 +94,9 @@
 	<td class="px-3 py-2">
 		<form method="POST" action="?/share" use:enhance={settle} onsubmit={() => (pending = true)}>
 			<input type="hidden" name="structureId" value={link.structureId} />
+
 			<input type="hidden" name="share" value={link.shareRequested ? '0' : '1'} />
+
 			<button
 				type="submit"
 				role="switch"
@@ -122,6 +123,7 @@
 	<td class="px-3 py-2 text-right">
 		<form method="POST" action="?/remove" use:enhance={settle} onsubmit={() => (pending = true)}>
 			<input type="hidden" name="structureId" value={link.structureId} />
+
 			<button type="submit" disabled={pending} class="{button} text-red-600 dark:text-red-400">Remove</button>
 		</form>
 	</td>

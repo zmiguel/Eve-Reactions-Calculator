@@ -1,5 +1,5 @@
-import { error, fail, redirect, type RequestEvent } from '@sveltejs/kit';
-import { getCharacter, listCharacters } from '$lib/server/auth/accounts';
+import { fail, redirect, type RequestEvent } from '@sveltejs/kit';
+import { getCharacter, listCharacters } from '#lib/server/auth/accounts.js';
 import {
 	STRUCTURE_LINK_LIMIT,
 	addStructureLink,
@@ -8,15 +8,14 @@ import {
 	removeStructureLink,
 	searchUserStructures,
 	setStructureSharing
-} from '$lib/server/structures';
+} from '#lib/server/structures.js';
 import type { Actions, PageServerLoad } from './$types';
 
 const LOGIN_URL = '/auth/login?purpose=login&returnTo=%2Faccount%2Fstructures';
 
-function requireAccount({ locals, platform }: Pick<RequestEvent, 'locals' | 'platform'>) {
+function requireAccount({ locals }: Pick<RequestEvent, 'locals'>) {
 	if (!locals.user) redirect(303, LOGIN_URL);
-	if (!platform) error(503, 'Your account is not available right now.');
-	return { env: platform.env, user: locals.user };
+	return { env: locals.env, user: locals.user };
 }
 
 const positiveInt = (value: FormDataEntryValue | null) => {

@@ -1,6 +1,6 @@
 import { DEFAULT_SETTINGS, Settings } from '@reactions/engine';
 import { describe, expect, it } from 'vitest';
-import type { AccountFacts } from '$lib/server/session';
+import type { AccountFacts } from '#lib/server/session.js';
 import { asEnv, fakeEnv } from '../test/fakes';
 import { NOW, insertSystems } from '../test/fixtures';
 import { load } from './+layout.server';
@@ -20,7 +20,7 @@ const run = (
 	user: App.Locals['user'],
 	settings: Settings = DEFAULT_SETTINGS,
 	facts: AccountFacts | null = user ? account : null
-) => load({ locals: { user, account: facts, settings }, platform: { env: asEnv(env) } } as never);
+) => load({ locals: { user, account: facts, settings, env: asEnv(env) } } as never);
 
 const alphaBeta: App.Locals['user'] = {
 	userId: 'secret-user-id',

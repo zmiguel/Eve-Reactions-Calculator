@@ -1,18 +1,18 @@
 import type { HubPrice } from '@reactions/engine';
-import { apiCsv } from '$lib/server/api/csv';
-import { publicHubs, requireDataset, requireHub, requireMarket } from '$lib/server/api/data';
-import { CACHE_SHORT, apiHandler, apiJson, parseQuery, requireEnv } from '$lib/server/api/http';
-import { PRICE_COLUMNS, PricesQuery } from '$lib/server/api/schemas';
-import { checkDate } from '$lib/server/api/settings';
-import { FALLBACK_HUB } from '$lib/server/hubs';
-import { trackedTypes } from '$lib/server/planner';
-import { getDailyHubPrices } from '$lib/server/prices';
+import { apiCsv } from '#lib/server/api/csv.js';
+import { publicHubs, requireDataset, requireHub, requireMarket } from '#lib/server/api/data.js';
+import { CACHE_SHORT, apiHandler, apiJson, parseQuery } from '#lib/server/api/http.js';
+import { PRICE_COLUMNS, PricesQuery } from '#lib/server/api/schemas.js';
+import { checkDate } from '#lib/server/api/settings.js';
+import { FALLBACK_HUB } from '#lib/server/hubs.js';
+import { trackedTypes } from '#lib/server/planner.js';
+import { getDailyHubPrices } from '#lib/server/prices.js';
 import type { RequestHandler } from './$types';
 
 export const GET: RequestHandler = apiHandler(async (event) => {
 	const q = parseQuery(PricesQuery.schema, event.url);
 	checkDate(q.date, Date.now());
-	const env = requireEnv(event);
+	const env = event.locals.env;
 	const [dataset, market, hubs] = await Promise.all([
 		requireDataset(env),
 		requireMarket(env),

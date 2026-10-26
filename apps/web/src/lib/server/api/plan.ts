@@ -1,6 +1,6 @@
 import type { CalcContext, Dataset, PlanInput, PlanTarget } from '@reactions/engine';
 import type { z } from 'zod';
-import { dailyVolumes, hubDailyVolumes, productVolumes, volumeTypes } from '$lib/planner/plan';
+import { dailyVolumes, hubDailyVolumes, productVolumes, volumeTypes } from '#lib/planner/plan.js';
 import type { HubInfo } from '../hubs.ts';
 import { getRegionVolumes } from '../planner.ts';
 import { ApiError } from './http.ts';

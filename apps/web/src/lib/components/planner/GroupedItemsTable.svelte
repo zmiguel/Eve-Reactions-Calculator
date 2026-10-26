@@ -1,8 +1,8 @@
 <script lang="ts">
 	import type { Dataset, PlanItem } from '@reactions/engine';
-	import { formatNumber } from '$lib/format';
-	import { groupByRole } from '$lib/inventory/groups';
-	import { typeIconUrl } from '$lib/site';
+	import { formatNumber } from '#lib/format.js';
+	import { groupByRole } from '#lib/inventory/groups.js';
+	import { typeIconUrl } from '#lib/site.js';
 
 	interface Props {
 		/** Heading id (the section is labelled by it). */

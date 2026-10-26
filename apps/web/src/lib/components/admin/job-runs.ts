@@ -1,4 +1,4 @@
-import type { JobDefinition } from '$lib/admin/jobs';
+import type { JobDefinition } from '#lib/admin/jobs.js';
 
 export interface JobRunView {
 	runId: string;

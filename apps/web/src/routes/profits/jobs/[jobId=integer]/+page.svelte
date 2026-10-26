@@ -1,19 +1,25 @@
 <script lang="ts">
 	import { ArrowLeftOutline, ArrowRightOutline, ChevronRightOutline } from 'flowbite-svelte-icons';
-	import JobMarks from '$lib/components/jobs/JobMarks.svelte';
-	import JobOutputBar from '$lib/components/jobs/JobOutputBar.svelte';
-	import JobStatusPill from '$lib/components/jobs/JobStatusPill.svelte';
-	import { ESTIMATE } from '$lib/components/jobs/JobTable.svelte';
-	import CorrectionForm from '$lib/components/ledger/CorrectionForm.svelte';
-	import Estimated from '$lib/components/profits/Estimated.svelte';
-	import Isk from '$lib/components/profits/Isk.svelte';
-	import Pill from '$lib/components/profits/Pill.svelte';
-	import { BAND_NAMES } from '$lib/account/facilities';
-	import { formatNumber, formatPct, formatRelative, formatUtc } from '$lib/format';
-	import type { JobActionResult, JobDetailData, JobInputView, JobLink, JobLotOrigin } from '$lib/jobs/types';
-	import { ORIGIN_TEXT } from '$lib/ledger/source';
-	import Seo from '$lib/seo/Seo.svelte';
-	import { blueprintIconUrl, typeIconUrl } from '$lib/site';
+	import JobMarks from '#lib/components/jobs/JobMarks.svelte';
+	import JobOutputBar from '#lib/components/jobs/JobOutputBar.svelte';
+	import JobStatusPill from '#lib/components/jobs/JobStatusPill.svelte';
+	import { ESTIMATE } from '#lib/components/jobs/JobTable.svelte';
+	import CorrectionForm from '#lib/components/ledger/CorrectionForm.svelte';
+	import Estimated from '#lib/components/profits/Estimated.svelte';
+	import Isk from '#lib/components/profits/Isk.svelte';
+	import Pill from '#lib/components/profits/Pill.svelte';
+	import { BAND_NAMES } from '#lib/account/facilities.js';
+	import { formatNumber, formatPct, formatRelative, formatUtc } from '#lib/format.js';
+	import type {
+		JobActionResult,
+		JobDetailData,
+		JobInputView,
+		JobLink,
+		JobLotOrigin
+	} from '#lib/jobs/types.js';
+	import { ORIGIN_TEXT } from '#lib/ledger/source.js';
+	import Seo from '#lib/seo/Seo.svelte';
+	import { blueprintIconUrl, typeIconUrl } from '#lib/site.js';
 
 	let { data, form } = $props();
 

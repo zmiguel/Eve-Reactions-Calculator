@@ -13,8 +13,8 @@ import {
 	marketFor,
 	putKv
 } from '../../test/fixtures';
-import type { PlannerData } from '$lib/planner/plan';
-import { decodeShare, emptyState, encodeShare } from '$lib/planner/state';
+import type { PlannerData } from '#lib/planner/plan.js';
+import { decodeShare, emptyState, encodeShare } from '#lib/planner/state.js';
 import { clearDataMemo } from './data';
 import { loadPlanner, parseInputsDaysAgo } from './planner';
 import { isoDate } from './prices';
@@ -154,11 +154,6 @@ describe('loadPlanner', () => {
 	it('reports missing reference data', async () => {
 		expect(
 			await loadPlanner(asEnv(fakeEnv()), { settings: defaults(), user: null }, new URL('https://x/planner'))
-		).toEqual({
-			available: false
-		});
-		expect(
-			await loadPlanner(undefined, { settings: defaults(), user: null }, new URL('https://x/planner'))
 		).toEqual({
 			available: false
 		});

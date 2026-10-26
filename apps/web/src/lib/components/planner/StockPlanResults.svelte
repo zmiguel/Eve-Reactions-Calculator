@@ -1,14 +1,20 @@
 <script lang="ts">
 	import type { Dataset, PlanItem, StockPlan } from '@reactions/engine';
-	import type { InputMarket } from '$lib/planner/plan';
-	import InfoNote from '$lib/components/InfoNote.svelte';
-	import LineItemsTable from '$lib/components/detail/LineItemsTable.svelte';
-	import MultibuyButton from '$lib/components/detail/MultibuyButton.svelte';
-	import { formatIsk, formatIskFull, formatNumber, formatRunsPerSlot, runsPerSlotTitle } from '$lib/format';
-	import { lineItemsMultibuy } from '$lib/multibuy';
-	import { groupByRole } from '$lib/inventory/groups';
-	import { PLAN_WARNING_TEXT } from '$lib/planner/warnings';
-	import { blueprintIconUrl } from '$lib/site';
+	import type { InputMarket } from '#lib/planner/plan.js';
+	import InfoNote from '#lib/components/InfoNote.svelte';
+	import LineItemsTable from '#lib/components/detail/LineItemsTable.svelte';
+	import MultibuyButton from '#lib/components/detail/MultibuyButton.svelte';
+	import {
+		formatIsk,
+		formatIskFull,
+		formatNumber,
+		formatRunsPerSlot,
+		runsPerSlotTitle
+	} from '#lib/format.js';
+	import { lineItemsMultibuy } from '#lib/multibuy.js';
+	import { groupByRole } from '#lib/inventory/groups.js';
+	import { PLAN_WARNING_TEXT } from '#lib/planner/warnings.js';
+	import { blueprintIconUrl } from '#lib/site.js';
 	import GroupedItemsTable from './GroupedItemsTable.svelte';
 
 	interface Props {

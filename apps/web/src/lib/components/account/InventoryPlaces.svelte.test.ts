@@ -1,6 +1,6 @@
 import { render, screen } from '@testing-library/svelte';
 import { describe, expect, it } from 'vitest';
-import type { InventoryPlaceView } from '$lib/inventory/types';
+import type { InventoryPlaceView } from '#lib/inventory/types.js';
 import InventoryPlaces from './InventoryPlaces.svelte';
 
 const JITA = 60003760;

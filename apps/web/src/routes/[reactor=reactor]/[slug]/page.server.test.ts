@@ -1,6 +1,6 @@
 import { isHttpError, isRedirect, type ServerLoadEvent } from '@sveltejs/kit';
 import { beforeEach, describe, expect, it } from 'vitest';
-import { clearDataMemo } from '$lib/server/data';
+import { clearDataMemo } from '#lib/server/data.js';
 import { asEnv, fakeEnv } from '../../../test/fakes';
 import { defaults, insertSystems, loadSde, putKv } from '../../../test/fixtures';
 import { load } from './+page.server';
@@ -18,8 +18,7 @@ async function run(path: string, seeded = true) {
 	const event = {
 		params: { reactor, slug },
 		url,
-		platform: { env: asEnv(env) },
-		locals: { settings: defaults(), user: null, theme: 'dark' }
+		locals: { settings: defaults(), user: null, theme: 'dark', env: asEnv(env) }
 	} as unknown as ServerLoadEvent;
 	try {
 		return { data: (await load(event as Parameters<typeof load>[0])) as Record<string, unknown> };

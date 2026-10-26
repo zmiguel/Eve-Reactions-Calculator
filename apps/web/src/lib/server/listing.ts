@@ -16,8 +16,8 @@ import type {
 	TierSectionData,
 	Variant,
 	VariantSummary
-} from '$lib/components/listing/types';
-import { REACTOR_TIERS } from '$lib/site';
+} from '#lib/components/listing/types.js';
+import { REACTOR_TIERS } from '#lib/site.js';
 import type { HubInfo } from './hubs.ts';
 import { isoDate } from './prices.ts';
 

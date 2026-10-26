@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { openapi } from '$lib/server/api/openapi';
+import { openapi } from '#lib/server/api/openapi.js';
 import {
 	ErrorResponse,
 	HubsResponse,
@@ -7,8 +7,8 @@ import {
 	OpenApiResponse,
 	ReactionResponse,
 	ReactionsResponse
-} from '$lib/server/api/schemas';
-import { clearDataMemo } from '$lib/server/data';
+} from '#lib/server/api/schemas.js';
+import { clearDataMemo } from '#lib/server/data.js';
 import { apiEvent, callApi, invalidParams, seededEnv, type Handler } from '../../../test/api';
 import { fakeEnv } from '../../../test/fakes';
 import { NOW, insertStructureHub } from '../../../test/fixtures';

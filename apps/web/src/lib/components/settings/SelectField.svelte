@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { Label, Select } from 'flowbite-svelte';
-	import type { Option } from '$lib/settings/fields';
+	import type { Option } from '#lib/settings/fields.js';
 
 	interface Props {
 		/** Form field name = dotted settings path; also the error key. */

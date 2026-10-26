@@ -17,8 +17,8 @@ import type {
 	LedgerItemPageData,
 	LedgerItemTrade,
 	LedgerItemType
-} from '$lib/ledger/types';
-import { paginate, type Paged } from '$lib/paging';
+} from '#lib/ledger/types.js';
+import { paginate, type Paged } from '#lib/paging.js';
 import { loadCalc } from './context.ts';
 import { getDataset } from './data.ts';
 import { correctionRef } from './price-corrections.ts';

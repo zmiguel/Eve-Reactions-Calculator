@@ -2,7 +2,7 @@ import { DEFAULT_CONSTANTS, DEFAULT_SETTINGS, Settings } from '@reactions/engine
 import { fireEvent, render, screen } from '@testing-library/svelte';
 import { tick } from 'svelte';
 import { describe, expect, it } from 'vitest';
-import type { SystemSummary } from '$lib/settings/fields';
+import type { SystemSummary } from '#lib/settings/fields.js';
 import SettingsForm from './SettingsForm.svelte';
 
 const IGNOITTON: SystemSummary = {

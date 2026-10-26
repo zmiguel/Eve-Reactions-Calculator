@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { SITE_URL } from '$lib/site';
+import { SITE_URL } from '#lib/site.js';
 import * as EX from './openapi-examples.ts';
 import type { OpenApiParameter } from './params.ts';
 import {
@@ -163,6 +163,14 @@ const errorBody = (description: string, example: unknown) => ({
 	content: { 'application/json': { schema: ref('Error'), example } }
 });
 
+/**
+ * Version of API v2 (`info.version`), independent of the site version. Semantic versioning: patch for fixes and
+ * for enforcing rules the docs already state, minor for additions (endpoints, parameters, response fields) or a
+ * documented change of results, major only with a new path (`/api/v3`). Bump it in the release that changes the
+ * API and name it in that release's CHANGELOG "API v2" section.
+ */
+export const API_VERSION = '2.2.3';
+
 const INFO_DESCRIPTION = `Live reaction profits, recipes and market prices of the [EVE Reactions Calculator](${SITE_URL}).
 
 - **Anonymous and free**: no key, no cookies. Only public market hubs exist here (\`GET /api/v2/hubs\`); private structure markets answer like unknown hubs (404).
@@ -172,13 +180,14 @@ const INFO_DESCRIPTION = `Live reaction profits, recipes and market prices of th
 - **CORS** is open (\`Access-Control-Allow-Origin: *\`); \`POST\` answers preflight.
 - **Caching**: \`public, max-age=60\` for market data, profits and meta (prices refresh every 30 minutes); \`public, max-age=3600\` for reference data; \`no-store\` for \`POST /api/v2/plan\` and every error.
 - **Errors** are JSON \`{ "error": { "code", "message", "details"? } }\`: \`INVALID_PARAM\` (400, 413), \`NOT_FOUND\` (404), \`RATE_LIMITED\` (429), \`INTERNAL\` (500, 503); \`details\` lists invalid parameters.
+- **Versioning**: this description's version follows semantic versioning (patch: fixes; minor: additions; a breaking change gets a new path, \`/api/v3\`). The [release notes](https://github.com/zmiguel/Eve-Reactions-Calculator/releases) list every change with its API version.
 - API v1 was removed: every \`/api/v1/*\` URL answers 410.`;
 
 export const openapi = {
 	openapi: '3.1.0',
 	info: {
 		title: 'EVE Reactions Calculator API',
-		version: '2.0.0',
+		version: API_VERSION,
 		description: INFO_DESCRIPTION
 	},
 	servers: [{ url: SITE_URL, description: 'Production' }],
@@ -375,7 +384,7 @@ export const openapi = {
 				operationId: 'plan',
 				tags: ['Planner'],
 				summary: 'Plan reaction slots',
-				description: `Slot plan for targets given as lines or units per cycle, with build-up phases, purchases, outputs and profit. At most ${MAX_PLAN_TARGETS} targets, ${MAX_PLAN_SLOTS} slots and ${MAX_PLAN_BODY_BYTES / 1024} KB of JSON. dailyVolumes for the volume share come from the output hub's region.`,
+				description: `Slot plan for targets given as lines or units per cycle, with build-up phases, purchases, outputs and profit. At most ${MAX_PLAN_TARGETS} targets, ${MAX_PLAN_SLOTS} slots and ${MAX_PLAN_BODY_BYTES / 1024} KB of JSON. dailyVolumes for the volume share come from the output hub's region. Send the body with \`Content-Type: application/json\`: a request without it, or with a form or plain-text type, is refused with 403 (cross-site form protection).`,
 				requestBody: {
 					required: true,
 					content: {

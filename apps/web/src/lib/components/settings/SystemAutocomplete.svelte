@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { Label } from 'flowbite-svelte';
-	import { formatPct } from '$lib/format';
-	import type { SystemSummary } from '$lib/settings/fields';
+	import { formatPct } from '#lib/format.js';
+	import type { SystemSummary } from '#lib/settings/fields.js';
 
 	interface Props {
 		/** Field-name prefix of the profile: posts `<prefix>.systemId` (hidden) and `<prefix>.system` (text). */

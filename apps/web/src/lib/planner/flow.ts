@@ -5,7 +5,7 @@ import {
 	type FlowEdgeSpec,
 	type FlowLayout,
 	type FlowNodeSpec
-} from '$lib/components/detail/flow';
+} from '#lib/components/detail/flow.js';
 
 /**
  * Material flow of one steady cycle of a plan: every bought material on the left (fuel blocks first), every

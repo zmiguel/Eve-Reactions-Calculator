@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { typeIconUrl } from '$lib/site';
+	import { typeIconUrl } from '#lib/site.js';
 	import type { RankedListItem } from './types';
 
 	interface Props {

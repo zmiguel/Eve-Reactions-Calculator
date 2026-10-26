@@ -1,9 +1,9 @@
 <script lang="ts">
-	import ReconcileContracts from '$lib/components/ledger/ReconcileContracts.svelte';
-	import ReconcileInputs from '$lib/components/ledger/ReconcileInputs.svelte';
-	import { formatNumber } from '$lib/format';
-	import type { ReconcileActionResult } from '$lib/ledger/types';
-	import Seo from '$lib/seo/Seo.svelte';
+	import ReconcileContracts from '#lib/components/ledger/ReconcileContracts.svelte';
+	import ReconcileInputs from '#lib/components/ledger/ReconcileInputs.svelte';
+	import { formatNumber } from '#lib/format.js';
+	import type { ReconcileActionResult } from '#lib/ledger/types.js';
+	import Seo from '#lib/seo/Seo.svelte';
 
 	let { data, form } = $props();
 

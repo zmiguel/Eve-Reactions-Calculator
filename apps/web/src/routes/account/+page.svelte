@@ -1,8 +1,8 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
-	import CharacterRow from '$lib/components/account/CharacterRow.svelte';
-	import { formatUtc } from '$lib/format';
-	import Seo from '$lib/seo/Seo.svelte';
+	import CharacterRow from '#lib/components/account/CharacterRow.svelte';
+	import { formatUtc } from '#lib/format.js';
+	import Seo from '#lib/seo/Seo.svelte';
 
 	let { data, form } = $props();
 

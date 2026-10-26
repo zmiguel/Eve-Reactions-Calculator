@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { tick } from 'svelte';
-	import { FILL_SCOPES, FILL_SCOPE_IDS, type FillScope } from '$lib/planner/plan';
+	import { FILL_SCOPES, FILL_SCOPE_IDS, type FillScope } from '#lib/planner/plan.js';
 
 	interface Props {
 		scope: FillScope;

@@ -8,8 +8,8 @@
 		formatPct,
 		formatRunsPerSlot,
 		runsPerSlotTitle
-	} from '$lib/format';
-	import { typeIconUrl } from '$lib/site';
+	} from '#lib/format.js';
+	import { typeIconUrl } from '#lib/site.js';
 	import LineItemsTable from './LineItemsTable.svelte';
 	import type { ProductionStep } from './steps';
 

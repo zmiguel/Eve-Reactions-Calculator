@@ -9,12 +9,12 @@
 
 <script lang="ts">
 	import type { Snippet } from 'svelte';
-	import Isk from '$lib/components/profits/Isk.svelte';
-	import PagedTable from '$lib/components/profits/PagedTable.svelte';
-	import { formatIskFull, formatNumber } from '$lib/format';
-	import type { JobRow } from '$lib/jobs/types';
-	import type { Paged } from '$lib/paging';
-	import { blueprintIconUrl } from '$lib/site';
+	import Isk from '#lib/components/profits/Isk.svelte';
+	import PagedTable from '#lib/components/profits/PagedTable.svelte';
+	import { formatIskFull, formatNumber } from '#lib/format.js';
+	import type { JobRow } from '#lib/jobs/types.js';
+	import type { Paged } from '#lib/paging.js';
+	import { blueprintIconUrl } from '#lib/site.js';
 	import JobMarks from './JobMarks.svelte';
 	import JobOutputBar from './JobOutputBar.svelte';
 	import JobStatusPill from './JobStatusPill.svelte';

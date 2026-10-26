@@ -1,8 +1,8 @@
 import { getCoreDb, marketStats, regions } from '@reactions/db';
 import { encodeSettings, settingsDiff, type Dataset, type PriceBook, type Settings } from '@reactions/engine';
 import { inArray } from 'drizzle-orm';
-import { volumeTypes, type PlannerData, type PlannerUnavailable } from '$lib/planner/plan';
-import { decodeShare, encodeShare } from '$lib/planner/state';
+import { volumeTypes, type PlannerData, type PlannerUnavailable } from '#lib/planner/plan.js';
+import { decodeShare, encodeShare } from '#lib/planner/state.js';
 import { loadCalc } from './context.ts';
 import { clampDays } from './detail.ts';
 import { summarizeSettings } from './listing.ts';
@@ -122,14 +122,14 @@ export async function sharedPlanSettings(
  * a logged-in account with a usable inventory source, its synced inventory.
  */
 export async function loadPlanner(
-	env: Env | undefined,
+	env: Env,
 	locals: Locals,
 	url: URL,
 	now = Date.now()
 ): Promise<PlannerData | PlannerUnavailable> {
-	const shared = env ? await sharedPlanSettings(url.searchParams.get('s'), locals.settings) : null;
-	const calc = env ? await loadCalc(env, shared ? { ...locals, settings: shared.settings } : locals) : null;
-	if (!env || !calc) return { available: false };
+	const shared = await sharedPlanSettings(url.searchParams.get('s'), locals.settings);
+	const calc = await loadCalc(env, shared ? { ...locals, settings: shared.settings } : locals);
+	if (!calc) return { available: false };
 	const { ctx, dataset, hubs } = calc;
 	const hubIds = new Set(hubs.map((h) => h.hubId));
 	const types = trackedTypes(dataset);

@@ -15,9 +15,9 @@ import type {
 	LedgerSummary,
 	LedgerTradeRow,
 	LedgerManualRow
-} from '$lib/ledger/types';
-import { LEDGER_PERIODS } from '$lib/ledger/types';
-import { pageParam, paginate, type Paged } from '$lib/paging';
+} from '#lib/ledger/types.js';
+import { LEDGER_PERIODS } from '#lib/ledger/types.js';
+import { pageParam, paginate, type Paged } from '#lib/paging.js';
 import { isUserJanice } from './contract-janice.ts';
 import { getDataset } from './data.ts';
 import { reconcileCounts } from './ledger-reconcile.ts';

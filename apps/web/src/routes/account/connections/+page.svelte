@@ -1,10 +1,10 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
-	import { invalidateAll } from '$app/navigation';
-	import { FEATURE_LABELS } from '$lib/account/features';
-	import ConnectionCard from '$lib/components/account/ConnectionCard.svelte';
-	import type { InventoryAllowLink } from '$lib/inventory/types';
-	import Seo from '$lib/seo/Seo.svelte';
+	import { refreshAll } from '$app/navigation';
+	import { FEATURE_LABELS } from '#lib/account/features.js';
+	import ConnectionCard from '#lib/components/account/ConnectionCard.svelte';
+	import type { InventoryAllowLink } from '#lib/inventory/types.js';
+	import Seo from '#lib/seo/Seo.svelte';
 
 	let { data, form } = $props();
 
@@ -15,7 +15,7 @@
 	const REFRESH_SECONDS = 10;
 	$effect(() => {
 		if (!data.refreshing) return;
-		const timer = setInterval(() => void invalidateAll(), REFRESH_SECONDS * 1000);
+		const timer = setInterval(() => void refreshAll(), REFRESH_SECONDS * 1000);
 		return () => clearInterval(timer);
 	});
 

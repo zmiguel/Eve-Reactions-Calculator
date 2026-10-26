@@ -14,8 +14,10 @@ function setup() {
 	insertUser(env.DB, { userId: 'u2' }, [{ characterId: 90000002, name: 'Beta' }]);
 	const source = insertSource(env.DB, { userId: 'u1', characterId: alpha.characterId, ownerName: 'Alpha' });
 	const event = (userId: string | null) => ({
-		locals: { user: userId ? sessionUser(userId, userId === 'u1' ? [alpha] : []) : null },
-		platform: { env: asEnv(env) }
+		locals: {
+			user: userId ? sessionUser(userId, userId === 'u1' ? [alpha] : []) : null,
+			env: asEnv(env)
+		}
 	});
 	return { env, source, event };
 }

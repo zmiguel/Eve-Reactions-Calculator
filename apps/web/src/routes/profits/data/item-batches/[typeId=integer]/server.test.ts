@@ -1,9 +1,9 @@
 import { DEFAULT_SETTINGS } from '@reactions/engine';
 import { isHttpError, type RequestEvent } from '@sveltejs/kit';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import type { LedgerItemPageData } from '$lib/ledger/types';
-import { clearDataMemo } from '$lib/server/data';
-import type { SessionUser } from '$lib/server/session';
+import type { LedgerItemPageData } from '#lib/ledger/types.js';
+import { clearDataMemo } from '#lib/server/data.js';
+import type { SessionUser } from '#lib/server/session.js';
 import { FakeCookies, type FakeEnv } from '../../../../../test/fakes';
 import { NOW, insertUser } from '../../../../../test/fixtures';
 import { ALPHA, ledgerItemScenario } from '../../../../../test/ledger-item';
@@ -24,8 +24,7 @@ function event(env: FakeEnv, user: SessionUser | null, path: string, typeId: num
 		params: { typeId: String(typeId) },
 		request: new Request(url),
 		cookies: new FakeCookies().asCookies(),
-		platform: { env },
-		locals: { user, settings: DEFAULT_SETTINGS, theme: 'dark' }
+		locals: { user, settings: DEFAULT_SETTINGS, theme: 'dark', env }
 	} as unknown as RequestEvent as never;
 }
 

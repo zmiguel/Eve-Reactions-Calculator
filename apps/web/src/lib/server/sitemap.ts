@@ -1,5 +1,5 @@
 import type { Dataset } from '@reactions/engine';
-import { SITE_URL } from '$lib/site';
+import { SITE_URL } from '#lib/site.js';
 
 const escapeXml = (s: string) =>
 	s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');

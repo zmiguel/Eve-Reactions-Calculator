@@ -1,11 +1,11 @@
 <script lang="ts">
 	import type { Snippet } from 'svelte';
-	import Estimated from '$lib/components/profits/Estimated.svelte';
-	import Isk from '$lib/components/profits/Isk.svelte';
-	import PagedTable from '$lib/components/profits/PagedTable.svelte';
-	import Pill from '$lib/components/profits/Pill.svelte';
-	import { formatIsk, formatIskFull, formatNumber, formatRelative, formatUtc } from '$lib/format';
-	import { DIRECTION_BADGE, UNTRACKED, UNTRACKED_TEXT } from '$lib/ledger/source';
+	import Estimated from '#lib/components/profits/Estimated.svelte';
+	import Isk from '#lib/components/profits/Isk.svelte';
+	import PagedTable from '#lib/components/profits/PagedTable.svelte';
+	import Pill from '#lib/components/profits/Pill.svelte';
+	import { formatIsk, formatIskFull, formatNumber, formatRelative, formatUtc } from '#lib/format.js';
+	import { DIRECTION_BADGE, UNTRACKED, UNTRACKED_TEXT } from '#lib/ledger/source.js';
 	import type {
 		LedgerActionResult,
 		LedgerContractRow,
@@ -15,9 +15,9 @@
 		LedgerOwnerView,
 		LedgerRow,
 		LedgerTradeRow
-	} from '$lib/ledger/types';
-	import type { Paged } from '$lib/paging';
-	import { blueprintIconUrl, typeIconUrl } from '$lib/site';
+	} from '#lib/ledger/types.js';
+	import type { Paged } from '#lib/paging.js';
+	import { blueprintIconUrl, typeIconUrl } from '#lib/site.js';
 	import ContractJaniceForm from './ContractJaniceForm.svelte';
 	import CorrectionForm from './CorrectionForm.svelte';
 	import PriceSource from './PriceSource.svelte';

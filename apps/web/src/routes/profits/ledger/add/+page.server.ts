@@ -1,9 +1,9 @@
 import { fail } from '@sveltejs/kit';
-import { formatNumber } from '$lib/format';
-import type { ManualActionResult, ManualAddPageData, ManualFormValues } from '$lib/ledger/types';
-import { pageParam, paginate } from '$lib/paging';
-import { getDataset } from '$lib/server/data';
-import { TOO_MANY, profitsActionContext, throttled } from '$lib/server/ledger-actions';
+import { formatNumber } from '#lib/format.js';
+import type { ManualActionResult, ManualAddPageData, ManualFormValues } from '#lib/ledger/types.js';
+import { pageParam, paginate } from '#lib/paging.js';
+import { getDataset } from '#lib/server/data.js';
+import { TOO_MANY, profitsActionContext, throttled } from '#lib/server/ledger-actions.js';
 import {
 	addManualEntries,
 	deleteManualEntry,
@@ -12,8 +12,8 @@ import {
 	manualNotice,
 	parseManualImport,
 	readManualForm
-} from '$lib/server/manual-entries';
-import { profitsContext } from '$lib/server/profits-access';
+} from '#lib/server/manual-entries.js';
+import { profitsContext } from '#lib/server/profits-access.js';
 import type { Actions, PageServerLoad } from './$types';
 
 /** The largest import text read (500 lines of long names fit well within it). */

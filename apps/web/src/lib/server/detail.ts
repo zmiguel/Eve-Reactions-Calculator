@@ -17,9 +17,9 @@ import {
 } from '@reactions/engine';
 import { error, redirect } from '@sveltejs/kit';
 import { eq } from 'drizzle-orm';
-import { MAX_PICKED_LINES } from '$lib/components/detail/links';
-import { defaultTabsOf, tabsFor, type ReactionTabs } from '$lib/components/listing/links';
-import type { SettingsSummaryData } from '$lib/components/listing/types';
+import { MAX_PICKED_LINES } from '#lib/components/detail/links.js';
+import { defaultTabsOf, tabsFor, type ReactionTabs } from '#lib/components/listing/links.js';
+import type { SettingsSummaryData } from '#lib/components/listing/types.js';
 import { loadCalc } from './context.ts';
 import { summarizeSettings } from './listing.ts';
 import { getPriceBookNear } from './prices.ts';
@@ -228,14 +228,14 @@ type Locals = Pick<App.Locals, 'settings' | 'user'>;
 
 /** Detail page data; throws SvelteKit redirects (301) and 404s. */
 export async function loadDetail(
-	env: Env | undefined,
+	env: Env,
 	locals: Locals,
 	params: { reactor: Reactor; slug: string },
 	url: URL,
 	now = Date.now()
 ): Promise<DetailData | DetailUnavailable> {
-	const calc = env ? await loadCalc(env, locals) : null;
-	if (!env || !calc) return { available: false, reactor: params.reactor, slug: params.slug };
+	const calc = await loadCalc(env, locals);
+	if (!calc) return { available: false, reactor: params.reactor, slug: params.slug };
 	const { ctx, dataset } = calc;
 
 	const route = resolveDetailRoute(dataset, params.reactor, params.slug, url.search);

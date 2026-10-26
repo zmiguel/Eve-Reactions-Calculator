@@ -1,4 +1,4 @@
-import { JOBS, type UpdaterAction } from '$lib/admin/jobs';
+import { JOBS, type UpdaterAction } from '#lib/admin/jobs.js';
 
 /** A job run inline in the RPC call (`InlineRunResult` in `apps/updater/src/rpc.ts`). */
 export interface InlineRunResult {

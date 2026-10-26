@@ -1,20 +1,19 @@
-import { error, fail, redirect, type RequestEvent } from '@sveltejs/kit';
-import type { InventoryPageData } from '$lib/inventory/types';
-import { loadCalc } from '$lib/server/context';
+import { fail, redirect, type RequestEvent } from '@sveltejs/kit';
+import type { InventoryPageData } from '#lib/inventory/types.js';
+import { loadCalc } from '#lib/server/context.js';
 import {
 	inventoryPage,
 	isInventoryBucket,
 	saveSelection,
 	type InventoryPlaceKey
-} from '$lib/server/inventory';
+} from '#lib/server/inventory.js';
 import type { Actions, PageServerLoad } from './$types';
 
 const LOGIN_URL = '/auth/login?purpose=login&returnTo=%2Faccount%2Finventory';
 
-function requireAccount({ locals, platform }: Pick<RequestEvent, 'locals' | 'platform'>) {
+function requireAccount({ locals }: Pick<RequestEvent, 'locals'>) {
 	if (!locals.user) redirect(303, LOGIN_URL);
-	if (!platform) error(503, 'Your account is not available right now.');
-	return { env: platform.env, user: locals.user };
+	return { env: locals.env, user: locals.user };
 }
 
 const positiveInt = (value: FormDataEntryValue | null) => {

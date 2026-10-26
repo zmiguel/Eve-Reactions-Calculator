@@ -1,12 +1,12 @@
 <script lang="ts">
-	import BatchChart from '$lib/components/ledger/BatchChart.svelte';
-	import ItemBatches from '$lib/components/ledger/ItemBatches.svelte';
-	import ItemTrades from '$lib/components/ledger/ItemTrades.svelte';
-	import Isk from '$lib/components/profits/Isk.svelte';
-	import { formatNumber } from '$lib/format';
-	import type { LedgerActionResult } from '$lib/ledger/types';
-	import Seo from '$lib/seo/Seo.svelte';
-	import { blueprintIconUrl, typeIconUrl } from '$lib/site';
+	import BatchChart from '#lib/components/ledger/BatchChart.svelte';
+	import ItemBatches from '#lib/components/ledger/ItemBatches.svelte';
+	import ItemTrades from '#lib/components/ledger/ItemTrades.svelte';
+	import Isk from '#lib/components/profits/Isk.svelte';
+	import { formatNumber } from '#lib/format.js';
+	import type { LedgerActionResult } from '#lib/ledger/types.js';
+	import Seo from '#lib/seo/Seo.svelte';
+	import { blueprintIconUrl, typeIconUrl } from '#lib/site.js';
 
 	let { data, form } = $props();
 

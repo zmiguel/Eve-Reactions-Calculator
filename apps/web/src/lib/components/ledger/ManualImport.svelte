@@ -1,8 +1,8 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
-	import Isk from '$lib/components/profits/Isk.svelte';
-	import { formatNumber, formatUtc } from '$lib/format';
-	import type { ManualActionResult } from '$lib/ledger/types';
+	import Isk from '#lib/components/profits/Isk.svelte';
+	import { formatNumber, formatUtc } from '#lib/format.js';
+	import type { ManualActionResult } from '#lib/ledger/types.js';
 
 	interface Props {
 		/** Last action result of the page: `check` carries the preview, a failed `import` its errors. */
@@ -18,8 +18,8 @@
 	let busy = $state(false);
 	const submit = (reset: boolean) => () => {
 		busy = true;
-		return async ({ update }: { update: (o?: { reset?: boolean }) => Promise<void> }) => {
-			await update({ reset });
+		return async ({ update }: { update: (o?: { reset?: boolean; navigate?: boolean }) => Promise<void> }) => {
+			await update({ reset, navigate: false });
 			busy = false;
 		};
 	};
@@ -45,8 +45,7 @@
 				rows="6"
 				spellcheck="false"
 				class="w-full rounded-md border border-gray-300 bg-gray-50 px-2 py-1.5 font-mono text-xs text-gray-900 focus:border-primary-500 focus:ring-primary-500 dark:border-gray-600 dark:bg-gray-800 dark:text-white"
-				value={mine?.text}
-			></textarea>
+				value={mine?.text}></textarea>
 		</label>
 		<div class="space-y-1 {muted}">
 			<p>

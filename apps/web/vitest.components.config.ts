@@ -1,6 +1,6 @@
 import { svelteTesting } from '@testing-library/svelte/vite';
 import { defineProject } from 'vitest/config';
-import { sveltePlugin, webAliases } from './vitest.shared.ts';
+import { inlineDeps, sveltePlugin, webAliases } from './vitest.shared.ts';
 
 export default defineProject({
 	plugins: [sveltePlugin(), svelteTesting()],
@@ -9,6 +9,7 @@ export default defineProject({
 		name: 'web-components',
 		environment: 'jsdom',
 		include: ['src/**/*.svelte.test.ts'],
-		setupFiles: ['src/test/setup-components.ts']
+		setupFiles: ['src/test/setup-components.ts'],
+		server: { deps: { inline: inlineDeps } }
 	}
 });

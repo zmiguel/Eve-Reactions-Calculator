@@ -1,8 +1,8 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import Seo from '$lib/seo/Seo.svelte';
-	import { SITE_URL } from '$lib/site';
-	import { OPENAPI_URL, mountScalar } from '$lib/scalar';
+	import Seo from '#lib/seo/Seo.svelte';
+	import { SITE_URL } from '#lib/site.js';
+	import { OPENAPI_URL, mountScalar } from '#lib/scalar.js';
 
 	const api = (path: string) => `${SITE_URL}/api/v2/${path}`;
 	const SHEETS = [

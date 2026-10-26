@@ -3,7 +3,7 @@ import { STRUCTURE_SCOPES } from '@reactions/eve';
 import { isActionFailure, isHttpError, type RequestEvent } from '@sveltejs/kit';
 import { render } from 'svelte/server';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import type { SessionUser } from '$lib/server/session';
+import type { SessionUser } from '#lib/server/session.js';
 import { FakeCookies, fakeEnv, type FakeEnv } from '../../../test/fakes';
 import {
 	NOW,
@@ -53,8 +53,7 @@ function event(env: FakeEnv, user: SessionUser | null, path = '/admin/hubs', hub
 		url,
 		request: new Request(url, { method: 'POST', body }),
 		cookies: new FakeCookies().asCookies(),
-		platform: { env },
-		locals: { user, settings: DEFAULT_SETTINGS, theme: 'dark' }
+		locals: { user, settings: DEFAULT_SETTINGS, theme: 'dark', env }
 	} as unknown as RequestEvent as never;
 }
 

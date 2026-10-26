@@ -1,8 +1,8 @@
 import { encodeSettings, planReactions, Settings } from '@reactions/engine';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { ErrorResponse, PlanResultResponse } from '$lib/server/api/schemas';
-import { loadCalc } from '$lib/server/context';
-import { clearDataMemo } from '$lib/server/data';
+import { ErrorResponse, PlanResultResponse } from '#lib/server/api/schemas.js';
+import { loadCalc } from '#lib/server/context.js';
+import { clearDataMemo } from '#lib/server/data.js';
 import { apiEvent, callApi, invalidParams, seededEnv } from '../../../test/api';
 import { asEnv, type FakeEnv } from '../../../test/fakes';
 import { NOW, defaults, insertStructureHub } from '../../../test/fixtures';

@@ -1,7 +1,7 @@
 import { getCoreDb, inventorySources, trackingStreams, type InventorySourceRow } from '@reactions/db';
 import type { FetchFn } from '@reactions/eve';
 import { and, eq, inArray } from 'drizzle-orm';
-import { FEATURE_LABELS } from '$lib/account/features';
+import { FEATURE_LABELS } from '#lib/account/features.js';
 import type {
 	ConnectionFeature,
 	ConnectionsPageData,
@@ -12,7 +12,7 @@ import type {
 	TrackingStreamView,
 	TrackingView,
 	WalletDivisionView
-} from '$lib/inventory/types';
+} from '#lib/inventory/types.js';
 import { listCharacters } from './auth/accounts.ts';
 import {
 	INVENTORY_SOURCE_LIMIT,

@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { SITE_NAME, SITE_URL } from '$lib/site';
+	import { SITE_NAME, SITE_URL } from '#lib/site.js';
 
 	interface Props {
 		/** The page's own title; the document title is `<title> | EVE Reactions Calculator`. */

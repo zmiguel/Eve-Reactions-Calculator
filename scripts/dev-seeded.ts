@@ -18,7 +18,7 @@ import { PERSIST_TO } from './seed-local.ts';
 const ROOT = fileURLToPath(new URL('..', import.meta.url));
 const WEB = join(ROOT, 'apps/web');
 
-/** `WRANGLER_PERSIST` for `apps/web/svelte.config.js`: the seeded state's `v3` folder, relative to the web app. */
+/** `WRANGLER_PERSIST` for `apps/web/vite.config.ts`: the seeded state's `v3` folder, relative to the web app. */
 export const SEEDED_PERSIST = relative(WEB, join(PERSIST_TO, 'v3')).replaceAll('\\', '/');
 /** Generated wrangler config of `dev:seeded`, relative to `apps/web` (gitignored). */
 export const SEEDED_CONFIG = 'wrangler.seeded.jsonc';

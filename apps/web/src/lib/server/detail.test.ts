@@ -147,13 +147,12 @@ describe('parseDetailQuery', () => {
 });
 
 describe('loadDetail', () => {
-	it('renders the data-missing state when KV data is absent or there is no platform', async () => {
+	it('renders the data-missing state when KV data is absent', async () => {
 		const params = { reactor: 'composite' as const, slug: 'titanium-carbide' };
 		const url = new URL('https://x/composite/titanium-carbide');
 		const locals = { settings: defaults(), user: null };
 		const expected = { available: false, reactor: 'composite', slug: 'titanium-carbide' };
 		expect(await loadDetail(asEnv(fakeEnv()), locals, params, url, NOW)).toEqual(expected);
-		expect(await loadDetail(undefined, locals, params, url, NOW)).toEqual(expected);
 	});
 
 	it('redirects numeric slugs and wrong reactors (301) and 404s unknown slugs', async () => {

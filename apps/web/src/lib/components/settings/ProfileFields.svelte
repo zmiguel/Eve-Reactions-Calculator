@@ -7,7 +7,7 @@
 		type SecurityBand
 	} from '@reactions/engine';
 	import { Checkbox } from 'flowbite-svelte';
-	import { formatPct } from '$lib/format';
+	import { formatPct } from '#lib/format.js';
 	import {
 		BASIS_OPTIONS,
 		INPUT_METHOD_OPTIONS,
@@ -16,7 +16,7 @@
 		STRUCTURE_OPTIONS,
 		type Option,
 		type SystemSummary
-	} from '$lib/settings/fields';
+	} from '#lib/settings/fields.js';
 	import NumberField from './NumberField.svelte';
 	import SelectField from './SelectField.svelte';
 	import SystemAutocomplete from './SystemAutocomplete.svelte';

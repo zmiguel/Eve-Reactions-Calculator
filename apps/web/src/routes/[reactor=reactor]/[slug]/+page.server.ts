@@ -1,5 +1,4 @@
-import { loadDetail } from '$lib/server/detail';
+import { loadDetail } from '#lib/server/detail.js';
 import type { PageServerLoad } from './$types';
 
-export const load: PageServerLoad = ({ params, url, platform, locals }) =>
-	loadDetail(platform?.env, locals, params, url);
+export const load: PageServerLoad = ({ params, url, locals }) => loadDetail(locals.env, locals, params, url);

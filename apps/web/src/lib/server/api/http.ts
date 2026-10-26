@@ -1,4 +1,4 @@
-import { json, type RequestEvent } from '@sveltejs/kit';
+import type { RequestEvent } from '@sveltejs/kit';
 import type { z } from 'zod';
 
 /** Shared API v2 plumbing: JSON error shape, CORS, cache headers, rate limiting and query parsing. */
@@ -32,21 +32,16 @@ export function apiErrorResponse(e: ApiError): Response {
 		message: e.message,
 		...(e.details === undefined ? {} : { details: e.details })
 	};
-	return json(
+	return Response.json(
 		{ error },
 		{ status: e.status, headers: { ...CORS_HEADERS, 'Cache-Control': NO_STORE, ...e.headers } }
 	);
 }
 
 export function apiJson(data: unknown, cacheControl: string): Response {
-	return json(data, { headers: { ...CORS_HEADERS, 'Cache-Control': cacheControl } });
+	return Response.json(data, { headers: { ...CORS_HEADERS, 'Cache-Control': cacheControl } });
 }
 
-/** Worker bindings of the request; a missing platform (never on Cloudflare) is an `INTERNAL` error. */
-export function requireEnv(event: Pick<RequestEvent, 'platform'>): Env {
-	if (!event.platform) throw new ApiError(500, 'INTERNAL', 'Platform bindings are unavailable.');
-	return event.platform.env;
-}
 /**
  * Parses `url.searchParams` (first value per key) with `schema`; failures throw a 400 `INVALID_PARAM`
  * whose details list `{ param, message }` per issue.
@@ -133,9 +128,9 @@ export function preflight(methods: string[]): Response {
 	});
 }
 
-/** `API_RATE_LIMITER` keyed by the client IP; skipped when the binding is absent (e.g. prerendering). */
+/** `API_RATE_LIMITER` keyed by the client IP; skipped when the binding is absent (e.g. in tests). */
 async function rateLimited(event: RequestEvent): Promise<boolean> {
-	const limiter = event.platform?.env.API_RATE_LIMITER;
+	const limiter = event.locals.env.API_RATE_LIMITER;
 	if (!limiter) return false;
 	const ip = event.request.headers.get('cf-connecting-ip') ?? 'unknown';
 	const { success } = await limiter.limit({ key: `api:${ip}` });

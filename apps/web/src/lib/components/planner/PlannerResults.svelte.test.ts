@@ -3,7 +3,7 @@ import { fireEvent, render, screen } from '@testing-library/svelte';
 import { describe, expect, it } from 'vitest';
 import { makeCtx } from '../../../../../../packages/engine/test/fixtures/context';
 import { jitaPrices, priceBook } from '../../../../../../packages/engine/test/fixtures/dataset';
-import { formatIsk, formatIskFull } from '$lib/format';
+import { formatIsk, formatIskFull } from '#lib/format.js';
 import PlannerResults from './PlannerResults.svelte';
 
 const CRYSTALLINE_CARBONIDE = 46205;

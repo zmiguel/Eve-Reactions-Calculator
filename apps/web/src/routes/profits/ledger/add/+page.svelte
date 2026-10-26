@@ -1,11 +1,11 @@
 <script lang="ts">
 	import { tick } from 'svelte';
 	import { enhance } from '$app/forms';
-	import ItemCombobox from '$lib/components/ledger/ItemCombobox.svelte';
-	import ManualEntriesTable from '$lib/components/ledger/ManualEntriesTable.svelte';
-	import ManualImport from '$lib/components/ledger/ManualImport.svelte';
-	import type { ManualActionResult } from '$lib/ledger/types';
-	import Seo from '$lib/seo/Seo.svelte';
+	import ItemCombobox from '#lib/components/ledger/ItemCombobox.svelte';
+	import ManualEntriesTable from '#lib/components/ledger/ManualEntriesTable.svelte';
+	import ManualImport from '#lib/components/ledger/ManualImport.svelte';
+	import type { ManualActionResult } from '#lib/ledger/types.js';
+	import Seo from '#lib/seo/Seo.svelte';
 
 	let { data, form } = $props();
 
@@ -72,7 +72,7 @@
 						adding = true;
 						const section = formElement.closest('section');
 						return async ({ update, result: outcome }) => {
-							await update();
+							await update({ navigate: false });
 							adding = false;
 							// The form is rebuilt: keep the focus on the outcome, not the page.
 							await tick();

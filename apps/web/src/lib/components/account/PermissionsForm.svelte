@@ -6,7 +6,7 @@
 		FEATURE_LABELS,
 		FEATURE_ROLES,
 		permissionsSaveAction
-	} from '$lib/account/features';
+	} from '#lib/account/features.js';
 
 	interface Props {
 		character: { characterId: number; name: string; features: readonly GrantableFeature[] };

@@ -1,7 +1,7 @@
 import { render } from '@testing-library/svelte';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import type { JobRow } from '$lib/jobs/types';
-import { paginate } from '$lib/paging';
+import type { JobRow } from '#lib/jobs/types.js';
+import { paginate } from '#lib/paging.js';
 import { resetPage, setPage } from '../../../test/shims/app/state';
 import JobTable from './JobTable.svelte';
 

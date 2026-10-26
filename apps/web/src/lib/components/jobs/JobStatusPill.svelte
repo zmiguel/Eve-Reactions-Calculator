@@ -1,7 +1,7 @@
 <script lang="ts">
-	import Pill, { type PillTone } from '$lib/components/profits/Pill.svelte';
-	import { formatRelative, formatSpan, formatUtc } from '$lib/format';
-	import type { JobStatus } from '$lib/jobs/types';
+	import Pill, { type PillTone } from '#lib/components/profits/Pill.svelte';
+	import { formatRelative, formatSpan, formatUtc } from '#lib/format.js';
+	import type { JobStatus } from '#lib/jobs/types.js';
 
 	/**
 	 * A job's status: Running (blue) with a progress bar and "ends in 1d 4h"; Finished (green) with

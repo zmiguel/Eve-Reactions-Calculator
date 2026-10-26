@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { Badge } from 'flowbite-svelte';
-	import { formatIsk, formatIskFull } from '$lib/format';
-	import type { PriceTiming } from '$lib/server/detail';
+	import { formatIsk, formatIskFull } from '#lib/format.js';
+	import type { PriceTiming } from '#lib/server/detail.js';
 
 	interface Props {
 		timing: PriceTiming;

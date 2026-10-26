@@ -75,7 +75,7 @@
 		padding: 0.5rem 0.75rem !important;
 	}
 	/*
-	 * Tooltips wrap instead of growing wider than a phone screen (`containTooltips` in `$lib/charts` keeps
+	 * Tooltips wrap instead of growing wider than a phone screen (`containTooltips` in `lib/charts.ts` keeps
 	 * them on screen). ApexCharts' own unlayered styles set `white-space: nowrap`.
 	 */
 	.apexcharts-canvas .apexcharts-tooltip {

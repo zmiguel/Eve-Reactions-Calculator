@@ -1,7 +1,7 @@
 <script lang="ts">
-	import Isk from '$lib/components/profits/Isk.svelte';
-	import { formatIsk, formatIskFull, formatNumber } from '$lib/format';
-	import type { OverviewKpis, ProfitPeriod } from '$lib/profits/types';
+	import Isk from '#lib/components/profits/Isk.svelte';
+	import { formatIsk, formatIskFull, formatNumber } from '#lib/format.js';
+	import type { OverviewKpis, ProfitPeriod } from '#lib/profits/types.js';
 	import { periodWords } from './PeriodSwitch.svelte';
 
 	let { kpis, period }: { kpis: OverviewKpis; period: ProfitPeriod } = $props();

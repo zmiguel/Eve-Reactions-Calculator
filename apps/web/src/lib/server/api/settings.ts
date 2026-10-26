@@ -5,8 +5,8 @@ import {
 	decodeSettings,
 	type ReactorProfile
 } from '@reactions/engine';
-import { MAX_PICKED_LINES } from '$lib/components/detail/links';
-import type { ProfileKey } from '$lib/settings/fields';
+import { MAX_PICKED_LINES } from '#lib/components/detail/links.js';
+import type { ProfileKey } from '#lib/settings/fields.js';
 import { loadCalc, type RequestCalc } from '../context.ts';
 import type { HubInfo } from '../hubs.ts';
 import { dateBounds } from '../listing.ts';

@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { untrack } from 'svelte';
-	import type { ManualItemChoice } from '$lib/ledger/types';
+	import type { ManualItemChoice } from '#lib/ledger/types.js';
 
 	interface Props {
 		choices: ManualItemChoice[];

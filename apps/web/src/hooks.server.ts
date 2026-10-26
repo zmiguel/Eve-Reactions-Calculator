@@ -1,8 +1,9 @@
+import type { Handle } from '@sveltejs/kit/hooks';
+import { env } from 'cloudflare:workers';
 import { DEFAULT_SETTINGS } from '@reactions/engine';
-import type { Handle } from '@sveltejs/kit';
-import { THEME_COOKIE } from '$lib/server/cookies';
-import { loadSession } from '$lib/server/session';
-import { resolveSettings } from '$lib/server/settings';
+import { THEME_COOKIE } from '#lib/server/cookies.js';
+import { loadSession } from '#lib/server/session.js';
+import { resolveSettings } from '#lib/server/settings.js';
 
 export const SECURITY_HEADERS: Record<string, string> = {
 	'X-Content-Type-Options': 'nosniff',
@@ -26,19 +27,18 @@ function oversizedForm(request: Request, pathname: string): Response | null {
 }
 
 export const handle: Handle = async ({ event, resolve }) => {
+	event.locals.env = env;
 	const rejected = oversizedForm(event.request, event.url.pathname);
 	if (rejected) return rejected;
 	const theme = event.cookies.get(THEME_COOKIE) === 'light' ? 'light' : 'dark';
 	event.locals.theme = theme;
-	// `platform` is absent while prerendering: pages then render anonymous with default settings.
-	const env = event.platform?.env;
 	if (event.url.pathname.startsWith('/api/')) {
 		// The API (v2 and the removed v1) is anonymous: no session lookup, no settings cookie, no cookie writes.
 		event.locals.user = null;
 		event.locals.account = null;
 		event.locals.settings = DEFAULT_SETTINGS;
 	} else {
-		const session = env ? await loadSession(env, event.cookies) : null;
+		const session = await loadSession(env, event.cookies);
 		event.locals.user = session?.user ?? null;
 		event.locals.account = session?.account ?? null;
 		event.locals.settings = await resolveSettings(env, event.cookies, session);
@@ -52,7 +52,7 @@ export const handle: Handle = async ({ event, resolve }) => {
 	}
 	// The preview (preview.reactions.coalition.space) shows the same pages as production: keep it out of search
 	// engines (Cloudflare adds this header only on workers.dev preview URLs, not on custom domains).
-	const deployEnv: string | undefined = env?.DEPLOY_ENV;
+	const deployEnv: string | undefined = env.DEPLOY_ENV;
 	if (deployEnv === 'preview') response.headers.set('X-Robots-Tag', 'noindex, nofollow');
 	return response;
 };

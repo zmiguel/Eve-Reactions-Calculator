@@ -1,7 +1,7 @@
 import { render } from '@testing-library/svelte';
 import type { Component } from 'svelte';
 import { describe, expect, it, vi } from 'vitest';
-import type { LedgerItemBatchPoint } from '$lib/ledger/types';
+import type { LedgerItemBatchPoint } from '#lib/ledger/types.js';
 import ChartStub from '../../../test/ChartStub.svelte';
 import BatchChart from './BatchChart.svelte';
 

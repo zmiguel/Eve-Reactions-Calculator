@@ -2,8 +2,8 @@
  * EVE SSO doubles for `web-unit` tests: a locally generated RS256 key (served as the JWKS), signed access
  * tokens, a fake token endpoint and the env vars/secrets the auth routes need. Never calls EVE Online.
  */
-import type { SessionUser } from '$lib/server/session';
-import type { SsoDeps } from '$lib/server/auth/sso';
+import type { SessionUser } from '#lib/server/session.js';
+import type { SsoDeps } from '#lib/server/auth/sso.js';
 import { STRUCTURE_SCOPES, encryptToken, formatScopes } from '@reactions/eve';
 import { SignJWT, createLocalJWKSet, exportJWK, generateKeyPair } from 'jose';
 import { fakeEnv, type FakeD1, type FakeEnv } from './fakes.ts';

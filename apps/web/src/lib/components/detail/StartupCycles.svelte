@@ -1,9 +1,9 @@
 <script lang="ts">
 	import type { ChainAllocation } from '@reactions/engine';
-	import StartupNote from '$lib/components/StartupNote.svelte';
-	import { formatIsk, formatIskFull, formatSlotRuns } from '$lib/format';
-	import { lineItemsMultibuy } from '$lib/multibuy';
-	import { phaseTitle } from '$lib/startup';
+	import StartupNote from '#lib/components/StartupNote.svelte';
+	import { formatIsk, formatIskFull, formatSlotRuns } from '#lib/format.js';
+	import { lineItemsMultibuy } from '#lib/multibuy.js';
+	import { phaseTitle } from '#lib/startup.js';
 	import LineItemsTable from './LineItemsTable.svelte';
 	import MultibuyButton from './MultibuyButton.svelte';
 

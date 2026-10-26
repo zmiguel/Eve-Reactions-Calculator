@@ -1,8 +1,8 @@
 /** View types of the `/profits/jobs` and `/profits/jobs/[jobId]` pages. */
 
 import type { IndustryBand, ReactionBonusSource, RigLevel, SecurityBand } from '@reactions/engine';
-import type { LedgerActionResult } from '$lib/ledger/types';
-import type { Paged } from '$lib/paging';
+import type { LedgerActionResult } from '#lib/ledger/types.js';
+import type { Paged } from '#lib/paging.js';
 
 /**
  * Status at page load: `running` = ESI `active`/`paused` before its end date; `finished` = `delivered`/

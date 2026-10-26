@@ -1,5 +1,5 @@
 <script lang="ts" module>
-	import type { InventoryBucketView, InventoryPlaceView } from '$lib/inventory/types';
+	import type { InventoryBucketView, InventoryPlaceView } from '#lib/inventory/types.js';
 
 	/** "2 formulas, 5 materials" for a bucket; "Nothing found" when it holds neither. */
 	export function bucketCounts(bucket: Pick<InventoryBucketView, 'formulas' | 'materials'>): string {

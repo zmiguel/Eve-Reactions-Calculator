@@ -13,8 +13,8 @@
 		profilePath,
 		type ProfileKey,
 		type SystemSummary
-	} from '$lib/settings/fields';
-	import { REACTOR_LABEL } from '$lib/site';
+	} from '#lib/settings/fields.js';
+	import { REACTOR_LABEL } from '#lib/site.js';
 	import NumberField from './NumberField.svelte';
 	import ProfileFields from './ProfileFields.svelte';
 

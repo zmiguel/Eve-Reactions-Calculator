@@ -1,11 +1,11 @@
 <script lang="ts">
 	import { REACTORS, type PlanTarget, type Reaction, type Reactor } from '@reactions/engine';
 	import type { Snippet } from 'svelte';
-	import { formatNumber } from '$lib/format';
-	import { parseQuantity } from '$lib/planner/parsePaste';
-	import type { TargetFootprint } from '$lib/planner/plan';
-	import { MAX_LINES, MAX_QUANTITY } from '$lib/planner/state';
-	import { REACTOR_LABEL, REACTOR_TIERS } from '$lib/site';
+	import { formatNumber } from '#lib/format.js';
+	import { parseQuantity } from '#lib/planner/parsePaste.js';
+	import type { TargetFootprint } from '#lib/planner/plan.js';
+	import { MAX_LINES, MAX_QUANTITY } from '#lib/planner/state.js';
+	import { REACTOR_LABEL, REACTOR_TIERS } from '#lib/site.js';
 	import OrderHelper from './OrderHelper.svelte';
 
 	type ReactionOption = Pick<Reaction, 'blueprintTypeId' | 'name' | 'reactor' | 'tier'>;

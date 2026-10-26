@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
-	import StructureRow from '$lib/components/account/StructureRow.svelte';
-	import Seo from '$lib/seo/Seo.svelte';
+	import StructureRow from '#lib/components/account/StructureRow.svelte';
+	import Seo from '#lib/seo/Seo.svelte';
 
 	let { data, form } = $props();
 

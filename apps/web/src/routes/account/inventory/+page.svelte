@@ -1,10 +1,10 @@
 <script lang="ts">
-	import { invalidateAll } from '$app/navigation';
-	import { sourceStatusText } from '$lib/components/account/ConnectionCard.svelte';
-	import InventoryPlaces from '$lib/components/account/InventoryPlaces.svelte';
-	import InventorySummary from '$lib/components/account/InventorySummary.svelte';
-	import { formatUtc } from '$lib/format';
-	import Seo from '$lib/seo/Seo.svelte';
+	import { refreshAll } from '$app/navigation';
+	import { sourceStatusText } from '#lib/components/account/ConnectionCard.svelte';
+	import InventoryPlaces from '#lib/components/account/InventoryPlaces.svelte';
+	import InventorySummary from '#lib/components/account/InventorySummary.svelte';
+	import { formatUtc } from '#lib/format.js';
+	import Seo from '#lib/seo/Seo.svelte';
 
 	let { data, form } = $props();
 
@@ -12,7 +12,7 @@
 	const REFRESH_SECONDS = 10;
 	$effect(() => {
 		if (!data.refreshing) return;
-		const timer = setInterval(() => void invalidateAll(), REFRESH_SECONDS * 1000);
+		const timer = setInterval(() => void refreshAll(), REFRESH_SECONDS * 1000);
 		return () => clearInterval(timer);
 	});
 

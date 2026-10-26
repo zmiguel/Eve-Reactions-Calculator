@@ -1,8 +1,8 @@
 import { render, screen } from '@testing-library/svelte';
 import { tick } from 'svelte';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import type { InventoryPageData, InventorySourcePlacesView } from '$lib/inventory/types';
-import { invalidateAllCalls, resetNavigation } from '../../../test/shims/app/navigation';
+import type { InventoryPageData, InventorySourcePlacesView } from '#lib/inventory/types.js';
+import { refreshAllCalls, resetNavigation } from '../../../test/shims/app/navigation';
 import { resetPage, setPage } from '../../../test/shims/app/state';
 import Page from './+page.svelte';
 
@@ -128,23 +128,23 @@ describe('/account/inventory page', () => {
 		await tick();
 		expect(screen.getByText('Updating every 10 s')).toBeTruthy();
 		await vi.advanceTimersByTimeAsync(25_000);
-		expect(invalidateAllCalls).toEqual([NOW + 10_000, NOW + 20_000]);
+		expect(refreshAllCalls).toEqual([NOW + 10_000, NOW + 20_000]);
 
 		await view.rerender({ data: data() } as never);
 		await vi.advanceTimersByTimeAsync(30_000);
-		expect(invalidateAllCalls).toHaveLength(2);
+		expect(refreshAllCalls).toHaveLength(2);
 		expect(screen.queryByText('Updating every 10 s')).toBeNull();
 	});
 
 	it('does not refresh when nothing syncs, and stops when the page is left', async () => {
 		renderPage();
 		await vi.advanceTimersByTimeAsync(30_000);
-		expect(invalidateAllCalls).toEqual([]);
+		expect(refreshAllCalls).toEqual([]);
 
 		const view = renderPage(data({ refreshing: true }));
 		await tick();
 		view.unmount();
 		await vi.advanceTimersByTimeAsync(30_000);
-		expect(invalidateAllCalls).toEqual([]);
+		expect(refreshAllCalls).toEqual([]);
 	});
 });

@@ -1,5 +1,5 @@
 <script lang="ts" module>
-	import type { InventorySourceView, TrackingStreamView } from '$lib/inventory/types';
+	import type { InventorySourceView, TrackingStreamView } from '#lib/inventory/types.js';
 	import { userFacingError } from '@reactions/eve/errors';
 
 	/** Status line of a sync (inventory or profit tracking), before its last error (if any). */
@@ -39,10 +39,9 @@
 </script>
 
 <script lang="ts">
-	import type { SubmitFunction } from '@sveltejs/kit';
-	import { enhance } from '$app/forms';
-	import { formatUtc } from '$lib/format';
-	import type { ConnectionView, InventorySourceStatus } from '$lib/inventory/types';
+	import { enhance, type SubmitFunction } from '$app/forms';
+	import { formatUtc } from '#lib/format.js';
+	import type { ConnectionView, InventorySourceStatus } from '#lib/inventory/types.js';
 
 	let { source }: { source: ConnectionView } = $props();
 
@@ -146,11 +145,14 @@
 			<summary class="{button} list-none text-red-600 dark:text-red-400 [&::-webkit-details-marker]:hidden"
 				>Remove…</summary
 			>
+
 			<form method="POST" action="?/remove" use:enhance={settle} class="mt-2 space-y-2">
 				<input type="hidden" name="sourceId" value={source.sourceId} />
+
 				<p class="text-xs font-semibold text-red-700 dark:text-red-400">
 					Remove this connection and everything synced from it?
 				</p>
+
 				<button
 					type="submit"
 					disabled={pending}
@@ -241,8 +243,10 @@
 						<summary class="cursor-pointer text-xs text-gray-600 hover:underline dark:text-gray-400"
 							>Wallet divisions…</summary
 						>
+
 						<form method="POST" action="?/walletDivisions" use:enhance={settle} class="mt-1 space-y-1">
 							<input type="hidden" name="sourceId" value={source.sourceId} />
+
 							<fieldset>
 								<legend class={muted}>Count the trades of these wallet divisions:</legend>
 								<div class="mt-1 flex flex-wrap gap-x-3 gap-y-1">
