@@ -28,7 +28,7 @@ describe('Navbar', () => {
 			expect(hrefs).toContain(href);
 		}
 		expect(screen.getByRole('link', { name: 'Home' }).getAttribute('href')).toBe('/');
-		expect(screen.getByRole('link', { name: 'EVE Reactions' }).getAttribute('href')).toBe('/');
+		expect(screen.getByRole('link', { name: 'EVE Reactions Calculator' }).getAttribute('href')).toBe('/');
 		expect(screen.getByRole('button', { name: 'Toggle dark mode' })).toBeTruthy();
 	});
 

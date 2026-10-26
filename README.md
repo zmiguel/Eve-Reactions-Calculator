@@ -26,7 +26,7 @@ Live profitability of every EVE Online reaction at [reactions.coalition.space](h
 | `packages/sde`    | `@reactions/sde`: streaming SDE zip parser and normalizer, Hoboleaks industry data                                               |
 | `packages/db`     | `@reactions/db`: Drizzle schemas, D1 migrations (core and history), KV types                                                     |
 | `packages/eve`    | `@reactions/eve`: ESI, SSO, Fuzzwork, Janice and market.coalition.space clients, token crypto, scopes                            |
-| `scripts`         | Local seed, e2e server, dev cron, SDE fixture and OG image generators                                                            |
+| `scripts`         | Local seed, e2e server, dev cron and SDE fixture generators                                                                      |
 
 ## Quick start
 
