@@ -66,7 +66,7 @@ updates:
           - 'globals'
           - '@types/*'
         update-types: ['minor', 'patch']
-      # Everything else: drizzle-orm, drizzle-kit, zod, jose, fflate, @scalar/api-reference, @resvg/resvg-js, …
+      # Everything else: drizzle-orm, drizzle-kit, zod, jose, fflate, @scalar/api-reference, …
       runtime:
         patterns:
           - '*'

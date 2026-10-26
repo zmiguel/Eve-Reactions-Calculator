@@ -16,7 +16,8 @@
 
 	const fullTitle = $derived(`${title} | ${SITE_NAME}`);
 	const canonical = $derived(SITE_URL + (path.split(/[?#]/)[0] || '/'));
-	const image = `${SITE_URL}/og-default.png`;
+	// The site's icon (EVE's reactor), shown as a small square; 256 px is above every platform's minimum.
+	const image = `${SITE_URL}/android-chrome-256x256.png`;
 	// `<` is escaped so the JSON can never close the script element; the closing tag is split for the same reason.
 	const ldScript = $derived(
 		jsonLd
@@ -41,9 +42,9 @@
 	<meta property="og:description" content={description} />
 	<meta property="og:url" content={canonical} />
 	<meta property="og:image" content={image} />
-	<meta property="og:image:width" content="1200" />
-	<meta property="og:image:height" content="630" />
-	<meta name="twitter:card" content="summary_large_image" />
+	<meta property="og:image:width" content="256" />
+	<meta property="og:image:height" content="256" />
+	<meta name="twitter:card" content="summary" />
 	<meta name="twitter:title" content={fullTitle} />
 	<meta name="twitter:description" content={description} />
 	<meta name="twitter:image" content={image} />

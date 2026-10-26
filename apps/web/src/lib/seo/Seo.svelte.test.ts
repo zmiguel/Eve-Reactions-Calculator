@@ -23,11 +23,9 @@ describe('Seo', () => {
 			'https://reactions.coalition.space/composite'
 		);
 		expect(head().querySelector('meta[property="og:image"]')?.getAttribute('content')).toBe(
-			'https://reactions.coalition.space/og-default.png'
+			'https://reactions.coalition.space/android-chrome-256x256.png'
 		);
-		expect(head().querySelector('meta[name="twitter:card"]')?.getAttribute('content')).toBe(
-			'summary_large_image'
-		);
+		expect(head().querySelector('meta[name="twitter:card"]')?.getAttribute('content')).toBe('summary');
 		expect(head().querySelector('meta[name="robots"]')).toBeNull();
 	});
 
