@@ -26,8 +26,8 @@
 
 <script lang="ts">
 	import { enhance } from '$app/forms';
-	import { FEATURE_LABELS, permissionsSaveAction } from '$lib/account/features';
-	import { formatUtc } from '$lib/format';
+	import { FEATURE_LABELS, permissionsSaveAction } from '#lib/account/features.js';
+	import { formatUtc } from '#lib/format.js';
 	import { TOKEN_ERROR_REVOKED, userFacingError } from '@reactions/eve/errors';
 	import { PenOutline, TrashBinOutline } from 'flowbite-svelte-icons';
 	import { portraitUrl } from '../AccountMenu.svelte';

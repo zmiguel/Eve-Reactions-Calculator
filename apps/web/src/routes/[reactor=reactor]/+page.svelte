@@ -1,10 +1,10 @@
 <script lang="ts">
 	import type { Reactor } from '@reactions/engine';
-	import DatePicker from '$lib/components/listing/DatePicker.svelte';
-	import SettingsSummary from '$lib/components/listing/SettingsSummary.svelte';
-	import TierSection from '$lib/components/listing/TierSection.svelte';
-	import Seo from '$lib/seo/Seo.svelte';
-	import { REACTOR_LABEL } from '$lib/site';
+	import DatePicker from '#lib/components/listing/DatePicker.svelte';
+	import SettingsSummary from '#lib/components/listing/SettingsSummary.svelte';
+	import TierSection from '#lib/components/listing/TierSection.svelte';
+	import Seo from '#lib/seo/Seo.svelte';
+	import { REACTOR_LABEL } from '#lib/site.js';
 
 	let { data } = $props();
 

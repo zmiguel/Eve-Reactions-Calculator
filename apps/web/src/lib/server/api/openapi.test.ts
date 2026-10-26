@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { z } from 'zod';
-import { SITE_URL } from '$lib/site';
+import { SITE_URL } from '#lib/site.js';
 import { openapi } from './openapi';
 import {
 	COST_INDEX_COLUMNS,

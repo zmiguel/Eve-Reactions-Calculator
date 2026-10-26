@@ -1,16 +1,16 @@
 import { characters, getCoreDb, marketHubs, structureLinks, systems } from '@reactions/db';
 import { error, fail, type RequestEvent } from '@sveltejs/kit';
 import { asc, eq } from 'drizzle-orm';
-import type { AdminHub } from '$lib/components/admin/HubsAdminTable.svelte';
-import { adminCharacterIds } from '$lib/server/session';
-import { deleteStructureHub } from '$lib/server/structures';
-import { publishMarket } from '$lib/server/updater';
+import type { AdminHub } from '#lib/components/admin/HubsAdminTable.svelte';
+import { adminCharacterIds } from '#lib/server/session.js';
+import { deleteStructureHub } from '#lib/server/structures.js';
+import { publishMarket } from '#lib/server/updater.js';
 import type { Actions, PageServerLoad } from './$types';
 
 /** Admins only (a character in `ADMIN_CHARACTER_IDS`); everyone else gets a plain 404. */
-function requireAdmin({ locals, platform }: Pick<RequestEvent, 'locals' | 'platform'>) {
-	if (!locals.user?.isAdmin || !platform) error(404, 'Not Found');
-	return { env: platform.env, user: locals.user };
+function requireAdmin({ locals }: Pick<RequestEvent, 'locals'>) {
+	if (!locals.user?.isAdmin) error(404, 'Not Found');
+	return { env: locals.env, user: locals.user };
 }
 
 export const load: PageServerLoad = async (event) => {

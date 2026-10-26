@@ -1,10 +1,10 @@
 <script lang="ts">
 	import { DEFAULT_BLUEPRINT_ME } from '@reactions/engine';
 	import { enhance } from '$app/forms';
-	import FacilityEditor from '$lib/components/account/FacilityEditor.svelte';
-	import { formatNumber, formatUtc } from '$lib/format';
-	import { blueprintIconUrl } from '$lib/site';
-	import Seo from '$lib/seo/Seo.svelte';
+	import FacilityEditor from '#lib/components/account/FacilityEditor.svelte';
+	import { formatNumber, formatUtc } from '#lib/format.js';
+	import { blueprintIconUrl } from '#lib/site.js';
+	import Seo from '#lib/seo/Seo.svelte';
 
 	let { data, form } = $props();
 

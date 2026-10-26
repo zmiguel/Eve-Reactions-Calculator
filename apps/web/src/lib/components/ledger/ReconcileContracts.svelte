@@ -1,12 +1,12 @@
 <script lang="ts">
-	import Isk from '$lib/components/profits/Isk.svelte';
-	import PagedTable from '$lib/components/profits/PagedTable.svelte';
-	import Pill from '$lib/components/profits/Pill.svelte';
-	import { formatIskFull, formatNumber, formatUtc } from '$lib/format';
-	import { DIRECTION_BADGE } from '$lib/ledger/source';
-	import type { Paged } from '$lib/paging';
-	import type { ReconcileActionResult, ReconcileContractRow } from '$lib/ledger/types';
-	import { typeIconUrl } from '$lib/site';
+	import Isk from '#lib/components/profits/Isk.svelte';
+	import PagedTable from '#lib/components/profits/PagedTable.svelte';
+	import Pill from '#lib/components/profits/Pill.svelte';
+	import { formatIskFull, formatNumber, formatUtc } from '#lib/format.js';
+	import { DIRECTION_BADGE } from '#lib/ledger/source.js';
+	import type { Paged } from '#lib/paging.js';
+	import type { ReconcileActionResult, ReconcileContractRow } from '#lib/ledger/types.js';
+	import { typeIconUrl } from '#lib/site.js';
 	import UnitPriceForm from './UnitPriceForm.svelte';
 
 	interface Props {

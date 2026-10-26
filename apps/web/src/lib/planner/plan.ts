@@ -13,8 +13,8 @@ import {
 	type Settings,
 	type Tier
 } from '@reactions/engine';
-import type { SettingsSummaryData } from '$lib/components/listing/types';
-import type { UserInventory } from '$lib/server/inventory';
+import type { SettingsSummaryData } from '#lib/components/listing/types.js';
+import type { UserInventory } from '#lib/server/inventory.js';
 
 export interface PlannerHub {
 	hubId: string;

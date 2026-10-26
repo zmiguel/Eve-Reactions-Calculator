@@ -1,17 +1,17 @@
 <script lang="ts" module>
 	/**
-	 * The URL after the last in-place page change. `replaceState` leaves `page.url` at the URL the page
-	 * loaded with, so the tables share this one: paging one keeps the pages of the others.
+	 * The URL after the last in-place page change. A shallow `goto` leaves `page.url` at the URL the
+	 * page loaded with, so the tables share this one: paging one keeps the pages of the others.
 	 */
 	let current = $state.raw<URL | null>(null);
 </script>
 
 <script lang="ts" generics="T">
 	import type { Snippet } from 'svelte';
-	import { replaceState } from '$app/navigation';
+	import { goto } from '$app/navigation';
 	import { page } from '$app/state';
-	import { formatNumber } from '$lib/format';
-	import { PAGE_SIZE, withPage, type Paged } from '$lib/paging';
+	import { formatNumber } from '#lib/format.js';
+	import { PAGE_SIZE, withPage, type Paged } from '#lib/paging.js';
 
 	interface Props {
 		/** The page the server rendered. */
@@ -60,8 +60,8 @@
 			const response = await fetch(`${endpoint}${query}`, { headers: { accept: 'application/json' } });
 			if (!response.ok) throw new Error(`HTTP ${response.status}`);
 			loaded = (await response.json()) as Paged<T>;
-			replaceState(next, page.state);
-			current = new URL(next, page.url);
+			current = new URL(next, page.url.href);
+			await goto(next, { shallow: true, replace: true, state: page.state });
 		} catch {
 			// Fall back to loading the whole page.
 			window.location.href = next;

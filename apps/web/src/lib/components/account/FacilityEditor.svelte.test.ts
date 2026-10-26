@@ -1,7 +1,7 @@
 import { fireEvent, render } from '@testing-library/svelte';
 import { tick } from 'svelte';
 import { describe, expect, it } from 'vitest';
-import type { FacilityRigChoice, FacilityView } from '$lib/account/facilities';
+import type { FacilityRigChoice, FacilityView } from '#lib/account/facilities.js';
 import {
 	ATHANOR,
 	M_COMPOSITE_RIG,

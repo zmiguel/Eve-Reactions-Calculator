@@ -17,7 +17,7 @@
 
 <script lang="ts">
 	import { enhance } from '$app/forms';
-	import { formatRelative, formatUtc } from '$lib/format';
+	import { formatRelative, formatUtc } from '#lib/format.js';
 
 	interface Props {
 		hubs: AdminHub[];

@@ -1,6 +1,6 @@
 import { fireEvent, render, screen } from '@testing-library/svelte';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import type { SystemSummary } from '$lib/settings/fields';
+import type { SystemSummary } from '#lib/settings/fields.js';
 import SystemAutocomplete from './SystemAutocomplete.svelte';
 
 const system = (id: number, name: string, securityBand = 'nullsec'): SystemSummary => ({

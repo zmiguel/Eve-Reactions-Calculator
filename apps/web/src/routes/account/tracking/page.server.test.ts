@@ -1,9 +1,9 @@
 import { DEFAULT_CONSTANTS, DEFAULT_SETTINGS, type Dataset, type IndustryData } from '@reactions/engine';
 import { isActionFailure, isRedirect, type RequestEvent } from '@sveltejs/kit';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { clearDataMemo } from '$lib/server/data';
-import type { SessionUser } from '$lib/server/session';
-import type { TrackingSettingsPageData } from '$lib/server/tracking-settings';
+import { clearDataMemo } from '#lib/server/data.js';
+import type { SessionUser } from '#lib/server/session.js';
+import type { TrackingSettingsPageData } from '#lib/server/tracking-settings.js';
 import {
 	ATHANOR,
 	L_COMPONENT_RIG,
@@ -140,8 +140,7 @@ function event(env: FakeEnv, user: SessionUser | null, fields?: Record<string, s
 		url,
 		request: new Request(url, body ? { method: 'POST', body } : undefined),
 		cookies: new FakeCookies().asCookies(),
-		platform: { env },
-		locals: { user, settings: DEFAULT_SETTINGS, theme: 'dark' }
+		locals: { user, settings: DEFAULT_SETTINGS, theme: 'dark', env }
 	} as unknown as RequestEvent as never;
 }
 

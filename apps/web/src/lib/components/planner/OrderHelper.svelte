@@ -1,6 +1,6 @@
 <script lang="ts">
-	import { formatNumber } from '$lib/format';
-	import { parseQuantity } from '$lib/planner/parsePaste';
+	import { formatNumber } from '#lib/format.js';
+	import { parseQuantity } from '#lib/planner/parsePaste.js';
 
 	interface Props {
 		/** Accessible-name suffix, e.g. `target 1`. */

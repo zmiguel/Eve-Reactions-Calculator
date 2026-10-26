@@ -1,8 +1,7 @@
 import { isRedirect, type RequestEvent } from '@sveltejs/kit';
 import { beforeEach, describe, expect, it } from 'vitest';
-import { clearDataMemo } from '$lib/server/data';
-import { match as integer } from '../params/integer';
-import { match as reactor } from '../params/reactor';
+import { clearDataMemo } from '#lib/server/data.js';
+import { matchInteger as integer, matchReactor as reactor } from '../params';
 import { asEnv, fakeEnv } from '../test/fakes';
 import { NOW, loadSde, putKv } from '../test/fixtures';
 import { GET as legacyGet } from './[reactor=reactor]/[legacyType]/[id=integer]/+server';
@@ -24,7 +23,7 @@ async function call(handler: Handler, event: Record<string, unknown>) {
 	}
 }
 
-async function seededPlatform() {
+async function seededLocals() {
 	const env = fakeEnv();
 	await putKv(env, await loadSde());
 	return { env: asEnv(env) };
@@ -51,10 +50,10 @@ describe('legacy redirects', () => {
 	];
 
 	it.each(cases)('/%s/%s/%i → %s', async (r, type, id, expected) => {
-		const platform = await seededPlatform();
+		const locals = await seededLocals();
 		const result = await call(legacyGet as Handler, {
 			params: { reactor: r, legacyType: type, id: String(id) },
-			platform
+			locals
 		});
 		expect(result.redirect).toEqual({ status: 301, location: expected });
 	});
@@ -64,7 +63,7 @@ describe('legacy redirects', () => {
 		const molecular = sde.dataset.reactions.find((r) => r.tier === 'molecular_forged')!;
 		const result = await call(legacyGet as Handler, {
 			params: { reactor: 'biochemical', legacyType: 'molecular', id: String(molecular.product.typeId) },
-			platform: await seededPlatform()
+			locals: await seededLocals()
 		});
 		expect(result.redirect).toEqual({ status: 301, location: `/biochemical/${molecular.slug}` });
 	});
@@ -76,7 +75,7 @@ describe('legacy redirects', () => {
 	])('unknown /%s/%s/%s → reactor listing', async (r, type, id) => {
 		const result = await call(legacyGet as Handler, {
 			params: { reactor: r, legacyType: type, id },
-			platform: await seededPlatform()
+			locals: await seededLocals()
 		});
 		expect(result.redirect).toEqual({ status: 301, location: `/${r}` });
 	});
@@ -84,7 +83,7 @@ describe('legacy redirects', () => {
 	it('redirects temporarily to the listing while the dataset is not loaded', async () => {
 		const result = await call(legacyGet as Handler, {
 			params: { reactor: 'composite', legacyType: 'simple', id: '16663' },
-			platform: { env: asEnv(fakeEnv()) }
+			locals: { env: asEnv(fakeEnv()) }
 		});
 		expect(result.redirect).toEqual({ status: 307, location: '/composite' });
 	});
@@ -114,7 +113,7 @@ describe('/api/openapi', () => {
 
 describe('/sitemap.xml', () => {
 	it('lists static pages, reactor pages and all 119 detail URLs with lastmod', async () => {
-		const { response } = await call(sitemapGet as Handler, { platform: await seededPlatform() });
+		const { response } = await call(sitemapGet as Handler, { locals: await seededLocals() });
 		expect(response!.headers.get('Content-Type')).toContain('application/xml');
 		const xml = await response!.text();
 		const locs = [...xml.matchAll(/<loc>([^<]+)<\/loc>/g)].map((m) => m[1]);
@@ -137,7 +136,7 @@ describe('/sitemap.xml', () => {
 	});
 
 	it('still lists the static pages without data', async () => {
-		const { response } = await call(sitemapGet as Handler, { platform: { env: asEnv(fakeEnv()) } });
+		const { response } = await call(sitemapGet as Handler, { locals: { env: asEnv(fakeEnv()) } });
 		const xml = await response!.text();
 		expect([...xml.matchAll(/<loc>/g)]).toHaveLength(7);
 	});

@@ -1,12 +1,12 @@
 <script lang="ts">
 	import type { Reactor } from '@reactions/engine';
-	import { formatIsk, formatIskFull, formatPct } from '$lib/format';
-	import ReactorBoard from '$lib/components/home/ReactorBoard.svelte';
-	import type { InputMove } from '$lib/components/home/types';
-	import RankedList from '$lib/components/listing/RankedList.svelte';
-	import type { RankedListItem } from '$lib/components/listing/types';
-	import Seo from '$lib/seo/Seo.svelte';
-	import { REACTOR_LABEL, SITE_NAME, SITE_URL } from '$lib/site';
+	import { formatIsk, formatIskFull, formatPct } from '#lib/format.js';
+	import ReactorBoard from '#lib/components/home/ReactorBoard.svelte';
+	import type { InputMove } from '#lib/components/home/types.js';
+	import RankedList from '#lib/components/listing/RankedList.svelte';
+	import type { RankedListItem } from '#lib/components/listing/types.js';
+	import Seo from '#lib/seo/Seo.svelte';
+	import { REACTOR_LABEL, SITE_NAME, SITE_URL } from '#lib/site.js';
 
 	let { data } = $props();
 

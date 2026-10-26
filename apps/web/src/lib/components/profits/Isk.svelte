@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { formatIsk, formatIskFull } from '$lib/format';
+	import { formatIsk, formatIskFull } from '#lib/format.js';
 	import Estimated from './Estimated.svelte';
 
 	interface Props {

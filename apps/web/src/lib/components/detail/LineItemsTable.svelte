@@ -1,7 +1,7 @@
 <script lang="ts">
 	import type { LineItem } from '@reactions/engine';
-	import { formatIsk, formatIskFull, formatNumber } from '$lib/format';
-	import { typeIconUrl } from '$lib/site';
+	import { formatIsk, formatIskFull, formatNumber } from '#lib/format.js';
+	import { typeIconUrl } from '#lib/site.js';
 
 	interface Props {
 		title: string;

@@ -1,14 +1,14 @@
 import { render, waitFor } from '@testing-library/svelte';
 import type { Component } from 'svelte';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { paginate } from '$lib/paging';
+import { paginate } from '#lib/paging.js';
 import type {
 	OverviewCharts as Charts,
 	OverviewKpis,
 	ReactionTableRow,
 	RunningTableRow,
 	SaleTableRow
-} from '$lib/profits/types';
+} from '#lib/profits/types.js';
 import ChartStub from '../../../../test/ChartStub.svelte';
 import { resetPage, setPage } from '../../../../test/shims/app/state';
 import AttentionBar from './AttentionBar.svelte';

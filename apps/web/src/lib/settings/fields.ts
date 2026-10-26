@@ -1,5 +1,5 @@
 import type { OutputMode, Reactor, Settings, SlotAllocation, View } from '@reactions/engine';
-import { REACTOR_LABEL } from '$lib/site';
+import { REACTOR_LABEL } from '#lib/site.js';
 
 /** Profile being edited: the shared one, or one reactor's in `per_reactor` mode. */
 export type ProfileKey = 'shared' | Reactor;

@@ -1,6 +1,6 @@
 <script lang="ts">
-	import Pill from '$lib/components/profits/Pill.svelte';
-	import { sourceBadge, UNTRACKED, UNTRACKED_TEXT } from '$lib/ledger/source';
+	import Pill from '#lib/components/profits/Pill.svelte';
+	import { sourceBadge, UNTRACKED, UNTRACKED_TEXT } from '#lib/ledger/source.js';
 
 	interface Props {
 		/** Engine `PriceSourceKind`. */

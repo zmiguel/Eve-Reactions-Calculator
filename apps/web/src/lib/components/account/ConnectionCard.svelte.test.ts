@@ -1,6 +1,6 @@
 import { render, screen } from '@testing-library/svelte';
 import { describe, expect, it } from 'vitest';
-import type { ConnectionView, TrackingView } from '$lib/inventory/types';
+import type { ConnectionView, TrackingView } from '#lib/inventory/types.js';
 import ConnectionCard from './ConnectionCard.svelte';
 
 const trackingOff: TrackingView = {

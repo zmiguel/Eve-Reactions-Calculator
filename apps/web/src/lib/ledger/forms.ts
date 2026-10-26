@@ -1,8 +1,10 @@
+import type { ReadonlyURL } from '$app/state';
+
 /**
  * The form action URL `?/<name>` keeping the page's query string (filters, table pages), without a
  * previous action, so the page comes back the same after a submit without JS.
  */
-export function actionHref(url: URL, name: string): string {
+export function actionHref(url: ReadonlyURL, name: string): string {
 	const query = [...url.searchParams]
 		.filter(([key]) => !key.startsWith('/'))
 		.map(([key, value]) => `${encodeURIComponent(key)}=${encodeURIComponent(value)}`)

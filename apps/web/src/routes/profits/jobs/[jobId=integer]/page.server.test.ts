@@ -1,9 +1,9 @@
 import { DEFAULT_SETTINGS } from '@reactions/engine';
 import { isActionFailure, isHttpError, isRedirect, type RequestEvent } from '@sveltejs/kit';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import type { JobDetailData } from '$lib/jobs/types';
-import { clearDataMemo } from '$lib/server/data';
-import type { SessionUser } from '$lib/server/session';
+import type { JobDetailData } from '#lib/jobs/types.js';
+import { clearDataMemo } from '#lib/server/data.js';
+import type { SessionUser } from '#lib/server/session.js';
 import { FakeCookies, type FakeEnv } from '../../../../test/fakes';
 import { NOW, insertUser } from '../../../../test/fixtures';
 import { ALPHA, JOB, jobsScenario } from '../../../../test/jobs';
@@ -39,8 +39,7 @@ function event(
 		params: { jobId: String(jobId) },
 		request: new Request(url, body ? { method: 'POST', body } : undefined),
 		cookies: new FakeCookies().asCookies(),
-		platform: { env },
-		locals: { user, settings: DEFAULT_SETTINGS, theme: 'dark' }
+		locals: { user, settings: DEFAULT_SETTINGS, theme: 'dark', env }
 	} as unknown as RequestEvent as never;
 }
 

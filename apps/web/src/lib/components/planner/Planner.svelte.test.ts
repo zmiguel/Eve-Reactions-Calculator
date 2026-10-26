@@ -8,13 +8,13 @@ import {
 import type * as Engine from '@reactions/engine';
 import { fireEvent, render, screen, waitFor } from '@testing-library/svelte';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import type { UserInventory } from '$lib/server/inventory';
-import { plannerContext } from '$lib/planner/plan';
-import { STORAGE_KEY, decodeShare, emptyState, encodeShare, type PlannerState } from '$lib/planner/state';
-import type { StockPlanner } from '$lib/planner/stockPlanner';
+import type { UserInventory } from '#lib/server/inventory.js';
+import { plannerContext } from '#lib/planner/plan.js';
+import { STORAGE_KEY, decodeShare, emptyState, encodeShare, type PlannerState } from '#lib/planner/state.js';
+import type { StockPlanner } from '#lib/planner/stockPlanner.js';
 import { plannerData } from '../../../test/planner';
 import { MemoryStorage } from '../../../test/storage';
-import { replaceStateCalls, resetNavigation } from '../../../test/shims/app/navigation';
+import { resetNavigation, shallowUrls } from '../../../test/shims/app/navigation';
 import { resetPage, setPage } from '../../../test/shims/app/state';
 import Planner from './Planner.svelte';
 
@@ -286,11 +286,11 @@ describe('Planner', () => {
 		const { container } = await setup(storage, code);
 		expect(slotsUsed(container)).toBe('4 / 150');
 		expect(JSON.parse(storage.getItem(STORAGE_KEY)!)).toEqual(mine);
-		expect(replaceStateCalls).toEqual([]);
+		expect(shallowUrls).toEqual([]);
 
 		await fireEvent.click(screen.getByRole('button', { name: 'Buy Carbon Polymers' }));
 		expect(JSON.parse(storage.getItem(STORAGE_KEY)!)).toEqual(stateWith({ buy: [CARBON_POLYMERS] }));
-		expect(replaceStateCalls).toEqual(['http://localhost/planner?inputsDaysAgo=2']);
+		expect(shallowUrls).toEqual(['http://localhost/planner?inputsDaysAgo=2']);
 	});
 
 	it('falls back to the stored plan for an invalid share link', async () => {

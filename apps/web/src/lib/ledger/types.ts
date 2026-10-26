@@ -1,5 +1,5 @@
 /** View types of the ledger pages (`/profits/ledger` and `/profits/ledger/[typeId]`). */
-import type { Paged } from '$lib/paging';
+import type { Paged } from '#lib/paging.js';
 
 /** Where a market fee or tax amount came from (engine `FeeSource`). */
 export type LedgerFeeSource = 'journal' | 'estimated' | 'none';

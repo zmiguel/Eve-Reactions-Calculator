@@ -36,7 +36,7 @@ import {
 	type FacilityRigChoice,
 	type FacilityStructureChoice,
 	type FacilityView
-} from '$lib/account/facilities';
+} from '#lib/account/facilities.js';
 import type { SessionUser } from './session.ts';
 import { getDataset } from './data.ts';
 import { facilityEve, facilityPlaces } from './facilities.ts';

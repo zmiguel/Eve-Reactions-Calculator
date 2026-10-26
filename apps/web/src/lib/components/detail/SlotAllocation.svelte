@@ -8,7 +8,7 @@
 		formatPct,
 		formatRunsPerSlot,
 		runsPerSlotTitle
-	} from '$lib/format';
+	} from '#lib/format.js';
 
 	interface Props {
 		allocation: ChainAllocation;

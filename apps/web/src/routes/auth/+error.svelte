@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { page } from '$app/state';
-	import Seo from '$lib/seo/Seo.svelte';
+	import Seo from '#lib/seo/Seo.svelte';
 
 	const loggedIn = $derived(Boolean(page.data.user));
 </script>

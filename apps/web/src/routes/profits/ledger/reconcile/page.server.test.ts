@@ -1,10 +1,10 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import type { ReconcileContractRow, ReconcileInputRow, ReconcilePageData } from '$lib/ledger/types';
-import type { Paged } from '$lib/paging';
-import { clearDataMemo } from '$lib/server/data';
-import { CONFIRMED_NOTE } from '$lib/server/ledger-reconcile';
-import { correctionNotice } from '$lib/server/price-corrections';
-import type { SessionUser } from '$lib/server/session';
+import type { ReconcileContractRow, ReconcileInputRow, ReconcilePageData } from '#lib/ledger/types.js';
+import type { Paged } from '#lib/paging.js';
+import { clearDataMemo } from '#lib/server/data.js';
+import { CONFIRMED_NOTE } from '#lib/server/ledger-reconcile.js';
+import { correctionNotice } from '#lib/server/price-corrections.js';
+import type { SessionUser } from '#lib/server/session.js';
 import { requestEvent, settle } from '../../../../test/actions';
 import { fakeEnv, type FakeEnv } from '../../../../test/fakes';
 import { NOW } from '../../../../test/fixtures';

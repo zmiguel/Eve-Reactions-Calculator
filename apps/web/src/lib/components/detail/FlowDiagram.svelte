@@ -1,6 +1,6 @@
 <script lang="ts">
-	import { formatNumber } from '$lib/format';
-	import { typeIconUrl } from '$lib/site';
+	import { formatNumber } from '#lib/format.js';
+	import { typeIconUrl } from '#lib/site.js';
 	import type { FlowLayout, FlowNode, FlowNodeKind } from './flow';
 
 	interface Props {

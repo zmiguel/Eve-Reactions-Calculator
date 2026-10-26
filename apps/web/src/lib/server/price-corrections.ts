@@ -7,7 +7,7 @@ import {
 	trackedJobs,
 	trackedTransactions
 } from '@reactions/db';
-import { formatNumber } from '$lib/format';
+import { formatNumber } from '#lib/format.js';
 import { getDataset } from './data.ts';
 import { requestLedgerRebuild } from './ledger-rebuild.ts';
 

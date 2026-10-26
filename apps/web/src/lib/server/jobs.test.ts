@@ -1,6 +1,6 @@
 import { TrackingSettings, stockUnitValue, type Settings } from '@reactions/engine';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import type { JobFilters, JobRow, JobsPageData, JobTotalsView } from '$lib/jobs/types';
+import type { JobFilters, JobRow, JobsPageData, JobTotalsView } from '#lib/jobs/types.js';
 import { asEnv, type FakeEnv } from '../../test/fakes';
 import { L_REACTOR_RIG, TATARA, industryFixture, insertTrackedFacility } from '../../test/facilities';
 import { NOW, defaults, insertUser, loadSde, marketFor, putKv } from '../../test/fixtures';
@@ -24,7 +24,7 @@ import { insertPrice } from '../../test/ledger';
 import { sessionUser } from '../../test/sso';
 import { loadCalc } from './context';
 import { clearDataMemo } from './data';
-import { PAGE_SIZE } from '$lib/paging';
+import { PAGE_SIZE } from '#lib/paging.js';
 import {
 	isTrackedJob,
 	jobDetailPage,

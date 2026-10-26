@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { Modal } from 'flowbite-svelte';
 	import { enhance } from '$app/forms';
-	import type { UpdaterAction } from '$lib/admin/jobs';
+	import type { UpdaterAction } from '#lib/admin/jobs.js';
 	import JobRunCells from './JobRunCells.svelte';
 	import JobStatusTable from './JobStatusTable.svelte';
 	import type { JobView } from './job-runs';

@@ -1,7 +1,7 @@
 import { TrackingSettings, stockUnitValue } from '@reactions/engine';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import type { JobFilters } from '$lib/jobs/types';
-import type { ProfitPeriod } from '$lib/profits/types';
+import type { JobFilters } from '#lib/jobs/types.js';
+import type { ProfitPeriod } from '#lib/profits/types.js';
 import { asEnv, type FakeEnv } from '../../test/fakes';
 import { NOW, defaults } from '../../test/fixtures';
 import { ALPHA, FUEL, GAMMA, JOB, addFuelBlocks, addManufacturing, insertTrackedJob } from '../../test/jobs';

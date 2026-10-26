@@ -7,7 +7,11 @@ afterEach(() => resetPage());
 
 describe('auth error page', () => {
 	it('shows the message and a fresh login link when logged out', () => {
-		setPage({ url: '/auth/callback', status: 400, error: { message: 'Login expired, try again.' } });
+		setPage({
+			url: '/auth/callback',
+			status: 400,
+			error: { status: 400, message: 'Login expired, try again.' }
+		});
 		render(ErrorPage);
 		expect(screen.getByRole('heading').textContent?.trim()).toBe('Login problem');
 		expect(screen.getByText('Login expired, try again.')).toBeTruthy();
@@ -20,7 +24,7 @@ describe('auth error page', () => {
 		setPage({
 			url: '/auth/callback',
 			status: 409,
-			error: { message: 'This character is linked to another account.' },
+			error: { status: 409, message: 'This character is linked to another account.' },
 			data: { user: { characterId: 1, name: 'Alpha', isAdmin: false } }
 		});
 		render(ErrorPage);

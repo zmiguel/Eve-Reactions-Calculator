@@ -1,5 +1,5 @@
 <script lang="ts" module>
-	import type { JobMark } from '$lib/jobs/types';
+	import type { JobMark } from '#lib/jobs/types.js';
 
 	/** What each mark means, shown as its tooltip. */
 	export const MARK_TEXT: Record<JobMark, string> = {

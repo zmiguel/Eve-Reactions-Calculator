@@ -1,11 +1,11 @@
 <script lang="ts">
-	import Isk from '$lib/components/profits/Isk.svelte';
-	import PagedTable from '$lib/components/profits/PagedTable.svelte';
-	import Pill from '$lib/components/profits/Pill.svelte';
-	import { formatNumber, formatRelative, formatUtc } from '$lib/format';
-	import type { Paged } from '$lib/paging';
-	import type { SaleTableRow } from '$lib/profits/types';
-	import { typeIconUrl } from '$lib/site';
+	import Isk from '#lib/components/profits/Isk.svelte';
+	import PagedTable from '#lib/components/profits/PagedTable.svelte';
+	import Pill from '#lib/components/profits/Pill.svelte';
+	import { formatNumber, formatRelative, formatUtc } from '#lib/format.js';
+	import type { Paged } from '#lib/paging.js';
+	import type { SaleTableRow } from '#lib/profits/types.js';
+	import { typeIconUrl } from '#lib/site.js';
 
 	let { data, now }: { data: Paged<SaleTableRow>; now: number } = $props();
 

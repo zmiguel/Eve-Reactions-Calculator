@@ -1,5 +1,5 @@
 /** View types of the `/profits` overview page and its table endpoints. */
-import type { Paged } from '$lib/paging';
+import type { Paged } from '#lib/paging.js';
 
 /** Days back from today (`all`: everything tracked). */
 export type ProfitPeriod = '7' | '30' | '90' | '365' | 'all';

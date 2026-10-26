@@ -1,9 +1,9 @@
 import { ESI_FEATURES, isGrantableFeature, scopesForFeature } from '@reactions/eve';
 import { error, redirect } from '@sveltejs/kit';
-import { getCharacter } from '$lib/server/auth/accounts';
-import { OFFERED_FEATURES } from '$lib/account/features';
-import { LOGIN_PURPOSES, safeReturnTo, type LoginPurpose } from '$lib/server/auth/oauth';
-import { SSO_NOT_CONFIGURED, ssoConfig, startSso } from '$lib/server/auth/sso';
+import { getCharacter } from '#lib/server/auth/accounts.js';
+import { OFFERED_FEATURES } from '#lib/account/features.js';
+import { LOGIN_PURPOSES, safeReturnTo, type LoginPurpose } from '#lib/server/auth/oauth.js';
+import { SSO_NOT_CONFIGURED, SSO_REDIRECT, ssoConfig, startSso } from '#lib/server/auth/sso.js';
 import type { PageServerLoad } from './$types';
 
 /**
@@ -14,7 +14,7 @@ import type { PageServerLoad } from './$types';
  * `purpose=feature&feature=structures`. `purpose=features` can drop scopes, so it only starts from the
  * permissions form (a POST action, `/account/permissions/<id>?/save`); a link here goes to that form.
  */
-export const load: PageServerLoad = async ({ url, locals, platform, cookies }) => {
+export const load: PageServerLoad = async ({ url, locals, cookies }) => {
 	const params = url.searchParams;
 	if (params.get('purpose') === 'structures') {
 		const alias = new URLSearchParams({ purpose: 'feature', feature: 'structures' });
@@ -56,9 +56,9 @@ export const load: PageServerLoad = async ({ url, locals, platform, cookies }) =
 		}
 	}
 
-	const env = platform?.env;
-	const config = env ? ssoConfig(env) : null;
-	if (!env || !config) error(503, SSO_NOT_CONFIGURED);
+	const env = locals.env;
+	const config = ssoConfig(env);
+	if (!config) error(503, SSO_NOT_CONFIGURED);
 
 	let scopes: string[] = [];
 	if (isGrantableFeature(feature)) {
@@ -81,6 +81,7 @@ export const load: PageServerLoad = async ({ url, locals, platform, cookies }) =
 				returnTo
 			},
 			scopes
-		)
+		),
+		SSO_REDIRECT
 	);
 };

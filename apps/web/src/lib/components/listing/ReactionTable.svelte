@@ -1,8 +1,8 @@
 <script lang="ts">
 	import type { Reactor } from '@reactions/engine';
 	import { Badge, Tooltip } from 'flowbite-svelte';
-	import { formatIsk, formatIskFull, formatNumber, formatPct, formatSlotRuns } from '$lib/format';
-	import { typeIconUrl } from '$lib/site';
+	import { formatIsk, formatIskFull, formatNumber, formatPct, formatSlotRuns } from '#lib/format.js';
+	import { typeIconUrl } from '#lib/site.js';
 	import { DEFAULT_TABS, reactionHref, tabsFor, type DefaultTabs } from './links';
 	import type { RowSummary, Variant, VariantSummary } from './types';
 

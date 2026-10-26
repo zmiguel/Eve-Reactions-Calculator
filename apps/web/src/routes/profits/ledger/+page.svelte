@@ -1,10 +1,10 @@
 <script lang="ts">
-	import LedgerFilters from '$lib/components/ledger/LedgerFilters.svelte';
-	import LedgerSummary from '$lib/components/ledger/LedgerSummary.svelte';
-	import LedgerTable from '$lib/components/ledger/LedgerTable.svelte';
-	import { formatRelative, formatUtc } from '$lib/format';
-	import type { LedgerActionResult } from '$lib/ledger/types';
-	import Seo from '$lib/seo/Seo.svelte';
+	import LedgerFilters from '#lib/components/ledger/LedgerFilters.svelte';
+	import LedgerSummary from '#lib/components/ledger/LedgerSummary.svelte';
+	import LedgerTable from '#lib/components/ledger/LedgerTable.svelte';
+	import { formatRelative, formatUtc } from '#lib/format.js';
+	import type { LedgerActionResult } from '#lib/ledger/types.js';
+	import Seo from '#lib/seo/Seo.svelte';
 
 	let { data, form } = $props();
 

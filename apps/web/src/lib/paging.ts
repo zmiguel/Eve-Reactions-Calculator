@@ -1,3 +1,5 @@
+import type { ReadonlyURL } from '$app/state';
+
 /** Rows per page of every profits table. */
 export const PAGE_SIZE = 10;
 
@@ -22,14 +24,14 @@ export function paginate<T>(all: readonly T[], page: number, size = PAGE_SIZE): 
 }
 
 /** The page number in query parameter `name` (1 when absent or not a positive integer). */
-export function pageParam(url: URL, name: string): number {
+export function pageParam(url: ReadonlyURL, name: string): number {
 	const n = Number(url.searchParams.get(name));
 	return Number.isSafeInteger(n) && n > 0 ? n : 1;
 }
 
 /** `url`'s path and query with `name` set to `page` (removed for page 1). */
-export function withPage(url: URL, name: string, page: number): string {
-	const next = new URL(url);
+export function withPage(url: ReadonlyURL, name: string, page: number): string {
+	const next = new URL(url.href);
 	if (page <= 1) next.searchParams.delete(name);
 	else next.searchParams.set(name, String(page));
 	return next.pathname + next.search;

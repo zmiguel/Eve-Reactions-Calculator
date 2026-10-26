@@ -1,6 +1,6 @@
 <script lang="ts">
-	import PermissionsForm from '$lib/components/account/PermissionsForm.svelte';
-	import Seo from '$lib/seo/Seo.svelte';
+	import PermissionsForm from '#lib/components/account/PermissionsForm.svelte';
+	import Seo from '#lib/seo/Seo.svelte';
 
 	let { data } = $props();
 </script>

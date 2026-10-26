@@ -3,8 +3,8 @@ import type {
 	ReconcileCounts,
 	ReconcileInputRow,
 	ReconcilePageData
-} from '$lib/ledger/types';
-import { paginate, type Paged } from '$lib/paging';
+} from '#lib/ledger/types.js';
+import { paginate, type Paged } from '#lib/paging.js';
 import { getDataset } from './data.ts';
 import { ledgerJobName, ledgerJobSql, materialBlueprintIds } from './ledger-item.ts';
 import { requestLedgerRebuild } from './ledger-rebuild.ts';

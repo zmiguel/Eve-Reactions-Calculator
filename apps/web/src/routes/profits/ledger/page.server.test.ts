@@ -2,10 +2,10 @@ import { DEFAULT_SETTINGS } from '@reactions/engine';
 import type { SdeDataset } from '@reactions/sde';
 import { isActionFailure, isHttpError, isRedirect, type RequestEvent } from '@sveltejs/kit';
 import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
-import type { LedgerPageData, LedgerRow } from '$lib/ledger/types';
-import { clearDataMemo } from '$lib/server/data';
-import { correctionNotice } from '$lib/server/price-corrections';
-import type { SessionUser } from '$lib/server/session';
+import type { LedgerPageData, LedgerRow } from '#lib/ledger/types.js';
+import { clearDataMemo } from '#lib/server/data.js';
+import { correctionNotice } from '#lib/server/price-corrections.js';
+import type { SessionUser } from '#lib/server/session.js';
 import { FakeCookies, fakeEnv, type FakeEnv } from '../../../test/fakes';
 import { NOW, insertUser, loadSde, putKv } from '../../../test/fixtures';
 import { insertSource } from '../../../test/inventory';
@@ -209,8 +209,7 @@ function event(env: FakeEnv, user: SessionUser | null, search = '', fields?: Rec
 		params: {},
 		request: new Request(url, body ? { method: 'POST', body } : undefined),
 		cookies: new FakeCookies().asCookies(),
-		platform: { env },
-		locals: { user, settings: DEFAULT_SETTINGS, theme: 'dark' }
+		locals: { user, settings: DEFAULT_SETTINGS, theme: 'dark', env }
 	} as unknown as RequestEvent as never;
 }
 

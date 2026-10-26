@@ -1,5 +1,5 @@
-import { formatIsk } from '$lib/format';
-import { loadCalc } from '$lib/server/context';
+import { formatIsk } from '#lib/format.js';
+import { loadCalc } from '#lib/server/context.js';
 import {
 	finalRows,
 	HOME_MAX_SHARE_PCT,
@@ -8,17 +8,17 @@ import {
 	profileHubs,
 	reactorBoards,
 	recentListings
-} from '$lib/server/home';
-import { formatAge, profileSystems } from '$lib/server/listing';
-import { getMarketStats } from '$lib/server/planner';
-import { REACTOR_LABEL } from '$lib/site';
+} from '#lib/server/home.js';
+import { formatAge, profileSystems } from '#lib/server/listing.js';
+import { getMarketStats } from '#lib/server/planner.js';
+import { REACTOR_LABEL } from '#lib/site.js';
 import type { PageServerLoad } from './$types';
 
-export const load: PageServerLoad = async ({ platform, locals }) => {
-	const calc = platform ? await loadCalc(platform.env, locals) : null;
+export const load: PageServerLoad = async ({ locals }) => {
+	const env = locals.env;
+	const calc = await loadCalc(env, locals);
 	if (!calc) return { home: null };
 	const { ctx, dataset, market, hubs } = calc;
-	const env = platform!.env;
 	const [stats, recent] = await Promise.all([
 		getMarketStats(
 			env,

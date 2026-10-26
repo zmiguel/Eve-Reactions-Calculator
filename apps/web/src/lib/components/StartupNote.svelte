@@ -1,7 +1,7 @@
 <script lang="ts">
 	import type { PlanStartup } from '@reactions/engine';
-	import InfoNote from '$lib/components/InfoNote.svelte';
-	import { startupSummary } from '$lib/startup';
+	import InfoNote from '#lib/components/InfoNote.svelte';
+	import { startupSummary } from '#lib/startup.js';
 
 	interface Props {
 		startup: PlanStartup;

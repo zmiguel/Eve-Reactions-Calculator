@@ -1,8 +1,8 @@
 <script lang="ts">
-	import { formatIsk, formatIskFull, formatNumber } from '$lib/format';
-	import { DEFAULT_TABS, reactionHref, tabsFor, type DefaultTabs } from '$lib/components/listing/links';
-	import TabBar from '$lib/components/listing/TabBar.svelte';
-	import { REACTOR_LABEL, typeIconUrl } from '$lib/site';
+	import { formatIsk, formatIskFull, formatNumber } from '#lib/format.js';
+	import { DEFAULT_TABS, reactionHref, tabsFor, type DefaultTabs } from '#lib/components/listing/links.js';
+	import TabBar from '#lib/components/listing/TabBar.svelte';
+	import { REACTOR_LABEL, typeIconUrl } from '#lib/site.js';
 	import type { BuildItem, BuildView, ReactorBoard } from './types';
 
 	interface Props {

@@ -1,22 +1,22 @@
 import { getCoreDb, jobRuns, latestPrices, marketHubs, sdeState } from '@reactions/db';
 import { error, fail, type ActionFailure, type RequestEvent } from '@sveltejs/kit';
 import { and, asc, count, desc, eq, isNotNull, lte, sql } from 'drizzle-orm';
-import { JOBS, type UpdaterAction } from '$lib/admin/jobs';
+import { JOBS, type UpdaterAction } from '#lib/admin/jobs.js';
 import {
 	triggerUpdater,
 	workflowStatuses,
 	type UpdaterNotice,
 	type WorkflowStatus
-} from '$lib/server/updater';
+} from '#lib/server/updater.js';
 import type { Actions, PageServerLoad } from './$types';
 
 /** Runs per job kind (newest first) loaded for its history; the first one is the job's latest run. */
 const HISTORY_RUNS = 25;
 
 /** Admins only (a character in `ADMIN_CHARACTER_IDS`); everyone else gets a plain 404. */
-function requireAdmin({ locals, platform }: Pick<RequestEvent, 'locals' | 'platform'>): Env {
-	if (!locals.user?.isAdmin || !platform) error(404, 'Not Found');
-	return platform.env;
+function requireAdmin({ locals }: Pick<RequestEvent, 'locals'>): Env {
+	if (!locals.user?.isAdmin) error(404, 'Not Found');
+	return locals.env;
 }
 
 export const load: PageServerLoad = async (event) => {

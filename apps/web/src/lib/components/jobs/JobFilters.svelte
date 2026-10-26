@@ -1,5 +1,5 @@
 <script lang="ts" module>
-	import type { JobFilters, JobPeriod, JobSort } from '$lib/jobs/types';
+	import type { JobFilters, JobPeriod, JobSort } from '#lib/jobs/types.js';
 
 	export const PERIODS: readonly [JobPeriod, string][] = [
 		['7', '7 days'],
@@ -42,8 +42,8 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { goto } from '$app/navigation';
-	import type { JobConnectionOption, JobFormula, JobStatus, JobStatusCounts } from '$lib/jobs/types';
-	import { formatNumber } from '$lib/format';
+	import type { JobConnectionOption, JobFormula, JobStatus, JobStatusCounts } from '#lib/jobs/types.js';
+	import { formatNumber } from '#lib/format.js';
 
 	interface Props {
 		filters: JobFilters;
@@ -88,7 +88,7 @@
 				{},
 				defaultPeriod
 			),
-			{ keepFocus: true, noScroll: true }
+			{ reset: false }
 		);
 	}
 

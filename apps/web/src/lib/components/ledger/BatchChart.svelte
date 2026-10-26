@@ -1,10 +1,10 @@
 <script lang="ts">
 	import type { ChartProps } from '@flowbite-svelte-plugins/chart';
 	import type { Component } from 'svelte';
-	import { containTooltips } from '$lib/charts';
-	import { formatIsk, formatIskAxis, formatIskFull, formatNumber, formatUtc } from '$lib/format';
-	import type { LedgerItemBatchPoint } from '$lib/ledger/types';
-	import { isDark } from '$lib/theme.svelte';
+	import { containTooltips } from '#lib/charts.js';
+	import { formatIsk, formatIskAxis, formatIskFull, formatNumber, formatUtc } from '#lib/format.js';
+	import type { LedgerItemBatchPoint } from '#lib/ledger/types.js';
+	import { isDark } from '#lib/theme.svelte.js';
 
 	interface Props {
 		/** Every batch, oldest first. */

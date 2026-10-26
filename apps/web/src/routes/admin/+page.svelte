@@ -1,8 +1,8 @@
 <script lang="ts">
-	import { invalidateAll } from '$app/navigation';
-	import JobsTable from '$lib/components/admin/JobsTable.svelte';
-	import { formatNumber, formatRelative, formatUtc } from '$lib/format';
-	import Seo from '$lib/seo/Seo.svelte';
+	import { refreshAll } from '$app/navigation';
+	import JobsTable from '#lib/components/admin/JobsTable.svelte';
+	import { formatNumber, formatRelative, formatUtc } from '#lib/format.js';
+	import Seo from '#lib/seo/Seo.svelte';
 
 	let { data, form } = $props();
 
@@ -19,7 +19,7 @@
 	const anyRunning = $derived(data.jobs.some((job) => job.runs.some((r) => r.status === 'running')));
 	$effect(() => {
 		if (!anyRunning) return;
-		const timer = setInterval(() => void invalidateAll(), REFRESH_SECONDS * 1000);
+		const timer = setInterval(() => void refreshAll(), REFRESH_SECONDS * 1000);
 		return () => clearInterval(timer);
 	});
 </script>

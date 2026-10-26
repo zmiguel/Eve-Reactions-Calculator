@@ -1,11 +1,11 @@
 <script lang="ts">
 	import { PLAN_MAX_HORIZON_CYCLES, type Dataset, type PlanResult } from '@reactions/engine';
-	import type { InputMarket, ProductVolume } from '$lib/planner/plan';
-	import InfoNote from '$lib/components/InfoNote.svelte';
-	import FlowDiagram from '$lib/components/detail/FlowDiagram.svelte';
-	import { layoutPlanFlow } from '$lib/planner/flow';
-	import LineItemsTable from '$lib/components/detail/LineItemsTable.svelte';
-	import MultibuyButton from '$lib/components/detail/MultibuyButton.svelte';
+	import type { InputMarket, ProductVolume } from '#lib/planner/plan.js';
+	import InfoNote from '#lib/components/InfoNote.svelte';
+	import FlowDiagram from '#lib/components/detail/FlowDiagram.svelte';
+	import { layoutPlanFlow } from '#lib/planner/flow.js';
+	import LineItemsTable from '#lib/components/detail/LineItemsTable.svelte';
+	import MultibuyButton from '#lib/components/detail/MultibuyButton.svelte';
 	import {
 		formatDuration,
 		formatIsk,
@@ -14,12 +14,12 @@
 		formatPct,
 		formatRunsPerSlot,
 		runsPerSlotTitle
-	} from '$lib/format';
-	import { lineItemsMultibuy } from '$lib/multibuy';
-	import { blueprintIconUrl, typeIconUrl } from '$lib/site';
-	import StartupNote from '$lib/components/StartupNote.svelte';
-	import { phaseTitle } from '$lib/startup';
-	import { PLAN_WARNING_TEXT } from '$lib/planner/warnings';
+	} from '#lib/format.js';
+	import { lineItemsMultibuy } from '#lib/multibuy.js';
+	import { blueprintIconUrl, typeIconUrl } from '#lib/site.js';
+	import StartupNote from '#lib/components/StartupNote.svelte';
+	import { phaseTitle } from '#lib/startup.js';
+	import { PLAN_WARNING_TEXT } from '#lib/planner/warnings.js';
 	import GroupedItemsTable from './GroupedItemsTable.svelte';
 
 	interface Props {

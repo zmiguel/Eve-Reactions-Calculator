@@ -1,5 +1,5 @@
 <script lang="ts" module>
-	import type { InputSourceKind } from '$lib/profits/types';
+	import type { InputSourceKind } from '#lib/profits/types.js';
 
 	/** Donut slice names and colors, in the order the slices are listed. */
 	export const INPUT_SOURCE: Record<InputSourceKind, { label: string; color: string }> = {
@@ -15,10 +15,10 @@
 <script lang="ts">
 	import type { ChartProps } from '@flowbite-svelte-plugins/chart';
 	import { onMount, type Component } from 'svelte';
-	import { containTooltips } from '$lib/charts';
-	import { formatIsk, formatIskAxis, formatIskFull, formatPct } from '$lib/format';
-	import type { OverviewCharts } from '$lib/profits/types';
-	import { isDark } from '$lib/theme.svelte';
+	import { containTooltips } from '#lib/charts.js';
+	import { formatIsk, formatIskAxis, formatIskFull, formatPct } from '#lib/format.js';
+	import type { OverviewCharts } from '#lib/profits/types.js';
+	import { isDark } from '#lib/theme.svelte.js';
 
 	interface Props {
 		charts: OverviewCharts;

@@ -2,8 +2,8 @@ import { DEFAULT_SETTINGS, Settings, encodeSettings } from '@reactions/engine';
 import type { RequestEvent } from '@sveltejs/kit';
 import { render } from 'svelte/server';
 import { beforeEach, describe, expect, it } from 'vitest';
-import { clearDataMemo } from '$lib/server/data';
-import type { SessionUser } from '$lib/server/session';
+import { clearDataMemo } from '#lib/server/data.js';
+import type { SessionUser } from '#lib/server/session.js';
 import { FakeCookies, fakeEnv } from '../../test/fakes';
 import { NOW, insertSystems, insertUser } from '../../test/fixtures';
 import { resetPage, setPage } from '../../test/shims/app/state';
@@ -27,9 +27,13 @@ async function ssr(
 	setPage({ url });
 	const data = await load({
 		url,
-		platform: { env },
 		cookies: new FakeCookies().asCookies(),
-		locals: { settings: opts.settings ?? DEFAULT_SETTINGS, user: opts.user ?? null, theme: 'dark' }
+		locals: {
+			settings: opts.settings ?? DEFAULT_SETTINGS,
+			user: opts.user ?? null,
+			theme: 'dark',
+			env
+		}
 	} as unknown as RequestEvent as never);
 	const { head, body } = render(Page, { props: { data, form: opts.form ?? null, params: {} } as never });
 	return { head, body };

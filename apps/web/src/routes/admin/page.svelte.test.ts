@@ -1,8 +1,8 @@
 import { render, screen } from '@testing-library/svelte';
 import { tick } from 'svelte';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { JOBS } from '$lib/admin/jobs';
-import { invalidateAllCalls, resetNavigation } from '../../test/shims/app/navigation';
+import { JOBS } from '#lib/admin/jobs.js';
+import { refreshAllCalls, resetNavigation } from '../../test/shims/app/navigation';
 import { resetPage, setPage } from '../../test/shims/app/state';
 import Page from './+page.svelte';
 import type { PageServerData } from './$types';
@@ -56,30 +56,30 @@ describe('/admin page', () => {
 		await tick();
 		expect(screen.getByText('Updating every 10 s')).toBeTruthy();
 		await vi.advanceTimersByTimeAsync(25_000);
-		expect(invalidateAllCalls).toEqual([NOW + 10_000, NOW + 20_000]);
+		expect(refreshAllCalls).toEqual([NOW + 10_000, NOW + 20_000]);
 
 		await view.rerender({ data: data('ok') } as never);
 		await vi.advanceTimersByTimeAsync(30_000);
-		expect(invalidateAllCalls).toHaveLength(2);
+		expect(refreshAllCalls).toHaveLength(2);
 		expect(screen.queryByText('Updating every 10 s')).toBeNull();
 	});
 
 	it('also refreshes for an older run that is still running', async () => {
 		renderPage(data('ok', 'running'));
 		await vi.advanceTimersByTimeAsync(10_000);
-		expect(invalidateAllCalls).toHaveLength(1);
+		expect(refreshAllCalls).toHaveLength(1);
 	});
 
 	it('does not refresh when nothing runs, and stops when the page is left', async () => {
 		renderPage(data('ok'));
 		await vi.advanceTimersByTimeAsync(30_000);
-		expect(invalidateAllCalls).toEqual([]);
+		expect(refreshAllCalls).toEqual([]);
 		expect(screen.queryByText('Updating every 10 s')).toBeNull();
 
 		const view = renderPage(data('running'));
 		await tick();
 		view.unmount();
 		await vi.advanceTimersByTimeAsync(30_000);
-		expect(invalidateAllCalls).toEqual([]);
+		expect(refreshAllCalls).toEqual([]);
 	});
 });

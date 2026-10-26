@@ -1,5 +1,5 @@
-import { profitsContext } from '$lib/server/profits-access';
-import { profitsOverview } from '$lib/server/profits-overview';
+import { profitsContext } from '#lib/server/profits-access.js';
+import { profitsOverview } from '#lib/server/profits-overview.js';
 import type { PageServerLoad } from './$types';
 
 /** The overview of the visitor's profits; null when the layout shows the login / enable message. */

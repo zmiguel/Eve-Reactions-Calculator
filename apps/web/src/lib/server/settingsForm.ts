@@ -1,6 +1,6 @@
 import { DEFAULT_SETTINGS, REACTORS, Settings, type ReactorProfile } from '@reactions/engine';
 import type { z } from 'zod';
-import { profilePath, type ProfileKey, type SystemSummary } from '$lib/settings/fields';
+import { profilePath, type ProfileKey, type SystemSummary } from '#lib/settings/fields.js';
 import { getSystemByName, getSystemsByIds } from './systems.ts';
 
 /** Returned with `fail(400, …)`: field errors plus the submitted values so the form can redisplay them. */

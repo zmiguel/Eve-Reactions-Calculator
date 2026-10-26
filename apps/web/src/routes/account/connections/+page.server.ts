@@ -1,6 +1,6 @@
-import { error, fail, redirect, type RequestEvent } from '@sveltejs/kit';
-import type { ConnectionsPageData } from '$lib/inventory/types';
-import { getCharacter } from '$lib/server/auth/accounts';
+import { fail, redirect, type RequestEvent } from '@sveltejs/kit';
+import type { ConnectionsPageData } from '#lib/inventory/types.js';
+import { getCharacter } from '#lib/server/auth/accounts.js';
 import {
 	addSource,
 	getSource,
@@ -8,24 +8,23 @@ import {
 	removeSource,
 	requestInventorySync,
 	type SyncRequest
-} from '$lib/server/inventory';
-import { TOO_MANY, throttled } from '$lib/server/ledger-actions';
-import { requestLedgerRebuild } from '$lib/server/ledger-rebuild';
+} from '#lib/server/inventory.js';
+import { TOO_MANY, throttled } from '#lib/server/ledger-actions.js';
+import { requestLedgerRebuild } from '#lib/server/ledger-rebuild.js';
 import {
 	connectionsPage,
 	requestTrackingSync,
 	saveWalletDivisions,
 	setSwitch,
 	type ConnectionOutcome
-} from '$lib/server/tracking-connections';
+} from '#lib/server/tracking-connections.js';
 import type { Actions, PageServerLoad } from './$types';
 
 const LOGIN_URL = '/auth/login?purpose=login&returnTo=%2Faccount%2Fconnections';
 
-function requireAccount({ locals, platform }: Pick<RequestEvent, 'locals' | 'platform'>) {
+function requireAccount({ locals }: Pick<RequestEvent, 'locals'>) {
 	if (!locals.user) redirect(303, LOGIN_URL);
-	if (!platform) error(503, 'Your account is not available right now.');
-	return { env: platform.env, user: locals.user };
+	return { env: locals.env, user: locals.user };
 }
 
 const positiveInt = (value: FormDataEntryValue | null) => {

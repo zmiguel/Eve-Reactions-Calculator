@@ -1,10 +1,10 @@
 import { DEFAULT_SETTINGS, TrackingSettings } from '@reactions/engine';
 import { isHttpError, type RequestEvent } from '@sveltejs/kit';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import type { ProfitsOverviewData } from '$lib/profits/types';
-import { clearDataMemo } from '$lib/server/data';
-import { saveTrackingSettings } from '$lib/server/tracking-settings';
-import type { SessionUser } from '$lib/server/session';
+import type { ProfitsOverviewData } from '#lib/profits/types.js';
+import { clearDataMemo } from '#lib/server/data.js';
+import { saveTrackingSettings } from '#lib/server/tracking-settings.js';
+import type { SessionUser } from '#lib/server/session.js';
 import { FakeCookies, asEnv, type FakeEnv } from '../../test/fakes';
 import { NOW, insertUser } from '../../test/fixtures';
 import { ALPHA, BETA } from '../../test/jobs';
@@ -28,8 +28,7 @@ function event(env: FakeEnv, user: SessionUser | null, path: string) {
 		params: {},
 		request: new Request(url),
 		cookies: new FakeCookies().asCookies(),
-		platform: { env },
-		locals: { user, settings: DEFAULT_SETTINGS, theme: 'dark' }
+		locals: { user, settings: DEFAULT_SETTINGS, theme: 'dark', env }
 	} as unknown as RequestEvent as never;
 }
 

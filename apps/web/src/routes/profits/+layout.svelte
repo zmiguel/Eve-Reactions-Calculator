@@ -8,9 +8,9 @@
 </script>
 
 <script lang="ts">
-	import TabNav from '$lib/components/TabNav.svelte';
-	import ProfitsGate from '$lib/components/profits/ProfitsGate.svelte';
-	import Seo from '$lib/seo/Seo.svelte';
+	import TabNav from '#lib/components/TabNav.svelte';
+	import ProfitsGate from '#lib/components/profits/ProfitsGate.svelte';
+	import Seo from '#lib/seo/Seo.svelte';
 
 	let { data, children } = $props();
 </script>

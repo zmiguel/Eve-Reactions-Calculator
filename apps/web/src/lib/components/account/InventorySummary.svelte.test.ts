@@ -1,6 +1,6 @@
 import { render } from '@testing-library/svelte';
 import { describe, expect, it } from 'vitest';
-import type { InventorySummaryView } from '$lib/inventory/types';
+import type { InventorySummaryView } from '#lib/inventory/types.js';
 import InventorySummary from './InventorySummary.svelte';
 
 const summary: InventorySummaryView = {

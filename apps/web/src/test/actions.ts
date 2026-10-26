@@ -1,7 +1,7 @@
 /** Request events and outcome helpers for `web-unit` tests of profits page loads, actions and endpoints. */
 import { DEFAULT_SETTINGS } from '@reactions/engine';
 import { isActionFailure, isHttpError, isRedirect, type RequestEvent } from '@sveltejs/kit';
-import type { SessionUser } from '$lib/server/session';
+import type { SessionUser } from '#lib/server/session.js';
 import { FakeCookies, type FakeEnv } from './fakes.ts';
 
 /** A GET (no `fields`) or form POST event for `path` (path and query). */
@@ -22,8 +22,7 @@ export function requestEvent(
 		params: {},
 		request: new Request(url, body ? { method: 'POST', body } : undefined),
 		cookies: new FakeCookies().asCookies(),
-		platform: { env },
-		locals: { user, settings: DEFAULT_SETTINGS, theme: 'dark' }
+		locals: { user, settings: DEFAULT_SETTINGS, theme: 'dark', env }
 	} as unknown as RequestEvent as never;
 }
 

@@ -55,8 +55,7 @@
 				class="mt-1 block w-full rounded-md border border-gray-200 bg-white p-2 font-mono text-xs text-gray-900 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200"
 				aria-label="Multibuy list"
 				value={text}
-				onfocus={(event) => event.currentTarget.select()}
-			></textarea>
+				onfocus={(event) => event.currentTarget.select()}></textarea>
 		</details>
 	</div>
 {/if}

@@ -1,10 +1,10 @@
 <script lang="ts">
-	import JobFilters, { PERIODS, jobsHref } from '$lib/components/jobs/JobFilters.svelte';
-	import JobOutputBar from '$lib/components/jobs/JobOutputBar.svelte';
-	import JobTable, { ESTIMATE } from '$lib/components/jobs/JobTable.svelte';
-	import Isk from '$lib/components/profits/Isk.svelte';
-	import { formatNumber, formatRelative, formatUtc } from '$lib/format';
-	import Seo from '$lib/seo/Seo.svelte';
+	import JobFilters, { PERIODS, jobsHref } from '#lib/components/jobs/JobFilters.svelte';
+	import JobOutputBar from '#lib/components/jobs/JobOutputBar.svelte';
+	import JobTable, { ESTIMATE } from '#lib/components/jobs/JobTable.svelte';
+	import Isk from '#lib/components/profits/Isk.svelte';
+	import { formatNumber, formatRelative, formatUtc } from '#lib/format.js';
+	import Seo from '#lib/seo/Seo.svelte';
 
 	let { data } = $props();
 

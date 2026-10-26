@@ -1,8 +1,8 @@
 <script lang="ts">
 	import { page } from '$app/state';
-	import Estimated from '$lib/components/profits/Estimated.svelte';
-	import { formatIsk, formatIskFull, formatNumber } from '$lib/format';
-	import type { LedgerSummary } from '$lib/ledger/types';
+	import Estimated from '#lib/components/profits/Estimated.svelte';
+	import { formatIsk, formatIskFull, formatNumber } from '#lib/format.js';
+	import type { LedgerSummary } from '#lib/ledger/types.js';
 
 	interface Props {
 		summary: LedgerSummary;
@@ -14,7 +14,7 @@
 
 	/** The current page with the review filter switched on or off (back to the first page). */
 	const reviewHref = (on: boolean) => {
-		const url = new URL(page.url);
+		const url = new URL(page.url.href);
 		url.searchParams.delete('page');
 		for (const key of [...url.searchParams.keys()]) if (key.startsWith('/')) url.searchParams.delete(key);
 		if (on) url.searchParams.set('review', '1');

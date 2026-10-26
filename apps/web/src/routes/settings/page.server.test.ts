@@ -8,8 +8,8 @@ import {
 } from '@reactions/engine';
 import { isActionFailure, isRedirect, type RequestEvent } from '@sveltejs/kit';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { clearDataMemo } from '$lib/server/data';
-import type { SessionUser } from '$lib/server/session';
+import { clearDataMemo } from '#lib/server/data.js';
+import type { SessionUser } from '#lib/server/session.js';
 import { FakeCookies, fakeEnv, type FakeEnv } from '../../test/fakes';
 import { NOW, insertStructureHub, insertSystems, insertUser, linkStructure } from '../../test/fixtures';
 import { actions, load } from './+page.server';
@@ -102,8 +102,12 @@ function event(ctx: Ctx, path: string, form?: FormData) {
 		url,
 		request: new Request(url, form ? { method: 'POST', body: form } : undefined),
 		cookies: ctx.cookies.asCookies(),
-		platform: { env: ctx.env },
-		locals: { settings: ctx.settings ?? DEFAULT_SETTINGS, user: ctx.user ?? null, theme: 'dark' }
+		locals: {
+			settings: ctx.settings ?? DEFAULT_SETTINGS,
+			user: ctx.user ?? null,
+			theme: 'dark',
+			env: ctx.env
+		}
 	} as unknown as RequestEvent;
 }
 

@@ -1,6 +1,6 @@
 <script lang="ts">
-	import { formatNumber, formatUtc } from '$lib/format';
-	import type { UserInventory } from '$lib/server/inventory';
+	import { formatNumber, formatUtc } from '#lib/format.js';
+	import type { UserInventory } from '#lib/server/inventory.js';
 
 	interface Props {
 		inventory: UserInventory;

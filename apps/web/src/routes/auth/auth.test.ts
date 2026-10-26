@@ -2,9 +2,9 @@ import { DEFAULT_SETTINGS, Settings, encodeSettings } from '@reactions/engine';
 import { STRUCTURE_SCOPES } from '@reactions/eve';
 import { isHttpError, isRedirect, type RequestEvent } from '@sveltejs/kit';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { readOauthState } from '$lib/server/auth/oauth';
-import { sha256Hex } from '$lib/server/crypto';
-import type { SessionUser } from '$lib/server/session';
+import { readOauthState } from '#lib/server/auth/oauth.js';
+import { sha256Hex } from '#lib/server/crypto.js';
+import type { SessionUser } from '#lib/server/session.js';
 import { FakeCookies, type FakeEnv } from '../../test/fakes';
 import { NOW, insertUser } from '../../test/fixtures';
 import { SESSION_SECRET, sessionUser, ssoEnv } from '../../test/sso';
@@ -32,8 +32,7 @@ async function call(handler: (event: never) => unknown, path: string, ctx: Ctx =
 		url,
 		request: new Request(url, { method }),
 		cookies: cookies.asCookies(),
-		platform: { env },
-		locals: { user: ctx.user ?? null, settings: DEFAULT_SETTINGS, theme: 'dark' }
+		locals: { user: ctx.user ?? null, settings: DEFAULT_SETTINGS, theme: 'dark', env }
 	} as unknown as RequestEvent;
 	try {
 		await handler(event as never);

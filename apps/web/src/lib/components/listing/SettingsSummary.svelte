@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { CogOutline } from 'flowbite-svelte-icons';
-	import { formatPct } from '$lib/format';
+	import { formatPct } from '#lib/format.js';
 	import type { SettingsSummaryData } from './types';
 
 	interface Props {

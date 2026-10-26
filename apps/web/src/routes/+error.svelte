@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { page } from '$app/state';
-	import Seo from '$lib/seo/Seo.svelte';
-	import { REACTOR_LABEL } from '$lib/site';
+	import Seo from '#lib/seo/Seo.svelte';
+	import { REACTOR_LABEL } from '#lib/site.js';
 
 	const notFound = $derived(page.status === 404);
 	const heading = $derived(

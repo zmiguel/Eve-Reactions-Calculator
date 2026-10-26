@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import Pill from '$lib/components/profits/Pill.svelte';
+	import Pill from '#lib/components/profits/Pill.svelte';
 	import {
 		BAND_NAMES,
 		NO_RIG,
@@ -10,8 +10,8 @@
 		rigChoicesFor,
 		type FacilityRigChoice,
 		type FacilityView
-	} from '$lib/account/facilities';
-	import { formatNumber, formatPct, formatUtc } from '$lib/format';
+	} from '#lib/account/facilities.js';
+	import { formatNumber, formatPct, formatUtc } from '#lib/format.js';
 
 	/**
 	 * One facility of the Facilities form on `/account/tracking`: what EVE told (plain text) and selects

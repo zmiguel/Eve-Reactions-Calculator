@@ -1,5 +1,5 @@
 import type { createApiReference } from '@scalar/api-reference';
-import { SITE_URL } from '$lib/site';
+import { SITE_URL } from '#lib/site.js';
 
 /** The OpenAPI document the `/api` reference renders. */
 export const OPENAPI_URL = '/api/v2/openapi.json';

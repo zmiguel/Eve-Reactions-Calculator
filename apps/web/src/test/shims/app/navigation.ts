@@ -1,6 +1,6 @@
 /**
  * Test shim for `$app/navigation` (web-components project). Navigations are recorded instead of
- * performed; tests import `gotoCalls`/`replaceStateCalls`/`invalidateAllCalls`/`resetNavigation` from this
+ * performed; tests import `gotoCalls`/`shallowUrls`/`refreshAllCalls`/`resetNavigation` from this
  * file by relative path.
  */
 export interface GotoCall {
@@ -8,28 +8,24 @@ export interface GotoCall {
 	opts?: Record<string, unknown>;
 }
 
+/** `goto` navigations (not shallow). */
 export const gotoCalls: GotoCall[] = [];
-/** URLs passed to `replaceState` (shallow routing). */
-export const replaceStateCalls: string[] = [];
-/** One entry (the fake-able `Date.now()`) per `invalidateAll()` call. */
-export const invalidateAllCalls: number[] = [];
+/** URLs passed to `goto(url, { shallow: true })` (shallow routing). */
+export const shallowUrls: string[] = [];
+/** One entry (the fake-able `Date.now()`) per `refreshAll()` call. */
+export const refreshAllCalls: number[] = [];
 
 export function resetNavigation() {
 	gotoCalls.length = 0;
-	replaceStateCalls.length = 0;
-	invalidateAllCalls.length = 0;
+	shallowUrls.length = 0;
+	refreshAllCalls.length = 0;
 }
 
 export async function goto(url: string | URL, opts?: Record<string, unknown>): Promise<void> {
-	gotoCalls.push({ url: String(url), opts });
+	if (opts?.shallow) shallowUrls.push(String(url));
+	else gotoCalls.push({ url: String(url), opts });
 }
 
-export async function invalidate(): Promise<void> {}
-
-export async function invalidateAll(): Promise<void> {
-	invalidateAllCalls.push(Date.now());
-}
-
-export function replaceState(url: string | URL, _state: App.PageState): void {
-	replaceStateCalls.push(String(url));
+export async function refreshAll(): Promise<void> {
+	refreshAllCalls.push(Date.now());
 }
