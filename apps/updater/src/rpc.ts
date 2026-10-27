@@ -1,6 +1,6 @@
 import { WorkerEntrypoint } from 'cloudflare:workers';
 import type { JobRunRow } from '@reactions/db';
-import { fetchSdeLatest } from '@reactions/eve';
+import { fetchSdeLatest, isEsiDowntime } from '@reactions/eve';
 import { setContractJanice, type ContractJaniceResult } from './contract-janice.ts';
 import { refreshAdjustedPrices } from './cron/adjusted-prices.ts';
 import { refreshAffiliations } from './cron/affiliations.ts';
@@ -9,6 +9,7 @@ import { startInventoryPass } from './cron/inventory.ts';
 import { startTrackingPass } from './cron/tracking.ts';
 import { importedSdeBuild } from './cron/sde-check.ts';
 import { isIsoDate } from './dates.ts';
+import { ESI_DOWNTIME_MESSAGE } from './esi-downtime.ts';
 import { httpFetch, userAgent } from './http.ts';
 import { startInventorySync } from './inventory.ts';
 import { errorMessage, failJobRun, finishJobRun, inlineRunId, latestJobRuns, startJobRun } from './jobs.ts';
@@ -35,7 +36,7 @@ export interface WorkflowState {
 
 /**
  * Runs a cron step now as `<kind>-manual-<now ms>`; its `job_runs` row records a failure, so the error
- * is returned instead of rejecting the RPC call.
+ * is returned instead of rejecting the RPC call. ESI's daily downtime answers a plain sentence.
  */
 async function runInline(
 	method: string,
@@ -48,6 +49,7 @@ async function runInline(
 	try {
 		return { runId, status: 'ok', summary: await run(now) };
 	} catch (error) {
+		if (isEsiDowntime(error)) return { runId, status: 'failed', summary: ESI_DOWNTIME_MESSAGE };
 		return { runId, status: 'failed', summary: errorMessage(error) };
 	}
 }

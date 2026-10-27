@@ -1,5 +1,5 @@
 import { costIndices, getCoreDb, upsertMany } from '@reactions/db';
-import { ESI_BASE_URL, fetchIndustrySystems } from '@reactions/eve';
+import { ESI_BASE_URL, fetchIndustrySystems, isEsiDowntime } from '@reactions/eve';
 import { INDUSTRY_SYSTEMS_PATH } from '../config.ts';
 import { conditionalRefresh, describeOutcome, esiClient } from '../http.ts';
 import { failJobRun, finishJobRun, inlineRunId, NO_NEW_DATA, startJobRun } from '../jobs.ts';
@@ -47,7 +47,9 @@ export async function refreshCostIndices(env: Env, now: number, manual = false):
 		if (manual && outcome.kind !== 'updated') await finishJobRun(env, runId, 'ok', NO_NEW_DATA);
 		return describeOutcome(outcome, (written) => `${written} systems written, market:v1 published`);
 	} catch (error) {
-		await failJobRun(env, runId, 'cost_indices', now, error);
+		// The daily downtime is no failure of a cron run (the next open tick refreshes); a manual run
+		// already recorded its row, so that one ends `failed`.
+		if (!isEsiDowntime(error) || manual) await failJobRun(env, runId, 'cost_indices', now, error);
 		throw error;
 	}
 }

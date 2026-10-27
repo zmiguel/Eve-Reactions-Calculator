@@ -2,7 +2,9 @@ import { introspectWorkflowInstance } from 'cloudflare:test';
 import { env } from 'cloudflare:workers';
 import { MARKET_KV_KEY } from '@reactions/db';
 import type { MarketSnapshot } from '@reactions/db';
+import { isEsiDowntime } from '@reactions/eve';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { esiAvailable } from '../src/esi-downtime.ts';
 import { refreshRegion } from '../src/workflows/price-refresh.ts';
 import type { PublishCounts } from '../src/workflows/price-refresh.ts';
 import {
@@ -58,7 +60,10 @@ async function gunzipJson(body: ReadableStream<Uint8Array>): Promise<unknown> {
 
 describe('PriceRefreshWorkflow region step', () => {
 	beforeEach(resetState);
-	afterEach(() => vi.unstubAllGlobals());
+	afterEach(() => {
+		vi.mocked(esiAvailable).mockImplementation(async () => true);
+		vi.unstubAllGlobals();
+	});
 
 	it('aggregates one region response per hub: Jita by station, Perimeter by system', async () => {
 		await seedTrackedReaction();
@@ -128,6 +133,31 @@ describe('PriceRefreshWorkflow region step', () => {
 		expect(await sourceCounts()).toEqual({ esi: 12, fuzzwork: 6 });
 		expect(await latest('perimeter', 908)).toMatchObject({ buy_max: 50, sell_min: 60, source: 'fuzzwork' });
 		expect(await latest('jita', 905)).toMatchObject({ buy_max: 100, sell_min: 120, source: 'esi' });
+	});
+
+	it('waits out the ESI downtime instead of falling back to Fuzzwork', async () => {
+		await seedTrackedReaction();
+		// ESI closes after the first two requests (10:55 UTC passed during the step).
+		let open = 2;
+		vi.mocked(esiAvailable).mockImplementation(async () => open-- > 0);
+		const calls = installFetch((url) =>
+			url.hostname === 'market.fuzzwork.co.uk'
+				? fuzzwork(url)
+				: json(forgeOrders(Number(url.searchParams.get('type_id'))))
+		);
+
+		const error = await refreshRegion(env, 10000002, ['jita', 'perimeter'], 3000).catch((e: unknown) => e);
+
+		expect(isEsiDowntime(error)).toBe(true);
+		expect(calls.filter((c) => c.url.startsWith('https://market.fuzzwork.co.uk/'))).toEqual([]);
+		expect(await sourceCounts()).toEqual({});
+
+		// The step's next run, once ESI is back, takes every type from ESI.
+		vi.mocked(esiAvailable).mockImplementation(async () => true);
+		expect(await refreshRegion(env, 10000002, ['jita', 'perimeter'], 3000)).toMatchObject({
+			esi: 10,
+			fuzzwork: 0
+		});
 	});
 });
 

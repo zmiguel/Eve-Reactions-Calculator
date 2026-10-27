@@ -1,5 +1,6 @@
 import { ERROR_INTERNAL } from '@reactions/eve';
 import { INVENTORY_RUN_STALE_MINUTES } from './config.ts';
+import { esiActiveCutoff } from './esi-downtime.ts';
 import { errorMessage } from './jobs.ts';
 import { createWorkflowInstance } from './workflows/instances.ts';
 import type { InventorySyncParams } from './workflows/inventory-sync.ts';
@@ -41,12 +42,13 @@ const FAIL_SQL = `
 	WHERE source_id = ?1 AND run_id = ?2 AND status = 'running'`;
 
 /**
- * Marks every `running` sync that started more than `INVENTORY_RUN_STALE_MINUTES` ago as `error`
- * ("sync did not finish"); returns how many.
+ * Marks every `running` sync that has been working for more than `INVENTORY_RUN_STALE_MINUTES` as
+ * `error` ("sync did not finish"); returns how many. Time paused by ESI's daily downtime does not
+ * count (`esiActiveCutoff`), so a sync that waited it out is not settled when ESI comes back.
  */
 export async function settleStaleInventorySyncs(env: Env, now: number): Promise<number> {
 	const { results } = await env.DB.prepare(SETTLE_SQL)
-		.bind(null, now - INVENTORY_RUN_STALE_MINUTES * 60_000)
+		.bind(null, await esiActiveCutoff(env, now, INVENTORY_RUN_STALE_MINUTES * 60_000))
 		.all();
 	return results.length;
 }
@@ -66,8 +68,9 @@ export async function claimInventorySource(
 	now: number,
 	respectExpiry: boolean
 ): Promise<'claimed' | InventoryClaimRefusal> {
+	const staleCutoff = await esiActiveCutoff(env, now, INVENTORY_RUN_STALE_MINUTES * 60_000);
 	const [, claimed, existing] = await env.DB.batch([
-		env.DB.prepare(SETTLE_SQL).bind(sourceId, now - INVENTORY_RUN_STALE_MINUTES * 60_000),
+		env.DB.prepare(SETTLE_SQL).bind(sourceId, staleCutoff),
 		env.DB.prepare(CLAIM_SQL).bind(sourceId, runId, now, respectExpiry ? 1 : 0),
 		env.DB.prepare(
 			'SELECT status, data_expires_at, inventory_enabled FROM inventory_sources WHERE source_id = ?'

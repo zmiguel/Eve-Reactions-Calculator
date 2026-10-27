@@ -1,6 +1,8 @@
 import { createScheduledController } from 'cloudflare:test';
 import { env } from 'cloudflare:workers';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { esiAvailable } from '../src/esi-downtime.ts';
+import type * as EsiDowntime from '../src/esi-downtime.ts';
 import worker from '../src/index.ts';
 import {
 	completedInstanceCount,
@@ -13,6 +15,9 @@ import {
 	sdeLatest,
 	seedTrackedReaction
 } from './helpers.ts';
+
+/** The real gate (the setup file keeps ESI open for every other test). */
+const actual = await vi.importActual<typeof EsiDowntime>('../src/esi-downtime.ts');
 
 const CRON = '*/10 * * * *';
 
@@ -70,7 +75,7 @@ describe('scheduled', () => {
 		expect(log[3]).toBe(`[scheduled] prices: started prices-${at}`);
 		expect(log[4]).toMatch(/^\[scheduled\] sde-check: build 7000 is new .* started sde-7000$/);
 		expect(log[5]).toBe('[scheduled] daily: started daily-2026-10-06');
-		expect(log[6]).toBe('[scheduled] affiliations: skipped (daily at 12:20 UTC)');
+		expect(log[6]).toBe('[scheduled] affiliations: skipped (daily from 12:20 UTC)');
 		expect(log[7]).toBe('[scheduled] inventory: no sources due');
 		expect(log[8]).toBe('[scheduled] tracking: no connections due; ledgers rebuilt: 0');
 		expect(calls).toHaveLength(3);
@@ -99,7 +104,7 @@ describe('scheduled', () => {
 			`[scheduled] prices: started prices-${at}`,
 			'[scheduled] sde-check: skipped (checked hourly)',
 			'[scheduled] daily: started daily-2026-10-06',
-			'[scheduled] affiliations: skipped (daily at 12:20 UTC)',
+			'[scheduled] affiliations: 0 of 0 characters updated (0 corporations, 0 alliances)',
 			'[scheduled] inventory: no sources due',
 			'[scheduled] tracking: no connections due; ledgers rebuilt: 0'
 		]);
@@ -110,5 +115,43 @@ describe('scheduled', () => {
 			'SELECT reaction FROM cost_indices WHERE system_id = 30002647'
 		).first();
 		expect(costIndex).toEqual({ reaction: 0.04 });
+	});
+});
+
+describe('scheduled during the ESI downtime', () => {
+	beforeEach(async () => {
+		await resetState();
+		actual.resetEsiDowntimeMemo();
+		vi.mocked(esiAvailable).mockImplementation(actual.esiAvailable);
+		vi.useFakeTimers({ toFake: ['Date'] });
+	});
+	afterEach(() => {
+		vi.useRealTimers();
+		vi.mocked(esiAvailable).mockImplementation(async () => true);
+		vi.restoreAllMocks();
+		vi.unstubAllGlobals();
+	});
+
+	it('sends no ESI request and starts no ESI workflow from 10:55 UTC', async () => {
+		await seedTrackedReaction();
+		await importedBuild(6000);
+		await using prices = await mockedPriceWorkflow();
+		const calls = installFetch(() => json([]));
+		const at = Date.UTC(2026, 9, 6, 10, 57);
+		vi.setSystemTime(at);
+
+		const { log, error } = await runCron(at);
+
+		expect(error).toEqual([]);
+		expect(calls.filter((c) => new URL(c.url).hostname === 'esi.evetech.net')).toEqual([]);
+		expect(await prices.get()).toEqual([]);
+		const runs = await env.DB.prepare('SELECT COUNT(*) AS n FROM job_runs').first();
+		expect(runs).toEqual({ n: 0 });
+		const skipped = log.filter((l) => l.endsWith(': skipped (ESI downtime)')).map((l) => l.split(':')[0]);
+		expect(skipped).toEqual(
+			['adjusted-prices', 'cost-indices', 'prices', 'daily', 'affiliations', 'inventory', 'tracking'].map(
+				(name) => `[scheduled] ${name}`
+			)
+		);
 	});
 });

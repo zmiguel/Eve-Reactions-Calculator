@@ -169,17 +169,67 @@ describe('refreshAffiliations', () => {
 		]);
 	});
 
-	it('runs once a day, on the tick in 12:20 to 12:29 UTC', async () => {
+	const day = (h: number, m: number, d = 9) => Date.UTC(2026, 9, d, h, m);
+	const insertRun = (runId: string, status: string, startedAt: number) =>
+		env.DB.prepare("INSERT INTO job_runs (run_id, kind, started_at, status) VALUES (?, 'affiliations', ?, ?)")
+			.bind(runId, startedAt, status)
+			.run();
+
+	it('does not run before 12:20 UTC', async () => {
 		await seedCharacters([1]);
 		const calls = esi();
-		for (const at of [
-			Date.UTC(2026, 9, 9, 12, 10),
-			Date.UTC(2026, 9, 9, 12, 30),
-			Date.UTC(2026, 9, 9, 13, 20)
-		])
-			expect(await refreshAffiliations(env, at, NOW)).toBe('skipped (daily at 12:20 UTC)');
+		expect(await refreshAffiliations(env, day(12, 10), day(12, 10))).toBe('skipped (daily from 12:20 UTC)');
 		expect(calls).toEqual([]);
 		expect(await env.DB.prepare('SELECT COUNT(*) AS n FROM job_runs').first()).toEqual({ n: 0 });
+	});
+
+	it('runs once a day: later ticks of a day that already ran are skipped', async () => {
+		await seedCharacters([1]);
+		const calls = esi();
+		await refreshAffiliations(env, day(12, 20), day(12, 20));
+		expect(calls).toHaveLength(2);
+		for (const at of [day(12, 30), day(18, 0)])
+			expect(await refreshAffiliations(env, at, at)).toBe(`skipped (affiliations-${day(12, 20)} ok)`);
+		expect(calls).toHaveLength(2);
+	});
+
+	it('catches up on a later tick when the 12:20 tick did not run (long ESI downtime)', async () => {
+		await seedCharacters([1]);
+		const calls = esi();
+		await insertRun('affiliations-yesterday', 'ok', day(12, 20, 8));
+		expect(await refreshAffiliations(env, day(13, 40), day(13, 40))).toBe(
+			'1 of 1 characters updated (1 corporations, 1 alliances)'
+		);
+		expect(calls.length).toBeGreaterThan(0);
+	});
+
+	it('retries after a failed or abandoned run, but not while a run is in progress', async () => {
+		await seedCharacters([1]);
+		const calls = esi();
+		await insertRun('failed-run', 'failed', day(12, 20));
+		await insertRun('crashed-run', 'running', day(12, 30));
+		expect(await refreshAffiliations(env, day(12, 50), day(12, 50))).toContain('characters updated');
+
+		await env.DB.prepare('DELETE FROM job_runs').run();
+		await insertRun('live-run', 'running', day(13, 0));
+		calls.length = 0;
+		expect(await refreshAffiliations(env, day(13, 10), day(13, 10))).toBe('skipped (live-run running)');
+		expect(calls).toEqual([]);
+	});
+
+	it("counts a manual run from 12:20 on as the day's run, but not one from before", async () => {
+		await seedCharacters([1]);
+		const calls = esi();
+		await insertRun('affiliations-manual-early', 'ok', day(9, 0));
+		expect(await refreshAffiliations(env, day(12, 20), day(12, 20))).toContain('characters updated');
+
+		await env.DB.prepare('DELETE FROM job_runs').run();
+		await insertRun('affiliations-manual-late', 'ok', day(12, 25));
+		calls.length = 0;
+		expect(await refreshAffiliations(env, day(12, 30), day(12, 30))).toBe(
+			'skipped (affiliations-manual-late ok)'
+		);
+		expect(calls).toEqual([]);
 	});
 
 	it('looks up only the characters of accounts seen in the last 30 days', async () => {

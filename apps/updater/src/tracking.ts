@@ -1,5 +1,6 @@
 import { ERROR_INTERNAL } from '@reactions/eve';
 import { TRACKING_RUN_STALE_MINUTES } from './config.ts';
+import { esiActiveCutoff } from './esi-downtime.ts';
 import { errorMessage } from './jobs.ts';
 import { createWorkflowInstance } from './workflows/instances.ts';
 import type { TrackingSyncParams } from './workflows/tracking-sync.ts';
@@ -95,10 +96,14 @@ const FAIL_SQL = `
  */
 export type TrackingClaimRefusal = 'busy' | 'missing' | { notBefore: number };
 
-/** Marks every tracking sync `running` for more than `TRACKING_RUN_STALE_MINUTES` as `error`; returns how many. */
+/**
+ * Marks every tracking sync that has been working for more than `TRACKING_RUN_STALE_MINUTES` as `error`;
+ * returns how many. Time paused by ESI's daily downtime does not count (`esiActiveCutoff`), so a sync
+ * that waited it out is not settled when ESI comes back.
+ */
 export async function settleStaleTrackingSyncs(env: Env, now: number): Promise<number> {
 	const { results } = await env.DB.prepare(SETTLE_SQL)
-		.bind(null, now - TRACKING_RUN_STALE_MINUTES * 60_000)
+		.bind(null, await esiActiveCutoff(env, now, TRACKING_RUN_STALE_MINUTES * 60_000))
 		.all();
 	return results.length;
 }
@@ -116,8 +121,9 @@ export async function claimTrackingSource(
 	now: number,
 	respectExpiry: boolean
 ): Promise<'claimed' | TrackingClaimRefusal> {
+	const staleCutoff = await esiActiveCutoff(env, now, TRACKING_RUN_STALE_MINUTES * 60_000);
 	const [, existing, streams] = await env.DB.batch([
-		env.DB.prepare(SETTLE_SQL).bind(sourceId, now - TRACKING_RUN_STALE_MINUTES * 60_000),
+		env.DB.prepare(SETTLE_SQL).bind(sourceId, staleCutoff),
 		env.DB.prepare(
 			'SELECT kind, tracking_enabled, tracking_status, wallet_divisions_json FROM inventory_sources WHERE source_id = ?'
 		).bind(sourceId),

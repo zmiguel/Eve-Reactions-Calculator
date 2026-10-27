@@ -1,5 +1,5 @@
 import { adjustedPrices, getCoreDb, trackedTypeIds, upsertMany } from '@reactions/db';
-import { ESI_BASE_URL, fetchMarketPrices } from '@reactions/eve';
+import { ESI_BASE_URL, fetchMarketPrices, isEsiDowntime } from '@reactions/eve';
 import { MARKET_PRICES_PATH } from '../config.ts';
 import { conditionalRefresh, describeOutcome, esiClient } from '../http.ts';
 import { failJobRun, finishJobRun, inlineRunId, NO_NEW_DATA, startJobRun } from '../jobs.ts';
@@ -63,7 +63,9 @@ export async function refreshAdjustedPrices(env: Env, now: number, manual = fals
 			written === 0 ? 'no tracked types yet' : `${written} adjusted prices written, market:v1 published`
 		);
 	} catch (error) {
-		await failJobRun(env, runId, 'adjusted_prices', now, error);
+		// The daily downtime is no failure of a cron run (the next open tick refreshes); a manual run
+		// already recorded its row, so that one ends `failed`.
+		if (!isEsiDowntime(error) || manual) await failJobRun(env, runId, 'adjusted_prices', now, error);
 		throw error;
 	}
 }

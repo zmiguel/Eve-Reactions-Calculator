@@ -2,8 +2,13 @@ import { env, exports } from 'cloudflare:workers';
 import { DATASET_KV_KEY } from '@reactions/db';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { startTrackingPass } from '../src/cron/tracking.ts';
-import { claimTrackingSource, startTrackingSync } from '../src/tracking.ts';
+import { esiActiveCutoff } from '../src/esi-downtime.ts';
+import type * as EsiDowntime from '../src/esi-downtime.ts';
+import { claimTrackingSource, settleStaleTrackingSyncs, startTrackingSync } from '../src/tracking.ts';
 import { completedInstanceCount, mockedTrackingWorkflow, resetState } from './helpers.ts';
+
+/** The real pause math (the setup file turns it off for every other test). */
+const actual = await vi.importActual<typeof EsiDowntime>('../src/esi-downtime.ts');
 
 const MINUTE = 60_000;
 const DAY = 86_400_000;
@@ -126,6 +131,32 @@ describe('tracking claim', () => {
 			tracking_run_id: 'run-c',
 			tracking_last_error: 'sync did not finish'
 		});
+	});
+
+	it('does not count the daily downtime a sync waited out towards its 15 minutes', async () => {
+		vi.mocked(esiActiveCutoff).mockImplementation(actual.esiActiveCutoff);
+		actual.resetEsiDowntimeMemo();
+		const at = (hour: number, minute: number) => Date.UTC(2026, 9, 12, hour, minute);
+		await env.CACHE.put(actual.ESI_ONLINE_KV_KEY('2026-10-12'), String(at(11, 8)));
+		await seedUser('u1', NOW);
+		await seedConnection(1, 'u1', { status: 'running', runId: 'tracking-1-wait', startedAt: at(10, 50) });
+
+		try {
+			expect(await settleStaleTrackingSyncs(env, at(11, 12))).toBe(0);
+			expect(await claimTrackingSource(env, 1, 'run-b', at(11, 12), false)).toBe('busy');
+			expect(await connection(1)).toMatchObject({
+				tracking_status: 'running',
+				tracking_run_id: 'tracking-1-wait'
+			});
+
+			expect(await settleStaleTrackingSyncs(env, at(11, 25))).toBe(1);
+			expect(await connection(1)).toMatchObject({
+				tracking_status: 'error',
+				tracking_last_error: 'sync did not finish'
+			});
+		} finally {
+			vi.mocked(esiActiveCutoff).mockReset();
+		}
 	});
 
 	it('refuses with the earliest expiry while every stream is fresh, and connections with tracking off', async () => {

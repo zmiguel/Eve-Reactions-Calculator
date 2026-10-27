@@ -92,7 +92,7 @@ const DEFINITIONS = {
 	affiliations: {
 		label: 'Affiliations',
 		description:
-			'Corporation and alliance of the characters of accounts seen in the last 30 days (ESI bulk lookups, 100 per request), used for the analytics traits; changes are sent to Rybbit. Daily at 12:20 UTC. "Fetch now" also sends the traits of every covered account to Rybbit (back-fill).',
+			'Corporation and alliance of the characters of accounts seen in the last 30 days (ESI bulk lookups, 100 per request), used for the analytics traits; changes are sent to Rybbit. Daily from 12:20 UTC (a later tick catches up when that one was missed or failed). "Fetch now" also sends the traits of every covered account to Rybbit (back-fill).',
 		workflow: false,
 		actions: [{ action: 'affiliations', label: 'Fetch now', notice: 'Affiliations' }]
 	},

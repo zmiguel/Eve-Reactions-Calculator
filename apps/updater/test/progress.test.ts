@@ -1,21 +1,33 @@
 import type { WorkflowStep } from 'cloudflare:workers';
 import { env } from 'cloudflare:workers';
+import { EsiDowntimeError } from '@reactions/eve';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { STEP_CONFIG } from '../src/config.ts';
+import { ESI_DOWNTIME_MAX_WAITS, ESI_DOWNTIME_WAIT, STEP_CONFIG } from '../src/config.ts';
 import { finishJobRun, startJobRun } from '../src/jobs.ts';
 import { StepTracker } from '../src/progress.ts';
 import { resetState } from './helpers.ts';
 
-/** A workflow step stand-in: runs a body once per name and replays the stored result afterwards. */
+/**
+ * A workflow step stand-in: runs a body once per name and replays the stored result afterwards;
+ * records the step names it was asked for and the sleeps.
+ */
 function fakeStep(cache = new Map<string, unknown>()) {
+	const names: string[] = [];
+	const sleeps: [name: string, duration: unknown][] = [];
 	return {
 		cache,
+		names,
+		sleeps,
 		step: {
 			do: async (name: string, _config: unknown, body: () => Promise<unknown>) => {
+				names.push(name);
 				if (cache.has(name)) return cache.get(name);
 				const value = await body();
 				cache.set(name, value);
 				return value;
+			},
+			sleep: async (name: string, duration: unknown) => {
+				sleeps.push([name, duration]);
 			}
 		} as unknown as WorkflowStep
 	};
@@ -99,6 +111,84 @@ describe('StepTracker', () => {
 			'[sde-1] step 1/4 download-parse: failed: Error: zip broken'
 		);
 		expect((await progressOf('sde-1')).progress).toEqual({ step: 'download-parse', done: 0, total: 4 });
+	});
+});
+
+describe('StepTracker during the ESI downtime', () => {
+	beforeEach(async () => {
+		await resetState();
+		vi.spyOn(console, 'log').mockImplementation(() => {});
+		vi.spyOn(console, 'error').mockImplementation(() => {});
+	});
+	afterEach(() => vi.restoreAllMocks());
+
+	/** A body that hits the downtime `times` times, then returns `value`. */
+	function downtimeThen<T>(times: number, value: T) {
+		let calls = 0;
+		return vi.fn(async () => {
+			if (calls++ < times) throw new EsiDowntimeError();
+			return value;
+		});
+	}
+
+	it('sleeps and runs the body again as new steps until ESI is back', async () => {
+		await startJobRun(env, 'prices-2', 'prices', 1);
+		const fake = fakeStep();
+		const tracker = new StepTracker(env, fake.step, 'prices-2', () => 10);
+		const body = downtimeThen(2, { esi: 10 });
+
+		expect(await tracker.do('region-10000002', STEP_CONFIG, body)).toEqual({ esi: 10 });
+		await tracker.do('publish', STEP_CONFIG, async () => {
+			expect((await progressOf('prices-2')).progress).toMatchObject({ step: 'publish', done: 1 });
+			return 0;
+		});
+
+		expect(body).toHaveBeenCalledTimes(3);
+		expect(fake.names).toEqual([
+			'region-10000002',
+			'region-10000002 (after ESI downtime 1)',
+			'region-10000002 (after ESI downtime 2)',
+			'publish'
+		]);
+		expect(fake.sleeps).toEqual([
+			['region-10000002 (ESI downtime wait 1)', ESI_DOWNTIME_WAIT],
+			['region-10000002 (ESI downtime wait 2)', ESI_DOWNTIME_WAIT]
+		]);
+
+		// A replay walks the same step names and gets the stored value without running the body.
+		const replay = fakeStep(fake.cache);
+		const replayed = vi.fn(async () => ({ esi: 0 }));
+		expect(
+			await new StepTracker(env, replay.step, 'prices-2').do('region-10000002', STEP_CONFIG, replayed)
+		).toEqual({
+			esi: 10
+		});
+		expect(replayed).not.toHaveBeenCalled();
+		expect(replay.names).toEqual(fake.names.slice(0, 3));
+	});
+
+	it('fails the step once ESI stays down through every wait', async () => {
+		await startJobRun(env, 'daily-2', 'daily', 1);
+		const fake = fakeStep();
+		const tracker = new StepTracker(env, fake.step, 'daily-2');
+
+		await expect(tracker.do('history-1', STEP_CONFIG, downtimeThen(Infinity, 0))).rejects.toBeInstanceOf(
+			EsiDowntimeError
+		);
+		expect(fake.sleeps).toHaveLength(ESI_DOWNTIME_MAX_WAITS);
+	});
+
+	it('still throws other errors without waiting', async () => {
+		await startJobRun(env, 'daily-3', 'daily', 1);
+		const fake = fakeStep();
+		const tracker = new StepTracker(env, fake.step, 'daily-3');
+
+		await expect(
+			tracker.do('history-1', STEP_CONFIG, async () => {
+				throw new Error('D1 unavailable');
+			})
+		).rejects.toThrow('D1 unavailable');
+		expect(fake.sleeps).toEqual([]);
 	});
 });
 

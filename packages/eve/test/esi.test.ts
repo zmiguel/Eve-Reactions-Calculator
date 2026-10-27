@@ -1,5 +1,13 @@
 import { describe, expect, it, vi } from 'vitest';
-import { ESI_COMPAT_DATE, buildUserAgent, createEsiClient, fetchRegionOrders } from '../src/index.ts';
+import {
+	ESI_COMPAT_DATE,
+	EsiDowntimeError,
+	buildUserAgent,
+	createEsiClient,
+	fetchRegionOrders,
+	fetchServerStatus,
+	isEsiDowntime
+} from '../src/index.ts';
 import { TEST_UA, fakeFetch, json } from './fake-fetch.ts';
 
 const NOW = Date.UTC(2026, 9, 6, 12, 0, 0);
@@ -243,5 +251,72 @@ describe('fetchRegionOrders', () => {
 	it('returns a failed first page as a typed result', async () => {
 		const { esi } = client(() => json({ error: 'x' }, { status: 429, headers: { 'Retry-After': '5' } }), 1);
 		expect(await fetchRegionOrders(esi, 10000002, 34)).toEqual({ ok: false, status: 429, retryAfter: 5 });
+	});
+});
+
+describe('ESI downtime gate', () => {
+	it('throws EsiDowntimeError without sending anything while the gate is closed', async () => {
+		const fake = fakeFetch(() => json({}));
+		const sleep = vi.fn(async () => {});
+		const esi = createEsiClient({ fetch: fake.fetch, userAgent: TEST_UA, sleep, gate: async () => false });
+		const error = await esi.get('/markets/prices').catch((e: unknown) => e);
+		expect(error).toBeInstanceOf(EsiDowntimeError);
+		expect(isEsiDowntime(error)).toBe(true);
+		expect(fake.calls).toHaveLength(0);
+		expect(sleep).not.toHaveBeenCalled();
+	});
+
+	it('checks the gate again before a retry', async () => {
+		const gates = [true, false];
+		const fake = fakeFetch(() => json({}, { status: 503 }));
+		const esi = createEsiClient({
+			fetch: fake.fetch,
+			userAgent: TEST_UA,
+			sleep: async () => {},
+			gate: async () => gates.shift() ?? false
+		});
+		await expect(esi.get('/markets/prices')).rejects.toBeInstanceOf(EsiDowntimeError);
+		expect(fake.calls).toHaveLength(1);
+	});
+
+	it('sends requests while the gate is open', async () => {
+		const fake = fakeFetch(() => json([]));
+		const esi = createEsiClient({ fetch: fake.fetch, userAgent: TEST_UA, gate: async () => true });
+		expect((await esi.get('/markets/prices')).status).toBe(200);
+		expect(fake.calls).toHaveLength(1);
+	});
+
+	it('recognises a downtime error that lost its prototype', () => {
+		expect(isEsiDowntime({ name: 'EsiDowntimeError', message: 'x' })).toBe(true);
+		expect(isEsiDowntime(new Error('ESI is in its daily downtime'))).toBe(false);
+		expect(isEsiDowntime(null)).toBe(false);
+	});
+});
+
+describe('fetchServerStatus', () => {
+	it('returns the player count and VIP flag', async () => {
+		const fake = fakeFetch(() =>
+			json({ players: 23456, server_version: '1', start_time: '2026-10-27T11:02:00Z', vip: true })
+		);
+		expect(await fetchServerStatus(fake.fetch, TEST_UA)).toEqual({ players: 23456, vip: true });
+		expect(fake.calls[0]?.url).toBe('https://esi.evetech.net/status');
+		expect(fake.calls[0]?.headers.get('User-Agent')).toBe(TEST_UA);
+		expect(fake.calls[0]?.headers.get('X-Compatibility-Date')).toBe(ESI_COMPAT_DATE);
+	});
+
+	it('treats a missing VIP flag as false', async () => {
+		const fake = fakeFetch(() => json({ players: 120 }));
+		expect(await fetchServerStatus(fake.fetch, TEST_UA)).toEqual({ players: 120, vip: false });
+	});
+
+	it('returns null on a 503, a bad body or a network error', async () => {
+		expect(
+			await fetchServerStatus(fakeFetch(() => json({ error: 'down' }, { status: 503 })).fetch, TEST_UA)
+		).toBeNull();
+		expect(await fetchServerStatus(fakeFetch(() => json({ error: 'x' })).fetch, TEST_UA)).toBeNull();
+		const offline = fakeFetch(() => {
+			throw new TypeError('network error');
+		});
+		expect(await fetchServerStatus(offline.fetch, TEST_UA)).toBeNull();
 	});
 });
