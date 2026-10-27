@@ -1,6 +1,7 @@
 import { getCoreDb, jobRuns } from '@reactions/db';
 import { and, desc, eq, lte } from 'drizzle-orm';
 import { PRICE_REFRESH_MINUTES, PRICE_RUN_STALE_MINUTES } from '../config.ts';
+import { esiPausedMs } from '../esi-downtime.ts';
 import { errorMessage, failJobRun, finishJobRun } from '../jobs.ts';
 import { startWorkflowRun } from '../workflows/instances.ts';
 
@@ -18,10 +19,10 @@ async function instanceState(binding: Workflow, id: string): Promise<string> {
 
 /**
  * Settles `running` prices rows whose workflow will never record a result: instances that errored,
- * were terminated or vanished are marked `failed` at once; instances still reported as live but older
- * than `PRICE_RUN_STALE_MINUTES` are terminated (best effort) and marked `failed`. The latter happens
- * when the process running the instance died, e.g. a restarted `wrangler dev`. Returns the run id of a
- * run that is still legitimately in progress, if any.
+ * were terminated or vanished are marked `failed` at once; instances still reported as live after
+ * `PRICE_RUN_STALE_MINUTES` of active time (ESI's daily downtime does not count) are terminated (best
+ * effort) and marked `failed`. The latter happens when the process running the instance died, e.g. a
+ * restarted `wrangler dev`. Returns the run id of a run that is still legitimately in progress, if any.
  */
 async function settleRunningRuns(env: Env, now: number): Promise<string | null> {
 	const db = getCoreDb(env.DB);
@@ -34,7 +35,9 @@ async function settleRunningRuns(env: Env, now: number): Promise<string | null> 
 	let inProgress: string | null = null;
 	for (const row of rows) {
 		const state = await instanceState(env.PRICE_REFRESH, row.runId);
-		const stale = row.startedAt <= now - PRICE_RUN_STALE_MINUTES * 60_000;
+		// A run that waited out ESI's daily downtime is not stale for that time.
+		const active = now - row.startedAt - (await esiPausedMs(env, row.startedAt, now));
+		const stale = active >= PRICE_RUN_STALE_MINUTES * 60_000;
 		if (LIVE_STATES.has(state) && !stale) {
 			inProgress ??= row.runId;
 			continue;

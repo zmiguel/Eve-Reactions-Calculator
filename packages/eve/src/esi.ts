@@ -58,6 +58,11 @@ export interface EsiClientOptions {
 	/** Total attempts for 5xx/420/429 or network errors (default 2). */
 	attempts?: number;
 	baseUrl?: string;
+	/**
+	 * Awaited before every attempt; `false` throws `EsiDowntimeError` without sending the request
+	 * (the updater closes ESI around the daily downtime).
+	 */
+	gate?: () => Promise<boolean>;
 }
 
 export interface EsiClient {
@@ -81,6 +86,20 @@ export class EsiError extends Error {
 		this.status = status;
 		this.path = path;
 	}
+}
+
+/** Thrown instead of sending a request while the client's gate is closed (ESI's daily downtime). */
+export class EsiDowntimeError extends Error {
+	constructor(message = 'ESI is in its daily downtime') {
+		super(message);
+		this.name = 'EsiDowntimeError';
+	}
+}
+
+/** Also matches by name: errors crossing a Workflow step boundary can lose their prototype. */
+export function isEsiDowntime(error: unknown): boolean {
+	if (error instanceof EsiDowntimeError) return true;
+	return typeof error === 'object' && error !== null && 'name' in error && error.name === 'EsiDowntimeError';
 }
 
 /** Remembers the latest ESI rate-limit headers and whether ESI asked us to back off. */
@@ -173,11 +192,7 @@ export function createEsiClient(options: EsiClientOptions): EsiClient {
 		body?: unknown
 	): Promise<EsiResponse<T>> {
 		const attempts = Math.max(1, opts.attempts ?? defaultAttempts);
-		const headers: Record<string, string> = {
-			'User-Agent': options.userAgent,
-			'X-Compatibility-Date': ESI_COMPAT_DATE,
-			Accept: 'application/json'
-		};
+		const headers: Record<string, string> = { ...baseHeaders(options.userAgent) };
 		if (opts.etag) headers['If-None-Match'] = opts.etag;
 		if (opts.accessToken) headers.Authorization = `Bearer ${opts.accessToken}`;
 		if (method === 'POST') headers['Content-Type'] = 'application/json';
@@ -186,6 +201,7 @@ export function createEsiClient(options: EsiClientOptions): EsiClient {
 		const url = baseUrl + path;
 
 		for (let attempt = 1; ; attempt++) {
+			if (options.gate && !(await options.gate())) throw new EsiDowntimeError();
 			let response: Response;
 			try {
 				response = await fetchFn(url, init);
@@ -221,6 +237,32 @@ export function createEsiClient(options: EsiClientOptions): EsiClient {
 		guard,
 		now
 	};
+}
+
+function baseHeaders(userAgent: string): Record<string, string> {
+	return { 'User-Agent': userAgent, 'X-Compatibility-Date': ESI_COMPAT_DATE, Accept: 'application/json' };
+}
+
+/**
+ * One ungated `GET /status` (the probe that decides when the downtime is over). Network errors,
+ * non-2XX answers and unexpected bodies return `null`; it never throws.
+ */
+export async function fetchServerStatus(
+	fetch: FetchFn,
+	userAgent: string,
+	baseUrl: string = ESI_BASE_URL
+): Promise<{ players: number; vip: boolean } | null> {
+	try {
+		const response = await fetch(`${baseUrl}/status`, { method: 'GET', headers: baseHeaders(userAgent) });
+		if (!response.ok) return null;
+		const body = await readJson(response);
+		if (typeof body !== 'object' || body === null || !('players' in body)) return null;
+		const { players } = body;
+		if (typeof players !== 'number' || !Number.isFinite(players)) return null;
+		return { players, vip: 'vip' in body && body.vip === true };
+	} catch {
+		return null;
+	}
 }
 
 /** Non-2XX answer of a client function: returned, never thrown. */

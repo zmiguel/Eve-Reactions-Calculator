@@ -1,9 +1,14 @@
 import { env } from 'cloudflare:workers';
-import { beforeEach, describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { startDaily } from '../src/cron/daily.ts';
 import { startPriceRefresh } from '../src/cron/prices.ts';
+import { esiPausedMs } from '../src/esi-downtime.ts';
+import type * as EsiDowntime from '../src/esi-downtime.ts';
 import { finishJobRun, startJobRun } from '../src/jobs.ts';
 import { completedInstanceCount, mockedDailyWorkflow, mockedPriceWorkflow, resetState } from './helpers.ts';
+
+/** The real pause math (the setup file turns it off for every other test). */
+const actual = await vi.importActual<typeof EsiDowntime>('../src/esi-downtime.ts');
 
 const MINUTE = 60_000;
 
@@ -145,6 +150,26 @@ describe('cron step 3: prices', () => {
 		expect(await startPriceRefresh(env, t0 + 5 * MINUTE)).toBe(`prices-${t0} already exists`);
 		expect(await completedInstanceCount(introspector)).toBe(1);
 		expect(await jobRunIds('prices')).toEqual([`prices-${t0}`]);
+	});
+
+	it('does not count the daily downtime a run waited out towards its 25 minutes', async () => {
+		vi.mocked(esiPausedMs).mockImplementation(actual.esiPausedMs);
+		actual.resetEsiDowntimeMemo();
+		const at = (hour: number, minute: number) => Date.UTC(2026, 10, 4, hour, minute);
+		await env.CACHE.put(actual.ESI_ONLINE_KV_KEY('2026-11-04'), String(at(11, 8)));
+		const { testEnv, terminated } = fakeWorkflow({ 'prices-wait': 'running' });
+		await startJobRun(env, 'prices-wait', 'prices', at(10, 50));
+
+		try {
+			// Active: 10:50–10:55 and from 11:08, so 25 minutes are reached at 11:28.
+			expect(await startPriceRefresh(testEnv, at(11, 12))).toBe('skipped (prices-wait still running)');
+			expect(await startPriceRefresh(testEnv, at(11, 27))).toBe('skipped (prices-wait still running)');
+			expect(terminated).toEqual([]);
+			expect(await startPriceRefresh(testEnv, at(11, 28))).toBe(`started prices-${at(11, 0)}`);
+			expect(terminated).toEqual(['prices-wait']);
+		} finally {
+			vi.mocked(esiPausedMs).mockReset();
+		}
 	});
 });
 

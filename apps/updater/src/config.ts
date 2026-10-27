@@ -10,6 +10,19 @@ export const PRICE_RUN_STALE_MINUTES = 25;
 /** Concurrent ESI requests per workflow step (Workers allow 6 simultaneous connections). */
 export const ESI_CONCURRENCY = 6;
 
+/** No ESI request is sent from this minute of the UTC day (5 minutes before the daily downtime). */
+export const ESI_DOWNTIME_START_MINUTE_UTC = 10 * 60 + 55;
+/** The daily downtime starts at 11:00 UTC; from then on `/status` decides when ESI is back. */
+export const ESI_DOWNTIME_MINUTE_UTC = 11 * 60;
+/** `/status` must report more than this many players before ESI counts as back (a VIP server does not). */
+export const ESI_ONLINE_MIN_PLAYERS = 100;
+/** A failed `/status` check is not repeated within this long (per isolate). */
+export const ESI_STATUS_RECHECK_MS = 60_000;
+/** A workflow step that hit the downtime sleeps this long before it runs again. */
+export const ESI_DOWNTIME_WAIT = '2 minutes';
+/** Downtime waits per step (≈ 90 minutes in all); after that the step fails as usual. */
+export const ESI_DOWNTIME_MAX_WAITS = 45;
+
 /** Private structure hubs are refreshed only while a linked user was seen within this many days. */
 export const PRIVATE_HUB_ACTIVE_DAYS = 30;
 
@@ -44,9 +57,14 @@ export const PRICE_ARCHIVE_KEY = (snapshotAt: number): string =>
 /** The SDE pointer is checked once per hour, during the first cron tick (minutes 0–9). */
 export const SDE_CHECK_MAX_MINUTE = 9;
 
-/** Character affiliations are refreshed once a day, on the cron tick in 12:20–12:29 UTC (after downtime). */
+/**
+ * Character affiliations are refreshed once a day, on the first cron tick from 12:20 UTC (after downtime)
+ * whose UTC day has no finished run yet: a tick skipped for a long ESI downtime, or a failed run, is made
+ * up on a later tick of the same day.
+ */
 export const AFFILIATION_START_MINUTE_UTC = 12 * 60 + 20;
-export const AFFILIATION_END_MINUTE_UTC = 12 * 60 + 29;
+/** A `running` affiliations row older than this (a crashed run) no longer counts as today's run. */
+export const AFFILIATION_RUN_STALE_MINUTES = 15;
 /** Only characters of accounts seen within this many days are looked up. */
 export const AFFILIATION_ACTIVE_DAYS = 30;
 /** Concurrent Rybbit trait updates (`POST /api/identify`) after an affiliation change. */

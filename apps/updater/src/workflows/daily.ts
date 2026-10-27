@@ -2,7 +2,7 @@ import { WorkflowEntrypoint } from 'cloudflare:workers';
 import type { WorkflowEvent, WorkflowStep } from 'cloudflare:workers';
 import { NonRetryableError } from 'cloudflare:workflows';
 import { getCoreDb, marketHubs, trackedTypeIds } from '@reactions/db';
-import { fetchMarketHistory } from '@reactions/eve';
+import { fetchMarketHistory, isEsiDowntime } from '@reactions/eve';
 import type { MarketHistoryDay } from '@reactions/eve';
 import { eq } from 'drizzle-orm';
 import {
@@ -187,6 +187,8 @@ export async function refreshRegionHistory(
 		try {
 			days = await fetchMarketHistory(client, regionId, typeId);
 		} catch (error) {
+			// The downtime is no failed type: the step waits and runs again.
+			if (isEsiDowntime(error)) throw error;
 			console.error(`[daily] history region ${regionId} type ${typeId}: ${errorMessage(error)}`);
 			failedTypeIds.push(typeId);
 			return;

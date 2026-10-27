@@ -2,7 +2,13 @@ import { WorkflowEntrypoint } from 'cloudflare:workers';
 import type { WorkflowEvent, WorkflowStep } from 'cloudflare:workers';
 import { characters, getCoreDb, marketHubs, structureLinks, trackedTypeIds } from '@reactions/db';
 import type { MarketHubRow } from '@reactions/db';
-import { aggregateOrders, fetchRegionOrders, fetchStructureOrders, hasFeature } from '@reactions/eve';
+import {
+	aggregateOrders,
+	fetchRegionOrders,
+	fetchStructureOrders,
+	hasFeature,
+	isEsiDowntime
+} from '@reactions/eve';
 import type { MarketOrder, OrderFilter } from '@reactions/eve';
 import { and, asc, desc, eq, inArray, sql } from 'drizzle-orm';
 import { DAY_MS } from '../dates.ts';
@@ -105,6 +111,8 @@ export async function refreshRegion(
 			if (!result.ok) throw new Error(`HTTP ${result.status}`);
 			orders = result.items;
 		} catch (error) {
+			// The downtime is no ESI failure: the step waits and runs again instead of using Fuzzwork.
+			if (isEsiDowntime(error)) throw error;
 			console.error(`[prices] region ${regionId} type ${typeId}: ${errorMessage(error)}`);
 			fallback.push(typeId);
 			return;
@@ -157,6 +165,8 @@ async function tryCandidate(env: Env, hub: MarketHubRow, candidate: Candidate): 
 				);
 		return { ok: false, reason: `${label}: structure market HTTP ${result.status}` };
 	} catch (error) {
+		// Not this character's fault: the step waits out the downtime instead of trying the next one.
+		if (isEsiDowntime(error)) throw error;
 		return { ok: false, reason: `${label}: ${errorMessage(error)}` };
 	}
 }

@@ -4,6 +4,7 @@ import { buildUserAgent, createEsiClient } from '@reactions/eve';
 import type { ConditionalResult, EsiClient, FetchFn } from '@reactions/eve';
 import { eq } from 'drizzle-orm';
 import pkg from '../package.json' with { type: 'json' };
+import { esiAvailable } from './esi-downtime.ts';
 
 /**
  * Every outbound request goes through the global `fetch`, resolved at call time so tests can
@@ -16,8 +17,14 @@ export function userAgent(env: { USER_AGENT_URL?: string; USER_AGENT_CONTACT?: s
 	return buildUserAgent({ version: pkg.version, url: env.USER_AGENT_URL, contact: env.USER_AGENT_CONTACT });
 }
 
+/** ESI client of the updater: closed around the daily downtime (`esiAvailable`), so no request is sent then. */
 export function esiClient(env: Env, now: () => number = Date.now): EsiClient {
-	return createEsiClient({ fetch: httpFetch, userAgent: userAgent(env), now });
+	return createEsiClient({
+		fetch: httpFetch,
+		userAgent: userAgent(env),
+		now,
+		gate: () => esiAvailable(env, now())
+	});
 }
 
 export async function getHttpCache(env: Env, url: string): Promise<HttpCacheRow | null> {

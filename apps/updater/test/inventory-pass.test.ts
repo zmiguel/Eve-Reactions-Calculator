@@ -3,9 +3,19 @@ import { env, exports } from 'cloudflare:workers';
 import { ERROR_INTERNAL } from '@reactions/eve';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { startInventoryPass } from '../src/cron/inventory.ts';
-import { SYNC_ALREADY_RAN, startInventorySync } from '../src/inventory.ts';
+import { esiActiveCutoff } from '../src/esi-downtime.ts';
+import type * as EsiDowntime from '../src/esi-downtime.ts';
+import {
+	SYNC_ALREADY_RAN,
+	claimInventorySource,
+	settleStaleInventorySyncs,
+	startInventorySync
+} from '../src/inventory.ts';
 import { UpdaterRpc } from '../src/rpc.ts';
 import { completedInstanceCount, mockedInventoryWorkflow, resetState } from './helpers.ts';
+
+/** The real pause math (the setup file turns it off for every other test). */
+const actual = await vi.importActual<typeof EsiDowntime>('../src/esi-downtime.ts');
 
 const MINUTE = 60_000;
 const DAY = 86_400_000;
@@ -275,6 +285,26 @@ describe('cron step 7: inventory', () => {
 describe('inventory sync claim', () => {
 	beforeEach(resetState);
 	afterEach(() => vi.unstubAllGlobals());
+
+	it('does not count the daily downtime a sync waited out towards its 15 minutes', async () => {
+		vi.mocked(esiActiveCutoff).mockImplementation(actual.esiActiveCutoff);
+		actual.resetEsiDowntimeMemo();
+		const at = (hour: number, minute: number) => Date.UTC(2026, 9, 12, hour, minute);
+		await env.CACHE.put(actual.ESI_ONLINE_KV_KEY(DATE), String(at(11, 8)));
+		await seedUser('u1', NOW);
+		await seedSource(1, 'u1', { status: 'running', runId: 'inventory-1-wait', syncStartedAt: at(10, 50) });
+
+		try {
+			expect(await settleStaleInventorySyncs(env, at(11, 12))).toBe(0);
+			expect(await claimInventorySource(env, 1, 'run-b', at(11, 12), false)).toBe('busy');
+			expect(await source(1)).toMatchObject({ status: 'running', run_id: 'inventory-1-wait' });
+
+			expect(await settleStaleInventorySyncs(env, at(11, 25))).toBe(1);
+			expect(await source(1)).toMatchObject({ status: 'error', last_error: 'sync did not finish' });
+		} finally {
+			vi.mocked(esiActiveCutoff).mockReset();
+		}
+	});
 
 	it('triggerInventorySync starts inventory-<id>-manual-<ms> and answers busy while it runs', async () => {
 		await seedUser('u1', Date.now());

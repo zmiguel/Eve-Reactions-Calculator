@@ -25,6 +25,7 @@ import {
 	fetchCorporationWalletTransactions,
 	fetchJaniceAppraisal,
 	hasFeature,
+	isEsiDowntime,
 	isStationId,
 	isTrackedJournalRefType,
 	lookUpFacility,
@@ -1183,6 +1184,8 @@ export async function lookUpTrackingFacilities(
 		const claimed = await env.DB.prepare(CLAIM_FACILITY_SQL).bind(source.userId, id, lease, now).run();
 		if (claimed.meta.changes === 0) return;
 		const found = await lookUpFacility(client, id, token ?? '').catch((error: unknown) => {
+			// Not a failed lookup: the step waits out the downtime (the facility is retried after its lease).
+			if (isEsiDowntime(error)) throw error;
 			console.error(`[tracking] facility ${id}: ${errorMessage(error)}`);
 			return { ok: false as const, status: 0, expiresAt: null };
 		});
@@ -1283,6 +1286,8 @@ export class TrackingSyncWorkflow extends WorkflowEntrypoint<Env, TrackingSyncPa
 					);
 					if (outcome) outcomes.push(outcome);
 				} catch (error) {
+					// Still in the downtime after every wait: end the sync instead of waiting again per stream.
+					if (isEsiDowntime(error)) throw error;
 					const message = syncFailureMessage(error);
 					const marked = await env.DB.prepare(STREAM_ERROR_SQL).bind(sourceId, stream, runId, message).run();
 					if (marked.meta.changes === 0) throw error;
@@ -1302,6 +1307,7 @@ export class TrackingSyncWorkflow extends WorkflowEntrypoint<Env, TrackingSyncPa
 						nameTrackingWallets(env, sourceId, runId, prepared.readerId, Date.now())
 					);
 				} catch (error) {
+					if (isEsiDowntime(error)) throw error;
 					console.error(`[${runId}] divisions: ${errorMessage(error)}`);
 				}
 			}
@@ -1310,6 +1316,7 @@ export class TrackingSyncWorkflow extends WorkflowEntrypoint<Env, TrackingSyncPa
 					lookUpTrackingFacilities(env, sourceId, runId, prepared.readerId, Date.now())
 				);
 			} catch (error) {
+				if (isEsiDowntime(error)) throw error;
 				console.error(`[${runId}] facilities: ${errorMessage(error)}`);
 			}
 			return await steps.do('ledger', STEP_CONFIG, () =>

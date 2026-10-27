@@ -1,10 +1,10 @@
 import { affiliationTraits, fetchAffiliations, fetchNames } from '@reactions/eve';
 import {
 	AFFILIATION_ACTIVE_DAYS,
-	AFFILIATION_END_MINUTE_UTC,
+	AFFILIATION_RUN_STALE_MINUTES,
 	AFFILIATION_START_MINUTE_UTC
 } from '../config.ts';
-import { DAY_MS } from '../dates.ts';
+import { DAY_MS, dayStart, utcDate } from '../dates.ts';
 import { esiClient } from '../http.ts';
 import { failJobRun, finishJobRun, inlineRunId, startJobRun } from '../jobs.ts';
 import { pushAffiliationTraits } from '../rybbit.ts';
@@ -93,12 +93,15 @@ export async function writeAffiliations(
 }
 
 /**
- * Cron step 6: once a day (the tick in 12:20–12:29 UTC), the corporation and alliance of every character
- * of an account seen in the last 30 days: `POST /characters/affiliation` and `POST /universe/names`, up
- * to 100 ids per request. Characters in a chunk ESI refuses keep their previous values. Every run is a
- * `job_runs` row (kind `affiliations`; `partial` when ESI refused a chunk); skipped ticks write none. A
- * `manual` run (admin RPC) ignores the schedule. Accounts whose main character's traits changed are
- * pushed to Rybbit; a `manual` run pushes every covered account (back-fill). Returns the log line fragment.
+ * Cron step 6: once a day (the first tick from 12:20 UTC whose day has no `ok`/`partial` run from 12:20
+ * on, nor one still running), the corporation and alliance of every character of an account seen in the
+ * last 30 days: `POST /characters/affiliation` and `POST /universe/names`, up to 100 ids per request.
+ * A failed run, or a day whose 12:20 tick was skipped for ESI's downtime, is retried on the next tick.
+ * Characters in a chunk ESI refuses keep their previous values. Every run is a `job_runs` row (kind
+ * `affiliations`; `partial` when ESI refused a chunk); skipped ticks write none. A `manual` run (admin RPC)
+ * ignores the schedule; one from 12:20 on also counts as that day's run. Accounts whose main character's
+ * traits changed are pushed to Rybbit; a `manual` run pushes every covered account (back-fill). Returns
+ * the log line fragment.
  */
 export async function refreshAffiliations(
 	env: Env,
@@ -106,10 +109,13 @@ export async function refreshAffiliations(
 	now: number,
 	manual = false
 ): Promise<string> {
-	const at = new Date(scheduledTime);
-	const minuteOfDay = at.getUTCHours() * 60 + at.getUTCMinutes();
-	if (!manual && (minuteOfDay < AFFILIATION_START_MINUTE_UTC || minuteOfDay > AFFILIATION_END_MINUTE_UTC))
-		return 'skipped (daily at 12:20 UTC)';
+	if (!manual) {
+		const at = new Date(scheduledTime);
+		if (at.getUTCHours() * 60 + at.getUTCMinutes() < AFFILIATION_START_MINUTE_UTC)
+			return 'skipped (daily from 12:20 UTC)';
+		const done = await todaysRun(env, scheduledTime, now);
+		if (done) return `skipped (${done.run_id} ${done.status})`;
+	}
 	const runId = inlineRunId('affiliations', now, manual);
 	try {
 		await startJobRun(env, runId, 'affiliations', now);
@@ -162,4 +168,25 @@ export async function refreshAffiliations(
 		await failJobRun(env, runId, 'affiliations', now, error);
 		throw error;
 	}
+}
+
+/**
+ * The run that already covers the UTC day of `scheduledTime`: started from 12:20 that day and `ok` or
+ * `partial`, or still `running` and younger than `AFFILIATION_RUN_STALE_MINUTES`. `null` when the day
+ * still needs one (none yet, or only failed or abandoned runs).
+ */
+async function todaysRun(
+	env: Env,
+	scheduledTime: number,
+	now: number
+): Promise<{ run_id: string; status: string } | null> {
+	const from = dayStart(utcDate(scheduledTime)) + AFFILIATION_START_MINUTE_UTC * 60_000;
+	return env.DB.prepare(
+		`SELECT run_id, status FROM job_runs
+		WHERE kind = 'affiliations' AND started_at >= ?1
+			AND (status IN ('ok', 'partial') OR (status = 'running' AND started_at > ?2))
+		ORDER BY started_at DESC LIMIT 1`
+	)
+		.bind(from, now - AFFILIATION_RUN_STALE_MINUTES * 60_000)
+		.first<{ run_id: string; status: string }>();
 }

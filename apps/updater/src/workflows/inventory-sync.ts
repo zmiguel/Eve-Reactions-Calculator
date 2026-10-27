@@ -22,6 +22,7 @@ import {
 	fetchStructureInfo,
 	fittedStructures,
 	hasFeature,
+	isEsiDowntime,
 	jobsInventory,
 	resolveInventory,
 	TOKEN_ERROR_REVOKED,
@@ -626,6 +627,8 @@ async function lookUpLocation(
 			? { locationId, kind: 'structure', name: structure.name, systemId: structure.solarSystemId }
 			: { locationId, kind: 'unknown', name: null, systemId: null };
 	} catch (error) {
+		// Left unnamed would wait for the next sync; the downtime makes the step wait instead.
+		if (isEsiDowntime(error)) throw error;
 		console.error(`[inventory] location ${locationId}: ${errorMessage(error)}`);
 		return { locationId, kind: location.kind, name: null, systemId: null };
 	}
@@ -668,6 +671,7 @@ export async function nameInventoryLocations(
 		try {
 			divisions = await fetchCorporationDivisions(client, source.ownerId, token!);
 		} catch (error) {
+			if (isEsiDowntime(error)) throw error;
 			console.error(`[inventory] divisions of ${source.ownerId}: ${errorMessage(error)}`);
 		}
 	}
