@@ -78,6 +78,8 @@
 	const VOLUME_WARNING_PCT = 20;
 
 	const t = $derived(plan.totals);
+	/** Auto-fill's part of each product, per type id: extra units per cycle and their net value. */
+	const autoFilled = $derived(new Map(plan.autoFilled.map((a) => [a.typeId, a])));
 	const warnings = $derived.by(() => {
 		const list: { code: string; text: string }[] = [];
 		if (plan.warnings.includes('SLOTS_EXCEEDED'))
@@ -649,6 +651,7 @@
 				</thead>
 				<tbody>
 					{#each plan.outputsPerCycle as o (o.typeId)}
+						{@const auto = autoFilled.get(o.typeId)}
 						{@const high = o.dailyVolumeSharePct !== null && o.dailyVolumeSharePct > VOLUME_WARNING_PCT}
 						{@const market = volumes[o.typeId]}
 						<tr class={row} data-output={o.typeId}>
@@ -665,7 +668,23 @@
 									{o.name}
 								</span>
 							</td>
-							<td class={td} data-field="perCycle">{formatNumber(o.quantity)}</td>
+							<td class={td} data-field="perCycle">
+								{formatNumber(o.quantity)}
+								{#if o.requested !== undefined && o.requested !== o.quantity}
+									<span
+										class="block text-xs text-gray-500 dark:text-gray-400"
+										title="Units your Qty / cycle targets asked for; the rest of the last run is sold with them"
+										data-field="requested">asked {formatNumber(o.requested)}</span
+									>
+								{/if}
+								{#if auto}
+									<span
+										class="block text-xs text-gray-500 dark:text-gray-400"
+										title="Added by auto-fill (idle slots and slot time); net {formatIskFull(auto.value)}"
+										data-field="autoFilled">Auto-fill +{formatNumber(auto.units)}</span
+									>
+								{/if}
+							</td>
 							<td class={td} data-field="perDay">{formatNumber(o.quantity / cycleDays)}</td>
 							<td class={td} data-field="regionVolume">
 								{market?.volume ? formatNumber(market.volume) : 'n/a'}

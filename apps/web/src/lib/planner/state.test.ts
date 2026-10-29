@@ -107,6 +107,27 @@ describe('state schema', () => {
 			expect(parseState({ ...sample, shoppingCycles })?.shoppingCycles).toBe(shoppingCycles);
 		expect(parseState({ ...sample, shoppingUseStock: 'yes' })).toBeNull();
 	});
+
+	it('keeps auto-fill marks on targets in states and share codes; unmarked targets stay valid', async () => {
+		const state = {
+			...sample,
+			targets: [
+				...sample.targets,
+				{ blueprintTypeId: 46166, lines: 3, auto: true },
+				{ blueprintTypeId: 46205, lines: 1, quantity: 12_300, auto: true }
+			]
+		};
+		expect(parseState(state)).toEqual(state);
+		expect((await decodeShare(await encodeShare(state)))?.state).toEqual(state);
+		const storage = new MemoryStorage();
+		saveState(storage, state);
+		expect(loadState(storage)).toEqual(state);
+
+		for (const target of parseState(firstRelease)!.targets) expect(target).not.toHaveProperty('auto');
+		expect(
+			parseState({ ...sample, targets: [{ blueprintTypeId: 46205, lines: 1, auto: 'yes' }] })
+		).toBeNull();
+	});
 });
 
 describe('localStorage persistence', () => {

@@ -36,10 +36,15 @@ export interface PlanTarget {
 	lines: number;
 	/**
 	 * Units of the product wanted per cycle instead of lines: the target runs exactly
-	 * `⌈quantity ÷ product quantity⌉` runs, split into as few slots as fit the cycle. The units made beyond
-	 * `quantity` are reported as surplus.
+	 * `⌈quantity ÷ product quantity⌉` runs, split into as few slots as fit the cycle. Every unit its runs
+	 * make is sold with the outputs (`outputsPerCycle[].requested` keeps the units asked for).
 	 */
 	quantity?: number;
+	/**
+	 * Set on the targets auto-fill ({@link suggestFillPlan}) adds; planned like any target (the targets of
+	 * one blueprint merge into one reaction). `PlanResult.autoFilled` reports what they add.
+	 */
+	auto?: boolean;
 }
 
 /** Most cycles {@link PlanInput.horizonCycles} may ask for. */
@@ -223,8 +228,25 @@ export interface PlanResult {
 		unusedStock: PlanItem[];
 	};
 	formulasToBuy: { blueprintTypeId: number; count: number; unitPrice: number | null }[];
-	outputsPerCycle: (LineItem & { dailyVolumeSharePct: number | null })[];
+	/**
+	 * Products sold per cycle: every unit the target runs make, and the sold byproducts. `requested`: the
+	 * units the non-auto quantity targets of the product ask for (⌈quantity⌉ each), only when it has one.
+	 */
+	outputsPerCycle: (LineItem & { dailyVolumeSharePct: number | null; requested?: number })[];
 	surplusPerCycle: LineItem[];
+	/**
+	 * Per reaction with auto targets (`PlanTarget.auto`), in material order: the units per cycle of its
+	 * product their runs make (quantity: ⌈quantity ÷ product quantity⌉ runs; lines: lines × runs per cycle),
+	 * `value`, the share of the product's `outputsPerCycle` line (net of fees, taxes and shipping), `null`
+	 * when the product has no price. Empty without auto targets.
+	 */
+	autoFilled: {
+		blueprintTypeId: number;
+		typeId: number;
+		name: string;
+		units: number;
+		value: number | null;
+	}[];
 	totals: {
 		recurringInvestment: number;
 		/** Purchases (minus stock) and job costs of the chosen start-up up to the first steady cycle, plus formulas. */
@@ -248,8 +270,6 @@ interface NodeState {
 	profile: ResolvedProfile;
 	depth: number;
 	targetRuns: number;
-	/** Units of the product sold as target output (lines: all produced; quantity: the requested units). */
-	targetUnits: number;
 	/** Runs making its product for the plan's other jobs. */
 	productRuns: number;
 	/** Runs whose reprocessed product covers the demand for the `fed` types. */
@@ -337,7 +357,10 @@ export function planReactions(input: PlanInput): PlanResult {
 		buyInstead.has(typeId) ? undefined : (viaAlt.get(typeId) ?? producers.get(typeId));
 
 	const targetRuns = new Map<number, number>();
-	const targetUnits = new Map<number, number>();
+	/** Units the non-auto quantity targets ask for, per product type id. */
+	const requested = new Map<number, number>();
+	/** Units per cycle the auto targets add, per blueprint. */
+	const autoUnits = new Map<number, number>();
 	for (const t of input.targets) {
 		const reaction = byId.get(t.blueprintTypeId);
 		const byQuantity = t.quantity !== undefined;
@@ -351,9 +374,16 @@ export function planReactions(input: PlanInput): PlanResult {
 		if (!detail.fits) warnings.add('CYCLE_SHORTER_THAN_RUN');
 		if (detail.capped) warnings.add('MAX_RUNS_PER_JOB');
 		const runs = byQuantity ? Math.ceil(t.quantity! / reaction.product.quantity) : detail.runs * t.lines;
-		const units = byQuantity ? Math.ceil(t.quantity!) : runs * reaction.product.quantity;
 		targetRuns.set(t.blueprintTypeId, (targetRuns.get(t.blueprintTypeId) ?? 0) + runs);
-		targetUnits.set(t.blueprintTypeId, (targetUnits.get(t.blueprintTypeId) ?? 0) + units);
+		if (t.auto)
+			autoUnits.set(
+				t.blueprintTypeId,
+				(autoUnits.get(t.blueprintTypeId) ?? 0) + runs * reaction.product.quantity
+			);
+		else if (byQuantity) {
+			const typeId = reaction.product.typeId;
+			requested.set(typeId, (requested.get(typeId) ?? 0) + Math.ceil(t.quantity!));
+		}
 	}
 
 	// Longest path from any target: every consumer then sits at a strictly lower depth than its producer.
@@ -376,7 +406,6 @@ export function planReactions(input: PlanInput): PlanResult {
 		const reaction = byId.get(id)!;
 		const profile = ctx.profiles[reaction.reactor];
 		const fromTarget = targetRuns.get(id) ?? 0;
-		const soldUnits = targetUnits.get(id) ?? 0;
 		// Demand for this product is built by whichever reaction `builtBy` picks: when an unrefined route
 		// replaces it, the regular reaction (still run here as a target) must not build that demand again.
 		const demanded =
@@ -434,7 +463,6 @@ export function planReactions(input: PlanInput): PlanResult {
 			profile,
 			depth: d,
 			targetRuns: fromTarget,
-			targetUnits: soldUnits,
 			productRuns,
 			reprocessRuns,
 			fed,
@@ -444,11 +472,8 @@ export function planReactions(input: PlanInput): PlanResult {
 			slots,
 			runsPerSlot,
 			runTimeSeconds: runTimeSeconds(reaction, profile, constants),
-			// Rounding up intermediate runs, plus the units of a quantity target beyond the requested amount.
-			surplus:
-				productRuns * reaction.product.quantity -
-				demanded +
-				(fromTarget * reaction.product.quantity - soldUnits),
+			// Rounding up intermediate runs.
+			surplus: productRuns * reaction.product.quantity - demanded,
 			purchases,
 			materials,
 			baseQuantities: inputs.map((m) => m.quantity),
@@ -920,8 +945,8 @@ export function planReactions(input: PlanInput): PlanResult {
 	for (const n of nodes) {
 		jobCostTotal = addJobCosts(jobCostTotal, n.jobCost);
 		const product = n.reaction.product;
-		if (n.targetUnits > 0) {
-			sellLine(outputs, pc, n.profile, product.typeId, n.targetUnits, {
+		if (n.targetRuns > 0) {
+			sellLine(outputs, pc, n.profile, product.typeId, n.targetRuns * product.quantity, {
 				countMissing: true,
 				withCosts: true
 			});
@@ -945,9 +970,27 @@ export function planReactions(input: PlanInput): PlanResult {
 		const daily = input.dailyVolumes[o.typeId];
 		return {
 			...o,
-			dailyVolumeSharePct: daily ? (o.quantity / settings.cycleDays / daily) * 100 : null
+			dailyVolumeSharePct: daily ? (o.quantity / settings.cycleDays / daily) * 100 : null,
+			...(requested.has(o.typeId) ? { requested: requested.get(o.typeId)! } : {})
 		};
 	});
+	const autoFilled: PlanResult['autoFilled'] = sortMaterials(
+		[...autoUnits].map(([blueprintTypeId, units]) => {
+			const typeId = byId.get(blueprintTypeId)!.product.typeId;
+			const line = outputsPerCycle.find((o) => o.typeId === typeId);
+			return {
+				blueprintTypeId,
+				typeId,
+				name: typeName(typeId),
+				units,
+				value:
+					line && line.unitPrice !== null && line.quantity > 0
+						? (units / line.quantity) * (line.total - line.fees - line.shipping)
+						: null
+			};
+		}),
+		dataset
+	);
 	const purchasesPerCycle = steadySourcing.annotate(purchases.list()).map((item) => {
 		const m = purchaseProfile.get(item.typeId)!.market;
 		const daily =
@@ -1001,6 +1044,7 @@ export function planReactions(input: PlanInput): PlanResult {
 		horizon,
 		formulasToBuy,
 		outputsPerCycle,
+		autoFilled,
 		surplusPerCycle: sortMaterials(surplus.list(), dataset),
 		totals: {
 			recurringInvestment,
@@ -1029,7 +1073,7 @@ export const FILL_TIERS: readonly Tier[] = [
 ];
 
 export interface FillOptions {
-	/** Reactions auto-fill may add; default: tiers in {@link FILL_TIERS}. */
+	/** Reactions auto-fill may add lines of or top up; default: tiers in {@link FILL_TIERS}. */
 	allowed?: (reaction: Reaction) => boolean;
 	/**
 	 * Cap on a product's units sold per day (output per cycle ÷ cycle days) as a percentage of its average
@@ -1050,57 +1094,148 @@ export interface FillResult {
 	buyInsteadOfBuild: number[];
 }
 
+/** Most rounds of {@link suggestFillPlan}: each lines pass empties its pool, so a second round only tops up. */
+const FILL_ROUNDS = 5;
+/** Steps of the search for the largest top-up that fits the slots (exact up to 256 idle runs). */
+const TOP_UP_SEARCH_STEPS = 8;
+
 /**
- * Greedily adds target lines, best profit per slot-day first (full chain, or buy inputs with
- * `buyIntermediates`), while the plan still fits `totalSlots` and each product stays within
- * `maxVolumeSharePct`. Existing targets are kept. A candidate that no longer fits never fits again
- * (slots and sold volume only grow), so it is dropped from the pool.
+ * Auto-fill: recomputes the auto targets (`PlanTarget.auto`) of `input.targets` and returns the user's
+ * targets unchanged and in order, then the auto targets (at most one lines and one quantity entry per
+ * blueprint). Nothing is added when the user's targets alone exceed `totalSlots`. Rounds of:
+ * - Top-ups: the idle runs of the slots of each allowed plan reaction (slots × runs per cycle − runs;
+ *   unrefined jobs excepted), final products first, then most idle time first, go to its auto quantity
+ *   entry when the plan still fits `totalSlots` (else the most runs that fit), its profit per cycle
+ *   rises and the product stays within `maxVolumeSharePct`.
+ * - Lines: greedily adds whole lines to the auto lines entries, best profit per slot-day first (full
+ *   chain, or buy inputs with `buyIntermediates`), while the plan fits `totalSlots` and each product
+ *   stays within `maxVolumeSharePct`. A candidate that no longer fits never fits again (slots and sold
+ *   volume only grow), so it is dropped from the pool.
+ * The rounds repeat while lines were added (their chains leave partial slots), at most `FILL_ROUNDS`.
+ * Cost: one plan per added line and per rejected candidate, plus per top-up pass one plan per reaction
+ * with idle runs, or up to 1 + `TOP_UP_SEARCH_STEPS` when the full top-up needs a slot too many. With
+ * the test fixture, 10 quantity targets (15 reactions, 33 slots): 32 plans, ~11 ms in Node; with 10
+ * more slots free: 48 plans, ~11 ms.
  */
 export function suggestFillPlan(input: PlanInput, opts: FillOptions = {}): FillResult {
 	const { ctx } = input;
-	const producers = producerIndex(ctx.dataset);
+	const { dataset, settings } = ctx;
+	const producers = producerIndex(dataset);
+	const byId = new Map(dataset.reactions.map((r) => [r.blueprintTypeId, r]));
 	const allowed = opts.allowed ?? ((r: Reaction) => FILL_TIERS.includes(r.tier));
-	let pool = ctx.dataset.reactions
+	let pool = dataset.reactions
 		.filter(allowed)
 		.map((reaction) => {
 			// The chain the planner would build: with its unrefined routes when the setting asks for them.
-			const chainView = ctx.settings.unrefinedInChains === 'best' ? 'unrefined' : 'chain';
-			const view = !opts.buyIntermediates && chainable(reaction, ctx.dataset) ? chainView : 'single';
+			const chainView = settings.unrefinedInChains === 'best' ? 'unrefined' : 'chain';
+			const view = !opts.buyIntermediates && chainable(reaction, dataset) ? chainView : 'single';
 			const result = calculateReaction(reaction, ctx, { view, outputMode: 'product' });
 			return { reaction, score: result.totals.profitPerSlotDay };
 		})
 		.filter((c): c is { reaction: Reaction; score: number } => c.score !== null && c.score > 0)
 		.sort((a, b) => b.score - a.score || a.reaction.blueprintTypeId - b.reaction.blueprintTypeId);
 
-	let targets = input.targets.map((t) => ({ ...t }));
+	let targets: PlanTarget[] = input.targets.filter((t) => !t.auto).map((t) => ({ ...t }));
 	let buy = [...input.buyInsteadOfBuild];
 	const plan = (t: PlanTarget[], b: number[]) =>
 		planReactions({ ...input, targets: t, buyInsteadOfBuild: b });
-	if (plan(targets, buy).slotsUsed > input.totalSlots) return { targets, buyInsteadOfBuild: buy };
+	let current = plan(targets, buy);
+	if (current.slotsUsed > input.totalSlots) return { targets, buyInsteadOfBuild: buy };
 
-	while (pool.length > 0) {
-		const { reaction } = pool[0];
-		const id = reaction.blueprintTypeId;
-		const wasTarget = targets.some((t) => t.blueprintTypeId === id);
-		const existing = targets.find((t) => t.blueprintTypeId === id && t.quantity === undefined);
-		const nextTargets = existing
-			? targets.map((t) => (t === existing ? { ...t, lines: t.lines + 1 } : t))
-			: [...targets, { blueprintTypeId: id, lines: 1 }];
-		const nextBuy = opts.buyIntermediates
-			? [...new Set([...buy, ...reaction.materials.map((m) => m.typeId).filter((t) => producers.has(t))])]
-			: buy;
-		const result = plan(nextTargets, nextBuy);
-		let fits = result.slotsUsed <= input.totalSlots;
-		if (fits && opts.maxVolumeSharePct !== undefined) {
-			const share = result.outputsPerCycle.find(
-				(o) => o.typeId === reaction.product.typeId
-			)?.dailyVolumeSharePct;
-			fits = share === null || share === undefined ? !wasTarget : share <= opts.maxVolumeSharePct;
+	const fitsSlots = (result: PlanResult) => result.slotsUsed <= input.totalSlots;
+	/** Sold share of `typeId` within the cap; products without volume data pass when `unknownOk`. */
+	const withinCap = (result: PlanResult, typeId: number, unknownOk: boolean) => {
+		if (opts.maxVolumeSharePct === undefined) return true;
+		const share = result.outputsPerCycle.find((o) => o.typeId === typeId)?.dailyVolumeSharePct;
+		return share === null || share === undefined ? unknownOk : share <= opts.maxVolumeSharePct;
+	};
+	/** Runs the slots of a plan reaction still have room for this cycle. */
+	const idleRuns = (r: PlanReaction) => {
+		const reaction = byId.get(r.blueprintTypeId)!;
+		const capacity = runsPerCycleDetail(
+			reaction,
+			ctx.profiles[reaction.reactor],
+			settings.cycleDays,
+			dataset.constants
+		).runs;
+		return r.slots * capacity - r.totalRuns;
+	};
+	/** `targets` with `runs` more runs on the auto quantity entry of `id`. */
+	const toppedUp = (id: number, runs: number): PlanTarget[] => {
+		const units = runs * byId.get(id)!.product.quantity;
+		const entry = targets.find((t) => t.auto && t.blueprintTypeId === id && t.quantity !== undefined);
+		return entry
+			? targets.map((t) => (t === entry ? { ...t, quantity: t.quantity! + units } : t))
+			: [...targets, { blueprintTypeId: id, lines: 1, quantity: units, auto: true }];
+	};
+
+	const topUp = () => {
+		const order = current.reactions
+			.filter((r) => !r.reprocess && allowed(byId.get(r.blueprintTypeId)!))
+			.map((r) => ({ id: r.blueprintTypeId, depth: r.depth, idle: idleRuns(r) * r.runTimeSeconds }))
+			.filter((c) => c.idle > 0)
+			.sort((a, b) => a.depth - b.depth || b.idle - a.idle || a.id - b.id);
+		for (const { id } of order) {
+			const profit = current.totals.profitPerCycle;
+			// Earlier top-ups change the demand on this reaction: its idle runs are read again.
+			const r = current.reactions.find((x) => x.blueprintTypeId === id);
+			if (profit === null || !r || r.reprocess) continue;
+			const free = idleRuns(r);
+			if (free <= 0) continue;
+			const attempt = (runs: number): { targets: PlanTarget[]; result: PlanResult } => {
+				const t = toppedUp(id, runs);
+				return { targets: t, result: plan(t, buy) };
+			};
+			let next: { targets: PlanTarget[]; result: PlanResult } | null = attempt(free);
+			if (!fitsSlots(next.result)) {
+				// The extra demand on its inputs needs a slot too many: the most runs that fit.
+				next = null;
+				let fits = 0;
+				let fails = free;
+				for (let step = 0; step < TOP_UP_SEARCH_STEPS && fails - fits > 1; step++) {
+					const mid = Math.floor((fits + fails) / 2);
+					const a = attempt(mid);
+					if (fitsSlots(a.result)) {
+						next = a;
+						fits = mid;
+					} else fails = mid;
+				}
+			}
+			const nextProfit = next?.result.totals.profitPerCycle ?? null;
+			if (!next || nextProfit === null || nextProfit <= profit) continue;
+			if (!withinCap(next.result, r.product.typeId, true)) continue;
+			targets = next.targets;
+			current = next.result;
 		}
-		if (fits) {
-			targets = nextTargets;
-			buy = nextBuy;
-		} else pool = pool.slice(1);
+	};
+
+	const addLines = () => {
+		let added = false;
+		while (pool.length > 0) {
+			const { reaction } = pool[0];
+			const id = reaction.blueprintTypeId;
+			const wasTarget = targets.some((t) => t.blueprintTypeId === id);
+			const entry = targets.find((t) => t.auto && t.blueprintTypeId === id && t.quantity === undefined);
+			const nextTargets = entry
+				? targets.map((t) => (t === entry ? { ...t, lines: t.lines + 1 } : t))
+				: [...targets, { blueprintTypeId: id, lines: 1, auto: true }];
+			const nextBuy = opts.buyIntermediates
+				? [...new Set([...buy, ...reaction.materials.map((m) => m.typeId).filter((t) => producers.has(t))])]
+				: buy;
+			const result = plan(nextTargets, nextBuy);
+			if (fitsSlots(result) && withinCap(result, reaction.product.typeId, !wasTarget)) {
+				targets = nextTargets;
+				buy = nextBuy;
+				current = result;
+				added = true;
+			} else pool = pool.slice(1);
+		}
+		return added;
+	};
+
+	for (let round = 0; round < FILL_ROUNDS; round++) {
+		topUp();
+		if (!addLines()) break;
 	}
 	return { targets, buyInsteadOfBuild: buy };
 }

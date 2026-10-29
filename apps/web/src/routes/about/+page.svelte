@@ -116,15 +116,16 @@
 			</li>
 			<li>
 				<strong>Planner</strong>: the targets start together and every intermediate runs in the cycle before
-				the job using it, so a chain is steady after one cycle per level. Stock you hold of an intermediate
-				feeds the earliest cycles first: its reaction starts later or runs fewer runs in its first cycle (and
-				so do the reactions feeding it), and the targets can start sooner. The build-up never takes longer
-				than without stock. Stock of a bought material covers the earliest start-up purchases. Stock is valued
-				at market price: it lowers the initial investment (start-up purchases and job costs up to the first
-				steady cycle, plus formulas) but not the profit per cycle. Stock the start-up does not use is listed
-				as not used. The shopping list for a number of cycles (1 to 52) adds up everything those cycles buy;
-				with "Subtract my stock" on, your stock covers its earliest purchases over all those cycles, and stock
-				of an intermediate saves its reaction's runs (and their inputs) in later cycles too.
+				the job using it, so a chain is steady after one cycle per level. A target given as units per cycle
+				runs enough runs to make them; the rest of the last run is sold with the outputs. Stock you hold of an
+				intermediate feeds the earliest cycles first: its reaction starts later or runs fewer runs in its
+				first cycle (and so do the reactions feeding it), and the targets can start sooner. The build-up never
+				takes longer than without stock. Stock of a bought material covers the earliest start-up purchases.
+				Stock is valued at market price: it lowers the initial investment (start-up purchases and job costs up
+				to the first steady cycle, plus formulas) but not the profit per cycle. Stock the start-up does not
+				use is listed as not used. The shopping list for a number of cycles (1 to 52) adds up everything those
+				cycles buy; with "Subtract my stock" on, your stock covers its earliest purchases over all those
+				cycles, and stock of an intermediate saves its reaction's runs (and their inputs) in later cycles too.
 			</li>
 			<li>
 				<strong>Use what I have</strong> (planner): plans 1 to 12 cycles of reactions (one cycle is one round of

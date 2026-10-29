@@ -86,6 +86,55 @@ describe('POST /api/v2/plan', () => {
 		expect(result.slotsUsed).toBe(result.reactions.reduce((n, r) => n + r.slots, 0));
 	});
 
+	it('sells the rest of a quantity target’s last run and reports what it asked for', async () => {
+		const { env } = await seededEnv();
+		const { body } = await post(env, {
+			totalSlots: 150,
+			targets: [{ slug: 'crystalline-carbonide', quantity: 35_276_442 }]
+		});
+		const result = PlanResultResponse.parse(body);
+		// 35,276,442 ÷ 10,000 per run → 3,528 runs = 35,280,000 units, all sold.
+		const output = result.outputsPerCycle.find((o) => o.typeId === 16670)!;
+		expect(output).toMatchObject({ quantity: 35_280_000, requested: 35_276_442 });
+		expect(result.surplusPerCycle.some((s) => s.typeId === 16670)).toBe(false);
+	});
+
+	it('plans auto-fill targets like any target and reports what they add in autoFilled', async () => {
+		const { env } = await seededEnv();
+		const { response, body } = await post(env, {
+			totalSlots: 150,
+			targets: [
+				{ slug: 'crystalline-carbonide', lines: 1 },
+				{ slug: 'crystalline-carbonide', quantity: 12_300, auto: true }
+			]
+		});
+		expect(response.status).toBe(200);
+		const result = PlanResultResponse.parse(body);
+		const output = result.outputsPerCycle.find((o) => o.typeId === 16670)!;
+		expect(result.autoFilled).toEqual([
+			{
+				blueprintTypeId: 46205,
+				typeId: 16670,
+				name: 'Crystalline Carbonide',
+				// 12,300 asked ÷ 10,000 per run → 2 runs; auto-fill adds all they make.
+				units: 20_000,
+				value: expect.any(Number)
+			}
+		]);
+		// Valued like the outputs: the share 20,000 / output units of the product's net line.
+		expect(result.autoFilled[0].value).toBeCloseTo(
+			((output.total - output.fees - output.shipping) * 20_000) / output.quantity,
+			2
+		);
+		// Only the user's quantity targets set `requested`.
+		expect(output).not.toHaveProperty('requested');
+
+		const plain = PlanResultResponse.parse(
+			(await post(env, { totalSlots: 150, targets: [{ slug: 'crystalline-carbonide', lines: 1 }] })).body
+		);
+		expect(plain.autoFilled).toEqual([]);
+	});
+
 	it('accepts settings as a partial object or an encoded string', async () => {
 		const { env } = await seededEnv();
 		const body = { totalSlots: 10, targets: [{ slug: 'crystalline-carbonide' }] };
@@ -115,6 +164,7 @@ describe('POST /api/v2/plan', () => {
 		[{ totalSlots: 10, targets: [{ slug: 'fullerides', blueprintTypeId: 46209 }] }, ['targets.0']],
 		[{ totalSlots: 10, targets: [{ slug: 'fullerides', lines: 1, quantity: 5 }] }, ['targets.0']],
 		[{ totalSlots: 10, targets: [{ slug: 'fullerides', quantity: -1 }] }, ['targets.0.quantity']],
+		[{ totalSlots: 10, targets: [{ slug: 'fullerides', auto: 'yes' }] }, ['targets.0.auto']],
 		[{ totalSlots: 10, targets: [{ slug: 'fullerides' }], stock: { abc: 1 } }, ['stock.abc']],
 		[
 			{ totalSlots: 10, targets: [{ slug: 'fullerides' }], settings: { cycleDays: 99 } },

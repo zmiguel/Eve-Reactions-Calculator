@@ -15,9 +15,11 @@ export function resolveTargets(dataset: Dataset, targets: Body['targets']): Plan
 			t.slug === undefined ? r.blueprintTypeId === t.blueprintTypeId : r.slug === t.slug
 		);
 		if (!reaction) throw new ApiError(404, 'NOT_FOUND', `Unknown reaction "${t.slug ?? t.blueprintTypeId}".`);
-		return t.quantity === undefined
-			? { blueprintTypeId: reaction.blueprintTypeId, lines: t.lines ?? 1 }
-			: { blueprintTypeId: reaction.blueprintTypeId, lines: 1, quantity: t.quantity };
+		const target: PlanTarget =
+			t.quantity === undefined
+				? { blueprintTypeId: reaction.blueprintTypeId, lines: t.lines ?? 1 }
+				: { blueprintTypeId: reaction.blueprintTypeId, lines: 1, quantity: t.quantity };
+		return t.auto ? { ...target, auto: true } : target;
 	});
 }
 

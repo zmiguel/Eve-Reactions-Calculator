@@ -473,9 +473,10 @@ describe('slot limits', () => {
 		}
 	});
 
-	it('suggestFill keeps existing targets and returns them unchanged when already full', () => {
-		const base = input({ totalSlots: 3, targets: [{ blueprintTypeId: 46205, lines: 1 }] });
-		expect(suggestFill(base)).toEqual([{ blueprintTypeId: 46205, lines: 1 }]);
+	it('suggestFill returns the user targets unchanged, without auto targets, when they exceed the slots', () => {
+		const user = { blueprintTypeId: 46205, lines: 1 };
+		const base = input({ totalSlots: 2, targets: [user, { blueprintTypeId: 46167, lines: 1, auto: true }] });
+		expect(suggestFill(base)).toEqual([user]);
 	});
 });
 
@@ -495,16 +496,40 @@ describe('quantity targets', () => {
 		expect(plan.surplusPerCycle.find((s) => s.typeId === 16670)).toBeUndefined();
 	});
 
-	it('never under-produces and reports the excess as surplus', () => {
-		for (const quantity of [1, 9_999, 10_001, 1_260_000, 35_280_001]) {
+	it('never under-produces and sells every unit its runs make', () => {
+		for (const quantity of [1, 9_999, 10_001, 1_260_000, 35_276_442]) {
 			const plan = planReactions(input({ targets: [{ blueprintTypeId: 46205, lines: 0, quantity }] }));
+			// e.g. 35,276,442 ÷ 10,000 per run → 3,528 runs → 35,280,000 sold, 35,276,442 requested.
 			const runs = reaction(plan, 46205).totalRuns;
 			expect(runs).toBe(Math.ceil(quantity / 10_000));
-			expect(runs * 10_000).toBeGreaterThanOrEqual(quantity);
-			expect(plan.outputsPerCycle[0].quantity).toBe(quantity);
-			const surplus = plan.surplusPerCycle.find((s) => s.typeId === 16670)?.quantity ?? 0;
-			expect(surplus).toBe(runs * 10_000 - quantity);
+			expect(plan.outputsPerCycle[0]).toMatchObject({
+				typeId: 16670,
+				quantity: runs * 10_000,
+				requested: quantity
+			});
+			expect(plan.surplusPerCycle.find((s) => s.typeId === 16670)).toBeUndefined();
 		}
+	});
+
+	it('requests only the units of non-auto quantity targets; auto units count whole runs', () => {
+		const plan = planReactions(
+			input({
+				targets: [
+					{ blueprintTypeId: 46205, lines: 0, quantity: 15_000 },
+					{ blueprintTypeId: 46205, lines: 1 },
+					{ blueprintTypeId: 46205, lines: 1, quantity: 12_300, auto: true },
+					{ blueprintTypeId: 46157, lines: 1 }
+				]
+			})
+		);
+		// 2 + 126 + 2 runs × 10,000 Crystalline Carbonide sold; only the 15,000 asked for are requested.
+		expect(plan.outputsPerCycle.find((o) => o.typeId === 16670)).toMatchObject({
+			quantity: 130 * 10_000,
+			requested: 15_000
+		});
+		expect(plan.outputsPerCycle.find((o) => o.typeId === 30306)).not.toHaveProperty('requested');
+		// The auto 12,300 takes 2 runs: 20,000 units.
+		expect(plan.autoFilled[0]).toMatchObject({ blueprintTypeId: 46205, units: 20_000 });
 	});
 
 	it('splits runs into as few slots as the cycle allows, without full-line rounding', () => {
@@ -536,9 +561,9 @@ describe('suggestFill options', () => {
 	it('without options behaves as before (best full chain repeated while it fits)', () => {
 		const base = input({ totalSlots: 150 });
 		expect(suggestFill(base)).toEqual(suggestFill(base, {}));
-		expect(suggestFill(base)).toEqual([{ blueprintTypeId: 46157, lines: 150 }]);
+		expect(suggestFill(base)).toEqual([{ blueprintTypeId: 46157, lines: 150, auto: true }]);
 		expect(suggestFillPlan(base)).toEqual({
-			targets: [{ blueprintTypeId: 46157, lines: 150 }],
+			targets: [{ blueprintTypeId: 46157, lines: 150, auto: true }],
 			buyInsteadOfBuild: []
 		});
 	});
@@ -569,31 +594,180 @@ describe('suggestFill options', () => {
 		expect(existing.find((t) => t.blueprintTypeId === 46157)).toEqual({ blueprintTypeId: 46157, lines: 1 });
 	});
 
-	it('only adds allowed reactions', () => {
+	it('only adds lines of and tops up allowed reactions', () => {
+		const tierOf = (id: number) => makeCtx().dataset.reactions.find((r) => r.blueprintTypeId === id)!.tier;
 		const targets = suggestFill(input({ totalSlots: 20 }), { allowed: (r) => r.tier === 'composite' });
-		const tiers = targets.map(
-			(t) => makeCtx().dataset.reactions.find((r) => r.blueprintTypeId === t.blueprintTypeId)!.tier
-		);
+		const tiers = targets.map((t) => tierOf(t.blueprintTypeId));
 		expect(tiers.length).toBeGreaterThan(0);
 		expect(new Set(tiers)).toEqual(new Set(['composite']));
-		expect(FILL_TIERS).toContain('composite');
+		// 1,000,000 Crystalline Carbonide: partial slots of the composite and of both intermediates.
+		const partial = input({
+			totalSlots: 3,
+			targets: [{ blueprintTypeId: 46205, lines: 0, quantity: 1_000_000 }]
+		});
+		const toppedTiers = (t: PlanInput['targets']) =>
+			new Set(t.filter((x) => x.auto).map((x) => tierOf(x.blueprintTypeId)));
+		expect(toppedTiers(suggestFill(partial, { allowed: (r) => r.tier === 'composite' }))).toEqual(
+			new Set(['composite'])
+		);
+		// The default tiers include intermediates.
+		expect(FILL_TIERS).toContain('intermediate');
+		expect(toppedTiers(suggestFill(partial))).toEqual(new Set(['composite', 'intermediate']));
 	});
 
 	it('buyIntermediates ranks by buy-inputs profit and buys the added reactions’ intermediates', () => {
 		const base = input({ totalSlots: 20 });
 		const fill = suggestFillPlan(base, { allowed: (r) => r.tier === 'composite', buyIntermediates: true });
-		expect(fill.targets).toEqual([{ blueprintTypeId: 46204, lines: 20 }]);
+		expect(fill.targets).toEqual([{ blueprintTypeId: 46204, lines: 20, auto: true }]);
 		expect(fill.buyInsteadOfBuild.sort()).toEqual([16654, 16658]);
 		const plan = planReactions({ ...base, ...fill });
 		expect(plan.reactions.map((r) => r.blueprintTypeId)).toEqual([46204]);
 		expect(plan.slotsUsed).toBe(20);
 	});
 
-	it('adds lines to a line target, never to a quantity target', () => {
-		const targets = suggestFill(
-			input({ totalSlots: 45, targets: [{ blueprintTypeId: 46157, lines: 0, quantity: 160 }] })
+	it('tops up a quantity target, then adds lines to a separate auto entry', () => {
+		const quantity = { blueprintTypeId: 46157, lines: 0, quantity: 160 };
+		const lines = { blueprintTypeId: 46157, lines: 1 };
+		const targets = suggestFill(input({ totalSlots: 46, targets: [quantity, lines] }));
+		// The user's 1 run + 1 line (126 runs) fill 2 slots of 126 runs: 125 idle runs × 160 units; then 44
+		// whole lines in the free slots.
+		expect(targets).toEqual([
+			quantity,
+			lines,
+			{ blueprintTypeId: 46157, lines: 1, quantity: 125 * 160, auto: true },
+			{ blueprintTypeId: 46157, lines: 44, auto: true }
+		]);
+	});
+});
+
+describe('auto-fill top-ups', () => {
+	// 1,000,000 Crystalline Carbonide = 100 of the 126 runs a slot fits; its two intermediates run 49 each.
+	const user = { blueprintTypeId: 46205, lines: 0, quantity: 1_000_000 };
+	const full = (overrides: Partial<PlanInput> = {}) =>
+		input({ totalSlots: 3, targets: [user], ...overrides });
+	const autoOf = (targets: PlanInput['targets'], id: number) =>
+		targets.find((t) => t.auto && t.blueprintTypeId === id && t.quantity !== undefined);
+
+	it('fills the idle runs of partial slots without new slots', () => {
+		const base = full();
+		const before = planReactions(base);
+		expect(before.slotsUsed).toBe(3);
+		const targets = suggestFill(base);
+		const after = planReactions({ ...base, targets });
+		expect(targets[0]).toEqual(user);
+		// 126 − 100 idle runs × 10,000 units.
+		expect(autoOf(targets, 46205)).toEqual({
+			blueprintTypeId: 46205,
+			lines: 1,
+			quantity: 260_000,
+			auto: true
+		});
+		expect(after.slotsUsed).toBe(3);
+		expect(after.reactions.map((r) => r.totalRuns)).toEqual([126, 126, 126]);
+		expect(after.utilisation).toBeGreaterThan(before.utilisation);
+		expect(after.totals.profitPerCycle!).toBeGreaterThan(before.totals.profitPerCycle!);
+	});
+
+	it('tops up a partial intermediate slot and sells its product', () => {
+		const base = full();
+		const targets = suggestFill(base);
+		// The topped-up 126-run job needs 12,268 Carbon Polymers = 62 runs (61.34 rounded up): 64 idle
+		// runs × 200 units.
+		expect(autoOf(targets, 46167)).toEqual({
+			blueprintTypeId: 46167,
+			lines: 1,
+			quantity: 12_800,
+			auto: true
+		});
+		const plan = planReactions({ ...base, targets });
+		expect(plan.outputsPerCycle.find((o) => o.typeId === 16659)?.quantity).toBe(12_800);
+	});
+
+	it('skips a top-up that lowers the profit', () => {
+		// Crystalline Carbonide sold for 1 ISK: more runs only cost more.
+		const prices = priceBook({ jita: { ...jitaPrices, 16670: { buy: 1, sell: 1 } } });
+		const base = full({ ctx: makeCtx({ outputPrices: prices }) });
+		const targets = suggestFill(base);
+		expect(autoOf(targets, 46205)).toBeUndefined();
+		expect(planReactions({ ...base, targets }).totals.profitPerCycle!).toBeGreaterThan(
+			planReactions(base).totals.profitPerCycle!
 		);
-		expect(targets[0]).toEqual({ blueprintTypeId: 46157, lines: 0, quantity: 160 });
-		expect(targets[1]).toEqual({ blueprintTypeId: 46157, lines: 44 });
+	});
+
+	it('reduces a top-up to the runs whose extra intermediate demand fits the slots', () => {
+		// 253 runs: 3 final slots; each intermediate needs just under its 126-run slot. The full top-up
+		// (378 runs) would need a second slot for each intermediate.
+		const target = { blueprintTypeId: 46205, lines: 0, quantity: 2_530_000 };
+		const base = input({ totalSlots: 5, targets: [target] });
+		expect(planReactions(base).slotsUsed).toBe(5);
+		const targets = suggestFill(base);
+		const plan = planReactions({ ...base, targets });
+		const topUp = autoOf(targets, 46205)!;
+		expect(plan.slotsUsed).toBe(5);
+		expect(reaction(plan, 46205).totalRuns).toBe(253 + topUp.quantity! / 10_000);
+		expect(topUp.quantity! % 10_000).toBe(0);
+		expect(topUp.quantity!).toBeGreaterThan(0);
+		expect(topUp.quantity!).toBeLessThan(125 * 10_000);
+		// One run more no longer fits.
+		const more = planReactions({
+			...base,
+			targets: [target, { ...topUp, quantity: topUp.quantity! + 10_000 }]
+		});
+		expect(more.slotsUsed).toBeGreaterThan(5);
+	});
+
+	it('keeps the volume cap', () => {
+		// 1,000,000 a cycle = 142,857 a day = 9.5 % of 1.5 M; topped up to 1,260,000: 12 %.
+		const base = full({ dailyVolumes: { 16670: 1_500_000 } });
+		expect(autoOf(suggestFill(base), 46205)).toBeDefined();
+		expect(autoOf(suggestFill(base, { maxVolumeSharePct: 10 }), 46205)).toBeUndefined();
+	});
+
+	it('is idempotent and keeps auto lines apart from user lines', () => {
+		const userLines = { blueprintTypeId: 46157, lines: 1 };
+		const base = input({ totalSlots: 45, targets: [user, userLines] });
+		const first = suggestFill(base);
+		expect(first.slice(0, 2)).toEqual([user, userLines]);
+		expect(
+			first.find((t) => t.auto && t.blueprintTypeId === 46157 && t.quantity === undefined)?.lines
+		).toBeGreaterThan(0);
+		const kinds = first.filter((t) => t.auto).map((t) => `${t.blueprintTypeId}:${t.quantity === undefined}`);
+		expect(new Set(kinds).size).toBe(kinds.length);
+		expect(suggestFill({ ...base, targets: first })).toEqual(first);
+	});
+});
+
+describe('autoFilled', () => {
+	const targets = [
+		{ blueprintTypeId: 46205, lines: 1 },
+		{ blueprintTypeId: 46205, lines: 2, auto: true },
+		{ blueprintTypeId: 46167, lines: 1, quantity: 12_800, auto: true }
+	];
+
+	it('reports the units and value the auto targets add per reaction', () => {
+		const plan = planReactions(input({ targets }));
+		const net = (typeId: number) => {
+			const o = plan.outputsPerCycle.find((x) => x.typeId === typeId)!;
+			return o.total - o.fees - o.shipping;
+		};
+		const carbonide = plan.autoFilled.find((a) => a.blueprintTypeId === 46205)!;
+		// 2 lines × 126 runs × 10,000 units: 2 of the 3 lines sold.
+		expect(carbonide).toMatchObject({ typeId: 16670, units: 2_520_000 });
+		expect(carbonide.value!).toBeCloseTo((net(16670) * 2) / 3, 3);
+		// The only Carbon Polymers sold.
+		expect(plan.autoFilled.find((a) => a.blueprintTypeId === 46167)).toMatchObject({
+			typeId: 16659,
+			units: 12_800,
+			value: net(16659)
+		});
+		expect(plan.autoFilled.map((a) => a.typeId)).toEqual(plan.outputsPerCycle.map((o) => o.typeId));
+	});
+
+	it('has no value for an unpriced product and is empty without auto targets', () => {
+		const { 16659: _, ...rest } = jitaPrices;
+		const plan = planReactions(input({ ctx: makeCtx({ outputPrices: priceBook({ jita: rest }) }), targets }));
+		expect(plan.autoFilled.find((a) => a.blueprintTypeId === 46167)?.value).toBeNull();
+		expect(plan.autoFilled.find((a) => a.blueprintTypeId === 46205)?.value).not.toBeNull();
+		expect(planReactions(input({ targets: [targets[0]] })).autoFilled).toEqual([]);
 	});
 });

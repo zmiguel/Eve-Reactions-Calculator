@@ -165,7 +165,11 @@ export const PlanTargetBody = z
 			.positive()
 			.max(1e12)
 			.optional()
-			.meta({ description: 'Units of the product per cycle instead of lines.' })
+			.meta({ description: 'Units of the product per cycle instead of lines.' }),
+		auto: z.boolean().optional().meta({
+			description:
+				"Marks an entry added by the planner's auto-fill. Planned like any target; its units are counted in autoFilled."
+		})
 	})
 	.refine((t) => (t.blueprintTypeId === undefined) !== (t.slug === undefined), {
 		error: 'Give exactly one of blueprintTypeId or slug'
@@ -697,8 +701,36 @@ export const PlanResultResponse = z
 				unitPrice: z.number().nullable()
 			})
 		),
-		outputsPerCycle: z.array(LineItem.extend({ dailyVolumeSharePct: z.number().nullable() })),
+		outputsPerCycle: z.array(
+			LineItem.extend({
+				dailyVolumeSharePct: z.number().nullable(),
+				requested: z.number().optional().meta({
+					description:
+						'Units per cycle the quantity targets (not auto) of this product asked for; absent without one. quantity can exceed it: the rest of the last run is sold with the outputs.'
+				})
+			})
+		),
 		surplusPerCycle: z.array(LineItem),
+		autoFilled: z
+			.array(
+				z.object({
+					blueprintTypeId: z.number().int(),
+					typeId: z.number().int(),
+					name: z.string(),
+					units: z.number().meta({
+						description:
+							'Units of the product per cycle from its auto targets: the quantity rounded up, or lines × runs per cycle × units per run.'
+					}),
+					value: z.number().nullable().meta({
+						description:
+							'Those units valued like outputsPerCycle (after broker fees, sales tax and shipping); null when unpriced.'
+					})
+				})
+			)
+			.meta({
+				description:
+					'One row per reaction with auto targets (auto: true): what they add per cycle beyond the other targets. Empty without auto targets.'
+			}),
 		totals: z.object({
 			recurringInvestment: z.number(),
 			initialInvestment: z.number(),
