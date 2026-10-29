@@ -211,15 +211,19 @@ describe('Planner', () => {
 
 		await fireEvent.click(screen.getByRole('button', { name: 'Auto-fill best' }));
 		const saved = JSON.parse(storage.getItem(STORAGE_KEY)!) as PlannerState;
+		// The scope limits every reaction auto-fill adds, slot-time top-ups included.
 		const tiers = saved.targets.map(
 			(t) => dataset.reactions.find((r) => r.blueprintTypeId === t.blueprintTypeId)!.tier
 		);
 		expect(saved.targets.length).toBeGreaterThan(1);
+		// Started with no targets: every target is one auto-fill added.
+		for (const target of saved.targets) expect(target.auto).toBe(true);
 		expect(new Set(tiers)).toEqual(new Set(['composite']));
+		// One output row per product, with its whole share of the region's volume within the cap.
 		const shares = [...container.querySelectorAll('[data-output] [data-field="volumeShare"]')].map((c) =>
 			parseFloat(text(c))
 		);
-		expect(shares.length).toBe(saved.targets.length);
+		expect(shares.length).toBe(new Set(saved.targets.map((t) => t.blueprintTypeId)).size);
 		for (const share of shares) expect(share).toBeLessThanOrEqual(10);
 	}, 15_000);
 

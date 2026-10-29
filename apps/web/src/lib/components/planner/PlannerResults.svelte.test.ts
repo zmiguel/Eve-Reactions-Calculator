@@ -133,6 +133,77 @@ describe('PlannerResults', () => {
 		]);
 	});
 
+	it('notes what a quantity target asked for when its runs make more, not for lines', () => {
+		// 35,276,442 asked ÷ 10,000 per run → 3,528 runs = 35,280,000 sold, the rest of the last run included.
+		const quantity = setup({
+			targets: [{ blueprintTypeId: CRYSTALLINE_CARBONIDE, lines: 1, quantity: 35_276_442 }]
+		});
+		const requested = quantity.container.querySelector(
+			'[data-output="16670"] [data-field="perCycle"] [data-field="requested"]'
+		);
+		expect(text(requested)).toBe('asked 35,276,442');
+		expect(text(cellOf(quantity.container, 'perCycle'))).toBe('35,280,000 asked 35,276,442');
+		quantity.unmount();
+
+		// Exactly whole runs: nothing to note.
+		const exact = setup({
+			targets: [{ blueprintTypeId: CRYSTALLINE_CARBONIDE, lines: 1, quantity: 35_280_000 }]
+		});
+		expect(exact.container.querySelector('[data-field="requested"]')).toBeNull();
+		exact.unmount();
+
+		const lines = setup();
+		expect(lines.container.querySelector('[data-field="requested"]')).toBeNull();
+		expect(text(cellOf(lines.container, 'perCycle'))).toBe('2,520,000');
+	});
+
+	describe('auto-fill note in the outputs table', () => {
+		const note = (container: HTMLElement) =>
+			container.querySelector('[data-output="16670"] [data-field="perCycle"] [data-field="autoFilled"]');
+
+		it("shows the product's total with auto-fill's part noted under it", () => {
+			const { container } = render(PlannerResults, {
+				props: {
+					plan: plan({
+						targets: [
+							{ blueprintTypeId: CRYSTALLINE_CARBONIDE, lines: 2 },
+							{ blueprintTypeId: CRYSTALLINE_CARBONIDE, lines: 1, auto: true }
+						]
+					}),
+					dataset,
+					totalSlots: 150,
+					cycleDays: 7,
+					formulaNames
+				}
+			});
+			// 3 lines × 126 runs × 10,000 = 3,780,000 made in total; auto-fill's line is 1,260,000 of it.
+			expect(text(cellOf(container, 'perCycle'))).toBe('3,780,000 Auto-fill +1,260,000');
+			expect(text(note(container))).toBe('Auto-fill +1,260,000');
+			expect(container.querySelectorAll('[data-output]')).toHaveLength(1);
+		});
+
+		it('lists a product only auto-fill makes as an output with its note, and no note without auto-fill', () => {
+			const { container, unmount } = render(PlannerResults, {
+				props: {
+					plan: plan({
+						targets: [{ blueprintTypeId: CRYSTALLINE_CARBONIDE, lines: 1, quantity: 12_300, auto: true }]
+					}),
+					dataset,
+					totalSlots: 150,
+					cycleDays: 7,
+					formulaNames
+				}
+			});
+			// 12,300 ÷ 10,000 per run → 2 runs: 20,000 made, all of it auto-fill's; nothing "asked".
+			expect(text(cellOf(container, 'perCycle'))).toBe('20,000 Auto-fill +20,000');
+			expect(container.querySelector('[data-field="requested"]')).toBeNull();
+			unmount();
+
+			const plain = setup();
+			expect(note(plain.container)).toBeNull();
+		});
+	});
+
 	it('keeps the shopping list plain and shows market availability in its own table', () => {
 		// The structure input hub lists 5,000 Cobalt; Crystallite Alloy needs 11,976 per cycle.
 		const local = { ...jitaPrices, 16640: { buy: 1000, sell: 1100, buyVolume: 0, sellVolume: 5000 } };

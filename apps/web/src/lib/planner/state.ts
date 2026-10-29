@@ -37,7 +37,9 @@ const PlannerStateSchema = z.object({
 				/** Kept while in quantity mode so switching back restores it. */
 				lines: z.number().int().min(1).max(MAX_LINES),
 				/** Units per cycle; present = quantity mode. */
-				quantity: z.number().int().positive().max(MAX_QUANTITY).optional()
+				quantity: z.number().int().positive().max(MAX_QUANTITY).optional(),
+				/** Added by auto-fill: the next auto-fill run replaces it; editing it makes it the visitor's own. */
+				auto: z.boolean().optional()
 			})
 		)
 		.max(500),

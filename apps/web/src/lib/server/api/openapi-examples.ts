@@ -667,6 +667,7 @@ export const PLAN_EXAMPLE = {
 			volume: 36.8
 		}
 	],
+	autoFilled: [],
 	totals: {
 		recurringInvestment: 205527157.38,
 		initialInvestment: 479332528.63,

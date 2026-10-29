@@ -246,6 +246,9 @@
 	let advancedMassReactions = $state(MAX_SKILL_LEVEL);
 	const helperSlots = $derived(reactionSlots(characters, massReactions, advancedMassReactions));
 
+	/** Utilisation counted as full: no slot time left for auto-fill to top up (float tolerance). */
+	const FULL_UTILISATION = 1 - 1e-9;
+
 	function autoFill() {
 		const fill = suggestFillPlan(input, fillOptions(setup.fillScope, setup.maxVolumePct));
 		setup.targets = fill.targets;
@@ -522,7 +525,9 @@
 					{#snippet actions()}
 						<AutoFillButton
 							bind:scope={setup.fillScope}
-							disabled={plan.slotsRemaining === 0}
+							disabled={plan.slotsRemaining === 0 &&
+								plan.utilisation >= FULL_UTILISATION &&
+								!setup.targets.some((t) => t.auto)}
 							onfill={autoFill}
 						/>
 					{/snippet}

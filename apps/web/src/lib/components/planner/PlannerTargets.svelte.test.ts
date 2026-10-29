@@ -1,5 +1,5 @@
 import type { PlanTarget } from '@reactions/engine';
-import { fireEvent, render, screen } from '@testing-library/svelte';
+import { fireEvent, render, screen, within } from '@testing-library/svelte';
 import { describe, expect, it } from 'vitest';
 import { plannerContext, targetFootprint } from '#lib/planner/plan.js';
 import { dataset } from '../../../../../../packages/engine/test/fixtures/dataset';
@@ -156,5 +156,70 @@ describe('PlannerTargets', () => {
 		const { container } = setup([]);
 		expect(rows(container)).toHaveLength(0);
 		expect(container.textContent).toContain('No targets yet');
+	});
+
+	describe('auto-fill targets', () => {
+		const mixed: PlanTarget[] = [
+			{ blueprintTypeId: CRYSTALLINE_CARBONIDE, lines: 2 },
+			{ blueprintTypeId: 46209, lines: 3, auto: true },
+			{ blueprintTypeId: CRYSTALLINE_CARBONIDE, lines: 1, quantity: 12_300, auto: true }
+		];
+		const autoGroup = (container: HTMLElement) => container.querySelector('[data-auto-targets]');
+		const userList = () => screen.getByRole('list', { name: 'Targets' });
+		const autoList = () => screen.queryByRole('list', { name: 'Auto-fill targets' });
+		const products = (list: HTMLElement | null) =>
+			[...(list?.querySelectorAll('[data-target-row]') ?? [])].map((row) =>
+				chosen(row.querySelector('select[aria-label^="Product"]')!)
+			);
+
+		it('lists them below the user’s targets, each with a badge and what it adds', () => {
+			const { container } = setup(mixed);
+			expect(products(userList())).toEqual(['Crystalline Carbonide']);
+			expect(products(autoList())).toEqual(['Fullerides', 'Crystalline Carbonide']);
+			expect(within(userList()).queryByText('Auto-fill')).toBeNull();
+			expect(within(autoList()!).getAllByText('Auto-fill')).toHaveLength(2);
+			const amounts = [...autoGroup(container)!.querySelectorAll('[data-field="autoAmount"]')].map((a) =>
+				a.textContent!.replace(/\s+/g, ' ').trim()
+			);
+			expect(amounts[0]).toMatch(/^\+3 lines of Fullerides/);
+			expect(amounts[1]).toMatch(/^\+12,300 \/ cycle of Crystalline Carbonide/);
+			expect(lines(2).value).toBe('3');
+		});
+
+		it('“Clear auto-fill” removes only the auto-fill targets', async () => {
+			const { container } = setup(mixed);
+			await fireEvent.click(screen.getByRole('button', { name: 'Clear auto-fill' }));
+			expect(autoGroup(container)).toBeNull();
+			expect(products(userList())).toEqual(['Crystalline Carbonide']);
+			expect(lines(1).value).toBe('2');
+		});
+
+		it('editing an auto-fill target makes it the user’s own', async () => {
+			const { container } = setup(mixed);
+			await fireEvent.change(lines(2), { target: { value: '5' } });
+			expect(products(userList())).toEqual(['Crystalline Carbonide', 'Fullerides']);
+			expect(products(autoList())).toEqual(['Crystalline Carbonide']);
+			expect(lines(2).value).toBe('5');
+
+			// Switching the mode counts as an edit too: the last auto row leaves the group.
+			const amount = within(autoList()!).getByRole('group', { name: 'Amount of target 3' });
+			await fireEvent.click(within(amount).getByRole('button', { name: 'Lines' }));
+			expect(autoGroup(container)).toBeNull();
+			expect(products(userList())).toEqual(['Crystalline Carbonide', 'Fullerides', 'Crystalline Carbonide']);
+		});
+
+		it('removes an auto-fill row like any other', async () => {
+			setup(mixed);
+			await fireEvent.click(screen.getByRole('button', { name: 'Remove auto-fill Fullerides' }));
+			expect(products(autoList())).toEqual(['Crystalline Carbonide']);
+			expect(products(userList())).toEqual(['Crystalline Carbonide']);
+		});
+
+		it('shows the auto-fill group alone when the user has no targets', () => {
+			const { container } = setup(mixed.slice(1));
+			expect(screen.queryByRole('list', { name: 'Targets' })).toBeNull();
+			expect(container.textContent).not.toContain('No targets yet');
+			expect(products(autoList())).toEqual(['Fullerides', 'Crystalline Carbonide']);
+		});
 	});
 });

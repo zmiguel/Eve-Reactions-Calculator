@@ -23,6 +23,21 @@ describe('resolveTargets', () => {
 		]);
 	});
 
+	it('keeps the auto-fill mark and leaves unmarked targets without one', async () => {
+		const { dataset } = await loadSde();
+		expect(
+			resolveTargets(dataset, [
+				{ slug: 'fullerides', auto: false },
+				{ blueprintTypeId: 46205, lines: 3, auto: true },
+				{ slug: 'crystalline-carbonide', quantity: 12_300, auto: true }
+			])
+		).toEqual([
+			{ blueprintTypeId: 46209, lines: 1 },
+			{ blueprintTypeId: 46205, lines: 3, auto: true },
+			{ blueprintTypeId: 46205, lines: 1, quantity: 12_300, auto: true }
+		]);
+	});
+
 	it('404s for an unknown reaction', async () => {
 		const { dataset } = await loadSde();
 		expect(() => resolveTargets(dataset, [{ slug: 'nope' }])).toThrow(
