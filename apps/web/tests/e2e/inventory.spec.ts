@@ -186,21 +186,21 @@ test('planner: My inventory starts Titanium Carbide a cycle earlier and costs le
 	await expect(page.locator('[data-inventory-summary]')).toContainText('Seed Corp');
 	await addTarget(page, TITANIUM_CARBIDE, 2);
 
-	const firstCycle = planRow(page, TITANIUM_CARBIDE).locator('td').last();
+	const firstCycle = planRow(page, TITANIUM_CARBIDE);
 	const initial = page.locator('[data-metric="Initial investment"] dd');
-	await expect(firstCycle).toHaveText('1');
+	await expect(firstCycle).toHaveAttribute('data-first-cycle', '1');
 	const withInventory = iskTitle(await initial.getAttribute('title'));
 
 	await pasted.click();
 	await expect(pasted).toHaveAttribute('aria-pressed', 'true');
 	await expect(page.locator('[data-inventory-summary]')).toHaveCount(0);
 	await expect(page.getByLabel('Stock', { exact: true })).toHaveValue('');
-	await expect(firstCycle).toHaveText('2');
+	await expect(firstCycle).toHaveAttribute('data-first-cycle', '2');
 	const withoutInventory = iskTitle(await initial.getAttribute('title'));
 	expect(withInventory).toBeLessThan(withoutInventory);
 
 	await myInventory.click();
-	await expect(firstCycle).toHaveText('1');
+	await expect(firstCycle).toHaveAttribute('data-first-cycle', '1');
 });
 
 test('planner: Use what I have plans with the inventory and keeps the targets', async ({ page }) => {

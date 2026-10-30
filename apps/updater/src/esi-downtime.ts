@@ -3,6 +3,7 @@ import {
 	ESI_DOWNTIME_MINUTE_UTC,
 	ESI_DOWNTIME_START_MINUTE_UTC,
 	ESI_ONLINE_MIN_PLAYERS,
+	ESI_RESTART_WAIVED_MINUTE_UTC,
 	ESI_STATUS_RECHECK_MS
 } from './config.ts';
 import { DAY_MS, dayStart, utcDate } from './dates.ts';
@@ -31,10 +32,11 @@ export function resetEsiDowntimeMemo(): void {
 /**
  * Whether the updater may send ESI requests at `now`: always before 10:55 UTC, never from 10:55 to
  * 11:00, and after 11:00 only once `/status` reported more than `ESI_ONLINE_MIN_PLAYERS` players on
- * the live server. The confirmation time is kept per UTC day (memo, then KV for other isolates).
+ * the live server, started after 10:55 that day (until `ESI_RESTART_WAIVED_MINUTE_UTC`). The
+ * confirmation time is kept per UTC day (memo, then KV for other isolates).
  */
 export async function esiAvailable(env: Env, now: number): Promise<boolean> {
-	const minute = Math.floor((now % DAY_MS) / 60_000);
+	const minute = minuteOfDay(now);
 	if (minute < ESI_DOWNTIME_START_MINUTE_UTC) return true;
 	if (minute < ESI_DOWNTIME_MINUTE_UTC) return false;
 	const date = utcDate(now);
@@ -44,6 +46,8 @@ export async function esiAvailable(env: Env, now: number): Promise<boolean> {
 	});
 	return pending;
 }
+
+const minuteOfDay = (ms: number) => Math.floor((ms % DAY_MS) / 60_000);
 
 /** When ESI was confirmed back after the downtime of `date` (memo or KV); `null` while not (yet). */
 async function onlineAt(env: Env, date: string): Promise<number | null> {
@@ -63,7 +67,15 @@ async function checkOnline(env: Env, date: string, now: number): Promise<boolean
 	}
 	if (failedAt !== null && now - failedAt < ESI_STATUS_RECHECK_MS) return false;
 	const status = await fetchServerStatus(httpFetch, userAgent(env));
-	if (status !== null && status.players > ESI_ONLINE_MIN_PLAYERS && !status.vip) {
+	const restarted =
+		status?.startTime != null && status.startTime >= dayStart(date) + ESI_DOWNTIME_START_MINUTE_UTC * 60_000;
+	const restartNeeded = minuteOfDay(now) < ESI_RESTART_WAIVED_MINUTE_UTC;
+	if (
+		status !== null &&
+		status.players > ESI_ONLINE_MIN_PLAYERS &&
+		!status.vip &&
+		(restarted || !restartNeeded)
+	) {
 		await env.CACHE.put(ESI_ONLINE_KV_KEY(date), String(now), { expirationTtl: 2 * 86_400 });
 		online = { date, at: now };
 		failedAt = null;
@@ -71,7 +83,14 @@ async function checkOnline(env: Env, date: string, now: number): Promise<boolean
 		return true;
 	}
 	failedAt = now;
-	const seen = status === null ? 'no status' : status.vip ? 'VIP mode' : `${status.players} players`;
+	const seen =
+		status === null
+			? 'no status'
+			: status.vip
+				? 'VIP mode'
+				: restartNeeded && !restarted
+					? 'server not restarted yet'
+					: `${status.players} players`;
 	console.log(`[esi] still down (${seen})`);
 	return false;
 }

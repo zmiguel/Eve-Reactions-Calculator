@@ -7,7 +7,7 @@ import {
 	storedSettings
 } from '@reactions/engine';
 import { z } from 'zod';
-import { FILL_SCOPE_IDS } from './plan';
+import { FILL_SCOPE_IDS, SLOT_SHARING_MODES } from './plan';
 
 /** localStorage key; the version suffix changes together with {@link STATE_VERSION}. */
 export const STORAGE_KEY = 'planner:v1';
@@ -69,7 +69,12 @@ const PlannerStateSchema = z.object({
 	/** "Plan targets" shopping list: cycles it covers; absent = up to the first steady cycle. */
 	shoppingCycles: z.number().int().min(1).max(PLAN_MAX_HORIZON_CYCLES).optional(),
 	/** The shopping list subtracts the stock; absent = on. */
-	shoppingUseStock: z.boolean().optional()
+	shoppingUseStock: z.boolean().optional(),
+	/**
+	 * Leftover runs of different reactions share slots: always, only with auto-fill targets (and when
+	 * auto-fill runs), or never. Absent = with auto-fill.
+	 */
+	slotSharing: z.enum(SLOT_SHARING_MODES).optional()
 });
 
 export type PlannerState = z.infer<typeof PlannerStateSchema>;

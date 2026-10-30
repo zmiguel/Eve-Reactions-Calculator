@@ -244,14 +244,15 @@ function baseHeaders(userAgent: string): Record<string, string> {
 }
 
 /**
- * One ungated `GET /status` (the probe that decides when the downtime is over). Network errors,
- * non-2XX answers and unexpected bodies return `null`; it never throws.
+ * One ungated `GET /status` (the probe that decides when the downtime is over): players, VIP flag and
+ * when the server started (`start_time`, unix ms; `null` when missing). Network errors, non-2XX answers
+ * and unexpected bodies return `null`; it never throws.
  */
 export async function fetchServerStatus(
 	fetch: FetchFn,
 	userAgent: string,
 	baseUrl: string = ESI_BASE_URL
-): Promise<{ players: number; vip: boolean } | null> {
+): Promise<{ players: number; vip: boolean; startTime: number | null } | null> {
 	try {
 		const response = await fetch(`${baseUrl}/status`, { method: 'GET', headers: baseHeaders(userAgent) });
 		if (!response.ok) return null;
@@ -259,7 +260,13 @@ export async function fetchServerStatus(
 		if (typeof body !== 'object' || body === null || !('players' in body)) return null;
 		const { players } = body;
 		if (typeof players !== 'number' || !Number.isFinite(players)) return null;
-		return { players, vip: 'vip' in body && body.vip === true };
+		const started =
+			'start_time' in body && typeof body.start_time === 'string' ? Date.parse(body.start_time) : NaN;
+		return {
+			players,
+			vip: 'vip' in body && body.vip === true,
+			startTime: Number.isFinite(started) ? started : null
+		};
 	} catch {
 		return null;
 	}

@@ -21,6 +21,7 @@ import {
 	requiredQuantity,
 	runTimeSeconds,
 	runsPerCycleDetail,
+	splitIntoFullJobs,
 	splitIntoSlots,
 	type JobCostBreakdown
 } from './formulas.ts';
@@ -80,6 +81,13 @@ export interface PlanInput {
 	 * first steady cycle.
 	 */
 	horizonCycles?: number;
+	/**
+	 * Share slots between reactions: each reaction runs `⌊runs ÷ runs per cycle⌋` full jobs plus one job
+	 * of the remaining runs, and every job of a cycle is packed into slots of one cycle each (longest
+	 * first, into the first slot with room), so a slot can run one reaction's job, then another's. Default
+	 * false: each reaction's runs split evenly over its own `⌈runs ÷ runs per cycle⌉` slots.
+	 */
+	shareSlots?: boolean;
 }
 
 /** A material and quantity (start-up savings and stock). */
@@ -110,8 +118,17 @@ export interface PlanReaction {
 	name: string;
 	depth: number;
 	totalRuns: number;
+	/** Its jobs in one cycle (one slot each without `shareSlots`). */
 	slots: number;
+	/** Runs of each job; with `shareSlots` the full jobs first, then the remainder. */
 	runsPerSlot: number[];
+	/** Runs of its remainder job when that job shares a slot with another reaction's job (`shareSlots`). */
+	sharedRuns?: number;
+	/**
+	 * With `shareSlots`: the slot each job sits in (0-based index into the packed steady-cycle slots, as
+	 * `PlanSharedSlot.slot`), same order as `runsPerSlot`.
+	 */
+	jobSlots?: number[];
 	/** First cycle its jobs run in (1 = first start-up cycle, as `PlanPhase.cycle`). */
 	firstCycle: number;
 	/** Seconds per run with the reaction's own profile. */
@@ -140,7 +157,10 @@ export interface PlanPhase {
 	label: 'step_0' | 'build_up' | 'steady';
 	/** Reactions with jobs in this cycle, in plan order. */
 	blueprintTypeIds: number[];
-	/** Slots busy in this cycle (Σ jobs of its reactions; fewer runs than in a steady cycle may need fewer). */
+	/**
+	 * Slots busy in this cycle (Σ jobs of its reactions, or with `shareSlots` the slots its jobs pack
+	 * into; fewer runs than in a steady cycle may need fewer).
+	 */
 	slots: number;
 	/**
 	 * Purchases of this cycle after the previous cycle's byproducts and the stock; the steady phase lists
@@ -190,6 +210,7 @@ export interface PlanStartup {
 
 export interface PlanResult {
 	reactions: PlanReaction[];
+	/** Slots of one steady cycle: Σ jobs, or with `shareSlots` the slots its jobs pack into. */
 	slotsUsed: number;
 	slotsRemaining: number;
 	maxDepth: number;
@@ -199,6 +220,12 @@ export interface PlanResult {
 	utilisation: number;
 	/** Cycles of the chosen start-up, then the steady one. */
 	phases: PlanPhase[];
+	/**
+	 * Steady-cycle slots holding jobs of two or more reactions (`shareSlots`), longest first job first.
+	 * Jobs in run order, longest first, each starting when the previous ends; `idleSeconds` = cycle
+	 * seconds − Σ job seconds. Empty without `shareSlots` or when no slot is shared.
+	 */
+	sharedSlots: PlanSharedSlot[];
 	startup: PlanStartup;
 	/**
 	 * Steady-cycle purchases; `dailyVolumeSharePct` = units per day (per cycle ÷ cycle days) as a share of
@@ -265,6 +292,14 @@ export interface PlanResult {
 	warnings: string[];
 }
 
+/** A steady-cycle slot running jobs of several reactions one after another. */
+export interface PlanSharedSlot {
+	/** Its index among the packed steady-cycle slots (as `PlanReaction.jobSlots`). */
+	slot: number;
+	jobs: { blueprintTypeId: number; name: string; runs: number; startSeconds: number; seconds: number }[];
+	idleSeconds: number;
+}
+
 interface NodeState {
 	reaction: Reaction;
 	profile: ResolvedProfile;
@@ -303,7 +338,8 @@ interface CycleRuns {
 /** A node's jobs in one cycle. */
 interface CycleJob {
 	node: NodeState;
-	slots: number;
+	/** Runs of each of its jobs. */
+	runsPerSlot: number[];
 	/** Bought materials. */
 	purchases: Map<number, number>;
 	/** Materials other jobs of the plan build. */
@@ -321,6 +357,38 @@ const consumed = (runsPerSlot: number[], baseQuantity: number, mm: number) =>
 
 const lineCost = (items: LineItem[]) => items.reduce((acc, i) => acc + i.total + i.fees + i.shipping, 0);
 
+/** A job to place in a slot. */
+interface SlotJob {
+	node: NodeState;
+	runs: number;
+	/** Index of the job among its node's jobs (`runsPerSlot`). */
+	index: number;
+	seconds: number;
+}
+
+/** Slack for jobs that exactly fill a slot (sums of float run times). */
+const PACK_EPSILON_SECONDS = 1e-6;
+
+/**
+ * Packs jobs into slots of `slotSeconds`, first-fit decreasing: longest job first (ties: lower blueprint
+ * id), each into the first slot with room, else a new slot. A job longer than a slot gets its own.
+ * Each slot's jobs come out longest first: the order they run in.
+ */
+function packJobs(jobs: SlotJob[], slotSeconds: number): { jobs: SlotJob[]; seconds: number }[] {
+	const slots: { jobs: SlotJob[]; seconds: number }[] = [];
+	const sorted = [...jobs].sort(
+		(a, b) => b.seconds - a.seconds || a.node.reaction.blueprintTypeId - b.node.reaction.blueprintTypeId
+	);
+	for (const job of sorted) {
+		const slot = slots.find((s) => s.seconds + job.seconds <= slotSeconds + PACK_EPSILON_SECONDS);
+		if (slot) {
+			slot.jobs.push(job);
+			slot.seconds += job.seconds;
+		} else slots.push({ jobs: [job], seconds: job.seconds });
+	}
+	return slots;
+}
+
 /**
  * Plans the target lines with the reactions building their inputs. Steady cycle: every job runs its
  * steady runs. Start-up: the targets start together in the first cycle the stock and the jobs before
@@ -334,6 +402,18 @@ export function planReactions(input: PlanInput): PlanResult {
 	const { ctx } = input;
 	const { dataset, settings } = ctx;
 	const constants = dataset.constants;
+	const share = input.shareSlots === true;
+	/** A node's jobs for `runs` in one cycle. */
+	const splitJobs = share ? splitIntoFullJobs : splitIntoSlots;
+	const cycleSeconds = settings.cycleDays * SECONDS_PER_DAY;
+	/** Packs the jobs of one cycle into shared slots. */
+	const packCycle = (running: { node: NodeState; runsPerSlot: number[] }[]) =>
+		packJobs(
+			running.flatMap(({ node, runsPerSlot }) =>
+				runsPerSlot.map((runs, index) => ({ node, runs, index, seconds: runs * node.runTimeSeconds }))
+			),
+			cycleSeconds
+		);
 	const producers = producerIndex(dataset);
 	const alternatives = unrefinedIndex(dataset);
 	const byId = new Map(dataset.reactions.map((r) => [r.blueprintTypeId, r]));
@@ -423,7 +503,7 @@ export function planReactions(input: PlanInput): PlanResult {
 		const totalRuns = fromTarget + buildRuns;
 		if (totalRuns === 0) continue;
 		const capacity = runsPerCycleDetail(reaction, profile, settings.cycleDays, constants).runs;
-		const runsPerSlot = splitIntoSlots(totalRuns, capacity);
+		const runsPerSlot = splitJobs(totalRuns, capacity);
 		const slots = runsPerSlot.length;
 		const mm = materialModifier(profile, constants);
 		const purchases = new Map<number, number>();
@@ -493,14 +573,14 @@ export function planReactions(input: PlanInput): PlanResult {
 	const buys = (n: NodeState, typeId: number) => (n.purchases.get(typeId) ?? 0) > 0;
 
 	const jobCache = new Map<NodeState, Map<string, CycleJob>>();
-	/** `n`'s jobs for `runs`, split into the fewest slots like its steady runs. */
+	/** `n`'s jobs for `runs`, split like its steady runs. */
 	const jobAt = (n: NodeState, runs: CycleRuns): CycleJob => {
 		const cached = jobCache.get(n) ?? new Map<string, CycleJob>();
 		jobCache.set(n, cached);
 		const key = `${runs.total}:${runs.reprocess}`;
 		const hit = cached.get(key);
 		if (hit) return hit;
-		const runsPerSlot = splitIntoSlots(runs.total, n.capacity);
+		const runsPerSlot = splitJobs(runs.total, n.capacity);
 		const purchases = new Map<number, number>();
 		const consumes = new Map<number, number>();
 		n.materials.forEach((m, i) => {
@@ -526,7 +606,7 @@ export function planReactions(input: PlanInput): PlanResult {
 		}
 		const job: CycleJob = {
 			node: n,
-			slots: runsPerSlot.length,
+			runsPerSlot,
 			purchases,
 			consumes,
 			fed,
@@ -672,9 +752,22 @@ export function planReactions(input: PlanInput): PlanResult {
 	for (const n of nodes)
 		for (const o of byproductsOf(n))
 			if (!byproductProfile.has(o.typeId)) byproductProfile.set(o.typeId, n.profile);
+	const steadySlots = share ? packCycle(steadyJobs) : [];
+	const slotsUsed = share ? steadySlots.length : nodes.reduce((acc, n) => acc + n.slots, 0);
+	/** Slot index of each node's jobs (same order as its `runsPerSlot`). */
+	const jobSlots = new Map<NodeState, number[]>();
+	steadySlots.forEach((s, slot) => {
+		for (const j of s.jobs) {
+			const list = jobSlots.get(j.node) ?? [];
+			list[j.index] = slot;
+			jobSlots.set(j.node, list);
+		}
+	});
 	const formulasToBuy = nodes
 		.map((n) => {
-			const count = Math.max(0, n.slots - (input.ownedFormulas[n.reaction.blueprintTypeId] ?? 0));
+			// One formula serves every job that runs one after another in the same slot.
+			const slots = share ? new Set(jobSlots.get(n)).size : n.slots;
+			const count = Math.max(0, slots - (input.ownedFormulas[n.reaction.blueprintTypeId] ?? 0));
 			const hub = ctx.outputPrices.hubs[n.profile.market.outputHub];
 			return {
 				blueprintTypeId: n.reaction.blueprintTypeId,
@@ -823,7 +916,7 @@ export function planReactions(input: PlanInput): PlanResult {
 		cycle: c.cycle,
 		label: c.cycle === 0 ? 'step_0' : c.cycle === steadyCycle ? 'steady' : 'build_up',
 		blueprintTypeIds: c.running.map((j) => j.node.reaction.blueprintTypeId),
-		slots: c.running.reduce((acc, j) => acc + j.slots, 0),
+		slots: share ? packCycle(c.running).length : c.running.reduce((acc, j) => acc + j.runsPerSlot.length, 0),
 		purchases: chosen.purchases[i],
 		jobCost: chosen.jobCosts[i]
 	}));
@@ -1001,7 +1094,36 @@ export function planReactions(input: PlanInput): PlanResult {
 		};
 	});
 
-	const slotsUsed = nodes.reduce((acc, n) => acc + n.slots, 0);
+	/** Steady slots holding jobs of two or more reactions, with their index. */
+	const shared = steadySlots
+		.map((s, slot) => ({ ...s, slot }))
+		.filter((s) => s.jobs.some((j) => j.node !== s.jobs[0].node));
+	/** Remainder runs (fewer than a full job) of the nodes whose remainder job sits in a shared slot. */
+	const sharedRuns = new Map<NodeState, number>();
+	for (const s of shared)
+		for (const j of s.jobs) if (j.runs < j.node.capacity) sharedRuns.set(j.node, j.runs);
+	const sharedSlots: PlanSharedSlot[] = shared
+		.map((s) => {
+			let start = 0;
+			const jobs = s.jobs.map((j) => {
+				const job = {
+					blueprintTypeId: j.node.reaction.blueprintTypeId,
+					name: j.node.reaction.name,
+					runs: j.runs,
+					startSeconds: start,
+					seconds: j.seconds
+				};
+				start += j.seconds;
+				return job;
+			});
+			return { slot: s.slot, jobs, idleSeconds: Math.max(0, cycleSeconds - s.seconds) };
+		})
+		.sort(
+			(a, b) =>
+				b.jobs[0].seconds - a.jobs[0].seconds ||
+				a.jobs[0].blueprintTypeId - b.jobs[0].blueprintTypeId ||
+				a.slot - b.slot
+		);
 	if (slotsUsed > input.totalSlots) warnings.add('SLOTS_EXCEEDED');
 
 	const recurringInvestment = lineCost(purchasesPerCycle) + jobCostTotal.total;
@@ -1010,7 +1132,7 @@ export function planReactions(input: PlanInput): PlanResult {
 	const missingPrices = [...pc.missing].sort((a, b) => a - b);
 	const profitPerCycle = missingPrices.length === 0 ? outputNetPerCycle - recurringInvestment : null;
 	const slotSecondsBusy = nodes.reduce((acc, n) => acc + n.totalRuns * n.runTimeSeconds, 0);
-	const slotSecondsAvailable = slotsUsed * settings.cycleDays * SECONDS_PER_DAY;
+	const slotSecondsAvailable = slotsUsed * cycleSeconds;
 
 	return {
 		reactions: nodes.map((n) => ({
@@ -1020,6 +1142,8 @@ export function planReactions(input: PlanInput): PlanResult {
 			totalRuns: n.totalRuns,
 			slots: n.slots,
 			runsPerSlot: n.runsPerSlot,
+			...(share ? { jobSlots: jobSlots.get(n)! } : {}),
+			...(sharedRuns.has(n) ? { sharedRuns: sharedRuns.get(n)! } : {}),
 			firstCycle: firstCycleOf(n),
 			runTimeSeconds: n.runTimeSeconds,
 			jobCost: n.jobCost.total,
@@ -1037,6 +1161,7 @@ export function planReactions(input: PlanInput): PlanResult {
 		slotSecondsBusy,
 		utilisation: slotSecondsAvailable > 0 ? slotSecondsBusy / slotSecondsAvailable : 0,
 		phases,
+		sharedSlots,
 		startup,
 		purchasesPerCycle,
 		initialPurchases: chosen.initialPurchases,
@@ -1103,10 +1228,11 @@ const TOP_UP_SEARCH_STEPS = 8;
  * Auto-fill: recomputes the auto targets (`PlanTarget.auto`) of `input.targets` and returns the user's
  * targets unchanged and in order, then the auto targets (at most one lines and one quantity entry per
  * blueprint). Nothing is added when the user's targets alone exceed `totalSlots`. Rounds of:
- * - Top-ups: the idle runs of the slots of each allowed plan reaction (slots × runs per cycle − runs;
- *   unrefined jobs excepted), final products first, then most idle time first, go to its auto quantity
- *   entry when the plan still fits `totalSlots` (else the most runs that fit), its profit per cycle
- *   rises and the product stays within `maxVolumeSharePct`.
+ * - Top-ups: the idle runs of each allowed plan reaction (unrefined jobs excepted), final products
+ *   first, then most idle time first, go to its auto quantity entry when the plan still fits
+ *   `totalSlots` (else the most runs that fit), its profit per cycle rises and the product stays within
+ *   `maxVolumeSharePct`. Idle runs: slots × runs per cycle − runs; with `shareSlots` the runs its
+ *   remainder job can add in the idle time of the slot it sits in, up to a full job.
  * - Lines: greedily adds whole lines to the auto lines entries, best profit per slot-day first (full
  *   chain, or buy inputs with `buyIntermediates`), while the plan fits `totalSlots` and each product
  *   stays within `maxVolumeSharePct`. A candidate that no longer fits never fits again (slots and sold
@@ -1115,7 +1241,8 @@ const TOP_UP_SEARCH_STEPS = 8;
  * Cost: one plan per added line and per rejected candidate, plus per top-up pass one plan per reaction
  * with idle runs, or up to 1 + `TOP_UP_SEARCH_STEPS` when the full top-up needs a slot too many. With
  * the test fixture, 10 quantity targets (15 reactions, 33 slots): 32 plans, ~11 ms in Node; with 10
- * more slots free: 48 plans, ~11 ms.
+ * more slots free: 48 plans, ~11 ms. With `shareSlots`, 10 quantity targets (15 reactions, 25 slots
+ * alone, 19 shared) in 25 slots: 30 plans, ~8 ms (Bun); in 35 slots: 40 plans, ~13 ms.
  */
 export function suggestFillPlan(input: PlanInput, opts: FillOptions = {}): FillResult {
 	const { ctx } = input;
@@ -1149,7 +1276,12 @@ export function suggestFillPlan(input: PlanInput, opts: FillOptions = {}): FillR
 		const share = result.outputsPerCycle.find((o) => o.typeId === typeId)?.dailyVolumeSharePct;
 		return share === null || share === undefined ? unknownOk : share <= opts.maxVolumeSharePct;
 	};
-	/** Runs the slots of a plan reaction still have room for this cycle. */
+	const cycleSeconds = settings.cycleDays * SECONDS_PER_DAY;
+	/**
+	 * Runs a reaction of the current plan still has room for this cycle. Own slots: slots × runs per
+	 * cycle − runs. Shared slots (`shareSlots`): only its remainder job can grow, by the runs that fit the
+	 * idle time of the slot it sits in, up to a full job.
+	 */
 	const idleRuns = (r: PlanReaction) => {
 		const reaction = byId.get(r.blueprintTypeId)!;
 		const capacity = runsPerCycleDetail(
@@ -1158,7 +1290,19 @@ export function suggestFillPlan(input: PlanInput, opts: FillOptions = {}): FillR
 			settings.cycleDays,
 			dataset.constants
 		).runs;
-		return r.slots * capacity - r.totalRuns;
+		if (!input.shareSlots) return r.slots * capacity - r.totalRuns;
+		const last = r.runsPerSlot.at(-1) ?? capacity;
+		if (last >= capacity) return 0;
+		// Every job of the current plan in the remainder's slot (its own full jobs included).
+		const slot = r.jobSlots!.at(-1)!;
+		const busy = current.reactions.reduce(
+			(acc, x) =>
+				acc +
+				x.runsPerSlot.reduce((s, runs, i) => (x.jobSlots![i] === slot ? s + runs * x.runTimeSeconds : s), 0),
+			0
+		);
+		const idle = cycleSeconds - busy;
+		return Math.min(capacity - last, Math.floor((idle + PACK_EPSILON_SECONDS) / r.runTimeSeconds));
 	};
 	/** `targets` with `runs` more runs on the auto quantity entry of `id`. */
 	const toppedUp = (id: number, runs: number): PlanTarget[] => {

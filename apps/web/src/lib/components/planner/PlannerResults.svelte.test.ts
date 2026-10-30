@@ -4,26 +4,32 @@ import { describe, expect, it } from 'vitest';
 import { makeCtx } from '../../../../../../packages/engine/test/fixtures/context';
 import { jitaPrices, priceBook } from '../../../../../../packages/engine/test/fixtures/dataset';
 import { formatIsk, formatIskFull } from '#lib/format.js';
+import { ownRuns } from '#lib/planner/plan.js';
 import PlannerResults from './PlannerResults.svelte';
 
 const CRYSTALLINE_CARBONIDE = 46205;
+const CARBON_POLYMERS_BP = 46167;
+const CRYSTALLITE_ALLOY_BP = 46169;
+const UNREFINED_TRITANIUM = 90274;
 const formulaNames = {
 	46205: 'Crystalline Carbonide Reaction Formula',
 	46167: 'Carbon Polymers Reaction Formula'
 };
 const dataset = makeCtx().dataset;
 
+const input = (overrides: Partial<PlanInput> = {}): PlanInput => ({
+	ctx: makeCtx(),
+	totalSlots: 150,
+	targets: [{ blueprintTypeId: CRYSTALLINE_CARBONIDE, lines: 2 }],
+	buyInsteadOfBuild: [],
+	stock: {},
+	ownedFormulas: {},
+	dailyVolumes: {},
+	...overrides
+});
+
 function plan(overrides: Partial<PlanInput> = {}) {
-	return planReactions({
-		ctx: makeCtx(),
-		totalSlots: 150,
-		targets: [{ blueprintTypeId: CRYSTALLINE_CARBONIDE, lines: 2 }],
-		buyInsteadOfBuild: [],
-		stock: {},
-		ownedFormulas: {},
-		dailyVolumes: {},
-		...overrides
-	});
+	return planReactions(input(overrides));
 }
 
 function setup(overrides: Partial<PlanInput> = {}, extra: Record<string, unknown> = {}) {
@@ -58,15 +64,26 @@ describe('PlannerResults', () => {
 		expect(warnings(container)).toEqual([]);
 	});
 
-	it('lists the reactions to run with slots, runs per slot and first cycle', () => {
+	it('lists the reactions to run with slots and runs per slot, grouped by step, type and first cycle', () => {
 		const { container } = setup();
-		const rows = [...container.querySelectorAll('[data-plan-reaction]')].map((r) =>
-			[...r.querySelectorAll('td')].map((td) => text(td))
-		);
-		expect(rows.map((r) => [r[0], r[1], r[2], r[3], r[5]])).toEqual([
-			['Crystalline Carbonide', '0', '2', '126', '2'],
-			['Carbon Polymers', '1', '1', '123', '1'],
-			['Crystallite Alloy', '1', '1', '123', '1']
+		const groups = [...container.querySelectorAll('[data-plan-group]')].map((g) => ({
+			header: text(g.querySelector('th')),
+			rows: [...g.querySelectorAll('[data-plan-reaction]')].map((r) =>
+				[...r.querySelectorAll('td')].slice(0, 3).map((td) => text(td))
+			)
+		}));
+		expect(groups).toEqual([
+			{
+				header: 'Final products · Composite · from cycle 2 · 2 slots',
+				rows: [['Crystalline Carbonide', '2', '126']]
+			},
+			{
+				header: 'Intermediates · from cycle 1 · 2 slots',
+				rows: [
+					['Carbon Polymers', '1', '123'],
+					['Crystallite Alloy', '1', '123']
+				]
+			}
 		]);
 	});
 
@@ -461,5 +478,107 @@ describe('PlannerResults', () => {
 			['Carbon Polymers', '300'],
 			['Crystalline Carbonide', '12,500']
 		]);
+	});
+
+	describe('slot time', () => {
+		// Every reaction of the fixture takes 4,769.28 s per run; a 7-day cycle is 604,800 s per slot.
+		const slotTimeOf = (container: HTMLElement, id: number) => {
+			const cell = container.querySelector(`[data-plan-reaction="${id}"] [data-field="slotTime"]`)!;
+			return {
+				text: text(cell.querySelector('[data-field="slotTimeText"]')),
+				parts: [...cell.querySelectorAll('[data-part]')].map((p) => (p as HTMLElement).dataset.part)
+			};
+		};
+		const split = (container: HTMLElement) =>
+			text(container.querySelector('[data-field="utilisationSplit"]'));
+
+		it('splits slot time and utilisation into your targets, auto-fill and idle', () => {
+			const targets = [
+				{ blueprintTypeId: CRYSTALLINE_CARBONIDE, lines: 1 },
+				{ blueprintTypeId: CRYSTALLINE_CARBONIDE, lines: 1, auto: true }
+			];
+			// Your line alone: 126 Crystalline Carbonide, 62 Carbon Polymers, 62 Crystallite Alloy runs; with
+			// the auto line: 252, 123, 123.
+			const { container } = setup({ targets }, { ownRuns: ownRuns(input({ targets })) });
+			// Crystalline Carbonide: 126 runs each = 600,929.28 s = 6.96 d; 2 slots = 14 d, idle 7,741.44 s = 0.09 d.
+			expect(slotTimeOf(container, CRYSTALLINE_CARBONIDE)).toEqual({
+				text: 'you 7.0 · auto 7.0 · idle 0.1 d',
+				parts: ['yours', 'auto', 'idle']
+			});
+			// Carbon Polymers: 62 runs = 3.42 d yours, 61 = 3.37 d auto, idle 7 − 6.79 = 0.21 d.
+			expect(slotTimeOf(container, CARBON_POLYMERS_BP).text).toBe('you 3.4 · auto 3.4 · idle 0.2 d');
+			// Of 4 slots × 604,800 s: yours 250 runs = 49.3 %, auto 248 runs = 48.9 %, idle 1.8 %.
+			expect(split(container)).toBe('yours 49.3% · auto-fill 48.9% · idle 1.8%');
+		});
+
+		it('counts every run as yours without auto targets', () => {
+			const { container } = setup();
+			// 252 runs = 13.91 d of 14 d.
+			expect(slotTimeOf(container, CRYSTALLINE_CARBONIDE)).toEqual({
+				text: 'you 13.9 · idle 0.1 d',
+				parts: ['yours', 'idle']
+			});
+			expect(split(container)).toBe('yours 98.2% · idle 1.8%');
+		});
+
+		it('counts one cycle for a slot holding two of a reaction’s own jobs', () => {
+			// Unrefined Tritanium: 158.976 s per run, capped at 1,000 runs per job, so 2 lines = 2 jobs of
+			// 158,976 s each. Shared slots pack both into one slot: 317,952 s = 3.68 d busy, 286,848 s = 3.32 d idle.
+			const target = { blueprintTypeId: UNREFINED_TRITANIUM, lines: 2 };
+			const shared = setup({ targets: [target], shareSlots: true });
+			expect(slotTimeOf(shared.container, UNREFINED_TRITANIUM).text).toBe('you 3.7 · idle 3.3 d');
+			shared.unmount();
+			// Without sharing each job has its own slot: 14 d − 3.68 d = 10.32 d idle.
+			const own = setup({ targets: [target] });
+			expect(slotTimeOf(own.container, UNREFINED_TRITANIUM).text).toBe('you 3.7 · idle 10.3 d');
+		});
+
+		it('counts a shared job only for its own duration and marks it in Runs / slot', () => {
+			// 1,500,000 units = 150 Crystalline Carbonide runs: one full job of 126 and one of 24; 74 runs each of
+			// Carbon Polymers and Crystallite Alloy. The 24-run job shares a slot with Carbon Polymers.
+			const { container } = setup({
+				targets: [{ blueprintTypeId: CRYSTALLINE_CARBONIDE, lines: 1, quantity: 1_500_000 }],
+				shareSlots: true
+			});
+			const runs = (id: number) =>
+				text(container.querySelector(`[data-plan-reaction="${id}"] [data-field="runs"]`));
+			expect([runs(CRYSTALLINE_CARBONIDE), runs(CARBON_POLYMERS_BP), runs(CRYSTALLITE_ALLOY_BP)]).toEqual([
+				'1 × 126 + 1 × 24 (shared)',
+				'74 (shared)',
+				'74'
+			]);
+			// Crystalline Carbonide: 150 runs = 8.28 d in 7 d + the 24-run job (1.32 d); idle 3,870.72 s rounds to 0.0.
+			expect(slotTimeOf(container, CRYSTALLINE_CARBONIDE).text).toBe('you 8.3 d');
+			// Carbon Polymers only shares a slot: 74 runs = 4.08 d, no idle of its own.
+			expect(slotTimeOf(container, CARBON_POLYMERS_BP)).toEqual({ text: 'you 4.1 d', parts: ['yours'] });
+			// Crystallite Alloy runs alone: 4.08 d of 7 d.
+			expect(slotTimeOf(container, CRYSTALLITE_ALLOY_BP).text).toBe('you 4.1 · idle 2.9 d');
+		});
+	});
+
+	describe('shared slots', () => {
+		it('lists each shared slot as its jobs in run order, then the idle time left', () => {
+			const { container } = setup({
+				targets: [{ blueprintTypeId: CRYSTALLINE_CARBONIDE, lines: 1, quantity: 1_500_000 }],
+				shareSlots: true
+			});
+			// Carbon Polymers 74 runs × 4,769.28 s = 352,926.72 s; Crystalline Carbonide 24 runs = 114,462.72 s;
+			// idle 604,800 − 467,389.44 = 137,410.56 s.
+			const steps = [...container.querySelectorAll('[data-shared-slot] [data-field="instruction"]')].map(
+				(p) => [...p.querySelectorAll('span.whitespace-nowrap')].map((s) => text(s))
+			);
+			expect(steps).toEqual([
+				[
+					'Carbon Polymers 74 runs (4d 2h 2m)',
+					'Crystalline Carbonide: 24 runs (1d 7h 47m)',
+					'Idle 1d 14h 10m'
+				]
+			]);
+		});
+
+		it('is hidden when no slot is shared', () => {
+			expect(setup().container.querySelector('[data-shared-slots]')).toBeNull();
+			expect(setup({ shareSlots: true }).container.querySelector('[data-shared-slots]')).toBeNull();
+		});
 	});
 });

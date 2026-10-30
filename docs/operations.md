@@ -159,15 +159,15 @@ Contingency: if more than half of the `prices` runs of a day end `partial`, leng
 
 ### ESI daily downtime (10:55 to about 11:10 UTC)
 
-EVE's server, and with it ESI, goes down every day at 11:00 UTC, usually for 5 to 10 minutes. The updater sends no ESI request from 10:55 UTC until a `GET /status` reports more than 100 players on the live server (not VIP mode); it checks at most once per minute per isolate from 11:00 UTC. Fuzzwork, SSO, Hoboleaks, Janice and the history mirror are not gated. Logs to expect:
+EVE's server, and with it ESI, goes down every day at 11:00 UTC, usually for 5 to 20 minutes. The updater sends no ESI request from 10:55 UTC until a `GET /status` reports more than 100 players on a live server (not VIP mode) that started after 10:55 UTC that day; it checks at most once per minute per isolate from 11:00 UTC. The start time matters because right after 11:00 the server that is shutting down still reports its players. From 12:00 UTC the start time is no longer required, so a day without a restart does not keep ESI closed. Fuzzwork, SSO, Hoboleaks, Janice and the history mirror are not gated. Logs to expect:
 
-| Time (UTC)    | Log line                                                                           | Meaning                                                                                     |
-| ------------- | ---------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------- |
-| 10:55 to back | `[scheduled] adjusted-prices: skipped (ESI downtime)`, the same for every ESI step | The tick ran only `sde-check`; the skipped steps catch up on the next open tick             |
-| 10:55 to back | `[<run id>] step 2/9 region-10000002: waiting for ESI (daily downtime)`            | A workflow step hit the downtime; it sleeps 2 minutes and runs again, its retries untouched |
-| from 11:00    | `[esi] still down (no status)`, `[esi] still down (40 players)`, `(VIP mode)`      | A `/status` check found the server not back yet                                             |
-| about 11:10   | `[esi] online again: 25000 players`                                                | ESI is open again for the rest of the UTC day (KV `esi:online:<date>`, kept 2 days)         |
-| after that    | `[<run id>] step 2/9 region-10000002 (after ESI downtime 3): started`              | The waiting step runs again                                                                 |
+| Time (UTC)    | Log line                                                                                   | Meaning                                                                                     |
+| ------------- | ------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------- |
+| 10:55 to back | `[scheduled] adjusted-prices: skipped (ESI downtime)`, the same for every ESI step         | The tick ran only `sde-check`; the skipped steps catch up on the next open tick             |
+| 10:55 to back | `[<run id>] step 2/9 region-10000002: waiting for ESI (daily downtime)`                    | A workflow step hit the downtime; it sleeps 2 minutes and runs again, its retries untouched |
+| from 11:00    | `[esi] still down (server not restarted yet)`, `(no status)`, `(40 players)`, `(VIP mode)` | A `/status` check found the server not back yet                                             |
+| about 11:10   | `[esi] online again: 25000 players`                                                        | ESI is open again for the rest of the UTC day (KV `esi:online:<date>`, kept 2 days)         |
+| after that    | `[<run id>] step 2/9 region-10000002 (after ESI downtime 3): started`                      | The waiting step runs again                                                                 |
 
 A step still waiting after 45 waits (about 90 minutes, `ESI_DOWNTIME_MAX_WAITS`) fails as usual: its job run ends `failed`, an inventory or tracking sync ends `error`. Manual runs from `/admin` that call ESI inline (adjusted prices, cost indices, affiliations) answer "ESI is in its daily downtime (from 10:55 UTC until the server is back); try again later." and their row ends `failed`; buttons that start a workflow start it, and it waits.
 
