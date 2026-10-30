@@ -11,8 +11,10 @@ import {
 	hubDailyVolumes,
 	inputMarket,
 	inputVolumes,
+	ownRuns,
 	plannerContext,
 	productVolumes,
+	sharesSlots,
 	targetFootprint,
 	volumeTypes
 } from './plan';
@@ -226,5 +228,35 @@ describe('targetFootprint', () => {
 			total: 2,
 			finalSlots: 2
 		});
+	});
+});
+
+describe('sharesSlots', () => {
+	const own = [{ blueprintTypeId: CRYSTALLINE_CARBONIDE, lines: 2 }];
+	const withAuto = [...own, { blueprintTypeId: TITANIUM_CARBIDE, lines: 1, auto: true }];
+
+	it('shares always, never, or only while the plan has auto-fill targets', () => {
+		expect([sharesSlots('always', own), sharesSlots('always', withAuto)]).toEqual([true, true]);
+		expect([sharesSlots('auto', own), sharesSlots('auto', withAuto)]).toEqual([false, true]);
+		expect([sharesSlots('never', own), sharesSlots('never', withAuto)]).toEqual([false, false]);
+	});
+});
+
+describe('ownRuns', () => {
+	it('counts the runs of your own targets only; null without auto targets', () => {
+		expect(ownRuns(input())).toBeNull();
+		// 1 own line of Crystalline Carbonide = 126 runs; the auto line adds another 126 to the plan.
+		const runs = ownRuns(
+			input({
+				targets: [
+					{ blueprintTypeId: CRYSTALLINE_CARBONIDE, lines: 1 },
+					{ blueprintTypeId: CRYSTALLINE_CARBONIDE, lines: 1, auto: true }
+				]
+			})
+		)!;
+		expect(runs.get(CRYSTALLINE_CARBONIDE)).toBe(126);
+		// Only auto targets: none of the runs are yours.
+		const auto = ownRuns(input({ targets: [{ blueprintTypeId: TITANIUM_CARBIDE, lines: 1, auto: true }] }));
+		expect(auto?.size).toBe(0);
 	});
 });

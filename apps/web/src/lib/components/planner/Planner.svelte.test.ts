@@ -241,8 +241,8 @@ describe('Planner', () => {
 		expect(saved.buy.length).toBeGreaterThan(0);
 		expect(slotsUsed(container)).toBe('10 / 10');
 		// Every planned reaction is a final product: its intermediates are bought.
-		for (const depth of container.querySelectorAll('[data-plan-reaction] td:nth-child(2)'))
-			expect(text(depth)).toBe('0');
+		for (const row of container.querySelectorAll<HTMLElement>('[data-plan-reaction]'))
+			expect(row.dataset.depth).toBe('0');
 		const types = plannerData().dataset.types;
 		for (const id of saved.buy)
 			expect(screen.getByRole('button', { name: `Buy ${types[id].name}` }).getAttribute('aria-pressed')).toBe(
@@ -273,6 +273,25 @@ describe('Planner', () => {
 			'56 slots · 28 final'
 		);
 		expect(text(container.querySelector('[data-output="16670"] [data-field="perCycle"]'))).toBe('35,280,000');
+	});
+
+	it('"Shared slots" packs leftover runs into shared slots only when chosen, and keeps the choice', async () => {
+		// 150 Crystalline Carbonide runs (126 + 24) and 74 runs each of its two intermediates: the 24-run
+		// job fits next to one intermediate's 74 runs.
+		const storage = stored(
+			stateWith({ targets: [{ blueprintTypeId: CRYSTALLINE_CARBONIDE, lines: 1, quantity: 1_500_000 }] })
+		);
+		const { container } = await setup(storage);
+		const shared = () => container.querySelectorAll('[data-shared-slot]').length;
+		// "With auto-fill" (the default) shares nothing without auto-fill targets.
+		expect([slotsUsed(container), shared()]).toEqual(['4 / 150', 0]);
+
+		await fireEvent.click(screen.getByRole('button', { name: 'Always' }));
+		expect([slotsUsed(container), shared()]).toEqual(['3 / 150', 1]);
+		expect(JSON.parse(storage.getItem(STORAGE_KEY)!).slotSharing).toBe('always');
+
+		await fireEvent.click(screen.getByRole('button', { name: 'Never' }));
+		expect([slotsUsed(container), shared()]).toEqual(['4 / 150', 0]);
 	});
 
 	it('the slot calculator sets the slots', async () => {

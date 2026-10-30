@@ -126,6 +126,10 @@
 				use is listed as not used. The shopping list for a number of cycles (1 to 52) adds up everything those
 				cycles buy; with "Subtract my stock" on, your stock covers its earliest purchases over all those
 				cycles, and stock of an intermediate saves its reaction's runs (and their inputs) in later cycles too.
+				With shared slots, each reaction runs as many full slots as it can and its leftover runs become one
+				shorter job; these jobs of different reactions share a slot, one after another (when a job ends you
+				change the slot to the next one). The Shared slots setting uses them always, only while the plan has
+				auto-fill targets (the default), or never.
 			</li>
 			<li>
 				<strong>Use what I have</strong> (planner): plans 1 to 12 cycles of reactions (one cycle is one round of

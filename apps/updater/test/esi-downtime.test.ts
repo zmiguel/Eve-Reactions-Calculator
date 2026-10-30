@@ -25,15 +25,18 @@ function serveStatus(...answers: (() => Response)[]) {
 }
 
 const down = () => json({ error: 'The datasource tranquility is temporarily unavailable' }, {}, 503);
+/** `/status` of a server started at `startTime` (default: after the downtime of the 27th). */
 const players =
-	(n: number, vip = false) =>
+	(n: number, vip = false, startTime = '2026-10-27T11:02:11Z') =>
 	() =>
 		json({
 			players: n,
 			server_version: '3000000',
-			start_time: '2026-10-27T11:02:11Z',
+			start_time: startTime,
 			...(vip ? { vip } : {})
 		});
+/** The server from before the downtime of the 27th, still up or still reported. */
+const yesterdays = (n: number) => players(n, false, '2026-10-26T11:04:00Z');
 
 describe('esiAvailable', () => {
 	beforeEach(async () => {
@@ -90,6 +93,26 @@ describe('esiAvailable', () => {
 	it('counts a server in VIP mode as still down', async () => {
 		serveStatus(players(500, true));
 		expect(await esiAvailable(env, at(27, 11, 6))).toBe(false);
+	});
+
+	it('ignores the players of the server still shutting down and waits for one started after 10:55', async () => {
+		const calls = serveStatus(
+			yesterdays(25_000),
+			players(0, false, '2026-10-27T11:18:35Z'),
+			players(800, false, '2026-10-27T11:18:35Z')
+		);
+
+		expect(await esiAvailable(env, at(27, 11, 0))).toBe(false);
+		expect(await esiAvailable(env, at(27, 11, 20))).toBe(false);
+		expect(await esiAvailable(env, at(27, 11, 30))).toBe(true);
+		expect(calls).toHaveLength(3);
+	});
+
+	it('opens from 12:00 UTC on a day the server did not restart', async () => {
+		serveStatus(yesterdays(25_000));
+
+		expect(await esiAvailable(env, at(27, 11, 59))).toBe(false);
+		expect(await esiAvailable(env, at(27, 12, 0))).toBe(true);
 	});
 
 	it('trusts the confirmation of another isolate without asking', async () => {

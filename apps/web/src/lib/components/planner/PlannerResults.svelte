@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { PLAN_MAX_HORIZON_CYCLES, type Dataset, type PlanResult } from '@reactions/engine';
-	import type { InputMarket, ProductVolume } from '#lib/planner/plan.js';
+	import { slotTime, type InputMarket, type ProductVolume, type SlotTime } from '#lib/planner/plan.js';
 	import InfoNote from '#lib/components/InfoNote.svelte';
 	import FlowDiagram from '#lib/components/detail/FlowDiagram.svelte';
 	import { layoutPlanFlow } from '#lib/planner/flow.js';
@@ -16,7 +16,7 @@
 		runsPerSlotTitle
 	} from '#lib/format.js';
 	import { lineItemsMultibuy } from '#lib/multibuy.js';
-	import { blueprintIconUrl, typeIconUrl } from '#lib/site.js';
+	import { REACTOR_TIERS, blueprintIconUrl, typeIconUrl } from '#lib/site.js';
 	import StartupNote from '#lib/components/StartupNote.svelte';
 	import { phaseTitle } from '#lib/startup.js';
 	import { PLAN_WARNING_TEXT } from '#lib/planner/warnings.js';
@@ -42,6 +42,8 @@
 		inputMarket?: InputMarket | null;
 		/** Fuel block type ids: drawn at the top of the material flow, like every material list. */
 		fuelTypeIds?: ReadonlySet<number>;
+		/** Each reaction's runs from the visitor's own targets (auto targets left out); `null` without auto targets. */
+		ownRuns?: ReadonlyMap<number, number> | null;
 		/** Plan whose `horizon` the N-cycle shopping list shows (`plan`, or the same plan without stock). */
 		shoppingPlan?: PlanResult;
 		/** The plan has stock of a type it buys or makes: the shopping list offers "Subtract my stock". */
@@ -65,6 +67,7 @@
 		purchaseVolumes = {},
 		inputMarket = null,
 		fuelTypeIds = new Set(),
+		ownRuns = null,
 		shoppingPlan,
 		hasStock = false,
 		useStock = true,
@@ -193,6 +196,114 @@
 
 	const usedPct = $derived(Math.min(100, (plan.slotsUsed / Math.max(totalSlots, 1)) * 100));
 
+	const cycleSeconds = $derived(cycleDays * 86400);
+	/** Slot time each reaction occupies per cycle, split into your targets' runs, auto-fill's and idle. */
+	const slotTimes = $derived(
+		new Map(
+			plan.reactions.map((r) => [
+				r.blueprintTypeId,
+				slotTime(r, plan.sharedSlots, cycleSeconds, ownRuns ? (ownRuns.get(r.blueprintTypeId) ?? 0) : null)
+			])
+		)
+	);
+	const hasAuto = $derived(ownRuns !== null);
+	/** Utilisation split over the plan's slot time: your targets, auto-fill (with auto targets), idle. */
+	const utilisationSplit = $derived.by(() => {
+		const total = plan.slotsUsed * cycleSeconds;
+		if (total <= 0) return '';
+		let yours = 0;
+		let auto = 0;
+		for (const s of slotTimes.values()) {
+			yours += s.yours;
+			auto += s.auto;
+		}
+		const idle = Math.max(0, total - yours - auto);
+		const pct = (seconds: number) => formatPct((seconds / total) * 100);
+		return [`yours ${pct(yours)}`, ...(hasAuto ? [`auto-fill ${pct(auto)}`] : []), `idle ${pct(idle)}`].join(
+			' · '
+		);
+	});
+
+	const slotDays = (seconds: number) => seconds / 86400;
+	/** Slot-time bar segments of a reaction (seconds), in bar order. */
+	const slotParts = (s: SlotTime) =>
+		[
+			{ key: 'yours', short: 'you', long: 'your targets', seconds: s.yours },
+			{ key: 'auto', short: 'auto', long: 'auto-fill', seconds: s.auto },
+			{ key: 'idle', short: 'idle', long: 'idle', seconds: s.idle }
+		] as const;
+	/**
+	 * `you 13.2 · auto 1.7 · idle 6.1 d`: parts that round to 0.0 slot-days are left out; when all of them
+	 * do, the largest reads `< 0.1`.
+	 */
+	const slotTimeText = (s: SlotTime) => {
+		const parts = slotParts(s);
+		const shown = parts.filter((p) => +slotDays(p.seconds).toFixed(1) > 0);
+		if (shown.length === 0)
+			return `${parts.reduce((a, b) => (b.seconds > a.seconds ? b : a)).short} < ${formatNumber(0.1, 1)} d`;
+		return `${shown.map((p) => `${p.short} ${formatNumber(slotDays(p.seconds), 1)}`).join(' · ')} d`;
+	};
+	const tierTitles = new Map(
+		Object.values(REACTOR_TIERS)
+			.flat()
+			.map((t) => [t.tier, t.title])
+	);
+	/**
+	 * "Reactions to run" in groups you start together: by step (final products first, then each level of
+	 * intermediates), first cycle and reaction type, each group headed by a separator row.
+	 */
+	const reactionGroups = $derived.by(() => {
+		const tierOf = new Map(dataset.reactions.map((r) => [r.blueprintTypeId, r.tier]));
+		const groups: { key: string; label: string; slots: number; reactions: PlanResult['reactions'] }[] = [];
+		for (const r of plan.reactions) {
+			const tier = tierOf.get(r.blueprintTypeId);
+			const key = `${r.depth}|${r.firstCycle}|${tier}`;
+			let group = groups.find((g) => g.key === key);
+			if (!group) {
+				const step =
+					r.depth === 0
+						? 'Final products'
+						: r.depth === 1
+							? 'Intermediates'
+							: `Intermediates, level ${r.depth}`;
+				// "Intermediates · Intermediate" says nothing new: the type shows only when it differs.
+				const type = tier && tier !== 'intermediate' ? ` · ${tierTitles.get(tier) ?? tier}` : '';
+				group = { key, label: `${step}${type} · from cycle ${r.firstCycle}`, slots: 0, reactions: [] };
+				groups.push(group);
+			}
+			group.slots += r.slots;
+			group.reactions.push(r);
+		}
+		return groups;
+	});
+	const slotTimeTitle = (s: SlotTime) => {
+		const parts = slotParts(s).filter((p) => p.seconds > 0);
+		const total = parts.reduce((a, p) => a + p.seconds, 0);
+		return `${parts.map((p) => `${p.long} ${formatNumber(slotDays(p.seconds), 3)}`).join(', ')} of ${formatNumber(slotDays(total), 3)} slot-days per cycle`;
+	};
+	const SLOT_SEGMENT: Record<'yours' | 'auto' | 'idle', string> = {
+		yours: 'bg-primary-600 dark:bg-primary-500',
+		auto: 'bg-primary-300 text-white/60 dark:bg-primary-700 dark:text-primary-300/50 bg-[image:repeating-linear-gradient(45deg,currentColor_0_2px,transparent_2px_6px)]',
+		idle: 'bg-gray-200 text-gray-400 dark:bg-gray-600 dark:text-gray-400 bg-[image:repeating-linear-gradient(-45deg,currentColor_0_1px,transparent_1px_5px)]'
+	};
+
+	const runs = (n: number) => `${formatNumber(n)} ${n === 1 ? 'run' : 'runs'}`;
+	/** A shared slot's steps in order: each job (reaction, runs, duration), then the idle time left. */
+	function sharedSteps(slot: PlanResult['sharedSlots'][number]): string[] {
+		const steps = slot.jobs.map(
+			(j, i) => `${j.name}${i === 0 ? '' : ':'} ${runs(j.runs)} (${formatDuration(j.seconds)})`
+		);
+		if (Math.round(slot.idleSeconds) > 0) steps.push(`Idle ${formatDuration(slot.idleSeconds)}`);
+		return steps;
+	}
+	/** Shades of a shared slot's jobs, in run order. */
+	const JOB_SHADES = [
+		'bg-primary-700 text-white dark:bg-primary-600',
+		'bg-primary-400 text-gray-900 dark:bg-primary-400',
+		'bg-primary-200 text-gray-900 dark:bg-primary-200',
+		'bg-teal-500 text-gray-900 dark:bg-teal-400'
+	];
+
 	type Tone = 'profit' | 'plain';
 	const cards = $derived.by(() => {
 		const isk = (n: number | null) => ({ text: formatIsk(n), title: formatIskFull(n) });
@@ -305,6 +416,14 @@
 				>
 					{card.text}
 				</dd>
+				{#if card.label === 'Utilisation' && utilisationSplit}
+					<dd
+						class="text-[0.6875rem] leading-tight text-gray-600 tabular-nums dark:text-gray-300"
+						data-field="utilisationSplit"
+					>
+						{utilisationSplit}
+					</dd>
+				{/if}
 			</div>
 		{/each}
 	</dl>
@@ -329,34 +448,103 @@
 				<thead class={thead}>
 					<tr>
 						<th scope="col" class="px-3 py-1.5">Reaction</th>
-						<th scope="col" class={th} title="0 = final product; higher = feeds the level above">Depth</th>
 						<th scope="col" class={th}>Slots</th>
 						<th scope="col" class={th}>Runs / slot</th>
 						<th scope="col" class={th}>Duration / slot</th>
-						<th scope="col" class={th}>First cycle</th>
+						<th
+							scope="col"
+							class="px-3 py-1.5 whitespace-nowrap"
+							title="Slot-days per cycle: your targets{hasAuto ? ' · auto-fill' : ''} · idle">Slot time</th
+						>
 					</tr>
 				</thead>
-				<tbody>
-					{#each plan.reactions as r (r.blueprintTypeId)}
-						<tr class={row} data-plan-reaction={r.blueprintTypeId}>
-							<td class="px-3 py-1 font-medium whitespace-nowrap" data-field="name">{r.name}</td>
-							<td class={td}>{r.depth}</td>
-							<td class={td} data-field="slots">{r.slots}</td>
-							<td class={td} title={runsPerSlotTitle(r.runsPerSlot)} data-field="runs"
-								>{formatRunsPerSlot(r.runsPerSlot)}</td
+				{#each reactionGroups as group (group.key)}
+					<tbody data-plan-group>
+						<tr class="border-y border-gray-300 bg-gray-200 dark:border-gray-600 dark:bg-gray-700">
+							<th
+								scope="rowgroup"
+								colspan="5"
+								class="px-3 py-1 text-left text-xs font-semibold text-gray-700 uppercase dark:text-gray-200"
 							>
-							<td
-								class={td}
-								title="{formatNumber(Math.max(...r.runsPerSlot))} runs × {formatDuration(r.runTimeSeconds)}"
-							>
-								{formatDuration(Math.max(...r.runsPerSlot) * r.runTimeSeconds)}
-							</td>
-							<td class={td}>{r.firstCycle}</td>
+								{group.label}
+								<span class="ms-1 font-normal text-gray-600 normal-case dark:text-gray-300"
+									>· {group.slots} {group.slots === 1 ? 'slot' : 'slots'}</span
+								>
+							</th>
 						</tr>
-					{/each}
-				</tbody>
+						{#each group.reactions as r (r.blueprintTypeId)}
+							{@const st = slotTimes.get(r.blueprintTypeId)!}
+							{@const occupied = st.yours + st.auto + st.idle}
+							<tr
+								class={row}
+								data-plan-reaction={r.blueprintTypeId}
+								data-depth={r.depth}
+								data-first-cycle={r.firstCycle}
+							>
+								<td class="px-3 py-1 font-medium whitespace-nowrap" data-field="name">{r.name}</td>
+								<td class={td} data-field="slots">{r.slots}</td>
+								<td
+									class={td}
+									title="{runsPerSlotTitle(r.runsPerSlot)}{r.sharedRuns === undefined
+										? ''
+										: `; the job of ${runs(r.sharedRuns)} shares a slot with another reaction`}"
+									data-field="runs"
+									>{formatRunsPerSlot(r.runsPerSlot)}{r.sharedRuns === undefined ? '' : ' (shared)'}</td
+								>
+								<td
+									class={td}
+									title="{formatNumber(Math.max(...r.runsPerSlot))} runs × {formatDuration(r.runTimeSeconds)}"
+								>
+									{formatDuration(Math.max(...r.runsPerSlot) * r.runTimeSeconds)}
+								</td>
+								<td class="px-3 py-1 whitespace-nowrap" title={slotTimeTitle(st)} data-field="slotTime">
+									<span class="flex items-center gap-2">
+										<span
+											class="flex h-2.5 w-16 shrink-0 overflow-hidden rounded-sm bg-gray-100 dark:bg-gray-700"
+											aria-hidden="true"
+										>
+											{#each slotParts(st) as part (part.key)}
+												{#if part.seconds > 0 && occupied > 0}
+													<span
+														class="h-full {SLOT_SEGMENT[part.key]}"
+														style="width: {(part.seconds / occupied) * 100}%"
+														data-part={part.key}
+													></span>
+												{/if}
+											{/each}
+										</span>
+										<span
+											class="text-xs text-gray-600 tabular-nums dark:text-gray-300"
+											data-field="slotTimeText">{slotTimeText(st)}</span
+										>
+									</span>
+								</td>
+							</tr>
+						{/each}
+					</tbody>
+				{/each}
 			</table>
 		</div>
+		<p
+			class="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-gray-600 dark:text-gray-300"
+			data-slot-legend
+		>
+			<span>Slot time per cycle, in slot-days:</span>
+			<span class="inline-flex items-center gap-1"
+				><span class="inline-block h-2.5 w-4 rounded-sm {SLOT_SEGMENT.yours}" aria-hidden="true"></span>your
+				targets</span
+			>
+			{#if hasAuto}
+				<span class="inline-flex items-center gap-1"
+					><span class="inline-block h-2.5 w-4 rounded-sm {SLOT_SEGMENT.auto}" aria-hidden="true"
+					></span>auto-fill</span
+				>
+			{/if}
+			<span class="inline-flex items-center gap-1"
+				><span class="inline-block h-2.5 w-4 rounded-sm {SLOT_SEGMENT.idle}" aria-hidden="true"
+				></span>idle</span
+			>
+		</p>
 
 		{#if unrefinedRoutes.length > 0}
 			<InfoNote name="unrefined-routes">
@@ -408,6 +596,67 @@
 			{/each}
 		</ol>
 	</section>
+
+	{#if plan.sharedSlots.length > 0}
+		<section class="space-y-2" aria-labelledby="plan-shared-slots" data-shared-slots>
+			<h3 id="plan-shared-slots" class={h3}>Shared slots</h3>
+			<p class="text-sm text-gray-600 dark:text-gray-300">
+				These slots run more than one reaction in a cycle: start the first job, and when it ends change the
+				slot to the next one. The order is safe across slots: every job uses materials made in the cycle
+				before, and every job ends within its cycle.
+			</p>
+			<ol class="space-y-2">
+				{#each plan.sharedSlots as slot, i (i)}
+					<li class="rounded-lg bg-white p-3 dark:bg-gray-700" data-shared-slot>
+						<div
+							class="flex h-7 overflow-hidden rounded-md bg-gray-100 text-xs font-medium dark:bg-gray-600"
+							aria-hidden="true"
+						>
+							{#each slot.jobs as job, j (j)}
+								<div
+									class="flex min-w-0 shrink-0 items-center gap-1 px-1 {JOB_SHADES[
+										j % JOB_SHADES.length
+									]} {j > 0 ? 'border-l-2 border-white dark:border-gray-700' : ''}"
+									style="width: {Math.min(100, (job.seconds / cycleSeconds) * 100)}%"
+									title="{job.name}: {runs(job.runs)}, {formatDuration(job.seconds)}"
+									data-job={job.blueprintTypeId}
+								>
+									<img
+										src={blueprintIconUrl(job.blueprintTypeId)}
+										alt=""
+										width="16"
+										height="16"
+										loading="lazy"
+										class="shrink-0 rounded-sm"
+									/>
+									<span class="truncate">{job.name}</span>
+								</div>
+							{/each}
+							{#if Math.round(slot.idleSeconds) > 0}
+								<div
+									class="min-w-0 flex-1 border-l-2 border-white bg-[image:repeating-linear-gradient(-45deg,currentColor_0_1px,transparent_1px_5px)] text-gray-300 dark:border-gray-700 dark:text-gray-400"
+									title="Idle {formatDuration(slot.idleSeconds)}"
+								></div>
+							{/if}
+						</div>
+						<p
+							class="mt-1 flex flex-wrap items-center gap-x-1.5 gap-y-0.5 text-sm text-gray-800 dark:text-gray-200"
+							data-field="instruction"
+						>
+							{#each sharedSteps(slot) as step, s (s)}
+								{#if s > 0}
+									<span class="text-primary-600 dark:text-primary-400 font-semibold" aria-hidden="true"
+										>→</span
+									><span class="sr-only">then</span>
+								{/if}
+								<span class="whitespace-nowrap">{step}</span>
+							{/each}
+						</p>
+					</li>
+				{/each}
+			</ol>
+		</section>
+	{/if}
 
 	{#if plan.reactions.length > 0}
 		<section class="space-y-2" aria-labelledby="plan-flow" data-plan-flow>

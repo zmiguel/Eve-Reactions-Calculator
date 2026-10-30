@@ -51,6 +51,7 @@ export async function buildPlanInput(
 		dailyVolumes: dailyVolumes(
 			productVolumes({ dataset: ctx.dataset, profiles: ctx.profiles, volumes, hubs: regionHubs })
 		),
-		inputDailyVolumes: hubDailyVolumes({ volumes, hubs: regionHubs })
+		inputDailyVolumes: hubDailyVolumes({ volumes, hubs: regionHubs }),
+		shareSlots: body.shareSlots
 	};
 }

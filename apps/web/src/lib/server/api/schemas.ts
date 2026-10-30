@@ -200,7 +200,11 @@ export const PlanBody = z.object({
 	ownedFormulas: z
 		.record(typeIdKey, z.number().int().min(0))
 		.default({})
-		.meta({ description: 'Formulas owned: blueprint type id → count.' })
+		.meta({ description: 'Formulas owned: blueprint type id → count.' }),
+	shareSlots: z.boolean().default(false).meta({
+		description:
+			"Pack the leftover runs of different reactions into shared slots: each reaction runs full jobs plus one job of its remaining runs, and jobs are packed into slots one after another within the cycle (see sharedSlots). Default false: each reaction's runs are split evenly over its own slots."
+	})
 });
 
 // ---------------------------------------------------------------------------------------------------
@@ -636,7 +640,18 @@ export const PlanResultResponse = z
 				depth: z.number().int(),
 				totalRuns: z.number().int(),
 				slots: z.number().int(),
-				runsPerSlot: z.array(z.number().int()),
+				runsPerSlot: z.array(z.number().int()).meta({
+					description:
+						'Runs of each of its jobs in one cycle. With shareSlots: full jobs first, then the job of the remaining runs.'
+				}),
+				sharedRuns: z.number().int().optional().meta({
+					description:
+						'With shareSlots: runs of its remaining-runs job when that job shares a slot with another reaction; absent otherwise.'
+				}),
+				jobSlots: z.array(z.number().int()).optional().meta({
+					description:
+						'With shareSlots: the slot (0-based, as sharedSlots[].slot) each job runs in, in runsPerSlot order; absent otherwise.'
+				}),
 				firstCycle: z.number().int(),
 				runTimeSeconds: z.number(),
 				jobCost: z.number(),
@@ -681,6 +696,30 @@ export const PlanResultResponse = z
 		utilisation: z.number(),
 		phases: z.array(PlanPhase),
 		startup: PlanStartup,
+		sharedSlots: z
+			.array(
+				z.object({
+					slot: z.number().int().meta({ description: 'Slot index (0-based, as reactions[].jobSlots).' }),
+					jobs: z
+						.array(
+							z.object({
+								blueprintTypeId: z.number().int(),
+								name: z.string(),
+								runs: z.number().int(),
+								startSeconds: z
+									.number()
+									.meta({ description: 'When the job starts, from the start of the cycle.' }),
+								seconds: z.number().meta({ description: 'Job duration (runs × run time).' })
+							})
+						)
+						.meta({ description: 'Jobs in run order: each starts when the previous one ends.' }),
+					idleSeconds: z.number().meta({ description: 'Slot time left after the last job.' })
+				})
+			)
+			.meta({
+				description:
+					'With shareSlots: the slots running jobs of two or more reactions in one cycle, longest first job first. Empty without shareSlots or when no slot is shared.'
+			}),
 		purchasesPerCycle: z.array(
 			LineItem.extend({
 				dailyVolumeSharePct: z.number().nullable().meta({

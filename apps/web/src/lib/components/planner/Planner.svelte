@@ -23,10 +23,13 @@
 		hubDailyVolumes,
 		inputMarket,
 		inputVolumes,
+		ownRuns,
 		plannerContext,
 		productVolumes,
+		sharesSlots,
 		targetFootprint,
-		type PlannerData
+		type PlannerData,
+		type SlotSharing
 	} from '#lib/planner/plan.js';
 	import { reactionSlots, MAX_SKILL_LEVEL } from '#lib/planner/slots.js';
 	import {
@@ -123,6 +126,7 @@
 	const inventoryMissing = $derived(stockSource === 'account' && !data.inventory);
 	const volumes = $derived(productVolumes(data));
 	const purchaseVolumes = $derived(inputVolumes(data));
+	const slotSharing = $derived(setup.slotSharing ?? 'auto');
 	const input: PlanInput = $derived({
 		ctx,
 		totalSlots: setup.slots,
@@ -131,9 +135,12 @@
 		stock: inventory ? inventory.stock : stock.quantities,
 		ownedFormulas: inventory ? inventory.formulas : owned.quantities,
 		dailyVolumes: dailyVolumes(volumes),
-		inputDailyVolumes: hubDailyVolumes(data)
+		inputDailyVolumes: hubDailyVolumes(data),
+		shareSlots: sharesSlots(slotSharing, setup.targets)
 	});
 	const plan = $derived(planReactions({ ...input, horizonCycles: setup.shoppingCycles }));
+	/** Each reaction's runs from the visitor's own targets; `null` without auto targets. */
+	const own = $derived(ownRuns(input));
 	/** The plan holds stock of a type it buys or makes: the shopping list may subtract it or not. */
 	const hasStock = $derived(
 		plan.reactions.some((r) =>
@@ -250,7 +257,11 @@
 	const FULL_UTILISATION = 1 - 1e-9;
 
 	function autoFill() {
-		const fill = suggestFillPlan(input, fillOptions(setup.fillScope, setup.maxVolumePct));
+		// Auto-fill plans with shared slots unless they are off: freed slots and idle time get filled.
+		const fill = suggestFillPlan(
+			{ ...input, shareSlots: slotSharing !== 'never' },
+			fillOptions(setup.fillScope, setup.maxVolumePct)
+		);
 		setup.targets = fill.targets;
 		setup.buy = fill.buyInsteadOfBuild;
 	}
@@ -260,6 +271,12 @@
 		if (Number.isFinite(n)) setup.maxVolumePct = Math.min(100, Math.max(1, n));
 		el.value = String(setup.maxVolumePct);
 	}
+
+	const SLOT_SHARING_OPTIONS: { id: SlotSharing; label: string }[] = [
+		{ id: 'always', label: 'Always' },
+		{ id: 'auto', label: 'With auto-fill' },
+		{ id: 'never', label: 'Never' }
+	];
 
 	// Paste examples in EVE's inventory copy format (attribute strings cannot hold a tab).
 	const STOCK_EXAMPLE = 'Carbon Polymers\t12,345';
@@ -515,6 +532,31 @@
 				</p>
 			</div>
 		{:else}
+			<div class="space-y-1">
+				<div class="flex flex-wrap items-center justify-between gap-2">
+					<h2 class={caption} id="planner-slot-sharing">Shared slots</h2>
+					<span
+						class="inline-flex shrink-0 overflow-hidden rounded-md border border-gray-200 text-xs font-medium dark:border-gray-600"
+						role="group"
+						aria-labelledby="planner-slot-sharing"
+						aria-describedby="planner-slot-sharing-hint"
+					>
+						{#each SLOT_SHARING_OPTIONS as option, i (option.id)}
+							<button
+								type="button"
+								class="px-2 py-0.5 {i > 0 ? 'border-l border-gray-200 dark:border-gray-600' : ''} {segment(
+									slotSharing === option.id
+								)}"
+								aria-pressed={slotSharing === option.id}
+								onclick={() => (setup.slotSharing = option.id)}>{option.label}</button
+							>
+						{/each}
+					</span>
+				</div>
+				<p id="planner-slot-sharing-hint" class="text-xs text-gray-500 dark:text-gray-400">
+					Leftover runs of different reactions share a slot: when one job ends, you start the next.
+				</p>
+			</div>
 			<div>
 				<h2 class={label}>Targets</h2>
 				<PlannerTargets
@@ -692,7 +734,8 @@
 						slots: setup.slots,
 						cycleDays: setup.cycleDays,
 						stockSource: setup.stockSource,
-						mode: setup.mode
+						mode: setup.mode,
+						slotSharing: setup.slotSharing
 					})}>Clear</button
 			>
 
@@ -814,6 +857,7 @@
 				profileWarnings={data.profileWarnings}
 				{fuelTypeIds}
 				{shoppingPlan}
+				ownRuns={own}
 				{hasStock}
 				{useStock}
 				oncycles={(cycles) => (setup.shoppingCycles = cycles)}

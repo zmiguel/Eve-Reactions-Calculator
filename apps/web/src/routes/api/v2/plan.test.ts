@@ -99,6 +99,37 @@ describe('POST /api/v2/plan', () => {
 		expect(result.surplusPerCycle.some((s) => s.typeId === 16670)).toBe(false);
 	});
 
+	it('packs leftover runs of different reactions into shared slots with shareSlots', async () => {
+		const { env } = await seededEnv();
+		const targets = [{ slug: 'crystalline-carbonide', quantity: 1_500_000 }];
+		const shared = PlanResultResponse.parse(
+			(await post(env, { totalSlots: 150, targets, shareSlots: true })).body
+		);
+		// 1,500,000 ÷ 10,000 per run = 150 Crystalline Carbonide runs at 122 runs per slot (default settings):
+		// a full job of 122 and a 28-run job, which fits after the 74 Carbon Polymers runs in one slot.
+		expect(shared.sharedSlots.map((s) => s.jobs.map((j) => [j.name, j.runs]))).toEqual([
+			[
+				['Carbon Polymers', 74],
+				['Crystalline Carbonide', 28]
+			]
+		]);
+		const [first, second] = shared.sharedSlots[0].jobs;
+		expect(second.startSeconds).toBe(first.seconds);
+		const top = shared.reactions.find((r) => r.blueprintTypeId === 46205)!;
+		expect(top).toMatchObject({ runsPerSlot: [122, 28], sharedRuns: 28 });
+		// Its 28-run job (the last one) runs in the shared slot; the full job has a slot of its own.
+		expect(top.jobSlots?.at(-1)).toBe(shared.sharedSlots[0].slot);
+		expect(top.jobSlots?.[0]).not.toBe(shared.sharedSlots[0].slot);
+		// Full Crystalline Carbonide slot, Crystallite Alloy alone, the shared slot.
+		expect(shared.slotsUsed).toBe(3);
+
+		const plain = PlanResultResponse.parse((await post(env, { totalSlots: 150, targets })).body);
+		expect(plain.sharedSlots).toEqual([]);
+		expect(plain.reactions.some((r) => r.sharedRuns !== undefined || r.jobSlots !== undefined)).toBe(false);
+		// Without sharing: 2 slots of 75 runs + 1 slot each for the intermediates.
+		expect(plain.slotsUsed).toBe(4);
+	});
+
 	it('plans auto-fill targets like any target and reports what they add in autoFilled', async () => {
 		const { env } = await seededEnv();
 		const { response, body } = await post(env, {

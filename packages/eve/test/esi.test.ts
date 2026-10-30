@@ -294,19 +294,33 @@ describe('ESI downtime gate', () => {
 });
 
 describe('fetchServerStatus', () => {
-	it('returns the player count and VIP flag', async () => {
+	it('returns the player count, VIP flag and server start time', async () => {
 		const fake = fakeFetch(() =>
 			json({ players: 23456, server_version: '1', start_time: '2026-10-27T11:02:00Z', vip: true })
 		);
-		expect(await fetchServerStatus(fake.fetch, TEST_UA)).toEqual({ players: 23456, vip: true });
+		expect(await fetchServerStatus(fake.fetch, TEST_UA)).toEqual({
+			players: 23456,
+			vip: true,
+			startTime: Date.UTC(2026, 9, 27, 11, 2, 0)
+		});
 		expect(fake.calls[0]?.url).toBe('https://esi.evetech.net/status');
 		expect(fake.calls[0]?.headers.get('User-Agent')).toBe(TEST_UA);
 		expect(fake.calls[0]?.headers.get('X-Compatibility-Date')).toBe(ESI_COMPAT_DATE);
 	});
 
-	it('treats a missing VIP flag as false', async () => {
+	it('treats a missing VIP flag as false and a missing or bad start time as unknown', async () => {
 		const fake = fakeFetch(() => json({ players: 120 }));
-		expect(await fetchServerStatus(fake.fetch, TEST_UA)).toEqual({ players: 120, vip: false });
+		expect(await fetchServerStatus(fake.fetch, TEST_UA)).toEqual({
+			players: 120,
+			vip: false,
+			startTime: null
+		});
+		const bad = fakeFetch(() => json({ players: 120, start_time: 'soon' }));
+		expect(await fetchServerStatus(bad.fetch, TEST_UA)).toEqual({
+			players: 120,
+			vip: false,
+			startTime: null
+		});
 	});
 
 	it('returns null on a 503, a bad body or a network error', async () => {

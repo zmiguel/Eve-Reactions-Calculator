@@ -169,7 +169,7 @@ const errorBody = (description: string, example: unknown) => ({
  * documented change of results, major only with a new path (`/api/v3`). Bump it in the release that changes the
  * API and name it in that release's CHANGELOG "API v2" section.
  */
-export const API_VERSION = '2.3.0';
+export const API_VERSION = '2.4.0';
 
 const INFO_DESCRIPTION = `Live reaction profits, recipes and market prices of the [EVE Reactions Calculator](${SITE_URL}).
 
@@ -384,7 +384,7 @@ export const openapi = {
 				operationId: 'plan',
 				tags: ['Planner'],
 				summary: 'Plan reaction slots',
-				description: `Slot plan for targets given as lines or units per cycle, with build-up phases, purchases, outputs and profit. Targets marked \`auto\` (the planner's auto-fill entries) are planned like any other, and \`autoFilled\` lists what they add per cycle. At most ${MAX_PLAN_TARGETS} targets, ${MAX_PLAN_SLOTS} slots and ${MAX_PLAN_BODY_BYTES / 1024} KB of JSON. dailyVolumes for the volume share come from the output hub's region. Send the body with \`Content-Type: application/json\`: a request without it, or with a form or plain-text type, is refused with 403 (cross-site form protection).`,
+				description: `Slot plan for targets given as lines or units per cycle, with build-up phases, purchases, outputs and profit. Targets marked \`auto\` (the planner's auto-fill entries) are planned like any other, and \`autoFilled\` lists what they add per cycle. With \`shareSlots\`, the leftover runs of different reactions share slots, one job after another, and \`sharedSlots\` lists those slots with their jobs in run order. At most ${MAX_PLAN_TARGETS} targets, ${MAX_PLAN_SLOTS} slots and ${MAX_PLAN_BODY_BYTES / 1024} KB of JSON. dailyVolumes for the volume share come from the output hub's region. Send the body with \`Content-Type: application/json\`: a request without it, or with a form or plain-text type, is refused with 403 (cross-site form protection).`,
 				requestBody: {
 					required: true,
 					content: {

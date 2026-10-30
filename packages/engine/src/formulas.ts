@@ -73,6 +73,13 @@ export function splitIntoSlots(runs: number, capacity: number): number[] {
 	return distributeRuns(runs, Math.ceil(runs / capacity));
 }
 
+/** Jobs for `runs` in shared slots: `⌊runs ÷ capacity⌋` full jobs of `capacity` runs, then the remainder (if any). */
+export function splitIntoFullJobs(runs: number, capacity: number): number[] {
+	const full = Math.floor(runs / capacity);
+	const rest = runs - full * capacity;
+	return rest > 0 ? [...Array<number>(full).fill(capacity), rest] : Array<number>(full).fill(capacity);
+}
+
 /** Rounds to two decimals before ceiling, matching the game's float handling. */
 export function requiredQuantity(runs: number, baseQty: number, mm: number): number {
 	return Math.max(runs, Math.ceil(Math.round(runs * baseQty * mm * 100) / 100));

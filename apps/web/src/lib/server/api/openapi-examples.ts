@@ -512,6 +512,7 @@ export const PLAN_EXAMPLE = {
 		}
 	],
 	startup: { mode: 'buy', reused: [], buy: { initialInvestment: 479332528.63, cycles: 2 }, step0: null },
+	sharedSlots: [],
 	purchasesPerCycle: [
 		{
 			typeId: 4312,

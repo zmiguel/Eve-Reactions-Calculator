@@ -65,6 +65,21 @@ describe('state schema', () => {
 		expect(parseState({ ...sample, stockSource: 'esi' })).toBeNull();
 	});
 
+	it('keeps the shared slots setting in states and share codes; states without one stay valid', async () => {
+		for (const slotSharing of ['always', 'auto', 'never'] as const) {
+			const state = { ...sample, slotSharing };
+			expect(parseState(state)).toEqual(state);
+			expect((await decodeShare(await encodeShare(state)))?.state).toEqual(state);
+			const storage = new MemoryStorage();
+			saveState(storage, state);
+			expect(loadState(storage)).toEqual(state);
+		}
+		// Absent = with auto-fill: older states and share links parse unchanged.
+		expect(parseState(firstRelease)).not.toHaveProperty('slotSharing');
+		expect(emptyState()).not.toHaveProperty('slotSharing');
+		expect(parseState({ ...sample, slotSharing: 'sometimes' })).toBeNull();
+	});
+
 	it('keeps the stock mode fields in states and share codes; states without them stay valid', async () => {
 		const state = {
 			...sample,

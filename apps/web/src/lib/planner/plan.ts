@@ -5,6 +5,7 @@ import {
 	type Dataset,
 	type FillOptions,
 	type PlanInput,
+	type PlanReaction,
 	type PlanResult,
 	type PlanTarget,
 	type PriceBook,
@@ -205,6 +206,61 @@ export function fillOptions(scope: FillScope, maxVolumeSharePct: number): FillOp
 		maxVolumeSharePct,
 		buyIntermediates
 	};
+}
+
+/** "Shared slots" setting: always, only while the plan has auto-fill targets (`auto`), or never. */
+export const SLOT_SHARING_MODES = ['always', 'auto', 'never'] as const;
+export type SlotSharing = (typeof SLOT_SHARING_MODES)[number];
+
+/** The plan's `shareSlots` for a setting and the current targets. */
+export function sharesSlots(mode: SlotSharing, targets: readonly PlanTarget[]): boolean {
+	return mode === 'always' || (mode === 'auto' && targets.some((t) => t.auto));
+}
+
+/**
+ * Runs per cycle of each reaction the visitor's own targets need (planned without the auto targets);
+ * `null` without auto targets (every run is the visitor's).
+ */
+export function ownRuns(input: PlanInput): Map<number, number> | null {
+	if (!input.targets.some((t) => t.auto)) return null;
+	const own = input.targets.filter((t) => !t.auto);
+	if (own.length === 0) return new Map();
+	const plan = planReactions({ ...input, targets: own });
+	return new Map(plan.reactions.map((r) => [r.blueprintTypeId, r.totalRuns]));
+}
+
+/** Slot time (seconds per cycle) a reaction occupies: your targets' runs, auto-fill's runs, idle. */
+export interface SlotTime {
+	yours: number;
+	auto: number;
+	idle: number;
+}
+
+/**
+ * Slot time of `reaction` over the slots its jobs occupy: a slot shared with another reaction counts only
+ * its own jobs' durations there, any other slot the whole cycle. Without `jobSlots` (no slot sharing)
+ * every job has a slot of its own. `own` = its runs from your targets (`null`: all of them).
+ */
+export function slotTime(
+	reaction: PlanReaction,
+	sharedSlots: PlanResult['sharedSlots'],
+	cycleSeconds: number,
+	own: number | null
+): SlotTime {
+	let occupied = reaction.slots * cycleSeconds;
+	if (reaction.jobSlots) {
+		const shared = new Set(sharedSlots.map((s) => s.slot));
+		const bySlot = new Map<number, number>();
+		reaction.jobSlots.forEach((slot, i) =>
+			bySlot.set(slot, (bySlot.get(slot) ?? 0) + reaction.runsPerSlot[i] * reaction.runTimeSeconds)
+		);
+		occupied = 0;
+		for (const [slot, seconds] of bySlot) occupied += shared.has(slot) ? seconds : cycleSeconds;
+	}
+	const yoursRuns = Math.min(own ?? reaction.totalRuns, reaction.totalRuns);
+	const yours = yoursRuns * reaction.runTimeSeconds;
+	const auto = (reaction.totalRuns - yoursRuns) * reaction.runTimeSeconds;
+	return { yours, auto, idle: Math.max(0, occupied - yours - auto) };
 }
 
 export interface BuildBuyItem {

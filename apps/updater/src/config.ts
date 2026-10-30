@@ -14,8 +14,14 @@ export const ESI_CONCURRENCY = 6;
 export const ESI_DOWNTIME_START_MINUTE_UTC = 10 * 60 + 55;
 /** The daily downtime starts at 11:00 UTC; from then on `/status` decides when ESI is back. */
 export const ESI_DOWNTIME_MINUTE_UTC = 11 * 60;
-/** `/status` must report more than this many players before ESI counts as back (a VIP server does not). */
+/**
+ * `/status` must report more than this many players on a server started after `ESI_DOWNTIME_START_MINUTE_UTC`
+ * before ESI counts as back (a VIP server does not). Right after 11:00 the server that is shutting down
+ * still reports its players.
+ */
 export const ESI_ONLINE_MIN_PLAYERS = 100;
+/** From this minute the server's start time no longer matters: a day without a restart opens ESI again. */
+export const ESI_RESTART_WAIVED_MINUTE_UTC = 12 * 60;
 /** A failed `/status` check is not repeated within this long (per isolate). */
 export const ESI_STATUS_RECHECK_MS = 60_000;
 /** A workflow step that hit the downtime sleeps this long before it runs again. */
