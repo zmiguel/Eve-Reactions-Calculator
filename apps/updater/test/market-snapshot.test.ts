@@ -40,7 +40,14 @@ describe('publishMarketSnapshot', () => {
 				T0 - 100,
 				T0 - 50
 			),
-			env.DB.prepare('INSERT INTO cost_indices VALUES (30002647, 0.04, 0.02, ?)').bind(T0 - 7)
+			env.DB.prepare('INSERT INTO cost_indices VALUES (30002647, 0.04, 0.02, ?)').bind(T0 - 7),
+			// Update times: the latest run of each kind that did not fail (a running one counts).
+			env.DB.prepare(
+				`INSERT INTO job_runs (run_id, kind, started_at, status) VALUES
+				('c1', 'cost_indices', ?1 - 60, 'ok'), ('c2', 'cost_indices', ?1 - 7, 'running'),
+				('c3', 'cost_indices', ?1 - 1, 'failed'), ('a1', 'adjusted_prices', ?1 - 50, 'ok'),
+				('a2', 'adjusted_prices', ?1 - 5, 'failed'), ('p1', 'prices', ?1, 'ok')`
+			).bind(T0)
 		]);
 
 		const snapshot = await publishMarketSnapshot(env, T0 + 99_999);

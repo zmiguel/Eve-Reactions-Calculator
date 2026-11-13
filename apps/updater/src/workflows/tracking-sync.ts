@@ -68,7 +68,7 @@ import { forEachConcurrent } from '../pool.ts';
 import { markLedgerDirty, rebuildLedger } from '../ledger.ts';
 import { jsonInsertSql } from '../prices.ts';
 import { StepTracker } from '../progress.ts';
-import { refreshCharacterToken } from '../tokens.ts';
+import { refreshCharacterToken, withRunTokens } from '../tokens.ts';
 import type { AccessTokenResult, StoredToken } from '../tokens.ts';
 import { claimTrackingSource, dueStreams, failTrackingSync, trackingStreamNames } from '../tracking.ts';
 import { publishedDataset } from './inventory-sync.ts';
@@ -102,8 +102,10 @@ export interface TrackingPrepared {
 export interface StreamOutcome {
 	stream: string;
 	status: 'ok' | 'denied' | 'error';
-	/** Rows stored (new or changed). */
+	/** Rows fetched and stored (new or already stored). */
 	rows: number;
+	/** Rows the stream's writes inserted or changed (D1 `meta.changes`); any makes the ledger step rebuild. */
+	changes: number;
 	/** The stream's `last_error`, null when ok. */
 	message: string | null;
 }
@@ -112,8 +114,11 @@ export interface TrackingFinished {
 	ok: true;
 	status: 'ok' | 'error';
 	streams: StreamOutcome[];
-	/** False when the ledger rebuild failed (the ledger was marked dirty for the cron). */
-	ledgerRebuilt: boolean;
+	/**
+	 * `rebuilt`; `skipped` when nothing the ledger reads changed (`ledgerRebuildDue`); `failed` when the
+	 * rebuild failed (the ledger was marked dirty for the cron).
+	 */
+	ledger: 'rebuilt' | 'skipped' | 'failed';
 }
 
 export type TrackingSyncResult = TrackingFinished | TrackingSyncEnded;
@@ -178,7 +183,10 @@ const JOBS_SQL = jsonInsertSql(
 	],
 	`ON CONFLICT (user_id, job_id) DO UPDATE SET status = excluded.status, cost = excluded.cost,
 		end_date = excluded.end_date, completed_date = excluded.completed_date,
-		activity_id = excluded.activity_id, blueprint_id = excluded.blueprint_id`
+		activity_id = excluded.activity_id, blueprint_id = excluded.blueprint_id
+	WHERE tracked_jobs.status IS NOT excluded.status OR tracked_jobs.cost IS NOT excluded.cost
+		OR tracked_jobs.end_date IS NOT excluded.end_date OR tracked_jobs.completed_date IS NOT excluded.completed_date
+		OR tracked_jobs.activity_id IS NOT excluded.activity_id OR tracked_jobs.blueprint_id IS NOT excluded.blueprint_id`
 );
 
 /** Which of the blueprint type ids `?1` (JSON array) consume tracked materials (`manufacturing_blueprints`). */
@@ -266,7 +274,9 @@ const ORDERS_SQL = jsonInsertSql(
 		'state'
 	],
 	`ON CONFLICT (user_id, order_id) DO UPDATE SET price = excluded.price, volume_remain = excluded.volume_remain,
-		issued = excluded.issued, state = excluded.state`
+		issued = excluded.issued, state = excluded.state
+	WHERE tracked_orders.price IS NOT excluded.price OR tracked_orders.volume_remain IS NOT excluded.volume_remain
+		OR tracked_orders.issued IS NOT excluded.issued OR tracked_orders.state IS NOT excluded.state`
 );
 
 /** A finished contract; its Janice appraisal is copied from another contract of the user with that code. */
@@ -366,8 +376,8 @@ async function endSync(
 }
 
 /** A fresh access token of `reader`; a character already `token_status <> 'ok'` is invalid without asking SSO. */
-function readerToken(env: Env, reader: Reader): Promise<AccessTokenResult> {
-	if (reader.tokenStatus === 'ok') return refreshCharacterToken(env, reader);
+function readerToken(env: Env, reader: Reader, runId: string): Promise<AccessTokenResult> {
+	if (reader.tokenStatus === 'ok') return refreshCharacterToken(env, reader, runId);
 	return Promise.resolve({ ok: false, invalid: true, message: TOKEN_ERROR_REVOKED });
 }
 
@@ -377,7 +387,7 @@ function readerToken(env: Env, reader: Reader): Promise<AccessTokenResult> {
  * step retries.
  */
 async function accessToken(env: Env, source: TrackingSource, reader: Reader, runId: string): Promise<string> {
-	const token = await readerToken(env, reader);
+	const token = await readerToken(env, reader, runId);
 	if (token.ok) return token.accessToken;
 	if (!token.invalid) throw new Error(token.message);
 	const message = `${reader.name}: ${token.message}`;
@@ -447,7 +457,7 @@ async function pickCorporationReader(
 			notes.push(`${reader.name} is not in the corporation`);
 			continue;
 		}
-		const token = await readerToken(env, reader);
+		const token = await readerToken(env, reader, runId);
 		if (token.ok) return { reader, notes };
 		notes.push(
 			token.invalid ? `${reader.name} has an invalid token` : `${reader.name}'s token could not be refreshed`
@@ -522,10 +532,23 @@ export async function prepareTrackingSync(
 	return { ok: true, kind: source.kind, readerId: reader.characterId, due, note: null };
 }
 
-/** What a stream fetch stored, or the ESI failure that stopped it. */
+/** What a stream fetch stored (`changes`: rows its writes inserted or changed), or the ESI failure that stopped it. */
 type StreamFetch =
-	| { ok: true; rows: number; expiresAt: number | null; cursor: number | null; label?: never }
+	| {
+			ok: true;
+			rows: number;
+			changes: number;
+			expiresAt: number | null;
+			cursor: number | null;
+			label?: never;
+	  }
 	| (EsiFailure & { label: string });
+
+/** Runs insert `sql` with `rows` as its one JSON parameter; the rows it inserted or changed. */
+async function storeRows(env: Env, sql: string, rows: readonly unknown[]): Promise<number> {
+	if (rows.length === 0) return 0;
+	return (await env.DB.prepare(sql).bind(JSON.stringify(rows)).run()).meta.changes;
+}
 
 interface StreamContext {
 	env: Env;
@@ -628,8 +651,8 @@ async function syncJobs({ env, client, source, token }: StreamContext): Promise<
 			j.endDate,
 			j.completedDate
 		]);
-	if (rows.length > 0) await env.DB.prepare(JOBS_SQL).bind(JSON.stringify(rows)).run();
-	return { ok: true, rows: rows.length, expiresAt: res.expiresAt, cursor: null };
+	const changes = await storeRows(env, JOBS_SQL, rows);
+	return { ok: true, rows: rows.length, changes, expiresAt: res.expiresAt, cursor: null };
 }
 
 /**
@@ -655,11 +678,12 @@ async function syncBlueprints({ env, client, source, token, wanted }: StreamCont
 		}
 		if (page >= res.pages) break;
 	}
-	if (found.length === 0) return { ok: true, rows: 0, expiresAt, cursor: null };
+	if (found.length === 0) return { ok: true, rows: 0, changes: 0, expiresAt, cursor: null };
 	const updated = await env.DB.prepare(BLUEPRINT_ME_SQL)
 		.bind(source.userId, source.sourceId, JSON.stringify(found))
 		.run();
-	return { ok: true, rows: updated.meta.changes, expiresAt, cursor: null };
+	const changes = updated.meta.changes;
+	return { ok: true, rows: changes, changes, expiresAt, cursor: null };
 }
 
 async function syncTransactions({
@@ -697,12 +721,18 @@ async function syncTransactions({
 			t.journalRefId,
 			t.isPersonal
 		]);
-	if (rows.length > 0) await env.DB.prepare(TRANSACTIONS_SQL).bind(JSON.stringify(rows)).run();
+	const changes = await storeRows(env, TRANSACTIONS_SQL, rows);
 	// A walk cut off by the page cap keeps the cursor: once page 1 expires the next run walks again from
 	// the newest row (stored rows are ignored), so no gap is left below the cut.
-	if (!walk.complete) return { ok: true, rows: rows.length, expiresAt: walk.expiresAt, cursor };
+	if (!walk.complete) return { ok: true, rows: rows.length, changes, expiresAt: walk.expiresAt, cursor };
 	const newest = walk.items.reduce((max, t) => Math.max(max, t.transactionId), cursor ?? 0);
-	return { ok: true, rows: rows.length, expiresAt: walk.expiresAt, cursor: newest > 0 ? newest : cursor };
+	return {
+		ok: true,
+		rows: rows.length,
+		changes,
+		expiresAt: walk.expiresAt,
+		cursor: newest > 0 ? newest : cursor
+	};
 }
 
 /** Journal pages from 1 until a page reaching the cursor (or the last page); tracked ref types newer than it. */
@@ -747,10 +777,10 @@ async function syncJournal({
 		e.contextId,
 		e.contextIdType
 	]);
-	if (rows.length > 0) await env.DB.prepare(JOURNAL_SQL).bind(JSON.stringify(rows)).run();
+	const changes = await storeRows(env, JOURNAL_SQL, rows);
 	// Cut off by the page cap: cursor kept, asked again once the pages expire (see `syncTransactions`).
-	if (!complete) return { ok: true, rows: rows.length, expiresAt, cursor };
-	return { ok: true, rows: rows.length, expiresAt, cursor: newest > 0 ? newest : cursor };
+	if (!complete) return { ok: true, rows: rows.length, changes, expiresAt, cursor };
+	return { ok: true, rows: rows.length, changes, expiresAt, cursor: newest > 0 ? newest : cursor };
 }
 
 /** Open orders plus order history; personal streams leave out orders placed for a corporation. */
@@ -784,10 +814,11 @@ async function syncOrders({ env, client, source, token }: StreamContext): Promis
 			corporation ? o.walletDivision : null,
 			o.state
 		]);
-	if (rows.length > 0) await env.DB.prepare(ORDERS_SQL).bind(JSON.stringify(rows)).run();
+	const changes = await storeRows(env, ORDERS_SQL, rows);
 	return {
 		ok: true,
 		rows: rows.length,
+		changes,
 		expiresAt: laterExpiry(open.expiresAt, history.expiresAt),
 		cursor: null
 	};
@@ -820,11 +851,16 @@ async function syncContracts({ env, client, source, token }: StreamContext): Pro
 	const known = new Set(stored.map((r) => r.contract_id));
 	const todo = finished.filter((c) => !known.has(c.contractId));
 	const batch = todo.slice(0, TRACKING_CONTRACT_ITEMS_PER_STEP);
+	let changes = 0;
 	for (const c of batch) {
 		const items = corporation
 			? await fetchCorporationContractItems(client, source.ownerId, c.contractId, token)
 			: await fetchCharacterContractItems(client, source.ownerId, c.contractId, token);
-		if (!items.ok) return failed(items, 'contract items');
+		if (!items.ok) {
+			// Contracts stored before this one are kept; a retried step stores nothing new for them.
+			if (changes > 0) await markLedgerDirty(env, source.userId);
+			return failed(items, 'contract items');
+		}
 		const itemRows = items.items.map((i: ContractItem) => [
 			source.userId,
 			c.contractId,
@@ -833,7 +869,7 @@ async function syncContracts({ env, client, source, token }: StreamContext): Pro
 			i.quantity,
 			i.isIncluded
 		]);
-		await env.DB.batch([
+		const written = await env.DB.batch([
 			env.DB.prepare(CONTRACT_SQL).bind(
 				source.userId,
 				c.contractId,
@@ -855,8 +891,9 @@ async function syncContracts({ env, client, source, token }: StreamContext): Pro
 			),
 			env.DB.prepare(CONTRACT_ITEMS_SQL).bind(JSON.stringify(itemRows))
 		]);
+		changes += written.reduce((sum, r) => sum + r.meta.changes, 0);
 	}
-	return { ok: true, rows: batch.length, expiresAt: list.expiresAt, cursor: null };
+	return { ok: true, rows: batch.length, changes, expiresAt: list.expiresAt, cursor: null };
 }
 
 const STREAM_FETCHERS: Record<string, (context: StreamContext) => Promise<StreamFetch>> = {
@@ -934,7 +971,7 @@ export async function syncTrackingStream(
 		)
 			.bind(sourceId, stream, message)
 			.run();
-		return { stream, status: 'denied', rows: 0, message };
+		return { stream, status: 'denied', rows: 0, changes: 0, message };
 	}
 	await env.DB.prepare(
 		`UPDATE tracking_streams SET status = 'ok', last_error = NULL, expires_at = ?3, cursor = ?4, last_synced_at = ?5
@@ -942,7 +979,7 @@ export async function syncTrackingStream(
 	)
 		.bind(sourceId, stream, result.expiresAt, result.cursor ?? cursor, now)
 		.run();
-	return { stream, status: 'ok', rows: result.rows, message: null };
+	return { stream, status: 'ok', rows: result.rows, changes: result.changes, message: null };
 }
 
 /**
@@ -1172,7 +1209,7 @@ export async function lookUpTrackingFacilities(
 	if (due.length === 0) return counts;
 	let token: string | null = null;
 	if (due.some((f) => !isStationId(f.facility_id))) {
-		const refreshed = await readerToken(env, await loadReader(env, source, readerId));
+		const refreshed = await readerToken(env, await loadReader(env, source, readerId), runId);
 		if (refreshed.ok) token = refreshed.accessToken;
 	}
 	const lease = now + TRACKING_RUN_STALE_MINUTES * 60_000;
@@ -1219,27 +1256,64 @@ export async function lookUpTrackingFacilities(
 	return counts;
 }
 
+/** The ledger step rebuilds at least this often (reference prices move without any stored change). */
+const LEDGER_MAX_AGE_MS = 24 * HOUR_MS;
+
 /**
- * Step `ledger`: rebuilds the user's ledger (a failure marks it dirty for the cron and is logged), then
- * ends the sync: `ok` (with the reader note) unless every fetched stream failed (`error` with the first
- * stream's message), `tracking_synced_at` = now on `ok`.
+ * Whether user `?1`'s ledger needs a rebuild at `?2` although no step stored a change: a change waits
+ * (`dirty <> 0`), it was never rebuilt (no row, `rebuilt_at` NULL), the last rebuild is older than `?3`
+ * ms, or an active/paused job ended since that rebuild (the engine's `isFinished` counts it finished
+ * once `end_date <= now`).
+ */
+const LEDGER_DUE_SQL = `
+	SELECT NOT EXISTS (
+		SELECT 1 FROM ledger_state WHERE user_id = ?1 AND dirty = 0 AND rebuilt_at > ?2 - ?3
+	) OR EXISTS (
+		SELECT 1 FROM ledger_state s JOIN tracked_jobs j ON j.user_id = s.user_id
+		WHERE s.user_id = ?1 AND j.status IN ('active', 'paused') AND j.end_date > s.rebuilt_at
+			AND j.end_date <= ?2
+	) AS due`;
+
+/** True when the ledger step rebuilds: a step stored `changes` rows, or `LEDGER_DUE_SQL` holds. */
+export async function ledgerRebuildDue(
+	env: Env,
+	userId: string,
+	changes: number,
+	now: number
+): Promise<boolean> {
+	if (changes > 0) return true;
+	const row = await env.DB.prepare(LEDGER_DUE_SQL)
+		.bind(userId, now, LEDGER_MAX_AGE_MS)
+		.first<{ due: number }>();
+	return row?.due === 1;
+}
+
+/**
+ * Step `ledger`: rebuilds the user's ledger when due (`ledgerRebuildDue`; `changes` = rows the earlier
+ * steps inserted or changed; a failure marks it dirty for the cron and is logged), then ends the sync:
+ * `ok` (with the reader note) unless every fetched stream failed (`error` with the first stream's
+ * message), `tracking_synced_at` = now on `ok`.
  */
 export async function finishTrackingSync(
 	env: Env,
 	sourceId: number,
 	runId: string,
 	outcomes: StreamOutcome[],
+	changes: number,
 	note: string | null,
 	now: number
 ): Promise<TrackingFinished> {
 	const source = await ownedSource(env, sourceId, runId);
-	let ledgerRebuilt = true;
-	try {
-		await rebuildLedger(env, source.userId, now);
-	} catch (error) {
-		console.error(`[tracking] ledger rebuild of connection ${sourceId}: ${errorMessage(error)}`);
-		await markLedgerDirty(env, source.userId);
-		ledgerRebuilt = false;
+	let ledger: TrackingFinished['ledger'] = 'skipped';
+	if (await ledgerRebuildDue(env, source.userId, changes, now)) {
+		try {
+			await rebuildLedger(env, source.userId, now);
+			ledger = 'rebuilt';
+		} catch (error) {
+			console.error(`[tracking] ledger rebuild of connection ${sourceId}: ${errorMessage(error)}`);
+			await markLedgerDirty(env, source.userId);
+			ledger = 'failed';
+		}
 	}
 	const firstFailure = outcomes.find((o) => o.status !== 'ok');
 	const allFailed = outcomes.length > 0 && outcomes.every((o) => o.status !== 'ok');
@@ -1251,18 +1325,25 @@ export async function finishTrackingSync(
 	)
 		.bind(sourceId, runId, status, allFailed ? (firstFailure?.message ?? ERROR_INTERNAL) : note, now)
 		.run();
-	return { ok: true, status, streams: outcomes, ledgerRebuilt };
+	return { ok: true, status, streams: outcomes, ledger };
 }
 
 /**
  * Reads one tracking connection from ESI: instance `tracking-<sourceId>-<ms>`. One step per due stream
  * (fresh token each); a stream that keeps failing ends `error` and the others go on; then Janice
  * appraisals (with a key, when contracts were read), corporation wallet names, the job facility
- * lookups and the ledger rebuild.
+ * lookups and the ledger rebuild when something changed (`ledgerRebuildDue`).
  * Not a `job_runs` row: the outcome lives on the connection and its streams.
  */
 export class TrackingSyncWorkflow extends WorkflowEntrypoint<Env, TrackingSyncParams> {
-	override async run(
+	override run(
+		event: Readonly<WorkflowEvent<TrackingSyncParams>>,
+		step: WorkflowStep
+	): Promise<TrackingSyncResult> {
+		return withRunTokens(event.instanceId, () => this.sync(event, step));
+	}
+
+	private async sync(
 		event: Readonly<WorkflowEvent<TrackingSyncParams>>,
 		step: WorkflowStep
 	): Promise<TrackingSyncResult> {
@@ -1279,24 +1360,34 @@ export class TrackingSyncWorkflow extends WorkflowEntrypoint<Env, TrackingSyncPa
 			const janice = Boolean(env.JANICE_API_KEY) && prepared.due.includes('contracts');
 			steps.total = 1 + prepared.due.length + (janice ? 1 : 0) + (corporation ? 1 : 0) + 2;
 			const outcomes: StreamOutcome[] = [];
+			// Rows the steps inserted or changed (step results replay, so this survives a restart).
+			let changes = 0;
 			for (const stream of prepared.due) {
 				try {
 					const outcome = await steps.do(`stream-${stream}`, STEP_CONFIG, () =>
 						syncTrackingStream(env, sourceId, runId, prepared.readerId, stream, Date.now())
 					);
-					if (outcome) outcomes.push(outcome);
+					if (outcome) {
+						outcomes.push(outcome);
+						changes += outcome.changes;
+					}
 				} catch (error) {
 					// Still in the downtime after every wait: end the sync instead of waiting again per stream.
 					if (isEsiDowntime(error)) throw error;
 					const message = syncFailureMessage(error);
 					const marked = await env.DB.prepare(STREAM_ERROR_SQL).bind(sourceId, stream, runId, message).run();
 					if (marked.meta.changes === 0) throw error;
-					outcomes.push({ stream, status: 'error', rows: 0, message });
+					// The failed attempts may have stored rows before failing: the ledger rebuilds.
+					outcomes.push({ stream, status: 'error', rows: 0, changes: 0, message });
+					changes++;
 				}
 			}
 			if (janice) {
 				try {
-					await steps.do('janice', STEP_CONFIG, () => fetchTrackingJanice(env, sourceId, runId, Date.now()));
+					const appraised = await steps.do('janice', STEP_CONFIG, () =>
+						fetchTrackingJanice(env, sourceId, runId, Date.now())
+					);
+					changes += appraised.fetched;
 				} catch (error) {
 					console.error(`[${runId}] janice: ${errorMessage(error)}`);
 				}
@@ -1312,15 +1403,16 @@ export class TrackingSyncWorkflow extends WorkflowEntrypoint<Env, TrackingSyncPa
 				}
 			}
 			try {
-				await steps.do('facilities', STEP_CONFIG, () =>
+				const looked = await steps.do('facilities', STEP_CONFIG, () =>
 					lookUpTrackingFacilities(env, sourceId, runId, prepared.readerId, Date.now())
 				);
+				changes += looked.found + looked.failed;
 			} catch (error) {
 				if (isEsiDowntime(error)) throw error;
 				console.error(`[${runId}] facilities: ${errorMessage(error)}`);
 			}
 			return await steps.do('ledger', STEP_CONFIG, () =>
-				finishTrackingSync(env, sourceId, runId, outcomes, prepared.note, Date.now())
+				finishTrackingSync(env, sourceId, runId, outcomes, changes, prepared.note, Date.now())
 			);
 		} catch (error) {
 			await failTrackingSync(env, sourceId, runId, syncFailureMessage(error));

@@ -2,17 +2,10 @@ import { WorkflowEntrypoint } from 'cloudflare:workers';
 import type { WorkflowEvent, WorkflowStep } from 'cloudflare:workers';
 import { NonRetryableError } from 'cloudflare:workflows';
 import {
-	chunkRows,
 	DATASET_KV_KEY,
 	getCoreDb,
 	httpCache,
-	manufacturingBlueprintMaterials,
-	manufacturingBlueprints,
-	materialBlueprintMaterials,
-	reactionMaterials,
-	reactions,
 	regions,
-	reprocessMaterials,
 	sdeState,
 	systems,
 	types,
@@ -21,7 +14,6 @@ import {
 import { DEFAULT_CONSTANTS, REACTORS } from '@reactions/engine';
 import { parseSdeZip, readIndustrySources } from '@reactions/sde';
 import type { IndustrySources, SdeDataset } from '@reactions/sde';
-import type { BatchItem } from 'drizzle-orm/batch';
 import { eq } from 'drizzle-orm';
 import {
 	HOBOLEAKS_MODIFIER_SOURCES_URL,
@@ -35,6 +27,7 @@ import {
 import { MARKET_PRICES_URL } from '../cron/adjusted-prices.ts';
 import { httpFetch, userAgent } from '../http.ts';
 import { failJobRun, finishJobRun, startJobRun } from '../jobs.ts';
+import { jsonInsertSql, upsertClause } from '../prices.ts';
 import { StepTracker } from '../progress.ts';
 
 export interface SdeSyncParams {
@@ -170,77 +163,150 @@ export async function writeReference(env: Env, build: number): Promise<void> {
 }
 
 /**
- * Step `write-reactions`: replace `reactions`, `reaction_materials`, `reprocess_materials`,
- * `material_blueprint_materials`, `manufacturing_blueprints` and `manufacturing_blueprint_materials` in
- * one batch.
+ * A table `writeReactions` makes equal to the build: `columns` in row order, `keys` = primary key,
+ * `match` = the columns a stored row must share with an incoming row to be kept (default `keys`;
+ * `reactions` adds its UNIQUE columns, so a slug or product moving between formulas is deleted and
+ * inserted instead of tripping the constraint in an upsert).
+ */
+interface ReplacedTable {
+	table: string;
+	columns: readonly string[];
+	keys: readonly string[];
+	match?: readonly string[];
+}
+
+const REACTIONS_TABLE: ReplacedTable = {
+	table: 'reactions',
+	columns: [
+		'blueprint_type_id',
+		'slug',
+		'formula_name',
+		'name',
+		'product_type_id',
+		'product_quantity',
+		'reactor',
+		'tier',
+		'base_time_seconds',
+		'max_runs',
+		'required_skill_level'
+	],
+	keys: ['blueprint_type_id'],
+	match: ['blueprint_type_id', 'slug', 'product_type_id']
+};
+const MATERIAL_COLUMNS = ['blueprint_type_id', 'type_id', 'quantity'] as const;
+const MATERIAL_KEYS = ['blueprint_type_id', 'type_id'] as const;
+const REACTION_MATERIALS_TABLE: ReplacedTable = {
+	table: 'reaction_materials',
+	columns: MATERIAL_COLUMNS,
+	keys: MATERIAL_KEYS
+};
+const REPROCESS_TABLE: ReplacedTable = {
+	table: 'reprocess_materials',
+	columns: ['type_id', 'material_type_id', 'quantity', 'quantity_min', 'quantity_max', 'portion_size'],
+	keys: ['type_id', 'material_type_id']
+};
+const MATERIAL_BLUEPRINT_MATERIALS_TABLE: ReplacedTable = {
+	table: 'material_blueprint_materials',
+	columns: MATERIAL_COLUMNS,
+	keys: MATERIAL_KEYS
+};
+const MANUFACTURING_BLUEPRINTS_TABLE: ReplacedTable = {
+	table: 'manufacturing_blueprints',
+	columns: ['blueprint_type_id', 'name', 'product_type_id', 'product_name', 'product_filters_json'],
+	keys: ['blueprint_type_id']
+};
+const MANUFACTURING_MATERIALS_TABLE: ReplacedTable = {
+	table: 'manufacturing_blueprint_materials',
+	columns: MATERIAL_COLUMNS,
+	keys: MATERIAL_KEYS
+};
+
+/** Rows per upsert statement (each statement carries its rows as one JSON parameter). */
+const SDE_ROWS_PER_STATEMENT = 500;
+
+/**
+ * Statements making `table` equal to `rows` (arrays in `columns` order): stored rows without an
+ * incoming row sharing their `match` columns are deleted (both sides rendered with `json_array`, so
+ * they compare equal exactly when the values do), then the rows are upserted, a stored row rewritten
+ * only when a value differs. An unchanged build writes nothing.
+ */
+function replaceTable(
+	db: D1Database,
+	spec: ReplacedTable,
+	rows: readonly unknown[][]
+): D1PreparedStatement[] {
+	const { table, columns, keys } = spec;
+	const match = spec.match ?? keys;
+	const at = match.map((c) => columns.indexOf(c));
+	const incoming = match.map((_, i) => `json_extract(value, '$[${i}]')`).join(', ');
+	const statements = [
+		db
+			.prepare(
+				`DELETE FROM ${table} WHERE json_array(${match.join(', ')}) NOT IN (
+					SELECT json_array(${incoming}) FROM json_each(?1))`
+			)
+			.bind(JSON.stringify(rows.map((row) => at.map((i) => row[i]))))
+	];
+	const upsert = jsonInsertSql(table, columns, upsertClause(table, columns, keys));
+	for (let i = 0; i < rows.length; i += SDE_ROWS_PER_STATEMENT)
+		statements.push(db.prepare(upsert).bind(JSON.stringify(rows.slice(i, i + SDE_ROWS_PER_STATEMENT))));
+	return statements;
+}
+
+/**
+ * Step `write-reactions`: makes `reactions`, `reaction_materials`, `reprocess_materials`,
+ * `material_blueprint_materials`, `manufacturing_blueprints` and `manufacturing_blueprint_materials`
+ * equal to the build in one batch (`replaceTable`: only new, changed and removed rows are written).
  */
 export async function writeReactions(env: Env, build: number): Promise<void> {
 	const { dataset, manufacturingBlueprints: consuming } = await readArchivedSde(env, build);
-	const db = getCoreDb(env.DB);
-	const reactionRows = dataset.reactions.map((r) => ({
-		blueprintTypeId: r.blueprintTypeId,
-		slug: r.slug,
-		formulaName: r.formulaName,
-		name: r.name,
-		productTypeId: r.product.typeId,
-		productQuantity: r.product.quantity,
-		reactor: r.reactor,
-		tier: r.tier,
-		baseTimeSeconds: r.baseTimeSeconds,
-		maxRuns: r.maxRuns,
-		requiredSkillLevel: r.requiredSkillLevel
-	}));
+	const reactionRows = dataset.reactions.map((r) => [
+		r.blueprintTypeId,
+		r.slug,
+		r.formulaName,
+		r.name,
+		r.product.typeId,
+		r.product.quantity,
+		r.reactor,
+		r.tier,
+		r.baseTimeSeconds,
+		r.maxRuns,
+		r.requiredSkillLevel
+	]);
 	const materialRows = dataset.reactions.flatMap((r) =>
-		r.materials.map((m) => ({ blueprintTypeId: r.blueprintTypeId, typeId: m.typeId, quantity: m.quantity }))
+		r.materials.map((m) => [r.blueprintTypeId, m.typeId, m.quantity])
 	);
 	const reprocessRows = Object.values(dataset.reprocess).flatMap((entry) =>
-		entry.materials.map((m) => ({
-			typeId: entry.typeId,
-			materialTypeId: m.typeId,
-			quantity: m.quantity,
-			quantityMin: m.quantityMin,
-			quantityMax: m.quantityMax,
-			portionSize: entry.portionSize
-		}))
+		entry.materials.map((m) => [
+			entry.typeId,
+			m.typeId,
+			m.quantity,
+			m.quantityMin,
+			m.quantityMax,
+			entry.portionSize
+		])
 	);
 	const blueprintMaterialRows = (dataset.manufacturing ?? [])
 		.filter((bp) => bp.makes === 'material')
-		.flatMap((bp) =>
-			bp.materials.map((m) => ({
-				blueprintTypeId: bp.blueprintTypeId,
-				typeId: m.typeId,
-				quantity: m.quantity
-			}))
-		);
-	const consumingRows = consuming.map((bp) => ({
-		blueprintTypeId: bp.blueprintTypeId,
-		name: bp.name,
-		productTypeId: bp.productTypeId,
-		productName: bp.productName,
-		productFiltersJson: JSON.stringify(bp.productFilters)
-	}));
+		.flatMap((bp) => bp.materials.map((m) => [bp.blueprintTypeId, m.typeId, m.quantity]));
+	const consumingRows = consuming.map((bp) => [
+		bp.blueprintTypeId,
+		bp.name,
+		bp.productTypeId,
+		bp.productName,
+		JSON.stringify(bp.productFilters)
+	]);
 	const consumingMaterialRows = consuming.flatMap((bp) =>
-		bp.materials.map((m) => ({ blueprintTypeId: bp.blueprintTypeId, typeId: m.typeId, quantity: m.quantity }))
+		bp.materials.map((m) => [bp.blueprintTypeId, m.typeId, m.quantity])
 	);
-	const statements: BatchItem<'sqlite'>[] = [
-		db.delete(reactionMaterials),
-		db.delete(reprocessMaterials),
-		db.delete(materialBlueprintMaterials),
-		db.delete(manufacturingBlueprintMaterials),
-		db.delete(manufacturingBlueprints),
-		db.delete(reactions),
-		...chunkRows(reactionRows, 11).map((chunk) => db.insert(reactions).values(chunk)),
-		...chunkRows(materialRows, 3).map((chunk) => db.insert(reactionMaterials).values(chunk)),
-		...chunkRows(reprocessRows, 6).map((chunk) => db.insert(reprocessMaterials).values(chunk)),
-		...chunkRows(blueprintMaterialRows, 3).map((chunk) =>
-			db.insert(materialBlueprintMaterials).values(chunk)
-		),
-		...chunkRows(consumingRows, 5).map((chunk) => db.insert(manufacturingBlueprints).values(chunk)),
-		...chunkRows(consumingMaterialRows, 3).map((chunk) =>
-			db.insert(manufacturingBlueprintMaterials).values(chunk)
-		)
-	];
-	await db.batch(statements as [BatchItem<'sqlite'>, ...BatchItem<'sqlite'>[]]);
+	await env.DB.batch([
+		...replaceTable(env.DB, REACTIONS_TABLE, reactionRows),
+		...replaceTable(env.DB, REACTION_MATERIALS_TABLE, materialRows),
+		...replaceTable(env.DB, REPROCESS_TABLE, reprocessRows),
+		...replaceTable(env.DB, MATERIAL_BLUEPRINT_MATERIALS_TABLE, blueprintMaterialRows),
+		...replaceTable(env.DB, MANUFACTURING_BLUEPRINTS_TABLE, consumingRows),
+		...replaceTable(env.DB, MANUFACTURING_MATERIALS_TABLE, consumingMaterialRows)
+	]);
 }
 
 /** Step `publish`: KV `dataset:v1`, `sde_state`, `job_runs` → ok. */

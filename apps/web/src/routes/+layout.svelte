@@ -8,6 +8,10 @@
 
 	// Runs after hydration and whenever the session changes (login, logout, account switch).
 	$effect(() => syncAnalyticsIdentity(data.analytics));
+	// The app is running: from now on SvelteKit itself reloads a page whose build files are gone (app.html).
+	$effect(() => {
+		document.documentElement.setAttribute('data-app-started', '');
+	});
 </script>
 
 <!-- Centered Tailwind `container` (1280 px ≥ xl, 1536 px ≥ 2xl) inside 8/32 px gutters, as on d-scan.space. -->

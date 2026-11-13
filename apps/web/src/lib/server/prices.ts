@@ -3,14 +3,19 @@ import {
 	esiMarketHistory,
 	getHistoryDb,
 	priceDaily,
-	priceSnapshots,
 	type MarketSnapshot
 } from '@reactions/db';
 import type { Dataset, HubPrice, PriceBook } from '@reactions/engine';
-import { and, eq, gte, inArray, lte, max } from 'drizzle-orm';
+import { and, eq, gte, inArray, lte, sql } from 'drizzle-orm';
+import type { SQLiteColumn } from 'drizzle-orm/sqlite-core';
 import type { HubInfo } from './hubs.ts';
 
-const SNAPSHOT_LOOKBACK_MS = 36 * 3_600_000;
+/**
+ * How far back a `price_snapshots` row still prices its (hub, type) pair. The updater stores a pair at
+ * the first refresh of each UTC day and afterwards only when its prices change, so a pair's price at
+ * any time is its latest row at or before it within this window.
+ */
+export const SNAPSHOT_LOOKBACK_MS = 36 * 3_600_000;
 const DAY_MS = 86_400_000;
 
 export const isoDate = (ms: number) => new Date(ms).toISOString().slice(0, 10);
@@ -89,13 +94,28 @@ export function buildPriceBook(
 	};
 }
 
-async function adjustedFor(env: Pick<Env, 'HISTORY_DB'>, date: string, fallback: Record<number, number>) {
+/**
+ * Adjusted prices of `date` for `typeIds`. The type list lets SQLite use the table's key
+ * (`type_id`, `date`); by date alone it reads the whole table.
+ */
+async function adjustedFor(
+	env: Pick<Env, 'HISTORY_DB'>,
+	date: string,
+	typeIds: readonly number[],
+	fallback: Record<number, number>
+) {
 	const rows = await getHistoryDb(env.HISTORY_DB)
 		.select({ typeId: adjustedPriceDaily.typeId, price: adjustedPriceDaily.adjustedPrice })
 		.from(adjustedPriceDaily)
-		.where(eq(adjustedPriceDaily.date, date));
+		.where(and(inJson(adjustedPriceDaily.typeId, typeIds), eq(adjustedPriceDaily.date, date)));
 	return rows.length > 0 ? Object.fromEntries(rows.map((r) => [r.typeId, r.price])) : fallback;
 }
+
+const datasetTypeIds = (dataset: Dataset) => Object.keys(dataset.types).map(Number);
+
+/** `column IN (<ids>)` with the ids as one JSON parameter (any number of them). */
+const inJson = (column: SQLiteColumn, ids: readonly number[]) =>
+	sql`${column} IN (SELECT value FROM json_each(${JSON.stringify(ids)}))`;
 
 /** Hub prices of one day (`PriceBook.hubs`) and which of them came from the regional ESI average. */
 export interface DailyHubPrices {
@@ -132,7 +152,16 @@ export async function getDailyHubPrices(
 						sell: priceDaily.sellAvg
 					})
 					.from(priceDaily)
-					.where(and(gte(priceDaily.date, from), lte(priceDaily.date, to), inArray(priceDaily.hubId, hubIds)))
+					.where(
+						and(
+							inArray(priceDaily.hubId, hubIds),
+							// Like the ESI query: the type list lets SQLite use the key (hub, type, date) for the
+							// date range; without it every day of the hubs is read.
+							inJson(priceDaily.typeId, datasetTypeIds(dataset)),
+							gte(priceDaily.date, from),
+							lte(priceDaily.date, to)
+						)
+					)
 			: [],
 		regionIds.length
 			? db
@@ -145,9 +174,12 @@ export async function getDailyHubPrices(
 					.from(esiMarketHistory)
 					.where(
 						and(
+							inArray(esiMarketHistory.regionId, regionIds),
+							// The type list lets SQLite use the key (region, type, date) for the date range;
+							// without it every row of the regions is read.
+							inJson(esiMarketHistory.typeId, datasetTypeIds(dataset)),
 							gte(esiMarketHistory.date, shiftDate(from, -REGIONAL_CARRY_DAYS)),
-							lte(esiMarketHistory.date, to),
-							inArray(esiMarketHistory.regionId, regionIds)
+							lte(esiMarketHistory.date, to)
 						)
 					)
 			: []
@@ -161,7 +193,7 @@ export async function getDailyHubPrices(
 	for (const r of daily) (bookOf(r.date)[r.hubId] ??= {})[r.typeId] = { buy: r.buy, sell: r.sell };
 	for (const r of esi) if (r.date >= from) bookOf(r.date);
 	const esiByDay = regionalAveragesByDate(esi, [...books.keys()]);
-	const typeIds = Object.keys(dataset.types).map(Number);
+	const typeIds = datasetTypeIds(dataset);
 	const result = new Map<string, DailyHubPrices>();
 	for (const [date, book] of books) {
 		const filled = new Map<string, Set<number>>();
@@ -196,7 +228,7 @@ export async function getDailyPriceBook(
 ): Promise<PriceBook> {
 	const [days, adjusted] = await Promise.all([
 		getDailyHubPrices(env, date, date, hubs, dataset),
-		adjustedFor(env, date, fallbackAdjusted)
+		adjustedFor(env, date, datasetTypeIds(dataset), fallbackAdjusted)
 	]);
 	const day = days.get(date);
 	const book: PriceBook['hubs'] = day?.hubs ?? {};
@@ -204,44 +236,47 @@ export async function getDailyPriceBook(
 	return { asOf: date, approximate: day?.approximate ?? false, hubs: book, adjusted };
 }
 
-/** Prices of the latest refresh snapshot at or before `ts` (90-day table), else the daily book of that day. */
+/**
+ * Each (hub, type) pair's latest `price_snapshots` row at or before `?4` and not before `?3`. CROSS JOIN
+ * fixes the join order so every pair is two key lookups (its newest time in the window, then the row).
+ */
+const AS_OF_SQL = `SELECT s.hub_id AS hubId, s.type_id AS typeId, s.snapshot_at AS at, s.buy_max AS buy, s.sell_min AS sell
+	FROM json_each(?1) h CROSS JOIN json_each(?2) t CROSS JOIN price_snapshots s
+	WHERE s.hub_id = h.value AND s.type_id = t.value AND s.snapshot_at = (
+		SELECT max(m.snapshot_at) FROM price_snapshots m
+		WHERE m.hub_id = h.value AND m.type_id = t.value AND m.snapshot_at >= ?3 AND m.snapshot_at <= ?4)`;
+
+/**
+ * Refresh prices of `typeIds` at `hubs` as of `ts`: each pair's latest snapshot row at or before `ts`
+ * (within {@link SNAPSHOT_LOOKBACK_MS}; 90-day table), dated by the newest row found. Without any row,
+ * the daily book of that day.
+ */
 export async function getPriceBookNear(
 	env: Pick<Env, 'HISTORY_DB'>,
 	ts: number,
 	hubs: HubInfo[],
+	typeIds: readonly number[],
 	dataset: Dataset,
 	fallbackAdjusted: Record<number, number>
 ): Promise<PriceBook> {
-	const db = getHistoryDb(env.HISTORY_DB);
 	const hubIds = hubs.map((h) => h.hubId);
-	const [latest] = hubIds.length
-		? await db
-				.select({ at: max(priceSnapshots.snapshotAt) })
-				.from(priceSnapshots)
-				.where(
-					and(
-						lte(priceSnapshots.snapshotAt, ts),
-						gte(priceSnapshots.snapshotAt, ts - SNAPSHOT_LOOKBACK_MS),
-						inArray(priceSnapshots.hubId, hubIds)
-					)
-				)
-		: [];
-	if (!latest?.at) return getDailyPriceBook(env, isoDate(ts), hubs, dataset, fallbackAdjusted);
-	const rows = await db
-		.select({
-			hubId: priceSnapshots.hubId,
-			typeId: priceSnapshots.typeId,
-			buy: priceSnapshots.buyMax,
-			sell: priceSnapshots.sellMin
-		})
-		.from(priceSnapshots)
-		.where(and(eq(priceSnapshots.snapshotAt, latest.at), inArray(priceSnapshots.hubId, hubIds)));
+	const { results: rows } =
+		hubIds.length && typeIds.length
+			? await env.HISTORY_DB.prepare(AS_OF_SQL)
+					.bind(JSON.stringify(hubIds), JSON.stringify(typeIds), ts - SNAPSHOT_LOOKBACK_MS, ts)
+					.all<{ hubId: string; typeId: number; at: number; buy: number | null; sell: number | null }>()
+			: { results: [] };
+	if (rows.length === 0) return getDailyPriceBook(env, isoDate(ts), hubs, dataset, fallbackAdjusted);
 	const book: PriceBook['hubs'] = {};
-	for (const r of rows) (book[r.hubId] ??= {})[r.typeId] = { buy: r.buy, sell: r.sell };
+	let asOf = 0;
+	for (const r of rows) {
+		(book[r.hubId] ??= {})[r.typeId] = { buy: r.buy, sell: r.sell };
+		if (r.at > asOf) asOf = r.at;
+	}
 	return {
-		asOf: new Date(latest.at).toISOString(),
+		asOf: new Date(asOf).toISOString(),
 		approximate: false,
 		hubs: book,
-		adjusted: await adjustedFor(env, isoDate(latest.at), fallbackAdjusted)
+		adjusted: await adjustedFor(env, isoDate(asOf), typeIds, fallbackAdjusted)
 	};
 }

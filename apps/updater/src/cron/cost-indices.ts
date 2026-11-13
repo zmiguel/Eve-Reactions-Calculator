@@ -36,7 +36,8 @@ export async function refreshCostIndices(env: Env, now: number, manual = false):
 					costIndices,
 					rows,
 					[costIndices.systemId],
-					[costIndices.reaction, costIndices.manufacturing, costIndices.updatedAt]
+					[costIndices.reaction, costIndices.manufacturing, costIndices.updatedAt],
+					[costIndices.updatedAt]
 				);
 				await publishMarketSnapshot(env, now);
 				await finishJobRun(env, runId, 'ok', { systems: rows.length });

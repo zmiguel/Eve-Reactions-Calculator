@@ -81,25 +81,45 @@ const STATS_COLUMNS = [
 const STATS_SQL = jsonInsertSql(
 	'market_stats',
 	STATS_COLUMNS,
-	upsertClause(STATS_COLUMNS, ['region_id', 'type_id'])
+	upsertClause('market_stats', STATS_COLUMNS, ['region_id', 'type_id'], ['updated_at'])
 );
+
+/**
+ * Types of region `?1` with their latest history day: a loose index scan over the primary key (one
+ * probe for the next `type_id`, one for its `MAX(date)`) instead of a scan of the region's rows.
+ */
+const LAST_DATES_CTE = `
+	types(type_id) AS (
+		SELECT MIN(type_id) FROM esi_market_history WHERE region_id = ?1
+		UNION ALL
+		SELECT (SELECT MIN(h.type_id) FROM esi_market_history h WHERE h.region_id = ?1 AND h.type_id > t.type_id)
+		FROM types t WHERE t.type_id IS NOT NULL
+	),
+	last AS MATERIALIZED (
+		SELECT t.type_id, (
+			SELECT MAX(h.date) FROM esi_market_history h WHERE h.region_id = ?1 AND h.type_id = t.type_id
+		) AS last_date
+		FROM types t WHERE t.type_id IS NOT NULL
+	)`;
+
+/** `typeId` and `lastDate` of every type of region `?1` with stored history. */
+const LAST_DATES_QUERY = `WITH RECURSIVE ${LAST_DATES_CTE}
+	SELECT type_id AS typeId, last_date AS lastDate FROM last`;
 
 /**
  * Per type of a region: days counted back from its latest history day (`last_date` included).
  * Days without trades are absent from ESI history, so the 30- and 7-day volumes are divided by 30
  * and 7, not by the number of rows; prices are the mean of the daily averages present in the window.
+ * `CROSS JOIN` keeps the type list as the outer loop, so only each type's last 30 days are read.
  */
-const STATS_QUERY = `
-	WITH last AS (
-		SELECT type_id, MAX(date) AS last_date FROM esi_market_history WHERE region_id = ?1 GROUP BY type_id
-	)
+const STATS_QUERY = `WITH RECURSIVE ${LAST_DATES_CTE}
 	SELECT h.type_id AS typeId, l.last_date AS lastDate,
 		SUM(h.volume) / 30.0 AS volume30,
 		TOTAL(CASE WHEN h.date > date(l.last_date, '-7 days') THEN h.volume END) / 7.0 AS volume7,
 		AVG(CASE WHEN h.date > date(l.last_date, '-5 days') THEN h.average END) AS price5,
 		AVG(h.average) AS price30
-	FROM esi_market_history h JOIN last l ON l.type_id = h.type_id
-	WHERE h.region_id = ?1 AND h.date > date(l.last_date, '-30 days')
+	FROM last l CROSS JOIN esi_market_history h
+	WHERE h.region_id = ?1 AND h.type_id = l.type_id AND h.date > date(l.last_date, '-30 days')
 	GROUP BY h.type_id, l.last_date`;
 
 /** Step `plan`: distinct regions of the enabled hubs. */
@@ -166,9 +186,7 @@ export async function refreshRegionHistory(
 	typeIds?: readonly number[]
 ): Promise<HistoryCounts> {
 	const types = typeIds ?? (await historyTypeIds(env));
-	const stored = await env.HISTORY_DB.prepare(
-		'SELECT type_id AS typeId, MAX(date) AS lastDate FROM esi_market_history WHERE region_id = ? GROUP BY type_id'
-	)
+	const stored = await env.HISTORY_DB.prepare(LAST_DATES_QUERY)
 		.bind(regionId)
 		.all<{ typeId: number; lastDate: string }>();
 	const lastDate = new Map(stored.results.map((r) => [r.typeId, r.lastDate]));
@@ -215,33 +233,144 @@ export async function refreshRegionHistory(
 	return { regionId, types: types.length, inserted, failed: failedTypeIds.length, failedTypeIds, stats };
 }
 
+const PRICE_DAILY_COLUMNS = [
+	'date',
+	'hub_id',
+	'type_id',
+	'buy_avg',
+	'sell_avg',
+	'buy_close',
+	'sell_close',
+	'buy_low',
+	'buy_high',
+	'sell_low',
+	'sell_high',
+	'samples'
+];
+const PRICE_DAILY_SQL = jsonInsertSql(
+	'price_daily',
+	PRICE_DAILY_COLUMNS,
+	upsertClause('price_daily', PRICE_DAILY_COLUMNS, ['hub_id', 'type_id', 'date'])
+);
+/** `price_daily` rows per statement (one JSON parameter each). */
+const PRICE_DAILY_CHUNK = 2000;
+
+/** Weighted average, low and high of one price column of a pair's day. */
+class Side {
+	sum = 0;
+	weight = 0;
+	low: number | null = null;
+	high: number | null = null;
+
+	add(value: number | null, weight: number): void {
+		if (value === null) return;
+		this.sum += value * weight;
+		this.weight += weight;
+		if (this.low === null || value < this.low) this.low = value;
+		if (this.high === null || value > this.high) this.high = value;
+	}
+
+	get avg(): number | null {
+		return this.weight > 0 ? this.sum / this.weight : null;
+	}
+}
+
 /**
  * Step `rollup-prices`: `price_daily` of `day` from its `price_snapshots` (per hub/type: average,
  * low, high and close = value of the latest snapshot of the day, number of samples).
+ * `price_snapshots` stores only changed pairs after the first refresh of a day, so each stored row
+ * stands for every refresh of the day (distinct `snapshot_at` over all hubs) from its own time until
+ * the pair's next row of the day, or until the day's last refresh: averages and samples weight rows by
+ * that count, which gives the values of one row per pair and refresh. The day's rows are read with one
+ * index range scan (no `ORDER BY`, window or `GROUP BY`: D1 bills their temporary b-trees as rows
+ * read) and weighted here. Guarded upsert: a re-run writes nothing. Returns the number of pairs.
  */
 export async function rollupPrices(env: Env, day: string): Promise<number> {
 	const from = dayStart(day);
-	const result = await env.HISTORY_DB.prepare(
-		`INSERT OR REPLACE INTO price_daily (date, hub_id, type_id, buy_avg, sell_avg, buy_close, sell_close,
-			buy_low, buy_high, sell_low, sell_high, samples)
-		WITH day AS (
-			SELECT * FROM price_snapshots WHERE snapshot_at >= ?2 AND snapshot_at < ?3
-		), last AS (
-			SELECT hub_id, type_id, MAX(snapshot_at) AS snapshot_at FROM day GROUP BY hub_id, type_id
-		)
-		SELECT ?1, d.hub_id, d.type_id, AVG(d.buy_max), AVG(d.sell_min), c.buy_max, c.sell_min,
-			MIN(d.buy_max), MAX(d.buy_max), MIN(d.sell_min), MAX(d.sell_min), COUNT(*)
-		FROM day d
-		JOIN last l ON l.hub_id = d.hub_id AND l.type_id = d.type_id
-		JOIN day c ON c.hub_id = l.hub_id AND c.type_id = l.type_id AND c.snapshot_at = l.snapshot_at
-		GROUP BY d.hub_id, d.type_id`
+	const { results } = await env.HISTORY_DB.prepare(
+		`SELECT hub_id AS hubId, type_id AS typeId, snapshot_at AS at, buy_max AS buy, sell_min AS sell
+		FROM price_snapshots WHERE snapshot_at >= ?1 AND snapshot_at < ?2`
 	)
-		.bind(day, from, from + DAY_MS)
-		.run();
-	return result.meta.changes;
+		.bind(from, from + DAY_MS)
+		.all<{ hubId: string; typeId: number; at: number; buy: number | null; sell: number | null }>();
+	const refresh = new Map(
+		[...new Set(results.map((r) => r.at))].sort((a, b) => a - b).map((at, i) => [at, i])
+	);
+	const pairs = new Map<string, typeof results>();
+	for (const row of results) {
+		const key = `${row.hubId}\u0000${row.typeId}`;
+		const list = pairs.get(key);
+		if (list) list.push(row);
+		else pairs.set(key, [row]);
+	}
+	const rows: unknown[][] = [];
+	for (const list of pairs.values()) {
+		list.sort((a, b) => a.at - b.at);
+		const buy = new Side();
+		const sell = new Side();
+		let samples = 0;
+		for (const [i, row] of list.entries()) {
+			const next = list[i + 1];
+			const weight = (next ? refresh.get(next.at)! : refresh.size) - refresh.get(row.at)!;
+			buy.add(row.buy, weight);
+			sell.add(row.sell, weight);
+			samples += weight;
+		}
+		const close = list.at(-1)!;
+		rows.push([
+			day,
+			close.hubId,
+			close.typeId,
+			buy.avg,
+			sell.avg,
+			close.buy,
+			close.sell,
+			buy.low,
+			buy.high,
+			sell.low,
+			sell.high,
+			samples
+		]);
+	}
+	for (let i = 0; i < rows.length; i += PRICE_DAILY_CHUNK)
+		await env.HISTORY_DB.prepare(PRICE_DAILY_SQL)
+			.bind(JSON.stringify(rows.slice(i, i + PRICE_DAILY_CHUNK)))
+			.run();
+	return rows.length;
 }
 
-/** Step `rollup-indices`: `date`'s `adjusted_price_daily` and `cost_index_daily` from the latest tables. */
+const ADJUSTED_DAILY_COLUMNS = ['date', 'type_id', 'adjusted_price'];
+const ADJUSTED_DAILY_SQL = jsonInsertSql(
+	'adjusted_price_daily',
+	ADJUSTED_DAILY_COLUMNS,
+	upsertClause('adjusted_price_daily', ADJUSTED_DAILY_COLUMNS, ['type_id', 'date'])
+);
+
+/**
+ * `cost_index_daily` rows `?1` (`[system_id, reaction]`) at date `?2`, skipping systems whose latest
+ * row before `?2` holds the same value; a row already stored at `?2` is updated only when it changed.
+ * Both lookups use the primary key.
+ */
+const COST_INDEX_DAILY_SQL = `WITH j AS (
+		SELECT json_extract(value, '$[0]') AS system_id, json_extract(value, '$[1]') AS reaction
+		FROM json_each(?1)
+	)
+	INSERT INTO cost_index_daily (date, system_id, reaction)
+	SELECT ?2, j.system_id, j.reaction FROM j
+	WHERE NOT EXISTS (
+		SELECT 1 FROM cost_index_daily c
+		WHERE c.system_id = j.system_id AND c.date < ?2 AND c.reaction = j.reaction
+			AND c.date = (
+				SELECT MAX(d.date) FROM cost_index_daily d WHERE d.system_id = j.system_id AND d.date <= ?2
+			)
+	)
+	${upsertClause('cost_index_daily', ['date', 'system_id', 'reaction'], ['system_id', 'date'])}`;
+
+/**
+ * Step `rollup-indices`: `date`'s `adjusted_price_daily` and `cost_index_daily` from the latest tables.
+ * `cost_index_daily` is change-only: a system gets a row only when its value differs from its latest
+ * row at or before `date` (that row is its value as of `date`). Returns the number of systems and types.
+ */
 export async function rollupIndices(
 	env: Env,
 	date: string
@@ -250,21 +379,14 @@ export async function rollupIndices(
 		env.DB.prepare('SELECT type_id AS id, adjusted_price AS value FROM adjusted_prices'),
 		env.DB.prepare('SELECT system_id AS id, reaction AS value FROM cost_indices')
 	]);
-	const write = async (
-		table: string,
-		idColumn: string,
-		valueColumn: string,
-		rows: { id: number; value: number }[]
-	) => {
-		if (rows.length === 0) return;
-		const columns = ['date', idColumn, valueColumn];
-		const sql = jsonInsertSql(table, columns, upsertClause(columns, [idColumn, 'date']));
-		await env.HISTORY_DB.prepare(sql)
-			.bind(JSON.stringify(rows.map((r) => [date, r.id, r.value])))
+	if (adjusted!.results.length > 0)
+		await env.HISTORY_DB.prepare(ADJUSTED_DAILY_SQL)
+			.bind(JSON.stringify(adjusted!.results.map((r) => [date, r.id, r.value])))
 			.run();
-	};
-	await write('adjusted_price_daily', 'type_id', 'adjusted_price', adjusted!.results);
-	await write('cost_index_daily', 'system_id', 'reaction', costs!.results);
+	if (costs!.results.length > 0)
+		await env.HISTORY_DB.prepare(COST_INDEX_DAILY_SQL)
+			.bind(JSON.stringify(costs!.results.map((r) => [r.id, r.value])), date)
+			.run();
 	return { adjusted: adjusted!.results.length, costIndices: costs!.results.length };
 }
 
@@ -297,7 +419,9 @@ export async function verifyArchive(
  * Step `retention`: deletes the `price_snapshots` of every day older than 90 days that is rolled up
  * (`price_daily` rows) and fully archived in R2: `archive_manifest` counts at least one object per
  * refresh of that day (each refresh writes one archive in its final step, so a refresh that failed
- * before it has no copy and keeps the day). Deletes in 6-hour windows.
+ * before it has no copy and keeps the day). Change-only snapshots keep this rule: every refresh stores
+ * at least the first-of-day or the changed rows, so the distinct `snapshot_at` of a day are its
+ * refreshes. Deletes in 6-hour windows.
  */
 export async function applyRetention(env: Env, date: string): Promise<{ dates: number; deleted: number }> {
 	const oldest = await env.HISTORY_DB.prepare('SELECT MIN(snapshot_at) AS at FROM price_snapshots').first<{

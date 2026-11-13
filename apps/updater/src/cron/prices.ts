@@ -1,9 +1,17 @@
 import { getCoreDb, jobRuns } from '@reactions/db';
-import { and, desc, eq, lte } from 'drizzle-orm';
+import { and, desc, eq, gte, lte } from 'drizzle-orm';
 import { PRICE_REFRESH_MINUTES, PRICE_RUN_STALE_MINUTES } from '../config.ts';
+import { DAY_MS } from '../dates.ts';
 import { esiPausedMs } from '../esi-downtime.ts';
 import { errorMessage, failJobRun, finishJobRun } from '../jobs.ts';
 import { startWorkflowRun } from '../workflows/instances.ts';
+
+/**
+ * How far back `running` prices rows are looked for. Every cron tick (10 minutes) settles each such row
+ * once it is `PRICE_RUN_STALE_MINUTES` of active time old (ESI's daily downtime of under an hour does
+ * not count), so a row older than this was already settled unless the cron did not run for 3 days.
+ */
+const RUNNING_LOOKBACK_MS = 3 * DAY_MS;
 
 /** Workflow states in which an instance can still finish and record its own result. */
 const LIVE_STATES = new Set(['queued', 'running', 'paused', 'waiting', 'waitingForPause']);
@@ -29,7 +37,13 @@ async function settleRunningRuns(env: Env, now: number): Promise<string | null> 
 	const rows = await db
 		.select({ runId: jobRuns.runId, startedAt: jobRuns.startedAt })
 		.from(jobRuns)
-		.where(and(eq(jobRuns.kind, 'prices'), eq(jobRuns.status, 'running')))
+		.where(
+			and(
+				eq(jobRuns.kind, 'prices'),
+				gte(jobRuns.startedAt, now - RUNNING_LOOKBACK_MS),
+				eq(jobRuns.status, 'running')
+			)
+		)
 		.orderBy(desc(jobRuns.startedAt))
 		.all();
 	let inProgress: string | null = null;
@@ -83,6 +97,7 @@ export async function startPriceRefresh(env: Env, now: number): Promise<string> 
 		.from(jobRuns)
 		.where(and(eq(jobRuns.kind, 'prices'), lte(jobRuns.startedAt, now)))
 		.orderBy(desc(jobRuns.startedAt))
+		.limit(1)
 		.get();
 	// A failed run does not hold back the next one for a full interval; only completed runs do.
 	if (latest && latest.status !== 'failed' && latest.startedAt > now - interval)

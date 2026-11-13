@@ -9,6 +9,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import modifierSources from '../../../packages/sde/test/fixtures/hoboleaks/industrymodifiersources.json' with { type: 'json' };
 import targetFilters from '../../../packages/sde/test/fixtures/hoboleaks/industrytargetfilters.json' with { type: 'json' };
 import { MARKET_PRICES_URL } from '../src/cron/adjusted-prices.ts';
+import { writeReactions } from '../src/workflows/sde-sync.ts';
 import { FIXTURE_BUILD, fixtureZip, installFetch, json, resetState } from './helpers.ts';
 
 const zipUrl = (build: number) =>
@@ -238,5 +239,66 @@ describe('SdeSyncWorkflow', () => {
 			.first<{ status: string; detail_json: string }>();
 		expect(job?.status).toBe('failed');
 		expect(JSON.parse(job!.detail_json).error).toContain('Hoboleaks download failed: HTTP 503');
+	});
+});
+
+describe('writeReactions', () => {
+	beforeEach(resetState);
+	afterEach(() => vi.unstubAllGlobals());
+
+	it('rewrites nothing for an unchanged build and only the changed rows otherwise', async () => {
+		serveSde(fixtureZip());
+		const id = `sde-${FIXTURE_BUILD}`;
+		await using instance = await introspectWorkflowInstance(env.SDE_SYNC, id);
+		await instance.modify(async (m) => m.disableRetryDelays());
+		await env.SDE_SYNC.create({ id, params: { build: FIXTURE_BUILD } });
+		await instance.waitForStatus('complete');
+		const metas: D1Meta[] = [];
+		const metered = Object.create(env, {
+			DB: {
+				value: new Proxy(env.DB, {
+					get(target, key) {
+						if (key !== 'batch') return Reflect.get(target, key).bind(target);
+						return async (statements: D1PreparedStatement[]) => {
+							const results = await target.batch(statements);
+							metas.push(...results.map((r) => r.meta));
+							return results;
+						};
+					}
+				})
+			}
+		}) as Env;
+		const written = () => metas.reduce((sum, m) => sum + m.rows_written, 0);
+		const tables = [
+			'reactions',
+			'reaction_materials',
+			'reprocess_materials',
+			'material_blueprint_materials',
+			'manufacturing_blueprints',
+			'manufacturing_blueprint_materials'
+		];
+		const snapshot = async () =>
+			Promise.all(
+				tables.map(async (t) => (await env.DB.prepare(`SELECT * FROM ${t} ORDER BY 1, 2`).all()).results)
+			);
+		const before = await snapshot();
+
+		await writeReactions(metered, FIXTURE_BUILD);
+		expect(written()).toBe(0);
+		expect(await snapshot()).toEqual(before);
+
+		// A changed quantity, a stray row and a slug held by another formula are put right.
+		await env.DB.batch([
+			env.DB.prepare(
+				'UPDATE reaction_materials SET quantity = quantity + 1 WHERE blueprint_type_id = 46166 AND type_id = 16643'
+			),
+			env.DB.prepare('INSERT INTO manufacturing_blueprint_materials VALUES (1, 34, 1)'),
+			env.DB.prepare("UPDATE reactions SET slug = 'moved' WHERE blueprint_type_id = 46166")
+		]);
+		metas.length = 0;
+		await writeReactions(metered, FIXTURE_BUILD);
+		expect(await snapshot()).toEqual(before);
+		expect(written()).toBeGreaterThan(0);
+		expect(written()).toBeLessThan(20);
 	});
 });

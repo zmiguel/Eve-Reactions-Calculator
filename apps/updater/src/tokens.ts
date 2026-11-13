@@ -31,6 +31,27 @@ export type AccessTokenResult =
 	 */
 	| { ok: false; invalid: boolean; message: string };
 
+/** A cached access token is reused only while it stays valid this much longer. */
+const TOKEN_REUSE_MARGIN_MS = 60_000;
+
+/** Access tokens of the workflow runs in progress in this isolate, by run id, then character id. */
+const runTokens = new Map<string, Map<number, { accessToken: string; expiresAt: number }>>();
+
+/**
+ * Runs a workflow `run()` body with an in-memory access token cache for `runId`: every step refreshing
+ * a character's token through `refreshCharacterToken(…, runId)` reuses the token of an earlier step
+ * while it is valid for `TOKEN_REUSE_MARGIN_MS` more, so a sync stores the rotated refresh token once
+ * instead of once per step. Memory only: a replayed instance (new isolate) refreshes again.
+ */
+export async function withRunTokens<T>(runId: string, body: () => Promise<T>): Promise<T> {
+	runTokens.set(runId, new Map());
+	try {
+		return await body();
+	} finally {
+		runTokens.delete(runId);
+	}
+}
+
 /**
  * Refreshes a character's access token with the SSO app that issued it and stores the rotated refresh
  * token (`last_refreshed_at`, `last_error` cleared). An undecryptable token, a token of an app without
@@ -40,8 +61,19 @@ export type AccessTokenResult =
  *
  * EVE has rotated the refresh token once SSO answered, so storing it is retried; when that keeps
  * failing the error is logged and thrown (the workflow step retries) and `last_error` is left alone.
+ *
+ * With `runId` inside `withRunTokens`, a token refreshed earlier in that run is reused while valid
+ * (nothing is asked or written).
  */
-export async function refreshCharacterToken(env: Env, character: StoredToken): Promise<AccessTokenResult> {
+export async function refreshCharacterToken(
+	env: Env,
+	character: StoredToken,
+	runId?: string
+): Promise<AccessTokenResult> {
+	const cache = runId === undefined ? undefined : runTokens.get(runId);
+	const cached = cache?.get(character.characterId);
+	if (cached && cached.expiresAt - TOKEN_REUSE_MARGIN_MS > Date.now())
+		return { ok: true, accessToken: cached.accessToken };
 	const db = getCoreDb(env.DB);
 	const byCharacter = eq(characters.characterId, character.characterId);
 	const label = `[tokens] character ${character.characterId}`;
@@ -90,5 +122,10 @@ export async function refreshCharacterToken(env: Env, character: StoredToken): P
 		console.error(`${label}: rotated refresh token not stored: ${errorMessage(error)}`);
 		throw error;
 	}
+	if (cache && token.expiresIn > 0)
+		cache.set(character.characterId, {
+			accessToken: token.accessToken,
+			expiresAt: Date.now() + token.expiresIn * 1000
+		});
 	return { ok: true, accessToken: token.accessToken };
 }

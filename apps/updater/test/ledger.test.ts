@@ -611,6 +611,42 @@ describe('rebuildLedger', () => {
 		expect(other.jobs.map((j) => j.job_id)).toEqual([1010]);
 	});
 
+	it('writes no result row when nothing changed, and only the new rows when something did', async () => {
+		await seedChain('u1', 11, 0);
+		const batch = vi.spyOn(env.DB, 'batch');
+		/** Rows D1 wrote for the results of the last rebuild (its last batch, without the state row). */
+		const resultRowsWritten = async () => {
+			const results = (await batch.mock.results.at(-1)!.value) as D1Result[];
+			return results.slice(0, -1).reduce((sum, r) => sum + r.meta.rows_written, 0);
+		};
+		await rebuildLedger(env, 'u1', NOW);
+		const all = await resultRowsWritten();
+		expect(all).toBeGreaterThan(0);
+		const before = { lots: await lotsOf('u1'), uses: await usesOf('u1'), prices: await pricesOf('u1') };
+
+		await rebuildLedger(env, 'u1', NOW + 1);
+		expect(await resultRowsWritten()).toBe(0);
+
+		// A later purchase adds one lot (and its price row); the earlier rows stay as they are.
+		await insertTx('u1', 11, {
+			id: 900,
+			typeId: TITANIUM,
+			quantity: 500,
+			unitPrice: 9,
+			isBuy: true,
+			date: NOW - DAY
+		}).run();
+		await rebuildLedger(env, 'u1', NOW + 2);
+		const lots = await lotsOf('u1');
+		expect(lots.slice(0, -1)).toEqual(before.lots);
+		expect(lots.at(-1)).toMatchObject({ origin: 'transaction', quantity: 500 });
+		expect(await usesOf('u1')).toEqual(before.uses);
+		const written = await resultRowsWritten();
+		expect(written).toBeGreaterThan(0);
+		expect(written).toBeLessThan(all / 4);
+		batch.mockRestore();
+	});
+
 	it('ignores connections with Profit tracking off and counts their owner as an own party', async () => {
 		await env.DB.batch([
 			prepare(

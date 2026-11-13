@@ -420,8 +420,8 @@ describe('InventorySyncWorkflow', () => {
 		});
 		expect(row!.last_synced_at).toBeGreaterThanOrEqual(before);
 		expect(row!.last_attempt_at).toBeGreaterThanOrEqual(before);
-		// A fresh access token for each step that reads with it: prepare and pages-1 (stations are public).
-		expect(calls.filter((c) => c.url.startsWith('https://login.eveonline.com/'))).toHaveLength(2);
+		// One token refresh: pages-1 reuses the access token prepare got in the same run.
+		expect(calls.filter((c) => c.url.startsWith('https://login.eveonline.com/'))).toHaveLength(1);
 		const character = await env.DB.prepare(
 			'SELECT token_status, refresh_token_enc FROM characters WHERE character_id = 1001'
 		).first<{ token_status: string; refresh_token_enc: string }>();
@@ -560,6 +560,36 @@ describe('InventorySyncWorkflow', () => {
 		expect(await items(3)).toEqual([{ location_id: JITA, bucket: 'hangar', type_id: 16663, quantity: 10 }]);
 		// Named locations are not looked up again.
 		expect(pathsOf(calls, /^\/universe\//)).toEqual([]);
+	});
+
+	it('re-sync rewrites only changed items: unchanged rows stay, changed quantities update, gone ones go', async () => {
+		await seedSource(personal(3));
+		await seedItems(3, [
+			[JITA, 'hangar', 16663, 10],
+			[JITA, 'hangar', 4312, 5],
+			[JITA, 'hangar', 46166, 1]
+		]);
+		const rowids = async () =>
+			(
+				await env.DB.prepare(
+					'SELECT rowid AS id, type_id FROM inventory_items WHERE source_id = 3 ORDER BY type_id'
+				).all<{ id: number; type_id: number }>()
+			).results;
+		const before = await rowids();
+		installEve({
+			pages: {
+				1: [asset(1, 16663, 10, JITA, 'Hangar', 'station'), asset(2, 4312, 8, JITA, 'Hangar', 'station')]
+			}
+		});
+
+		expect(await runSync('inventory-3-same', 3)).toMatchObject({ ok: true, items: 2 });
+
+		expect(await items(3)).toEqual([
+			{ location_id: JITA, bucket: 'hangar', type_id: 4312, quantity: 8 },
+			{ location_id: JITA, bucket: 'hangar', type_id: 16663, quantity: 10 }
+		]);
+		// Not deleted and inserted again: the stored rows keep their rowid.
+		expect(await rowids()).toEqual(before.filter((r) => r.type_id !== 46166));
 	});
 
 	describe('rigs of corporation structures', () => {

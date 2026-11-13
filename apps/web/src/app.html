@@ -8,6 +8,21 @@
 		<link rel="apple-touch-icon" sizes="180x180" href="%sveltekit.assets%/apple-touch-icon.png" />
 		<link rel="manifest" href="%sveltekit.assets%/site.webmanifest" />
 		<meta name="theme-color" content="#111827" />
+		<script>
+			// A page kept from before a deploy (a restored tab) asks for build files that no longer exist, and the
+			// app never starts. Reload it once to get the current build; the root layout marks a started app.
+			addEventListener('unhandledrejection', (event) => {
+				const message = String(event.reason?.message ?? '');
+				const missing =
+					/dynamically imported module: .*\/_app\/immutable\//.test(message) ||
+					message.startsWith('Importing a module script failed');
+				if (!missing || document.documentElement.hasAttribute('data-app-started')) return;
+				const last = Number(sessionStorage.getItem('rc-reloaded-at'));
+				if (Date.now() - last < 60_000) return;
+				sessionStorage.setItem('rc-reloaded-at', String(Date.now()));
+				location.reload();
+			});
+		</script>
 		<script
 			src="https://ry.zm.gl/api/script.js"
 			async

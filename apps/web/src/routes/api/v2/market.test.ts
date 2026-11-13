@@ -10,6 +10,7 @@ import { trackedTypes } from '#lib/server/planner.js';
 import { apiEvent, callApi, invalidParams, seededEnv } from '../../../test/api';
 import type { FakeD1 } from '../../../test/fakes';
 import { NOW, insertStructureHub } from '../../../test/fixtures';
+import { changeOnly, insertSnapshots, type SnapshotRow } from '../../../test/snapshots';
 import { GET as costIndices } from './cost-indices/+server';
 import { GET as history } from './prices/history/+server';
 import { GET as prices } from './prices/+server';
@@ -206,6 +207,27 @@ describe('GET /api/v2/prices/history', () => {
 		expect(text.split('\r\n')[1]).toBe(`${new Date(NOW - 2 * DAY).toISOString()},81,91,10,20,false`);
 	});
 
+	it('answers change-only snapshots like dense ones (one point per refresh in range)', async () => {
+		const refreshes = Array.from({ length: 8 }, (_, i) => Date.UTC(2026, 9, 3, 22) + i * 3_600_000);
+		// 16663 changes once; another pair changes every refresh (every refresh stores some rows).
+		const dense: SnapshotRow[] = refreshes.flatMap((at, i) => [
+			{ at, hubId: 'jita', typeId: 16663, buy: i < 5 ? 80 : 85, sell: 90, buyVolume: 10, sellVolume: 20 },
+			{ at, hubId: 'jita', typeId: 16643, buy: i, sell: i }
+		]);
+		const stored = changeOnly(dense);
+		expect(stored.filter((r) => r.typeId === 16663)).toHaveLength(3);
+		const path = '/api/v2/prices/history?type=16663&resolution=snapshot&from=2026-10-04&to=2026-10-04';
+		const answer = async (rows: SnapshotRow[]) => {
+			const { env } = await seededEnv();
+			insertSnapshots(env.HISTORY_DB, rows);
+			return PriceHistoryResponse.parse((await callApi(history, apiEvent(env, path))).body).points;
+		};
+		const points = await answer(dense);
+		expect(points.map((p) => p.at)).toEqual(refreshes.slice(2).map((t) => new Date(t).toISOString()));
+		expect(points.map((p) => p.buy)).toEqual([80, 80, 80, 85, 85, 85]);
+		expect(await answer(stored)).toEqual(points);
+	});
+
 	it.each([
 		['/api/v2/prices/history', 'type'],
 		['/api/v2/prices/history?type=0', 'type'],
@@ -250,6 +272,13 @@ describe('GET /api/v2/cost-indices', () => {
 		expect(csv.text).toBe(
 			`systemId,name,reaction,updatedAt\r\n30002647,Ignoitton,0.0412,${new Date(NOW).toISOString()}\r\n`
 		);
+	});
+
+	it('dates an unchanged index by the latest cost index refresh of the market snapshot', async () => {
+		const { env } = await seededEnv();
+		env.DB.sqlite.exec(`UPDATE cost_indices SET updated_at = ${NOW - DAY}`);
+		const { body } = await callApi(costIndices, apiEvent(env, '/api/v2/cost-indices?systems=30002647'));
+		expect(CostIndicesResponse.parse(body)[0]!.updatedAt).toBe(new Date(NOW).toISOString());
 	});
 
 	it.each([

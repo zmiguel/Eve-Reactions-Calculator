@@ -20,13 +20,15 @@ import { forEachConcurrent } from '../pool.ts';
 import { StepTracker } from '../progress.ts';
 import { fuzzworkRows, writePrices } from '../prices.ts';
 import type { PriceCounts, PriceRow, PriceSource } from '../prices.ts';
-import { refreshCharacterToken } from '../tokens.ts';
+import { refreshCharacterToken, withRunTokens } from '../tokens.ts';
 import type { StoredToken } from '../tokens.ts';
 
 export type PriceRefreshParams = Record<string, never>;
 
 export interface PriceRefreshPlan {
 	snapshotAt: number;
+	/** Tracked types, read once per run and passed to every step. */
+	typeIds: number[];
 	regions: { regionId: number; hubIds: string[] }[];
 	structureHubIds: string[];
 }
@@ -49,7 +51,7 @@ export interface PublishCounts extends PriceCounts {
 	bytes: number;
 }
 
-/** Step `plan`: NPC hubs grouped by region and the structure hubs due for a refresh. */
+/** Step `plan`: tracked types, NPC hubs grouped by region and the structure hubs due for a refresh. */
 export async function planPriceRefresh(env: Env, now: number): Promise<PriceRefreshPlan> {
 	const db = getCoreDb(env.DB);
 	const activeSince = now - PRIVATE_HUB_ACTIVE_DAYS * DAY_MS;
@@ -74,13 +76,14 @@ export async function planPriceRefresh(env: Env, now: number): Promise<PriceRefr
 	}
 	return {
 		snapshotAt: now,
+		typeIds: await trackedTypeIds(db),
 		regions: [...regions].map(([regionId, hubIds]) => ({ regionId, hubIds })),
 		structureHubIds
 	};
 }
 
 /**
- * Step `region-<regionId>`: region orders of every tracked type (6 in flight), aggregated per hub
+ * Step `region-<regionId>`: region orders of every type in `typeIds` (6 in flight), aggregated per hub
  * (station by `location_id`, system by `system_id`). Types that fail or are skipped once the ESI
  * guard trips come from Fuzzwork per hub.
  */
@@ -88,7 +91,8 @@ export async function refreshRegion(
 	env: Env,
 	regionId: number,
 	hubIds: readonly string[],
-	snapshotAt: number
+	snapshotAt: number,
+	typeIds: readonly number[]
 ): Promise<RegionCounts> {
 	const db = getCoreDb(env.DB);
 	const hubs = await db
@@ -96,7 +100,6 @@ export async function refreshRegion(
 		.from(marketHubs)
 		.where(inArray(marketHubs.hubId, [...hubIds]))
 		.all();
-	const typeIds = await trackedTypeIds(db);
 	const client = esiClient(env);
 	const rows: PriceRow[] = [];
 	const fallback: number[] = [];
@@ -146,12 +149,17 @@ type Attempt = { ok: true; orders: MarketOrder[] } | { ok: false; reason: string
 
 /**
  * Refreshes the candidate's token (`refreshCharacterToken`: the issuing SSO app, rotated token stored,
- * revoked or unusable tokens marked invalid) and reads the structure market.
+ * revoked or unusable tokens marked invalid; reused within run `runId`) and reads the structure market.
  */
-async function tryCandidate(env: Env, hub: MarketHubRow, candidate: Candidate): Promise<Attempt> {
+async function tryCandidate(
+	env: Env,
+	hub: MarketHubRow,
+	candidate: Candidate,
+	runId?: string
+): Promise<Attempt> {
 	const db = getCoreDb(env.DB);
 	const label = `character ${candidate.characterId}`;
-	const token = await refreshCharacterToken(env, candidate);
+	const token = await refreshCharacterToken(env, candidate, runId);
 	if (!token.ok) return { ok: false, reason: `${label}: ${token.message}` };
 	try {
 		const result = await fetchStructureOrders(esiClient(env), hub.locationId, token.accessToken);
@@ -180,13 +188,14 @@ async function tryCandidate(env: Env, hub: MarketHubRow, candidate: Candidate): 
 export async function refreshStructureHub(
 	env: Env,
 	hubId: string,
-	snapshotAt: number
+	snapshotAt: number,
+	typeIds: readonly number[],
+	runId?: string
 ): Promise<StructureCounts> {
 	const db = getCoreDb(env.DB);
 	const hub = await db.select().from(marketHubs).where(eq(marketHubs.hubId, hubId)).get();
 	// Removed (last link gone, admin delete) since the plan step: nothing to refresh, not a failure.
 	if (!hub) return { hubId, candidates: 0, source: null, esi: 0, fuzzwork: 0, missing: 0 };
-	const typeIds = await trackedTypeIds(db);
 	const linked = await db
 		.select({
 			userId: structureLinks.userId,
@@ -212,7 +221,7 @@ export async function refreshStructureHub(
 
 	const reasons: string[] = [];
 	for (const candidate of candidates) {
-		const attempt = await tryCandidate(env, hub, candidate);
+		const attempt = await tryCandidate(env, hub, candidate, runId);
 		if (!attempt.ok) {
 			reasons.push(attempt.reason);
 			continue;
@@ -252,24 +261,30 @@ async function gzip(text: string): Promise<Uint8Array> {
 }
 
 /**
- * Step `publish`: KV `market:v1`, every row of this refresh gzipped to R2
+ * Step `publish`: KV `market:v1`, the prices of this refresh gzipped to R2
  * `prices/raw/YYYY/MM/DD/<snapshotAt>.json.gz`, `job_runs` → `ok` (or `partial` when any price came
- * from Fuzzwork or is missing).
+ * from Fuzzwork or is missing). The archive is a full snapshot read from `latest_prices`: every
+ * tracked type of `hubIds` (the hubs refreshed in the run), each row stamped `snapshotAt`
+ * (`price_snapshots` stores only changed pairs).
  */
 export async function publishPrices(
 	env: Env,
 	runId: string,
 	snapshotAt: number,
+	hubIds: readonly string[],
+	typeIds: readonly number[],
 	steps: readonly PriceCounts[]
 ): Promise<PublishCounts> {
 	await publishMarketSnapshot(env);
-	const { results } = await env.HISTORY_DB.prepare(
-		`SELECT snapshot_at AS snapshotAt, hub_id AS hubId, type_id AS typeId, buy_max AS buyMax,
+	const { results } = await env.DB.prepare(
+		`SELECT ?1 AS snapshotAt, hub_id AS hubId, type_id AS typeId, buy_max AS buyMax,
 			sell_min AS sellMin, buy_p5 AS buyP5, sell_p5 AS sellP5, buy_volume AS buyVolume,
 			sell_volume AS sellVolume, source
-		FROM price_snapshots WHERE snapshot_at = ? ORDER BY hub_id, type_id`
+		FROM latest_prices
+		WHERE hub_id IN (SELECT value FROM json_each(?2)) AND type_id IN (SELECT value FROM json_each(?3))
+		ORDER BY hub_id, type_id`
 	)
-		.bind(snapshotAt)
+		.bind(snapshotAt, JSON.stringify(hubIds), JSON.stringify(typeIds))
 		.all();
 	const body = await gzip(JSON.stringify(results));
 	await env.ARCHIVE.put(PRICE_ARCHIVE_KEY(snapshotAt), body, {
@@ -285,10 +300,18 @@ export async function publishPrices(
 
 /**
  * Refreshes every hub's prices: instance `prices-<slot ms>` (cron) or `prices-manual-<ms>` (RPC).
- * Step results are counts only; prices travel through D1.
+ * Step results are counts only; prices travel through D1. A character's access token is refreshed
+ * at most once per run (`withRunTokens`).
  */
 export class PriceRefreshWorkflow extends WorkflowEntrypoint<Env, PriceRefreshParams> {
-	override async run(
+	override run(
+		event: Readonly<WorkflowEvent<PriceRefreshParams>>,
+		step: WorkflowStep
+	): Promise<PublishCounts> {
+		return withRunTokens(event.instanceId, () => this.refresh(event, step));
+	}
+
+	private async refresh(
 		event: Readonly<WorkflowEvent<PriceRefreshParams>>,
 		step: WorkflowStep
 	): Promise<PublishCounts> {
@@ -300,20 +323,24 @@ export class PriceRefreshWorkflow extends WorkflowEntrypoint<Env, PriceRefreshPa
 			const plan = await steps.do('plan', STEP_CONFIG, () => planPriceRefresh(this.env, Date.now()));
 			steps.total = 1 + plan.regions.length + plan.structureHubIds.length + 1;
 			const counts: PriceCounts[] = [];
-			for (const { regionId, hubIds } of plan.regions)
+			const refreshed: string[] = [];
+			for (const { regionId, hubIds } of plan.regions) {
 				counts.push(
 					await steps.do(`region-${regionId}`, STEP_CONFIG, () =>
-						refreshRegion(this.env, regionId, hubIds, plan.snapshotAt)
+						refreshRegion(this.env, regionId, hubIds, plan.snapshotAt, plan.typeIds)
 					)
 				);
-			for (const hubId of plan.structureHubIds)
-				counts.push(
-					await steps.do(`structure-${hubId}`, STEP_CONFIG, () =>
-						refreshStructureHub(this.env, hubId, plan.snapshotAt)
-					)
+				refreshed.push(...hubIds);
+			}
+			for (const hubId of plan.structureHubIds) {
+				const structure = await steps.do(`structure-${hubId}`, STEP_CONFIG, () =>
+					refreshStructureHub(this.env, hubId, plan.snapshotAt, plan.typeIds, runId)
 				);
+				counts.push(structure);
+				if (structure.source !== null) refreshed.push(hubId);
+			}
 			return await steps.do('publish', STEP_CONFIG, () =>
-				publishPrices(this.env, runId, plan.snapshotAt, counts)
+				publishPrices(this.env, runId, plan.snapshotAt, refreshed, plan.typeIds, counts)
 			);
 		} catch (error) {
 			await failJobRun(this.env, runId, 'prices', startedAt, error);

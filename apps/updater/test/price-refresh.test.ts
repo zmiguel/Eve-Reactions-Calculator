@@ -5,14 +5,18 @@ import type { MarketSnapshot } from '@reactions/db';
 import { isEsiDowntime } from '@reactions/eve';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { esiAvailable } from '../src/esi-downtime.ts';
+import { writePrices } from '../src/prices.ts';
+import type { PriceRow } from '../src/prices.ts';
 import { refreshRegion } from '../src/workflows/price-refresh.ts';
 import type { PublishCounts } from '../src/workflows/price-refresh.ts';
 import {
 	fuzzwork,
 	installFetch,
 	json,
+	meteredEnv,
 	order,
 	resetState,
+	rowCounts,
 	seedReaction,
 	seedTrackedReaction
 } from './helpers.ts';
@@ -73,7 +77,7 @@ describe('PriceRefreshWorkflow region step', () => {
 				: new Response('unexpected', { status: 500 })
 		);
 
-		const counts = await refreshRegion(env, 10000002, ['jita', 'perimeter'], 1000);
+		const counts = await refreshRegion(env, 10000002, ['jita', 'perimeter'], 1000, TRACKED);
 
 		expect(counts).toEqual({ regionId: 10000002, types: 5, esi: 10, fuzzwork: 0, missing: 0 });
 		expect(await latest('jita', 16663)).toEqual({
@@ -116,7 +120,13 @@ describe('PriceRefreshWorkflow region step', () => {
 			return json(forgeOrders(typeId), { 'X-Ratelimit-Remaining': '1000', 'X-Ratelimit-Limit': '12000/15m' });
 		});
 
-		const counts = await refreshRegion(env, 10000002, ['jita', 'perimeter'], 2000);
+		const counts = await refreshRegion(
+			env,
+			10000002,
+			['jita', 'perimeter'],
+			2000,
+			[900, 901, 902, 903, 904, 905, 906, 907, 908]
+		);
 
 		expect(counts).toEqual({ regionId: 10000002, types: 9, esi: 12, fuzzwork: 6, missing: 0 });
 		const esiTypes = calls
@@ -146,7 +156,9 @@ describe('PriceRefreshWorkflow region step', () => {
 				: json(forgeOrders(Number(url.searchParams.get('type_id'))))
 		);
 
-		const error = await refreshRegion(env, 10000002, ['jita', 'perimeter'], 3000).catch((e: unknown) => e);
+		const error = await refreshRegion(env, 10000002, ['jita', 'perimeter'], 3000, TRACKED).catch(
+			(e: unknown) => e
+		);
 
 		expect(isEsiDowntime(error)).toBe(true);
 		expect(calls.filter((c) => c.url.startsWith('https://market.fuzzwork.co.uk/'))).toEqual([]);
@@ -154,7 +166,7 @@ describe('PriceRefreshWorkflow region step', () => {
 
 		// The step's next run, once ESI is back, takes every type from ESI.
 		vi.mocked(esiAvailable).mockImplementation(async () => true);
-		expect(await refreshRegion(env, 10000002, ['jita', 'perimeter'], 3000)).toMatchObject({
+		expect(await refreshRegion(env, 10000002, ['jita', 'perimeter'], 3000, TRACKED)).toMatchObject({
 			esi: 10,
 			fuzzwork: 0
 		});
@@ -233,6 +245,42 @@ describe('PriceRefreshWorkflow', () => {
 		});
 	});
 
+	it('archives every refreshed pair from latest_prices when the snapshot table stores none of them', async () => {
+		await seedTrackedReaction();
+		// No longer tracked: stays out of the archive.
+		await env.DB.prepare(
+			`INSERT INTO latest_prices (hub_id, type_id, buy_max, sell_min, buy_volume, sell_volume, buy_orders,
+				sell_orders, source, observed_at) VALUES ('jita', 99999, 1, 2, 1, 1, 1, 1, 'esi', 1)`
+		).run();
+		installFetch((url) => json(forgeOrders(Number(url.searchParams.get('type_id')))));
+
+		const first = await run('prices-test-first');
+		const second = await run('prices-test-second');
+
+		expect(first).toMatchObject({ status: 'ok', archived: 30 });
+		expect(second).toMatchObject({ status: 'ok', archived: 30 });
+		const listed = await env.ARCHIVE.list({ prefix: 'prices/raw/' });
+		const times = listed.objects.map((o) => Number(/(\d+)\.json\.gz$/.exec(o.key)![1])).sort();
+		expect(times).toHaveLength(2);
+		const archive = (await gunzipJson((await env.ARCHIVE.get(listed.objects[1]!.key))!.body)) as {
+			snapshotAt: number;
+			hubId: string;
+			typeId: number;
+		}[];
+		expect(archive).toHaveLength(30);
+		expect(archive.some((r) => r.typeId === 99999)).toBe(false);
+		expect(new Set(archive.map((r) => r.snapshotAt))).toEqual(new Set([times[1]]));
+		// The same orders again on the same UTC day: the second refresh stores no snapshot rows.
+		const sameDay =
+			new Date(times[0]!).toISOString().slice(0, 10) === new Date(times[1]!).toISOString().slice(0, 10);
+		const stored = await env.HISTORY_DB.prepare(
+			'SELECT COUNT(*) AS n FROM price_snapshots WHERE snapshot_at = ?'
+		)
+			.bind(times[1])
+			.first();
+		expect(stored).toEqual({ n: sameDay ? 0 : 30 });
+	});
+
 	it('marks the run partial when a region falls back to Fuzzwork', async () => {
 		await seedTrackedReaction();
 		const calls = installFetch((url) => {
@@ -250,5 +298,88 @@ describe('PriceRefreshWorkflow', () => {
 		expect(await latest('hek', 16663)).toMatchObject({ buy_max: 50, sell_min: 60, source: 'fuzzwork' });
 		const market = await env.CACHE.get<MarketSnapshot>(MARKET_KV_KEY, 'json');
 		expect(market!.prices.hek![16663]).toEqual([50, 60, 100, 200]);
+	});
+});
+
+describe('change-only price snapshots', () => {
+	beforeEach(resetState);
+
+	const DAY0 = Date.UTC(2026, 9, 5);
+	const HOUR = 3_600_000;
+	const HUBS = ['jita', 'amarr'];
+	const TYPES = [34, 35, 36];
+
+	/** Every hub × type with sell price `sell(hubId, typeId)` (default 10). */
+	function refresh(sell: (hubId: string, typeId: number) => number = () => 10): PriceRow[] {
+		return HUBS.flatMap((hubId) =>
+			TYPES.map((typeId) => ({
+				hubId,
+				typeId,
+				source: 'esi' as const,
+				aggregate: {
+					buyMax: 5,
+					sellMin: sell(hubId, typeId),
+					buyP5: null,
+					sellP5: null,
+					buyVolume: 1,
+					sellVolume: 2,
+					buyOrders: 1,
+					sellOrders: 1
+				}
+			}))
+		);
+	}
+
+	/** Writes `rows` at `at`; rows read/written by the snapshot insert (the first statement). */
+	async function write(rows: PriceRow[], at: number) {
+		const metas: D1Meta[] = [];
+		await writePrices(meteredEnv(metas), rows, at);
+		return rowCounts(metas.slice(0, 1));
+	}
+
+	async function storedAt(at: number) {
+		const { results } = await env.HISTORY_DB.prepare(
+			'SELECT hub_id AS hubId, type_id AS typeId, sell_min AS sell FROM price_snapshots WHERE snapshot_at = ? ORDER BY hub_id, type_id'
+		)
+			.bind(at)
+			.all();
+		return results;
+	}
+
+	it('stores every pair on the first refresh of a UTC day, then only changed pairs; retries write nothing', async () => {
+		// D1 bills an inserted row 3 times: the table, its primary key and the snapshot_at index.
+		const t1 = DAY0 + HOUR;
+		const first = await write(refresh(), t1);
+		expect(await storedAt(t1)).toHaveLength(6);
+		expect(first.written).toBe(6 * 3);
+
+		// Unchanged: nothing written (a dense table wrote 6 × 3); the primary key probes read about 3 rows
+		// per pair.
+		const t2 = t1 + HOUR / 2;
+		const unchanged = await write(refresh(), t2);
+		expect(unchanged.written).toBe(0);
+		expect(unchanged.read).toBeLessThanOrEqual(6 * 3 + 1);
+		expect(await storedAt(t2)).toEqual([]);
+		expect((await write(refresh(), t2)).written).toBe(0);
+
+		const t3 = t2 + HOUR / 2;
+		const oneChanged = (hubId: string, typeId: number) => (hubId === 'jita' && typeId === 35 ? 11 : 10);
+		expect((await write(refresh(oneChanged), t3)).written).toBe(3);
+		expect(await storedAt(t3)).toEqual([{ hubId: 'jita', typeId: 35, sell: 11 }]);
+		// A retry of the same step with the same prices writes nothing.
+		expect((await write(refresh(oneChanged), t3)).written).toBe(0);
+		// A retry that saw other prices: the row already stored at t3 takes them even when they equal the
+		// previous row, so the snapshot at t3 matches latest_prices.
+		const otherChanged = (hubId: string, typeId: number) => (hubId === 'amarr' && typeId === 36 ? 12 : 10);
+		await write(refresh(otherChanged), t3);
+		expect(await storedAt(t3)).toEqual([
+			{ hubId: 'amarr', typeId: 36, sell: 12 },
+			{ hubId: 'jita', typeId: 35, sell: 10 }
+		]);
+
+		// The first refresh of the next UTC day stores every pair again, changed or not.
+		const t4 = DAY0 + 24 * HOUR + HOUR / 2;
+		expect((await write(refresh(otherChanged), t4)).written).toBe(6 * 3);
+		expect(await storedAt(t4)).toHaveLength(6);
 	});
 });

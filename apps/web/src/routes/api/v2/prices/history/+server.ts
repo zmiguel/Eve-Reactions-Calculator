@@ -18,10 +18,21 @@ import {
 } from '#lib/server/api/schemas.js';
 import { FALLBACK_HUB } from '#lib/server/hubs.js';
 import { DAY_MS } from '#lib/server/listing.js';
-import { isoDate } from '#lib/server/prices.js';
+import { SNAPSHOT_LOOKBACK_MS, isoDate } from '#lib/server/prices.js';
 import type { RequestHandler } from './$types';
 
 const dayMs = (date: string) => Date.parse(`${date}T00:00:00Z`);
+
+/**
+ * Refresh times in `?1`..`?2` (ms, end exclusive): the distinct `snapshot_at` values, stepped through
+ * the time index one at a time (each step reads one index entry, not every row of a refresh).
+ */
+const REFRESH_TIMES_SQL = `WITH RECURSIVE r(at) AS (
+		SELECT (SELECT min(snapshot_at) FROM price_snapshots WHERE snapshot_at >= ?1 AND snapshot_at < ?2)
+		UNION ALL
+		SELECT (SELECT min(p.snapshot_at) FROM price_snapshots p WHERE p.snapshot_at > r.at AND p.snapshot_at < ?2)
+		FROM r WHERE r.at IS NOT NULL
+	) SELECT at FROM r WHERE at IS NOT NULL`;
 
 interface Point {
 	at: string;
@@ -58,25 +69,39 @@ export const GET: RequestHandler = apiHandler(async (event) => {
 	const db = getHistoryDb(env.HISTORY_DB);
 	let points: Point[];
 	if (q.resolution === 'snapshot') {
-		const rows = await db
-			.select({
-				at: priceSnapshots.snapshotAt,
-				buy: priceSnapshots.buyMax,
-				sell: priceSnapshots.sellMin,
-				buyVolume: priceSnapshots.buyVolume,
-				sellVolume: priceSnapshots.sellVolume
-			})
-			.from(priceSnapshots)
-			.where(
-				and(
-					eq(priceSnapshots.hubId, hub.hubId),
-					eq(priceSnapshots.typeId, q.type),
-					gte(priceSnapshots.snapshotAt, dayMs(from)),
-					lt(priceSnapshots.snapshotAt, dayMs(to) + DAY_MS)
+		// The updater stores a pair only when its prices change (and at the first refresh of each UTC
+		// day): every refresh time of the range gets the pair's latest row at or before it.
+		const start = dayMs(from);
+		const end = dayMs(to) + DAY_MS;
+		const [times, rows] = await Promise.all([
+			env.HISTORY_DB.prepare(REFRESH_TIMES_SQL).bind(start, end).all<{ at: number }>(),
+			db
+				.select({
+					at: priceSnapshots.snapshotAt,
+					buy: priceSnapshots.buyMax,
+					sell: priceSnapshots.sellMin,
+					buyVolume: priceSnapshots.buyVolume,
+					sellVolume: priceSnapshots.sellVolume
+				})
+				.from(priceSnapshots)
+				.where(
+					and(
+						eq(priceSnapshots.hubId, hub.hubId),
+						eq(priceSnapshots.typeId, q.type),
+						gte(priceSnapshots.snapshotAt, start - SNAPSHOT_LOOKBACK_MS),
+						lt(priceSnapshots.snapshotAt, end)
+					)
 				)
-			)
-			.orderBy(asc(priceSnapshots.snapshotAt));
-		points = rows.map((r) => ({ ...r, at: new Date(r.at).toISOString(), approximate: false }));
+				.orderBy(asc(priceSnapshots.snapshotAt))
+		]);
+		points = [];
+		let next = 0;
+		let latest: (typeof rows)[number] | undefined;
+		for (const { at } of times.results) {
+			while (next < rows.length && rows[next]!.at <= at) latest = rows[next++];
+			if (latest && latest.at >= at - SNAPSHOT_LOOKBACK_MS)
+				points.push({ ...latest, at: new Date(at).toISOString(), approximate: false });
+		}
 	} else {
 		const [daily, regional] = await Promise.all([
 			db

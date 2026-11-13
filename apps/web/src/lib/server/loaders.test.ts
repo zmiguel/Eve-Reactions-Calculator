@@ -12,6 +12,7 @@ import {
 	marketFor,
 	putKv
 } from '../../test/fixtures';
+import { changeOnly, insertSnapshots, type SnapshotRow } from '../../test/snapshots';
 import { loadCalc } from './context';
 import { MEMO_TTL_MS, clearDataMemo, getDataset, getMarket } from './data';
 import { getAccessibleHubs, getHubPrices } from './hubs';
@@ -193,21 +194,77 @@ describe('price books', () => {
 		expect(book.adjusted).toEqual({ 1: 5 });
 	});
 
-	it('getPriceBookNear picks the latest snapshot at or before the timestamp, else the daily book', async () => {
-		const env = fakeEnv();
-		const sde = await loadSde();
-		const hubs = (await getAccessibleHubs(asEnv(env), null)).filter((h) => h.hubId === 'jita');
-		const t1 = NOW - 3_600_000;
-		const t2 = NOW - 1_800_000;
-		env.HISTORY_DB.sqlite.exec(`
-			INSERT INTO price_snapshots (snapshot_at, hub_id, type_id, buy_max, sell_min, buy_volume, sell_volume, source) VALUES
-				(${t1}, 'jita', 16663, 1, 2, 1, 1, 'esi'), (${t2}, 'jita', 16663, 3, 4, 1, 1, 'esi'), (${NOW + 1}, 'jita', 16663, 5, 6, 1, 1, 'esi');
-		`);
-		const near = await getPriceBookNear(asEnv(env), NOW, hubs, sde.dataset, {});
-		expect(near.asOf).toBe(new Date(t2).toISOString());
-		expect(near.hubs.jita[16663]).toEqual({ buy: 3, sell: 4 });
-		const old = await getPriceBookNear(asEnv(env), NOW - 30 * 86_400_000, hubs, sde.dataset, {});
-		expect(old.asOf).toBe('2026-09-06');
+	describe('getPriceBookNear', () => {
+		const DAY_START = Date.UTC(2026, 9, 6);
+		const STEP = 1_800_000;
+		/** Refreshes from 1 h before the UTC day starts to 90 min into it. */
+		const times = [-2, -1, 0, 1, 2, 3].map((i) => DAY_START + i * STEP);
+		/** 16663 changes every refresh, 16643 every third one, 16647 never; amarr has no 16647. */
+		const dense: SnapshotRow[] = times.flatMap((at, i) =>
+			(['jita', 'amarr'] as const).flatMap((hubId, h) =>
+				[16663, 16643, 16647]
+					.filter((typeId) => hubId === 'jita' || typeId !== 16647)
+					.map((typeId) => {
+						const step = typeId === 16663 ? i : typeId === 16643 ? Math.floor(i / 3) : 0;
+						return { at, hubId, typeId, buy: 100 * (h + 1) + step, sell: 200 * (h + 1) + step };
+					})
+			)
+		);
+		const types = [16663, 16643, 16647];
+
+		async function bookAt(rows: SnapshotRow[], ts: number, hubIds = ['jita', 'amarr'], typeIds = types) {
+			const env = fakeEnv();
+			insertSnapshots(env.HISTORY_DB, rows);
+			const hubs = (await getAccessibleHubs(asEnv(env), null)).filter((h) => hubIds.includes(h.hubId));
+			return getPriceBookNear(asEnv(env), ts, hubs, typeIds, (await loadSde()).dataset, { 1: 1 });
+		}
+
+		it('prices dense refreshes with the latest refresh at or before the time', async () => {
+			const book = await bookAt(dense, DAY_START + 2 * STEP - 1);
+			expect(book.asOf).toBe(new Date(DAY_START + STEP).toISOString());
+			expect(book.approximate).toBe(false);
+			expect(book.hubs).toEqual({
+				jita: {
+					16663: { buy: 103, sell: 203 },
+					16643: { buy: 101, sell: 201 },
+					16647: { buy: 100, sell: 200 }
+				},
+				amarr: { 16663: { buy: 203, sell: 403 }, 16643: { buy: 201, sell: 401 } }
+			});
+		});
+
+		it('gives change-only rows the same books as dense rows', async () => {
+			const stored = changeOnly(dense);
+			expect(stored.length).toBeLessThan(dense.length);
+			for (const ts of [...times, ...times.map((t) => t + STEP / 2), DAY_START - 1, NOW])
+				expect(await bookAt(stored, ts), new Date(ts).toISOString()).toEqual(await bookAt(dense, ts));
+		});
+
+		it('looks up only the given hubs and types, adjusted prices included', async () => {
+			const env = fakeEnv();
+			insertSnapshots(env.HISTORY_DB, changeOnly(dense));
+			env.HISTORY_DB.sqlite.exec(`
+				INSERT INTO adjusted_price_daily VALUES ('2026-10-06', 16663, 42);
+				INSERT INTO adjusted_price_daily VALUES ('2026-10-06', 16643, 43);
+			`);
+			const hubs = (await getAccessibleHubs(asEnv(env), null)).filter((h) => h.hubId === 'jita');
+			const book = await getPriceBookNear(asEnv(env), NOW, hubs, [16663], (await loadSde()).dataset, {});
+			expect(book.hubs).toEqual({ jita: { 16663: { buy: 105, sell: 205 } } });
+			expect(book.adjusted).toEqual({ 16663: 42 });
+		});
+
+		it('ignores rows older than 36 h and falls back to the daily book without any', async () => {
+			const ts = DAY_START + 3 * STEP + 36 * 3_600_000;
+			const late = await bookAt(changeOnly(dense), ts);
+			// Only the rows of the last refresh (16663 changed there) are recent enough.
+			expect(late.hubs).toEqual({
+				jita: { 16663: { buy: 105, sell: 205 } },
+				amarr: { 16663: { buy: 205, sell: 405 } }
+			});
+			const old = await bookAt(changeOnly(dense), ts + 1);
+			expect(old.asOf).toBe('2026-10-07');
+			expect(old.hubs).toEqual({ jita: {}, amarr: {} });
+		});
 	});
 });
 
