@@ -137,7 +137,7 @@ export async function loadPlanner(
 	const regionIds = [...new Set(hubs.map((h) => h.regionId))];
 	const [inputBook, volumes, regionRows, inventory] = await Promise.all([
 		inputsDaysAgo > 0
-			? getPriceBookNear(env, now - inputsDaysAgo * DAY_MS, hubs, dataset, calc.market.adjusted)
+			? getPriceBookNear(env, now - inputsDaysAgo * DAY_MS, hubs, [...types], dataset, calc.market.adjusted)
 			: null,
 		getRegionVolumes(env, regionIds, volumeTypes(dataset)),
 		regionIds.length

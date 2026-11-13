@@ -55,9 +55,14 @@ export function seriesStartDate(range: SeriesRange, now: number): string | null 
 
 /**
  * Every type the engine prices for this reaction/view (a chain's unrefined routes and their reprocessed
- * materials included), plus the reactors whose hubs it uses.
+ * materials included), the input and output hubs of the reactors it uses (`hubs`), and the hubs it buys
+ * inputs at (`inputHubs`: input and input fallback hubs).
  */
-function relevantTypes(reaction: Reaction, ctx: CalcContext, opts: SeriesOptions) {
+export function relevantTypes(
+	reaction: Reaction,
+	ctx: Pick<CalcContext, 'dataset' | 'profiles'>,
+	opts: Pick<SeriesOptions, 'view' | 'outputMode'>
+) {
 	const producers = producerIndex(ctx.dataset);
 	const alternatives = unrefinedIndex(ctx.dataset);
 	const types = new Set<number>();
@@ -80,11 +85,15 @@ function relevantTypes(reaction: Reaction, ctx: CalcContext, opts: SeriesOptions
 		for (const m of ctx.dataset.reprocess[reaction.product.typeId]?.materials ?? []) types.add(m.typeId);
 	}
 	const hubs = new Set<string>();
+	const inputHubs = new Set<string>();
 	for (const r of reactors) {
-		hubs.add(ctx.profiles[r].market.inputHub);
-		hubs.add(ctx.profiles[r].market.outputHub);
+		const { market } = ctx.profiles[r];
+		hubs.add(market.inputHub);
+		hubs.add(market.outputHub);
+		inputHubs.add(market.inputHub);
+		inputHubs.add(market.inputFallbackHub);
 	}
-	return { types: [...types], hubs: [...hubs] };
+	return { types: [...types], hubs: [...hubs], inputHubs };
 }
 
 /**

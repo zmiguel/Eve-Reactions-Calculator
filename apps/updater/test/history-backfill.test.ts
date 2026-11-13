@@ -104,3 +104,42 @@ describe('history backfill', () => {
 		expect(job).toEqual({ kind: 'history', status: 'partial' });
 	});
 });
+
+describe('history backfill writes', () => {
+	beforeEach(resetState);
+	afterEach(() => vi.unstubAllGlobals());
+
+	it('writes nothing when the mirror returns the stored days again, and deletes only the days it dropped', async () => {
+		mirror();
+		await backfillTypes(env, [FORGE], [16663], '2026-10-07');
+		const metas: D1Meta[] = [];
+		const metered = Object.create(env, {
+			HISTORY_DB: {
+				value: new Proxy(env.HISTORY_DB, {
+					get(target, key) {
+						if (key !== 'batch') return Reflect.get(target, key).bind(target);
+						return async (statements: D1PreparedStatement[]) => {
+							const results = await target.batch(statements);
+							metas.push(...results.map((r) => r.meta));
+							return results;
+						};
+					}
+				})
+			}
+		}) as Env;
+
+		await backfillTypes(metered, [FORGE], [16663], '2026-10-07');
+		expect(metas.reduce((sum, m) => sum + m.rows_written, 0)).toBe(0);
+
+		// A stored day inside the range the mirror no longer returns is the only row written (deleted).
+		await insertHistory(FORGE, 16663, '2025-02-15', 999);
+		metas.length = 0;
+		await backfillTypes(metered, [FORGE], [16663], '2026-10-07');
+		expect(metas.reduce((sum, m) => sum + m.rows_written, 0)).toBe(1);
+		expect(await stored(FORGE, 16663)).toEqual([
+			{ date: '2025-02-01', volume: 10 },
+			{ date: '2025-03-01', volume: 20 },
+			{ date: '2026-10-05', volume: 30 }
+		]);
+	});
+});

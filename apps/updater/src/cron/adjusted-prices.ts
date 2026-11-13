@@ -50,7 +50,8 @@ export async function refreshAdjustedPrices(env: Env, now: number, manual = fals
 					adjustedPrices,
 					rows,
 					[adjustedPrices.typeId],
-					[adjustedPrices.adjustedPrice, adjustedPrices.averagePrice, adjustedPrices.updatedAt]
+					[adjustedPrices.adjustedPrice, adjustedPrices.averagePrice, adjustedPrices.updatedAt],
+					[adjustedPrices.updatedAt]
 				);
 				await publishMarketSnapshot(env, now);
 				await finishJobRun(env, runId, 'ok', { received: prices.length, written: rows.length });

@@ -1,7 +1,7 @@
 <script lang="ts">
 	import type { ChartProps } from '@flowbite-svelte-plugins/chart';
 	import { onMount, type Component } from 'svelte';
-	import { containTooltips } from '#lib/charts.js';
+	import { CHART_ANIMATIONS, containTooltips } from '#lib/charts.js';
 	import { formatIsk, formatIskAxis, formatIskFull, formatNumber } from '#lib/format.js';
 	import type { SeriesPoint, VolumePoint } from '#lib/server/series.js';
 	import { isDark } from '#lib/theme.svelte.js';
@@ -87,7 +87,8 @@
 				fontFamily: 'inherit',
 				background: 'transparent',
 				toolbar: { show: false },
-				zoom: { enabled: false }
+				zoom: { enabled: false },
+				animations: CHART_ANIMATIONS
 			},
 			theme: { mode: dark ? 'dark' : 'light' },
 			colors: [panel.color],
@@ -127,7 +128,15 @@
 		{#each panels as panel (panel.key)}
 			<figure class="rounded-lg bg-white p-3 dark:bg-gray-700" data-chart={panel.key}>
 				<figcaption class="text-sm font-semibold text-gray-800 dark:text-gray-200">{panel.title}</figcaption>
-				{#if Chart}
+				{#if panel.values.every((v) => v === null)}
+					<!-- ApexCharts cannot scale an axis without values. -->
+					<p
+						class="flex h-[220px] items-center justify-center text-sm text-gray-500 dark:text-gray-400"
+						data-no-values
+					>
+						No values for this period.
+					</p>
+				{:else if Chart}
 					<!-- Recreated on a theme toggle: a live chart switching theme mode takes ApexCharts' own colours. -->
 					{#key dark}<Chart options={options(panel)} />{/key}
 				{:else}

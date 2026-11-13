@@ -45,6 +45,47 @@ export function notModified(headers: Record<string, string> = {}): Response {
 	return new Response(null, { status: 304, headers });
 }
 
+/**
+ * `env` whose `HISTORY_DB` and `DB` push the `meta` of every `run()`/`all()` (rows read/written as D1
+ * bills them) onto `metas`.
+ */
+export function meteredEnv(metas: D1Meta[]): Env {
+	const statement = (s: D1PreparedStatement): D1PreparedStatement =>
+		new Proxy(s, {
+			get(target, key) {
+				if (key === 'bind') return (...values: unknown[]) => statement(target.bind(...values));
+				if (key === 'run' || key === 'all')
+					return async () => {
+						const result = await target[key]();
+						metas.push(result.meta);
+						return result;
+					};
+				const value: unknown = Reflect.get(target, key);
+				return typeof value === 'function' ? value.bind(target) : value;
+			}
+		});
+	const database = (db: D1Database): D1Database =>
+		new Proxy(db, {
+			get(target, key) {
+				if (key === 'prepare') return (query: string) => statement(target.prepare(query));
+				const value: unknown = Reflect.get(target, key);
+				return typeof value === 'function' ? value.bind(target) : value;
+			}
+		});
+	return Object.create(env, {
+		DB: { value: database(env.DB) },
+		HISTORY_DB: { value: database(env.HISTORY_DB) }
+	}) as Env;
+}
+
+/** Sum of `rows_read` and `rows_written` over `metas`. */
+export function rowCounts(metas: readonly D1Meta[]): { read: number; written: number } {
+	return {
+		read: metas.reduce((sum, m) => sum + m.rows_read, 0),
+		written: metas.reduce((sum, m) => sum + m.rows_written, 0)
+	};
+}
+
 /** Raw ESI market order (`system_id` omitted for structure markets). */
 export function order(
 	typeId: number,

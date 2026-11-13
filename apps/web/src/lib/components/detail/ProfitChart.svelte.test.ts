@@ -72,4 +72,20 @@ describe('ProfitChart', () => {
 		]);
 		expect(container.querySelector('[data-empty]')).toBeNull();
 	});
+
+	it('replaces a chart whose metric has no value on any day with a note', async () => {
+		const unpriced = series.map((p) => ({ ...p, profitPerSlotDay: null }));
+		const { container } = render(ProfitChart, { series: unpriced, loadChart });
+		await waitFor(() => expect(container.querySelectorAll('[data-chart-stub]')).toHaveLength(2));
+		const panels = [...container.querySelectorAll('[data-chart]')].map((c) => [
+			c.getAttribute('data-chart'),
+			c.querySelector('[data-chart-stub]') !== null,
+			c.querySelector('[data-no-values]') !== null
+		]);
+		expect(panels).toEqual([
+			['profitPerSlotDay', false, true],
+			['outputValue', true, false],
+			['inputCost', true, false]
+		]);
+	});
 });

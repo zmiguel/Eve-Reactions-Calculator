@@ -1,14 +1,19 @@
 import { introspectWorkflowInstance } from 'cloudflare:test';
 import { env } from 'cloudflare:workers';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { addDays } from '../src/dates.ts';
+import { writePrices } from '../src/prices.ts';
+import type { PriceRow } from '../src/prices.ts';
 import {
 	applyRetention,
 	pruneCoreTables,
+	recomputeMarketStats,
 	refreshRegionHistory,
+	rollupIndices,
 	rollupPrices
 } from '../src/workflows/daily.ts';
 import type { DailyResult } from '../src/workflows/daily.ts';
-import { installFetch, json, resetState, seedTrackedReaction } from './helpers.ts';
+import { installFetch, json, meteredEnv, resetState, rowCounts, seedTrackedReaction } from './helpers.ts';
 
 const HOUR = 3_600_000;
 
@@ -31,6 +36,15 @@ async function insertSnapshot(snapshotAt: number, hubId: string, typeId: number,
 	)
 		.bind(snapshotAt, hubId, typeId, buy, sell)
 		.run();
+}
+
+/** Deterministic pseudo-random numbers in (0, 1) (Park–Miller). */
+function random(seed: number): () => number {
+	let state = seed;
+	return () => {
+		state = (state * 48271) % 2147483647;
+		return state / 2147483647;
+	};
 }
 
 describe('DailyWorkflow steps', () => {
@@ -146,6 +160,188 @@ describe('DailyWorkflow steps', () => {
 		expect(await rollupPrices(env, '2026-10-05')).toBe(2);
 		const count = await env.HISTORY_DB.prepare('SELECT COUNT(*) AS n FROM price_daily').first();
 		expect(count).toEqual({ n: 2 });
+	});
+
+	it('rolls up change-only snapshots to what one row per pair and refresh gave', async () => {
+		// 48 refreshes of 3 hubs × 4 types; about 30 % of the pairs change per refresh, buy prices are
+		// sometimes missing, and amarr/36 is first refreshed at the 10th refresh (a hub enabled later).
+		const day = Date.UTC(2026, 9, 5);
+		const times = [
+			day - HOUR / 2,
+			...Array.from({ length: 48 }, (_, i) => day + i * (HOUR / 2) + 60_000),
+			day + 24 * HOUR
+		];
+		const next = random(42);
+		const current = new Map<string, { buy: number | null; sell: number }>();
+		const refreshes = times.map((at, i): { at: number; rows: PriceRow[] } => {
+			const rows: PriceRow[] = [];
+			for (const hubId of ['jita', 'amarr', 'rens'])
+				for (const typeId of [34, 35, 36, 37]) {
+					// times[0] is the previous day, so the 10th refresh of the day is times[10].
+					if (hubId === 'amarr' && typeId === 36 && i < 10) continue;
+					const key = `${hubId}/${typeId}`;
+					let value = current.get(key);
+					// rens/37 changes every time: every refresh stores some rows (production: 156 or more).
+					if (!value || next() < 0.3 || key === 'rens/37') {
+						value = {
+							buy: next() < 0.2 ? null : Math.round(next() * 1000) / 10,
+							sell: Math.round(next() * 1000) / 10 + 100
+						};
+						current.set(key, value);
+					}
+					rows.push({
+						hubId,
+						typeId,
+						source: 'esi',
+						aggregate: {
+							buyMax: value.buy,
+							sellMin: value.sell,
+							buyP5: null,
+							sellP5: null,
+							buyVolume: 1,
+							sellVolume: 1,
+							buyOrders: 1,
+							sellOrders: 1
+						}
+					});
+				}
+			return { at, rows };
+		});
+		const rollup = async () => {
+			const metas: D1Meta[] = [];
+			await rollupPrices(meteredEnv(metas), '2026-10-05');
+			const { results } = await env.HISTORY_DB.prepare(
+				'SELECT * FROM price_daily ORDER BY hub_id, type_id'
+			).all<Record<string, number | string | null>>();
+			const stored = await env.HISTORY_DB.prepare('SELECT COUNT(*) AS n FROM price_snapshots').first<{
+				n: number;
+			}>();
+			return { results, read: rowCounts(metas).read, stored: stored!.n };
+		};
+
+		// One row per pair and refresh, as stored before change-only snapshots.
+		for (const { at, rows } of refreshes)
+			await env.HISTORY_DB.batch(
+				rows.map((r) =>
+					env.HISTORY_DB.prepare(
+						`INSERT INTO price_snapshots (snapshot_at, hub_id, type_id, buy_max, sell_min, buy_volume, sell_volume, source)
+						VALUES (?, ?, ?, ?, ?, 1, 1, 'esi')`
+					).bind(at, r.hubId, r.typeId, r.aggregate.buyMax, r.aggregate.sellMin)
+				)
+			);
+		const dense = await rollup();
+
+		await resetState();
+		for (const { at, rows } of refreshes) await writePrices(env, rows, at);
+		const changeOnly = await rollup();
+
+		const exact = ({ buy_avg: _b, sell_avg: _s, ...rest }: Record<string, unknown>) => rest;
+		expect(dense.results).toHaveLength(12);
+		expect(changeOnly.results.map(exact)).toEqual(dense.results.map(exact));
+		for (const [i, row] of dense.results.entries()) {
+			const { buy_avg, sell_avg } = changeOnly.results[i]!;
+			if (row.buy_avg === null) expect(buy_avg).toBeNull();
+			else expect(buy_avg).toBeCloseTo(row.buy_avg as number, 9);
+			expect(sell_avg).toBeCloseTo(row.sell_avg as number, 9);
+		}
+		expect(dense.results.find((r) => r.hub_id === 'amarr' && r.type_id === 36)).toMatchObject({
+			samples: 39
+		});
+		// About one row read per stored row of the day, so change-only storage cuts the rollup's reads too.
+		expect(changeOnly.stored).toBeLessThan(dense.stored / 2);
+		expect(changeOnly.read).toBeLessThan(dense.read / 2);
+		expect(changeOnly.read).toBeLessThanOrEqual(changeOnly.stored);
+		// A re-run writes nothing.
+		const metas: D1Meta[] = [];
+		expect(await rollupPrices(meteredEnv(metas), '2026-10-05')).toBe(12);
+		expect(rowCounts(metas).written).toBe(0);
+	});
+
+	it('computes market_stats from each type’s last 30 days without scanning the region', async () => {
+		// 12 types with 400 days each (every 3rd day missing) in two regions.
+		const rows: [number, number, string, number, number, number, number, number][] = [];
+		for (const regionId of [10000002, 10000043])
+			for (let typeId = 100; typeId < 112; typeId++)
+				for (let d = 0; d < 400; d++) {
+					if ((d + typeId) % 3 === 0) continue;
+					const date = addDays('2026-01-01', d + (typeId % 4));
+					rows.push([regionId, typeId, date, typeId + d / 7, 1, 1, typeId * 10 + d, 1]);
+				}
+		for (let i = 0; i < rows.length; i += 500)
+			await env.HISTORY_DB.batch(
+				rows
+					.slice(i, i + 500)
+					.map((r) =>
+						env.HISTORY_DB.prepare('INSERT INTO esi_market_history VALUES (?, ?, ?, ?, ?, ?, ?, ?)').bind(
+							...r
+						)
+					)
+			);
+		const region = rows.filter((r) => r[0] === 10000002);
+		const expected = [...new Set(region.map((r) => r[1]))].map((typeId) => {
+			const own = region.filter((r) => r[1] === typeId);
+			const last = own.reduce((max, r) => (r[2] > max ? r[2] : max), '');
+			const window = (days: number) => own.filter((r) => r[2] > addDays(last, -days));
+			const mean = (list: typeof own) => list.reduce((sum, r) => sum + r[3], 0) / list.length;
+			return {
+				type_id: typeId,
+				avg_daily_volume_30d: window(30).reduce((sum, r) => sum + r[6], 0) / 30,
+				avg_daily_volume_7d: window(7).reduce((sum, r) => sum + r[6], 0) / 7,
+				avg_price_5d: mean(window(5)),
+				avg_price_30d: mean(window(30)),
+				last_date: last
+			};
+		});
+
+		const metas: D1Meta[] = [];
+		expect(await recomputeMarketStats(meteredEnv(metas), 10000002, 1)).toBe(12);
+		const { results } = await env.DB.prepare(
+			`SELECT type_id, avg_daily_volume_30d, avg_daily_volume_7d, avg_price_5d, avg_price_30d, last_date
+			FROM market_stats WHERE region_id = 10000002 ORDER BY type_id`
+		).all<Record<string, number | string>>();
+		expect(results).toHaveLength(12);
+		for (const [i, row] of results.entries())
+			for (const [key, value] of Object.entries(expected[i]!))
+				if (typeof value === 'number') expect(row[key]).toBeCloseTo(value, 9);
+				else expect(row[key]).toBe(value);
+		// metas[0] is the stats query: each type's last 30 days and a few probes, however long the
+		// history (the region scan read every row of the region and more).
+		expect(metas[0]!.rows_read).toBeLessThan(region.length / 5);
+	});
+
+	it('stores a cost index only when it differs from the system’s latest stored value', async () => {
+		const indices = (a: number, b: number) =>
+			env.DB.batch([
+				env.DB.prepare('DELETE FROM cost_indices'),
+				env.DB.prepare(
+					'INSERT INTO cost_indices (system_id, reaction, manufacturing, updated_at) VALUES (1, ?, 0, 1), (2, ?, 0, 1)'
+				).bind(a, b)
+			]);
+		const rollup = async (date: string) => {
+			const metas: D1Meta[] = [];
+			expect(await rollupIndices(meteredEnv(metas), date)).toEqual({ adjusted: 0, costIndices: 2 });
+			return rowCounts(metas).written;
+		};
+
+		await indices(0.1, 0.2);
+		expect(await rollup('2026-10-01')).toBe(2 * 2);
+		expect(await rollup('2026-10-02')).toBe(0);
+		await indices(0.1, 0.3);
+		expect(await rollup('2026-10-03')).toBe(2);
+		// A re-run of the same date writes nothing.
+		expect(await rollup('2026-10-03')).toBe(0);
+		// Back to an older value: a change from the latest row, so stored.
+		await indices(0.1, 0.2);
+		expect(await rollup('2026-10-04')).toBe(2);
+		const { results } = await env.HISTORY_DB.prepare(
+			'SELECT date, system_id AS id, reaction FROM cost_index_daily ORDER BY date, id'
+		).all();
+		expect(results).toEqual([
+			{ date: '2026-10-01', id: 1, reaction: 0.1 },
+			{ date: '2026-10-01', id: 2, reaction: 0.2 },
+			{ date: '2026-10-03', id: 2, reaction: 0.3 },
+			{ date: '2026-10-04', id: 2, reaction: 0.2 }
+		]);
 	});
 
 	it('retention deletes only fully archived and rolled-up days older than 90 days', async () => {

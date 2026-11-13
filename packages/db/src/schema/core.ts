@@ -238,28 +238,32 @@ export const userSessions = sqliteTable(
 	(t) => [index('user_sessions_user_id_idx').on(t.userId)]
 );
 
-export const characters = sqliteTable('characters', {
-	characterId: integer('character_id').primaryKey(),
-	userId: text('user_id')
-		.notNull()
-		.references(() => users.userId, { onDelete: 'cascade' }),
-	name: text('name').notNull(),
-	ownerHash: text('owner_hash').notNull(),
-	scopes: text('scopes').notNull().default(''),
-	refreshTokenEnc: text('refresh_token_enc'),
-	/** Client id of the EVE SSO app that issued `refresh_token_enc`; NULL = the deployment's primary app. */
-	ssoClientId: text('sso_client_id'),
-	tokenStatus: text('token_status').notNull().default('none'),
-	lastRefreshedAt: integer('last_refreshed_at'),
-	lastError: text('last_error'),
-	createdAt: integer('created_at').notNull(),
-	/** Corporation and alliance from ESI `/characters/affiliation` + `/universe/names` (updater, daily). */
-	corporationId: integer('corporation_id'),
-	corporationName: text('corporation_name'),
-	allianceId: integer('alliance_id'),
-	allianceName: text('alliance_name'),
-	affiliationUpdatedAt: integer('affiliation_updated_at')
-});
+export const characters = sqliteTable(
+	'characters',
+	{
+		characterId: integer('character_id').primaryKey(),
+		userId: text('user_id')
+			.notNull()
+			.references(() => users.userId, { onDelete: 'cascade' }),
+		name: text('name').notNull(),
+		ownerHash: text('owner_hash').notNull(),
+		scopes: text('scopes').notNull().default(''),
+		refreshTokenEnc: text('refresh_token_enc'),
+		/** Client id of the EVE SSO app that issued `refresh_token_enc`; NULL = the deployment's primary app. */
+		ssoClientId: text('sso_client_id'),
+		tokenStatus: text('token_status').notNull().default('none'),
+		lastRefreshedAt: integer('last_refreshed_at'),
+		lastError: text('last_error'),
+		createdAt: integer('created_at').notNull(),
+		/** Corporation and alliance from ESI `/characters/affiliation` + `/universe/names` (updater, daily). */
+		corporationId: integer('corporation_id'),
+		corporationName: text('corporation_name'),
+		allianceId: integer('alliance_id'),
+		allianceName: text('alliance_name'),
+		affiliationUpdatedAt: integer('affiliation_updated_at')
+	},
+	(t) => [index('characters_user_id_idx').on(t.userId)]
+);
 
 export const structureLinks = sqliteTable(
 	'structure_links',

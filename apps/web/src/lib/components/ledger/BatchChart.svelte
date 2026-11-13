@@ -1,7 +1,7 @@
 <script lang="ts">
 	import type { ChartProps } from '@flowbite-svelte-plugins/chart';
 	import type { Component } from 'svelte';
-	import { containTooltips } from '#lib/charts.js';
+	import { CHART_ANIMATIONS, containTooltips } from '#lib/charts.js';
 	import { formatIsk, formatIskAxis, formatIskFull, formatNumber, formatUtc } from '#lib/format.js';
 	import type { LedgerItemBatchPoint } from '#lib/ledger/types.js';
 	import { isDark } from '#lib/theme.svelte.js';
@@ -54,7 +54,8 @@
 				fontFamily: 'inherit',
 				background: 'transparent',
 				toolbar: { show: false },
-				zoom: { enabled: false }
+				zoom: { enabled: false },
+				animations: CHART_ANIMATIONS
 			},
 			theme: { mode: dark ? 'dark' : 'light' },
 			colors: ['#7c3aed'],

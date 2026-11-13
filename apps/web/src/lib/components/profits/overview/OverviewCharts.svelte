@@ -15,7 +15,7 @@
 <script lang="ts">
 	import type { ChartProps } from '@flowbite-svelte-plugins/chart';
 	import { onMount, type Component } from 'svelte';
-	import { containTooltips } from '#lib/charts.js';
+	import { CHART_ANIMATIONS, containTooltips } from '#lib/charts.js';
 	import { formatIsk, formatIskAxis, formatIskFull, formatPct } from '#lib/format.js';
 	import type { OverviewCharts } from '#lib/profits/types.js';
 	import { isDark } from '#lib/theme.svelte.js';
@@ -71,6 +71,7 @@
 				background: 'transparent',
 				toolbar: { show: false },
 				zoom: { enabled: false },
+				animations: CHART_ANIMATIONS,
 				foreColor: text
 			},
 			theme: { mode: dark ? 'dark' : 'light' },

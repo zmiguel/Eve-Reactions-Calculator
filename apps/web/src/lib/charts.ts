@@ -1,5 +1,13 @@
 import type { Attachment } from 'svelte/attachments';
 
+/**
+ * ApexCharts animations for every chart: the first draw animates, updates redraw at once. Animating an
+ * update morphs the old line into the new one, and on some series (the Input cost chart of Pure Improved
+ * Exile Booster when switching to Full chain) the morph writes an unreadable SVG path: the update
+ * throws "parser Error" and the chart keeps its old line.
+ */
+export const CHART_ANIMATIONS = { enabled: true, dynamicAnimation: { enabled: false } };
+
 /** Space kept between a chart tooltip and the edge of the screen, in px. */
 const EDGE = 8;
 

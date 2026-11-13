@@ -1,0 +1,1 @@
+CREATE INDEX `characters_user_id_idx` ON `characters` (`user_id`);

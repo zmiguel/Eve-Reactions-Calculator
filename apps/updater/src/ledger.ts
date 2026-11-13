@@ -124,23 +124,50 @@ const LOADING_SQL = `UPDATE ledger_state SET dirty = ${DIRTY_LOADING} WHERE user
  */
 const CURRENT_SQL = 'NOT EXISTS (SELECT 1 FROM ledger_state WHERE user_id = ?1 AND rebuilt_at > ?2)';
 
-const RESULT_TABLES = [
-	'ledger_lots',
-	'ledger_uses',
-	'job_results',
-	'ledger_prices',
-	'ledger_unallocated_fees'
-] as const;
+/** Result tables with the columns that identify a row of a user (after `user_id`, the primary key). */
+const RESULT_TABLES = {
+	ledger_lots: { columns: LEDGER_LOT_COLUMNS, keys: ['lot_id'] },
+	ledger_uses: { columns: LEDGER_USE_COLUMNS, keys: ['lot_id', 'use_kind', 'use_ref'] },
+	job_results: { columns: JOB_RESULT_COLUMNS, keys: ['job_id'] },
+	ledger_prices: { columns: LEDGER_PRICE_COLUMNS, keys: ['ref', 'type_id', 'incoming'] },
+	ledger_unallocated_fees: { columns: UNALLOCATED_FEE_COLUMNS, keys: ['ref_id'] }
+} as const satisfies Record<string, { columns: readonly string[]; keys: readonly string[] }>;
+
+type ResultTable = keyof typeof RESULT_TABLES;
 
 /**
- * `INSERT INTO <table> (user_id, …) SELECT ?1, … FROM json_each(?3)` while `CURRENT_SQL` holds: row `i`
- * is an array in `columns` order.
+ * Stores rows of the rebuild while `CURRENT_SQL` holds (`?3`: JSON array of rows in `columns` order):
+ * new rows are inserted, and a row already stored is rewritten only when a value differs. D1 bills
+ * every row written, and most rebuilds change few rows, so an unchanged row costs nothing.
  */
-function insertSql(table: string, columns: readonly string[]): string {
+function upsertSql(table: ResultTable): string {
+	const { columns, keys } = RESULT_TABLES[table];
 	const values = columns.map((_, i) => `json_extract(value, '$[${i}]')`).join(', ');
+	const others = columns.filter((c) => !(keys as readonly string[]).includes(c));
 	return `INSERT INTO ${table} (user_id, ${columns.join(', ')}) SELECT ?1, ${values} FROM json_each(?3)
-		WHERE ${CURRENT_SQL}`;
+		WHERE ${CURRENT_SQL}
+		ON CONFLICT (user_id, ${keys.join(', ')}) DO UPDATE SET ${others.map((c) => `${c} = excluded.${c}`).join(', ')}
+		WHERE ${others.map((c) => `${table}.${c} IS NOT excluded.${c}`).join(' OR ')}`;
 }
+
+/**
+ * Deletes the user's rows whose key is not in the rebuild while `CURRENT_SQL` holds (`?3`: JSON array
+ * of key tuples). Both sides render a key with `json_array` over the values `json_extract` gives, so
+ * they compare equal exactly when the stored row has that key (a JSON `true` is stored as 1 on both).
+ */
+function deleteMissingSql(table: ResultTable): string {
+	const { keys } = RESULT_TABLES[table];
+	const incoming = keys.map((_, i) => `json_extract(value, '$[${i}]')`).join(', ');
+	return `DELETE FROM ${table} WHERE user_id = ?1 AND ${CURRENT_SQL}
+		AND json_array(${keys.join(', ')}) NOT IN (SELECT json_array(${incoming}) FROM json_each(?3))`;
+}
+
+const UPSERT_SQL = Object.fromEntries(
+	Object.keys(RESULT_TABLES).map((t) => [t, upsertSql(t as ResultTable)])
+) as Record<ResultTable, string>;
+const DELETE_MISSING_SQL = Object.fromEntries(
+	Object.keys(RESULT_TABLES).map((t) => [t, deleteMissingSql(t as ResultTable)])
+) as Record<ResultTable, string>;
 
 /**
  * Stores the rebuild of `?2` unless a later one already did (`rebuilt_at` = when its rows were loaded);
@@ -152,23 +179,15 @@ const STATE_SQL = `
 		dirty = CASE WHEN ledger_state.dirty = ${DIRTY_LOADING} THEN 0 ELSE ledger_state.dirty END
 	WHERE ledger_state.rebuilt_at IS NULL OR ledger_state.rebuilt_at <= excluded.rebuilt_at`;
 
-const INSERT_SQL = {
-	ledger_lots: insertSql('ledger_lots', LEDGER_LOT_COLUMNS),
-	ledger_uses: insertSql('ledger_uses', LEDGER_USE_COLUMNS),
-	job_results: insertSql('job_results', JOB_RESULT_COLUMNS),
-	ledger_prices: insertSql('ledger_prices', LEDGER_PRICE_COLUMNS),
-	ledger_unallocated_fees: insertSql('ledger_unallocated_fees', UNALLOCATED_FEE_COLUMNS)
-} as const;
-
 /**
- * Rebuilds one user's ledger from scratch: loads the raw rows of the user's connections with Profit
- * tracking on (reaction, fuel block and manufacturing jobs), the manual purchases, the corrections and both
+ * Rebuilds one user's ledger: loads the raw rows of the user's connections with Profit tracking on
+ * (reaction, fuel block and manufacturing jobs), the manual purchases, the corrections and both
  * settings, runs the engine (`runLedger`) with reference and buy prices of the contract rule's hub,
- * then, in one transaction, replaces the user's `ledger_lots`, `ledger_uses`, `job_results`,
- * `ledger_prices` and `ledger_unallocated_fees` and updates `ledger_state` (`STATE_SQL`). `now` is
- * when the rows are loaded (the stored `rebuilt_at`): overlapping rebuilds of one user keep the results
- * of the one that loaded last. Every query is scoped to `userId`. Throws when the user does not exist
- * or no SDE dataset is published.
+ * then, in one transaction, makes the user's `ledger_lots`, `ledger_uses`, `job_results`,
+ * `ledger_prices` and `ledger_unallocated_fees` equal to the result (writing only the rows that
+ * differ) and updates `ledger_state` (`STATE_SQL`). `now` is when the rows are loaded (the stored
+ * `rebuilt_at`): overlapping rebuilds of one user keep the results of the one that loaded last. Every
+ * query is scoped to `userId`. Throws when the user does not exist or no SDE dataset is published.
  */
 export async function rebuildLedger(env: Env, userId: string, now: number): Promise<LedgerRebuildSummary> {
 	const db = env.DB;
@@ -246,22 +265,27 @@ export async function rebuildLedger(env: Env, userId: string, now: number): Prom
 		})
 	);
 	const out = ledgerResultRows(result);
-	const tableRows: Record<(typeof RESULT_TABLES)[number], SqlValue[][]> = {
+	const tableRows: Record<ResultTable, SqlValue[][]> = {
 		ledger_lots: out.lots,
 		ledger_uses: out.uses,
 		job_results: out.jobs,
 		ledger_prices: out.prices,
 		ledger_unallocated_fees: out.unallocatedFees
 	};
-	const statements: D1PreparedStatement[] = RESULT_TABLES.map((table) =>
-		db.prepare(`DELETE FROM ${table} WHERE user_id = ?1 AND ${CURRENT_SQL}`).bind(userId, now)
-	);
-	for (const table of RESULT_TABLES) {
+	const statements: D1PreparedStatement[] = [];
+	for (const table of Object.keys(RESULT_TABLES) as ResultTable[]) {
+		const { columns, keys } = RESULT_TABLES[table];
 		const list = tableRows[table];
+		const keyAt = keys.map((k) => (columns as readonly string[]).indexOf(k));
+		statements.push(
+			db
+				.prepare(DELETE_MISSING_SQL[table])
+				.bind(userId, now, JSON.stringify(list.map((row) => keyAt.map((i) => row[i]))))
+		);
 		for (let i = 0; i < list.length; i += INSERT_ROWS_PER_STATEMENT) {
 			statements.push(
 				db
-					.prepare(INSERT_SQL[table])
+					.prepare(UPSERT_SQL[table])
 					.bind(userId, now, JSON.stringify(list.slice(i, i + INSERT_ROWS_PER_STATEMENT)))
 			);
 		}

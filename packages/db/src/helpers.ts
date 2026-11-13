@@ -1,4 +1,4 @@
-import { getTableColumns, sql } from 'drizzle-orm';
+import { getTableColumns, getTableName, sql } from 'drizzle-orm';
 import type { SQL } from 'drizzle-orm';
 import { drizzle } from 'drizzle-orm/d1';
 import type { DrizzleD1Database } from 'drizzle-orm/d1';
@@ -42,13 +42,18 @@ export async function retryWrite<T>(write: () => Promise<T>, retries = 2, delayM
 	}
 }
 
-/** Batched, chunked INSERT … ON CONFLICT DO UPDATE SET col = excluded.col. */
+/**
+ * Batched, chunked INSERT … ON CONFLICT DO UPDATE SET col = excluded.col, only for rows where a set column
+ * other than `untracked` changed: D1 bills an unchanged row rewritten by a plain upsert as written.
+ * `untracked` columns (refresh times) are still set whenever the row is rewritten.
+ */
 export async function upsertMany<TTable extends SQLiteTable>(
 	db: AnyD1Db | CoreDb | HistoryDb,
 	table: TTable,
 	rows: TTable['$inferInsert'][],
 	conflictTarget: SQLiteColumn[],
-	setColumns: SQLiteColumn[]
+	setColumns: SQLiteColumn[],
+	untracked: SQLiteColumn[] = []
 ): Promise<void> {
 	if (rows.length === 0) return;
 	const columnCount = Object.keys(getTableColumns(table)).length;
@@ -59,11 +64,16 @@ export async function upsertMany<TTable extends SQLiteTable>(
 		if (!key) throw new Error(`Column ${col.name} is not part of the table`);
 		set[key] = sql.raw(`excluded."${col.name}"`);
 	}
+	const tableName = getTableName(table);
+	const changed = setColumns
+		.filter((col) => !untracked.includes(col))
+		.map((col) => `"${tableName}"."${col.name}" IS NOT excluded."${col.name}"`);
+	const setWhere = changed.length > 0 ? sql.raw(changed.join(' OR ')) : undefined;
 	const statements = chunkRows(rows, columnCount).map((chunk) =>
 		db
 			.insert(table)
 			.values(chunk)
-			.onConflictDoUpdate({ target: conflictTarget, set: set as never })
+			.onConflictDoUpdate({ target: conflictTarget, set: set as never, setWhere })
 	);
 	const [first, ...rest] = statements;
 	await db.batch([first!, ...rest]);

@@ -169,7 +169,7 @@ const errorBody = (description: string, example: unknown) => ({
  * documented change of results, major only with a new path (`/api/v3`). Bump it in the release that changes the
  * API and name it in that release's CHANGELOG "API v2" section.
  */
-export const API_VERSION = '2.4.0';
+export const API_VERSION = '2.4.1';
 
 const INFO_DESCRIPTION = `Live reaction profits, recipes and market prices of the [EVE Reactions Calculator](${SITE_URL}).
 
@@ -337,7 +337,8 @@ export const openapi = {
 				operationId: 'getCostIndices',
 				tags: ['Market'],
 				summary: 'Reaction cost indices',
-				description: 'Current reaction cost index of up to 100 systems (systems without one are left out).',
+				description:
+					'Current reaction cost index of up to 100 systems (systems without one are left out). updatedAt is the latest cost index refresh, the same for every row.',
 				parameters: params(CostIndicesQuery.parameters),
 				responses: {
 					'200': ok('Cost indices', list('CostIndex'), 'short', {

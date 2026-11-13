@@ -17,6 +17,8 @@ import type { RecordedCall } from './helpers.ts';
 const STRUCTURE = 1042508032148;
 const HUB = `structure-${STRUCTURE}`;
 const DAY = 86_400_000;
+/** Types tracked after `seedTrackedReaction`. */
+const TRACKED = [4312, 16643, 16647, 16663, 46166];
 
 async function seedStructureHub(hubId: string, locationId: number, visibility: 'public' | 'private') {
 	await env.DB.prepare(
@@ -148,7 +150,7 @@ describe('PriceRefreshWorkflow structure step', () => {
 			{ 'at-2': structureOrders() }
 		);
 
-		const counts = await refreshStructureHub(env, HUB, 5000);
+		const counts = await refreshStructureHub(env, HUB, 5000, TRACKED);
 
 		expect(counts).toEqual({
 			hubId: HUB,
@@ -191,7 +193,7 @@ describe('PriceRefreshWorkflow structure step', () => {
 			{ 'at-1': 'forbidden', 'at-2': structureOrders() }
 		);
 
-		const counts = await refreshStructureHub(env, HUB, 5000);
+		const counts = await refreshStructureHub(env, HUB, 5000, TRACKED);
 
 		expect(counts.source).toBe('esi_structure');
 		expect(marketCalls(calls)).toEqual(['Bearer at-1', 'Bearer at-2']);
@@ -214,7 +216,7 @@ describe('PriceRefreshWorkflow structure step', () => {
 			{ 'at-1': structureOrders(), 'at-2': structureOrders() }
 		);
 
-		const counts = await refreshStructureHub(env, HUB, 5000);
+		const counts = await refreshStructureHub(env, HUB, 5000, TRACKED);
 
 		expect(counts).toMatchObject({ candidates: 1, source: 'esi_structure' });
 		expect(ssoCalls(calls)).toEqual(['rt-2']);
@@ -226,7 +228,7 @@ describe('PriceRefreshWorkflow structure step', () => {
 		await seedLink('u1', 1001, 'rt-1', 200);
 		installEve({ 'rt-1': { access: 'at-1', refresh: 'rt-1b' } }, { 'at-1': structureOrders() });
 
-		await refreshStructureHub(env, HUB, 5000);
+		await refreshStructureHub(env, HUB, 5000, TRACKED);
 
 		const stored = (await character(1001))!.refresh_token_enc;
 		expect(await decryptToken(stored, env.TOKEN_ENCRYPTION_KEY)).toBe('rt-1b');
@@ -243,7 +245,7 @@ describe('PriceRefreshWorkflow structure step', () => {
 			{ 'at-1': 'forbidden', 'at-2': structureOrders() }
 		);
 
-		const counts = await refreshStructureHub(env, HUB, 5000);
+		const counts = await refreshStructureHub(env, HUB, 5000, TRACKED);
 
 		expect(counts.source).toBe('esi_structure');
 		const basicAuth = calls
@@ -265,7 +267,7 @@ describe('PriceRefreshWorkflow structure step', () => {
 			{ 'at-1': structureOrders(), 'at-2': structureOrders() }
 		);
 
-		const counts = await refreshStructureHub(env, HUB, 5000);
+		const counts = await refreshStructureHub(env, HUB, 5000, TRACKED);
 
 		expect(counts).toMatchObject({ candidates: 2, source: 'esi_structure' });
 		expect(ssoCalls(calls)).toEqual(['rt-2']);
@@ -280,7 +282,7 @@ describe('PriceRefreshWorkflow structure step', () => {
 		await seedLink('u2', 1002, 'rt-2', 100);
 		const calls = installEve({}, {});
 
-		const counts = await refreshStructureHub(env, HUB, 5000);
+		const counts = await refreshStructureHub(env, HUB, 5000, TRACKED);
 
 		expect(counts).toMatchObject({ source: 'fuzzwork', esi: 0, fuzzwork: 5, missing: 0 });
 		expect(marketCalls(calls)).toEqual([]);
@@ -308,7 +310,7 @@ describe('PriceRefreshWorkflow structure step', () => {
 			.run();
 		const calls = installEve({}, {});
 
-		const counts = await refreshStructureHub(env, HUB, 5000);
+		const counts = await refreshStructureHub(env, HUB, 5000, TRACKED);
 
 		expect(counts).toEqual({ hubId: HUB, candidates: 1, source: null, esi: 0, fuzzwork: 0, missing: 5 });
 		expect(calls.filter((c) => c.url.startsWith('https://market.fuzzwork.co.uk/'))).toEqual([]);
@@ -322,7 +324,7 @@ describe('PriceRefreshWorkflow structure step', () => {
 
 	it('treats a hub deleted after the plan step as nothing to refresh, not a failure', async () => {
 		const calls = installEve({}, {});
-		expect(await refreshStructureHub(env, 'structure-404', 5000)).toEqual({
+		expect(await refreshStructureHub(env, 'structure-404', 5000, TRACKED)).toEqual({
 			hubId: 'structure-404',
 			candidates: 0,
 			source: null,

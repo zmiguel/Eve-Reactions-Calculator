@@ -6,8 +6,9 @@ import { utcDate } from '../dates.ts';
 import { httpFetch, userAgent } from '../http.ts';
 import { errorMessage, failJobRun, finishJobRun, startJobRun } from '../jobs.ts';
 import { forEachConcurrent } from '../pool.ts';
+import { jsonInsertSql, upsertClause } from '../prices.ts';
 import { StepTracker } from '../progress.ts';
-import { HISTORY_SQL, historyRows, historyTypeIds, planDaily, recomputeMarketStats } from './daily.ts';
+import { historyRows, historyTypeIds, planDaily, recomputeMarketStats } from './daily.ts';
 
 export interface BackfillChunk {
 	types: number;
@@ -27,11 +28,36 @@ export interface BackfillResult {
 	stats: number;
 }
 
+/** Columns of `historyRows` rows. */
+const BACKFILL_COLUMNS = [
+	'region_id',
+	'type_id',
+	'date',
+	'average',
+	'highest',
+	'lowest',
+	'volume',
+	'order_count'
+];
+
+/** Mirror days: new ones inserted, a stored day rewritten only when a value differs. */
+const BACKFILL_SQL = jsonInsertSql(
+	'esi_market_history',
+	BACKFILL_COLUMNS,
+	upsertClause('esi_market_history', BACKFILL_COLUMNS, ['region_id', 'type_id', 'date'])
+);
+
+/** Stored days of region `?1`/type `?2` from `?3` to `?4` the mirror did not return (`?5`: JSON array of dates). */
+const REMOVE_MISSING_DAYS_SQL = `
+	DELETE FROM esi_market_history WHERE region_id = ?1 AND type_id = ?2 AND date >= ?3 AND date <= ?4
+		AND date NOT IN (SELECT value FROM json_each(?5))`;
+
 /**
  * Replaces the stored `esi_market_history` of `typeIds` in `regionIds` with the market.coalition.space
  * mirror (one request per type covers every region, days from `MIRROR_HISTORY_START` up to `today`).
- * Per region/type only the dates the mirror returned are replaced; regions the mirror has no data for
- * keep their rows (the daily ESI job keeps filling them).
+ * Per region/type only the dates between the mirror's first and last day are replaced: stored days it
+ * did not return are deleted, the others upserted (an unchanged day writes nothing); regions the mirror
+ * has no data for keep their rows (the daily ESI job keeps filling them).
  */
 export async function backfillTypes(
 	env: Env,
@@ -59,10 +85,14 @@ export async function backfillTypes(
 			if (!regions.has(regionId) || days.length === 0) continue;
 			const dates = days.map((d) => d.date).sort();
 			statements.push(
-				env.HISTORY_DB.prepare(
-					'DELETE FROM esi_market_history WHERE region_id = ? AND type_id = ? AND date >= ? AND date <= ?'
-				).bind(regionId, typeId, dates[0], dates.at(-1)),
-				env.HISTORY_DB.prepare(HISTORY_SQL).bind(JSON.stringify(historyRows(regionId, typeId, days)))
+				env.HISTORY_DB.prepare(REMOVE_MISSING_DAYS_SQL).bind(
+					regionId,
+					typeId,
+					dates[0],
+					dates.at(-1),
+					JSON.stringify(dates)
+				),
+				env.HISTORY_DB.prepare(BACKFILL_SQL).bind(JSON.stringify(historyRows(regionId, typeId, days)))
 			);
 			series++;
 			rows += days.length;

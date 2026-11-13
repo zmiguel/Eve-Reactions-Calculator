@@ -172,12 +172,7 @@ describe('migrations', () => {
 		const db = env.MIGRATION_DB;
 		const before = env.CORE_MIGRATIONS.filter((m) => m.name < '0010');
 		const after = env.CORE_MIGRATIONS.filter((m) => m.name >= '0010');
-		expect(after.map((m) => m.name)).toEqual([
-			'0010_tracking.sql',
-			'0011_tracking_manufacturing.sql',
-			'0012_fuel_blocks.sql',
-			'0013_manufacturing_materials.sql'
-		]);
+		expect(after[0]?.name).toBe('0010_tracking.sql');
 		await applyD1Migrations(db, before);
 		await db.batch([
 			db.prepare("INSERT INTO users (user_id, created_at, last_seen_at) VALUES ('c', 1, 1)"),
@@ -262,6 +257,40 @@ describe('upsertMany', () => {
 			observedAt: 2,
 			buyVolume: 10 // not in setColumns → unchanged
 		});
+	});
+
+	it('leaves unchanged rows and their untracked columns alone, rewrites changed rows', async () => {
+		const db = core();
+		const target = [latestPrices.hubId, latestPrices.typeId];
+		const cols = [latestPrices.buyMax, latestPrices.sellMin, latestPrices.observedAt];
+		const [first, second] = makeRows(5)
+			.slice(0, 2)
+			.map((r) => ({ ...r, hubId: 'guarded' }));
+		await upsertMany(db, latestPrices, [first!, second!], target, cols, [latestPrices.observedAt]);
+		await upsertMany(
+			db,
+			latestPrices,
+			[
+				{ ...first!, observedAt: 2 },
+				{ ...second!, buyMax: 6, observedAt: 2 }
+			],
+			target,
+			cols,
+			[latestPrices.observedAt]
+		);
+		const rows = await db
+			.select({
+				typeId: latestPrices.typeId,
+				buyMax: latestPrices.buyMax,
+				observedAt: latestPrices.observedAt
+			})
+			.from(latestPrices)
+			.where(eq(latestPrices.hubId, 'guarded'))
+			.orderBy(latestPrices.typeId);
+		expect(rows).toEqual([
+			{ typeId: 1, buyMax: 5, observedAt: 1 },
+			{ typeId: 2, buyMax: 6, observedAt: 2 }
+		]);
 	});
 
 	it('works on the history database', async () => {

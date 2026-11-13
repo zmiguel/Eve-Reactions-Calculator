@@ -55,7 +55,7 @@ import { errorMessage } from '../jobs.ts';
 import { forEachConcurrent } from '../pool.ts';
 import { jsonInsertSql } from '../prices.ts';
 import { StepTracker } from '../progress.ts';
-import { refreshCharacterToken } from '../tokens.ts';
+import { refreshCharacterToken, withRunTokens } from '../tokens.ts';
 import type { AccessTokenResult, StoredToken } from '../tokens.ts';
 
 export interface InventorySyncParams {
@@ -133,13 +133,24 @@ interface Reader extends StoredToken {
 	tokenStatus: string;
 }
 
-const ITEMS_SQL = jsonInsertSql('inventory_items', [
-	'source_id',
-	'location_id',
-	'bucket',
-	'type_id',
-	'quantity'
-]);
+/** Items of a sync: new rows inserted, a stored row rewritten only when its quantity changed. */
+const ITEMS_SQL = jsonInsertSql(
+	'inventory_items',
+	['source_id', 'location_id', 'bucket', 'type_id', 'quantity'],
+	`ON CONFLICT (source_id, location_id, bucket, type_id) DO UPDATE SET quantity = excluded.quantity
+	WHERE inventory_items.quantity IS NOT excluded.quantity`
+);
+
+/**
+ * Items of source `?1` not in the sync (`?2`: JSON array of `[location_id, bucket, type_id]`). Both sides
+ * render the key with `json_array` over stored and `json_extract`ed values, so they compare equal
+ * exactly when the stored row has that key.
+ */
+const REMOVE_ITEMS_SQL = `
+	DELETE FROM inventory_items WHERE source_id = ?1
+		AND json_array(location_id, bucket, type_id) NOT IN (
+			SELECT json_array(json_extract(value, '$[0]'), json_extract(value, '$[1]'), json_extract(value, '$[2]'))
+			FROM json_each(?2))`;
 
 /** Named locations keep their stored kind, name and system; unnamed ones take this sync's lookup. */
 const LOCATIONS_SQL = jsonInsertSql(
@@ -148,7 +159,10 @@ const LOCATIONS_SQL = jsonInsertSql(
 	`ON CONFLICT (source_id, location_id) DO UPDATE SET
 		kind = CASE WHEN inventory_locations.name IS NULL THEN excluded.kind ELSE inventory_locations.kind END,
 		name = COALESCE(inventory_locations.name, excluded.name),
-		system_id = COALESCE(inventory_locations.system_id, excluded.system_id)`
+		system_id = COALESCE(inventory_locations.system_id, excluded.system_id)
+	WHERE (inventory_locations.name IS NULL
+			AND (excluded.name IS NOT NULL OR inventory_locations.kind IS NOT excluded.kind))
+		OR (inventory_locations.system_id IS NULL AND excluded.system_id IS NOT NULL)`
 );
 
 /** Locations of source `?1` that are not in the assets (`?2`, JSON array of ids) and have no selection. */
@@ -325,8 +339,8 @@ async function endSync(
  * A fresh access token of `reader`; a character already `token_status <> 'ok'` is invalid without asking
  * SSO.
  */
-function readerToken(env: Env, reader: Reader): Promise<AccessTokenResult> {
-	if (reader.tokenStatus === 'ok') return refreshCharacterToken(env, reader);
+function readerToken(env: Env, reader: Reader, runId: string): Promise<AccessTokenResult> {
+	if (reader.tokenStatus === 'ok') return refreshCharacterToken(env, reader, runId);
 	return Promise.resolve({ ok: false, invalid: true, message: TOKEN_ERROR_REVOKED });
 }
 
@@ -335,7 +349,7 @@ function readerToken(env: Env, reader: Reader): Promise<AccessTokenResult> {
  * sync as `error` (`NonRetryableError`); other refresh failures throw so the step retries.
  */
 async function accessToken(env: Env, source: SyncSource, reader: Reader, runId: string): Promise<string> {
-	const token = await readerToken(env, reader);
+	const token = await readerToken(env, reader, runId);
 	if (token.ok) return token.accessToken;
 	if (!token.invalid) throw new Error(token.message);
 	const message = `${reader.name}: ${token.message}`;
@@ -479,7 +493,7 @@ async function readCorporationPage(
 			notes.push(`${reader.name} is not in the corporation`);
 			continue;
 		}
-		const token = await readerToken(env, reader);
+		const token = await readerToken(env, reader, runId);
 		if (!token.ok) {
 			notes.push(
 				token.invalid
@@ -764,7 +778,10 @@ export async function writeInventory(
 	const itemRows = resolved.items.map((i) => [sourceId, i.locationId, i.bucket, i.typeId, i.quantity]);
 	const divisions = names.divisions && JSON.stringify(names.divisions);
 	const results = await env.DB.batch([
-		env.DB.prepare('DELETE FROM inventory_items WHERE source_id = ?').bind(sourceId),
+		env.DB.prepare(REMOVE_ITEMS_SQL).bind(
+			sourceId,
+			JSON.stringify(resolved.items.map((i) => [i.locationId, i.bucket, i.typeId]))
+		),
 		env.DB.prepare(ITEMS_SQL).bind(JSON.stringify(itemRows)),
 		env.DB.prepare(LOCATIONS_SQL).bind(JSON.stringify(locationRows)),
 		env.DB.prepare(REMOVE_LOCATIONS_SQL).bind(
@@ -805,7 +822,14 @@ export async function writeInventory(
  * sync as `error` with the previous items kept. Not a `job_runs` row: the outcome lives on the source.
  */
 export class InventorySyncWorkflow extends WorkflowEntrypoint<Env, InventorySyncParams> {
-	override async run(
+	override run(
+		event: Readonly<WorkflowEvent<InventorySyncParams>>,
+		step: WorkflowStep
+	): Promise<InventorySyncResult> {
+		return withRunTokens(event.instanceId, () => this.sync(event, step));
+	}
+
+	private async sync(
 		event: Readonly<WorkflowEvent<InventorySyncParams>>,
 		step: WorkflowStep
 	): Promise<InventorySyncResult> {

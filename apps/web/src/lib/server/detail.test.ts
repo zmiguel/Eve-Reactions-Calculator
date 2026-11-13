@@ -359,6 +359,26 @@ describe('loadDetail', () => {
 		expect((await detail(env, '/composite/caesarium-cadmide?bought=-4')).timing.days).toBe(0);
 	});
 
+	it('price timing prices inputs from their latest refresh rows, dated by them', async () => {
+		const env = await seeded();
+		const now = await detail(env, '/composite/caesarium-cadmide?bought=1');
+		const at = NOW - DAY - 3_600_000;
+		const stmt = env.HISTORY_DB.sqlite.prepare(
+			`INSERT INTO price_snapshots (snapshot_at, hub_id, type_id, buy_max, sell_min, buy_volume, sell_volume, source)
+			VALUES (?, ?, ?, ?, ?, 1, 1, 'esi')`
+		);
+		for (const input of now.result.inputs) stmt.run(at, 'jita', input.typeId, 1000, 1100);
+		// A later refresh changed only types and hubs this reaction does not use.
+		stmt.run(at + 1_800_000, 'jita', 34, 1, 1);
+		stmt.run(at + 1_800_000, 'amarr', now.result.inputs[0]!.typeId, 1, 1);
+
+		const data = await detail(env, '/composite/caesarium-cadmide?bought=1');
+		const quantity = data.result.inputs.reduce((a, i) => a + i.quantity, 0);
+		expect(data.timing.asOf).toBe(new Date(at).toISOString());
+		expect(data.timing.approximate).toBe(false);
+		expect(data.timing.then.inputCost).toBeCloseTo(quantity * 1000, 6);
+	});
+
 	it('flags an approximate historical book (ESI history fallback)', async () => {
 		const env = await seeded();
 		env.HISTORY_DB.sqlite.exec(

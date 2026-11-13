@@ -28,6 +28,7 @@ import {
 	SERIES_RANGES,
 	getProfitSeries,
 	getVolumeSeries,
+	relevantTypes,
 	type SeriesPoint,
 	type SeriesRange,
 	type VolumePoint
@@ -271,8 +272,17 @@ export async function loadDetail(
 	const days = query.bought ?? defaultDays;
 	const outputRegion =
 		calc.hubs.find((h) => h.hubId === ctx.profiles[reaction.reactor].market.outputHub)?.regionId ?? null;
+	// The past calculation only swaps the input prices: look up just this reaction's types at its input hubs.
+	const priced = relevantTypes(reaction, ctx, sameJobs);
 	const [historical, series, volumePoints, regionRow] = await Promise.all([
-		getPriceBookNear(env, now - days * DAY_MS, calc.hubs, dataset, calc.market.adjusted),
+		getPriceBookNear(
+			env,
+			now - days * DAY_MS,
+			calc.hubs.filter((h) => priced.inputHubs.has(h.hubId)),
+			priced.types,
+			dataset,
+			calc.market.adjusted
+		),
 		getProfitSeries(env, reaction, ctx, query.range, {
 			...sameJobs,
 			now,

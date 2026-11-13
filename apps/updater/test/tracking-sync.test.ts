@@ -356,7 +356,7 @@ describe('TrackingSyncWorkflow', () => {
 
 		const output = await runSync('tracking-1-1', 1);
 
-		expect(output).toMatchObject({ ok: true, status: 'ok', ledgerRebuilt: true });
+		expect(output).toMatchObject({ ok: true, status: 'ok', ledger: 'rebuilt' });
 		expect(
 			await rows(
 				'SELECT transaction_id, division, is_personal FROM tracked_transactions ORDER BY transaction_id'
@@ -748,7 +748,7 @@ describe('TrackingSyncWorkflow', () => {
 			};
 			const calls = installEve(state);
 
-			expect(await runSync('tracking-1-1', 1)).toMatchObject({ ok: true, status: 'ok', ledgerRebuilt: true });
+			expect(await runSync('tracking-1-1', 1)).toMatchObject({ ok: true, status: 'ok', ledger: 'rebuilt' });
 
 			// The delivered job's blueprint is not wanted (only installed blueprints are read).
 			expect(await jobsOf()).toEqual([
@@ -784,7 +784,7 @@ describe('TrackingSyncWorkflow', () => {
 			};
 			installEve(state);
 
-			expect(await runSync('tracking-1-1', 1)).toMatchObject({ ok: true, status: 'ok', ledgerRebuilt: true });
+			expect(await runSync('tracking-1-1', 1)).toMatchObject({ ok: true, status: 'ok', ledger: 'rebuilt' });
 
 			expect(await jobsOf()).toEqual([
 				{ job_id: 6, activity_id: 1, blueprint_id: 9006, blueprint_me: 9, status: 'active' },
@@ -819,7 +819,7 @@ describe('TrackingSyncWorkflow', () => {
 			};
 			installEve(state);
 
-			expect(await runSync('tracking-1-1', 1)).toMatchObject({ ok: true, status: 'ok', ledgerRebuilt: true });
+			expect(await runSync('tracking-1-1', 1)).toMatchObject({ ok: true, status: 'ok', ledger: 'rebuilt' });
 
 			expect(await jobsOf()).toEqual([
 				{ job_id: 8, activity_id: 1, blueprint_id: 9008, blueprint_me: 10, status: 'active' }
@@ -1188,5 +1188,137 @@ describe('setContractJanice', () => {
 		installJanice([], ['XyZ789']);
 		expect(await setContractJanice(keyed(), 'u1', 701, 'XyZ789')).toEqual({ error: 'failed' });
 		expect(await contract701()).toEqual({ janice_code: 'AbC123', janice_json: null });
+	});
+});
+
+describe('tracking ledger step', () => {
+	beforeEach(async () => {
+		await resetState();
+		await env.CACHE.put(DATASET_KV_KEY, JSON.stringify(DATASET));
+	});
+	afterEach(() => vi.unstubAllGlobals());
+
+	const ledgerState = () =>
+		env.DB.prepare('SELECT rebuilt_at, dirty FROM ledger_state WHERE user_id = ?')
+			.bind('u1')
+			.first<{ rebuilt_at: number; dirty: number }>();
+	const expireStreams = () =>
+		env.DB.prepare('UPDATE tracking_streams SET expires_at = 0 WHERE source_id = 1').run();
+
+	/** A first sync (rebuilds: no ledger yet), then every stream due again. */
+	async function synced(state: EveState) {
+		await seedConnection(1, 'u1', 'character');
+		installEve(state);
+		expect(await runSync('tracking-1-1', 1)).toMatchObject({ ok: true, status: 'ok', ledger: 'rebuilt' });
+		await expireStreams();
+	}
+
+	it('D1 reports no change for an existing row under ON CONFLICT DO NOTHING or a guarded no-op upsert', async () => {
+		await seedConnection(1, 'u1', 'character');
+		const insert = `INSERT INTO tracked_journal (user_id, ref_id, source_id, date, ref_type, amount)
+			VALUES ('u1', 1, 1, 1, 'brokers_fee', -5)`;
+		expect((await env.DB.prepare(insert).run()).meta.changes).toBe(1);
+		const ignored = await env.DB.prepare(`${insert} ON CONFLICT DO NOTHING`).run();
+		expect(ignored.meta).toMatchObject({ changes: 0, rows_written: 0 });
+		const guarded = await env.DB.prepare(
+			`${insert} ON CONFLICT (user_id, ref_id) DO UPDATE SET amount = excluded.amount
+			WHERE tracked_journal.amount IS NOT excluded.amount`
+		).run();
+		expect(guarded.meta).toMatchObject({ changes: 0, rows_written: 0 });
+	});
+
+	it('skips the rebuild when no step stored a change and the ledger is current', async () => {
+		const state = personalState();
+		await synced(state);
+		const before = await ledgerState();
+
+		const output = await runSync('tracking-1-2', 1);
+
+		expect(output).toMatchObject({ ok: true, status: 'ok', ledger: 'skipped' });
+		expect((output as { streams: { changes: number }[] }).streams.every((s) => s.changes === 0)).toBe(true);
+		expect(await ledgerState()).toEqual(before);
+		expect(await connection(1)).toMatchObject({ tracking_status: 'ok', tracking_last_error: null });
+	});
+
+	it('rebuilds when a stream stored a new row', async () => {
+		const state = personalState();
+		await synced(state);
+		state.transactions = [tx(106, 16663, true), ...state.transactions];
+
+		const output = await runSync('tracking-1-2', 1);
+
+		expect(output).toMatchObject({ ok: true, ledger: 'rebuilt' });
+		expect((output as { streams: { stream: string; changes: number }[] }).streams).toContainEqual(
+			expect.objectContaining({ stream: 'transactions', changes: 1 })
+		);
+	});
+
+	it('rebuilds when a stored job changed', async () => {
+		const state = personalState();
+		await synced(state);
+		state.jobs = [{ ...job(1, 9), cost: 999 }, job(2, 1)];
+
+		expect(await runSync('tracking-1-2', 1)).toMatchObject({ ledger: 'rebuilt' });
+	});
+
+	it('rebuilds a dirty ledger, a ledger never rebuilt and one older than 24 hours', async () => {
+		const state = personalState();
+		await synced(state);
+
+		await env.DB.prepare("UPDATE ledger_state SET dirty = 1 WHERE user_id = 'u1'").run();
+		expect(await runSync('tracking-1-2', 1)).toMatchObject({ ledger: 'rebuilt' });
+		expect((await ledgerState())?.dirty).toBe(0);
+
+		await expireStreams();
+		await env.DB.prepare("DELETE FROM ledger_state WHERE user_id = 'u1'").run();
+		expect(await runSync('tracking-1-3', 1)).toMatchObject({ ledger: 'rebuilt' });
+
+		await expireStreams();
+		await env.DB.prepare("UPDATE ledger_state SET rebuilt_at = NULL WHERE user_id = 'u1'").run();
+		expect(await runSync('tracking-1-4', 1)).toMatchObject({ ledger: 'rebuilt' });
+
+		await expireStreams();
+		await env.DB.prepare("UPDATE ledger_state SET rebuilt_at = ? WHERE user_id = 'u1'")
+			.bind(Date.now() - 25 * HOUR)
+			.run();
+		expect(await runSync('tracking-1-5', 1)).toMatchObject({ ledger: 'rebuilt' });
+
+		await expireStreams();
+		await env.DB.prepare("UPDATE ledger_state SET rebuilt_at = ? WHERE user_id = 'u1'")
+			.bind(Date.now() - 23 * HOUR)
+			.run();
+		expect(await runSync('tracking-1-6', 1)).toMatchObject({ ledger: 'skipped' });
+	});
+
+	it('rebuilds when an active job ended since the last rebuild', async () => {
+		const state = personalState();
+		state.jobs = [{ ...job(1, 9, 'active'), end_date: '2099-01-01T00:00:00Z' }];
+		await synced(state);
+		expect(await runSync('tracking-1-2', 1)).toMatchObject({ ledger: 'skipped' });
+
+		// The job's end passed after the last rebuild: ESI still says active, the ledger counts it finished.
+		const now = Date.now();
+		await env.DB.batch([
+			env.DB.prepare("UPDATE ledger_state SET rebuilt_at = ? WHERE user_id = 'u1'").bind(now - 2 * HOUR),
+			env.DB.prepare("UPDATE tracked_jobs SET end_date = ? WHERE user_id = 'u1'").bind(now - HOUR)
+		]);
+		// Jobs stay fresh (not fetched): no stored change, only the ended job triggers the rebuild.
+		await env.DB.prepare(
+			"UPDATE tracking_streams SET expires_at = 0 WHERE source_id = 1 AND stream <> 'jobs'"
+		).run();
+		expect(await runSync('tracking-1-3', 1)).toMatchObject({ ledger: 'rebuilt' });
+
+		// Rebuilt after that end: nothing left to trigger.
+		await env.DB.prepare(
+			"UPDATE tracking_streams SET expires_at = 0 WHERE source_id = 1 AND stream <> 'jobs'"
+		).run();
+		expect(await runSync('tracking-1-4', 1)).toMatchObject({ ledger: 'skipped' });
+	});
+
+	it('refreshes the reader token once per run', async () => {
+		await seedConnection(1, 'u1', 'character');
+		const calls = installEve(personalState());
+		await runSync('tracking-1-1', 1);
+		expect(calls.filter((c) => c.url.startsWith('https://login.eveonline.com/'))).toHaveLength(1);
 	});
 });
